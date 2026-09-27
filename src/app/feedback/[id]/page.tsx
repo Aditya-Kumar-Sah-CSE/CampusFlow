@@ -13,8 +13,9 @@ export default async function DirectFeedbackPage({
 }) {
   const { id } = await params;
   const result = await getPublicFeedbackFormByIdAction(id);
-  const collegeLogo = result.form?.college?.logo_url || 'https://cdn.corenexis.com/f/q7sxHkG7V5h.png';
-  const collegeName = result.form?.college?.name || 'Bhagalpur College of Engineering';
+  const collegeLogo = result.form?.college?.logo_url || null;
+  const collegeName = result.form?.college?.name || 'Feedback Management System';
+  const collegeCode = result.form?.college?.code || 'FMS';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -151,7 +152,7 @@ export default async function DirectFeedbackPage({
       <footer className="bg-bce-navy text-slate-400 text-xs py-6 px-4 border-t border-bce-cobalt/30 mt-auto">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
           <div>
-            <span>Bhagalpur College of Engineering (BCE Bhagalpur) • Sabour, Bhagalpur</span>
+            <span>{collegeName} {collegeCode !== 'FMS' ? `(${collegeCode})` : ''} • Official Student Feedback Portal</span>
             <div className="text-[11px] text-slate-400 mt-1">
               Designed & Developed by{' '}
               <a

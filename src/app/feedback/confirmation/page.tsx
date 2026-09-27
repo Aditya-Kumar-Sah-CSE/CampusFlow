@@ -47,7 +47,7 @@ function ConfirmationContent() {
     try {
       await downloadPdfFile({
         url: confirmationData.downloadUrl,
-        defaultFilename: 'bce-feedback-confirmation-response.pdf',
+        defaultFilename: 'feedback-confirmation-receipt.pdf',
         onError: (err) => {
           setEmailStatusMsg(typeof err === 'string' ? err : err.message);
         },
@@ -126,7 +126,7 @@ function ConfirmationContent() {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <span className="font-bold text-lg tracking-wide text-white">
-              BCE BHAGALPUR
+              Feedback Management System
             </span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">

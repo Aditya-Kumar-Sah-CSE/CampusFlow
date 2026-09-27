@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant/resolver';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getAdminSession } from '@/lib/auth/admin-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
@@ -24,7 +25,19 @@ export async function GET(request: NextRequest) {
       slug = request.headers.get('x-tenant-slug');
     }
 
-    // 3. If still not found, check active tenant cookie (for logged-in admin)
+    // 3. If still not found, check active admin session
+    if (!slug) {
+      try {
+        const session = await getAdminSession();
+        if (session.isAuthenticated && session.activeCollege?.slug) {
+          slug = session.activeCollege.slug;
+        }
+      } catch {
+        // Outside auth context or not authenticated
+      }
+    }
+
+    // 4. If still not found, check active tenant cookie
     if (!slug) {
       const activeCollegeId = request.cookies.get('fms_active_tenant_id')?.value;
       if (activeCollegeId) {

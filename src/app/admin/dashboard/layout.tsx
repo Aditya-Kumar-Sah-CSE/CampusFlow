@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { AdminHeaderSignOut } from '@/components/admin/AdminHeaderSignOut';
 import { TenantSwitcher } from '@/components/admin/TenantSwitcher';
+import { AdminTitleSync } from '@/components/admin/AdminTitleSync';
 import { School, ShieldCheck, UserCheck, Globe } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -30,19 +31,27 @@ export async function generateMetadata(): Promise<Metadata> {
   const collegeCode = college ? college.code : 'FMS';
   const slug = college?.slug;
 
+  const appTitle = college ? `${collegeCode} Feedback` : 'Feedback Management System';
+
   return {
-    title: {
-      default: `${collegeCode} Feedback | Admin Dashboard`,
-      template: `%s | ${collegeCode} Feedback Admin`,
-    },
-    description: `Administrative Console for ${collegeName} (${collegeCode}) Faculty Feedback & Evaluation Management System.`,
+    title: college
+      ? {
+          default: `${collegeCode} Feedback | Admin Dashboard`,
+          template: `%s | ${collegeCode} Feedback Admin`,
+        }
+      : {
+          absolute: 'Feedback Management System',
+        },
+    description: college
+      ? `Administrative Console for ${collegeName} (${collegeCode}) Faculty Feedback & Evaluation Management System.`
+      : 'Multi-Tenant Institutional Faculty Feedback & Evaluation Management System.',
     manifest: slug ? `/manifest.webmanifest?college=${slug}` : '/manifest.webmanifest',
     appleWebApp: {
       capable: true,
       statusBarStyle: 'black-translucent',
-      title: `${collegeCode} Admin`,
+      title: appTitle,
     },
-    applicationName: `${collegeCode} Admin Console`,
+    applicationName: appTitle,
     icons: {
       icon: slug
         ? [
@@ -105,6 +114,7 @@ export default async function AdminDashboardLayout({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 w-full max-w-full overflow-x-hidden">
+      <AdminTitleSync college={activeCollege} />
       {/* Admin Top Header */}
       <header className="bg-bce-navy text-white border-b border-bce-cobalt/60 shadow-md sticky top-0 z-40 w-full min-w-0">
         <div className="max-w-7xl w-full mx-auto px-2.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-1.5 sm:gap-2">

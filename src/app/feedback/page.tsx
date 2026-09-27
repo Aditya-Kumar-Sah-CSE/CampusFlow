@@ -7,28 +7,68 @@ import { School, ArrowLeft, ShieldCheck, GraduationCap } from 'lucide-react';
 
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
+import { cookies } from 'next/headers';
+import type { Metadata } from 'next';
+
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
+  const supabase = await createClient();
+
+  let collegeName = 'Feedback Management System';
+  let collegeCode = 'FMS';
+
+  if (activeTenantId) {
+    const { data: college } = await supabase
+      .from('colleges')
+      .select('name, code')
+      .eq('id', activeTenantId)
+      .maybeSingle();
+    if (college) {
+      collegeName = college.name;
+      collegeCode = college.code;
+    }
+  }
+
+  return {
+    title: `${collegeCode !== 'FMS' ? `${collegeCode} Feedback` : 'Student Feedback'} | Student Evaluation Portal`,
+    description: `Official student feedback and evaluation portal for ${collegeName}.`,
+  };
+}
 
 export default async function FeedbackPortalPage() {
   const supabase = await createClient();
+  const cookieStore = await cookies();
+  const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
 
-  // Fetch active academic masters, initial active forms, and default college branding (BCE)
+  let collegeQuery = supabase.from('colleges').select('id, name, code, slug, logo_url');
+  if (activeTenantId) {
+    collegeQuery = collegeQuery.eq('id', activeTenantId);
+  } else {
+    collegeQuery = collegeQuery.eq('is_active', true).order('name', { ascending: true });
+  }
+
+  // Fetch active academic masters, initial active forms, and active college branding
   const [
     { data: academicYears },
     { data: branches },
     { data: semesters },
     initialActiveForms,
-    { data: bceCollege },
+    { data: activeColleges },
   ] = await Promise.all([
     supabase.from('academic_years').select('*').eq('is_active', true).order('name', { ascending: false }),
     supabase.from('branches').select('id, name, code, is_active').eq('is_active', true).order('name', { ascending: true }),
     supabase.from('semesters').select('*').eq('is_active', true).order('semester_number', { ascending: true }),
     getPublicActiveFormsAction({ page: 1, pageSize: 12 }),
-    supabase.from('colleges').select('id, name, code, slug, logo_url').eq('slug', 'bce-bgp').maybeSingle(),
+    collegeQuery.limit(1),
   ]);
 
-  const collegeLogo = bceCollege?.logo_url || 'https://cdn.corenexis.com/f/q7sxHkG7V5h.png';
-  const collegeName = bceCollege?.name || 'Bhagalpur College of Engineering';
+  const activeCollege = activeColleges && activeColleges.length > 0 ? activeColleges[0] : null;
+  const collegeLogo = activeCollege?.logo_url || null;
+  const collegeName = activeCollege?.name || 'Feedback Management System';
+  const collegeCode = activeCollege?.code || 'FMS';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -39,8 +79,8 @@ export default async function FeedbackPortalPage() {
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <span className="truncate">Government of Bihar | Department of Science, Technology & Technical Education</span>
           </div>
-          <Link href="/" className="text-slate-300 hover:text-white flex items-center gap-1 text-[10px] sm:text-xs shrink-0">
-            <ArrowLeft className="w-3 h-3" /> BCE Home
+          <Link href={activeCollege ? `/${activeCollege.slug}` : '/'} className="text-slate-300 hover:text-white flex items-center gap-1 text-[10px] sm:text-xs shrink-0">
+            <ArrowLeft className="w-3 h-3" /> {collegeCode !== 'FMS' ? `${collegeCode} Home` : 'Portal Home'}
           </Link>
         </div>
       </div>
@@ -110,7 +150,7 @@ export default async function FeedbackPortalPage() {
       <footer className="bg-bce-navy text-slate-400 text-xs py-4 px-2.5 sm:px-4 sm:py-6 border-t border-bce-cobalt/30 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
           <div>
-            <span>Bhagalpur College of Engineering (BCE Bhagalpur) • Official Student Evaluation Portal</span>
+            <span>{collegeName} {collegeCode !== 'FMS' ? `(${collegeCode})` : ''} • Official Student Evaluation Portal</span>
             <div className="text-[11px] text-slate-400 mt-1">
               Designed & Developed by{' '}
               <a
