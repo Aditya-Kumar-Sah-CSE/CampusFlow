@@ -68,9 +68,10 @@ export default async function TenantDirectFeedbackPage({
             </div>
           </Link>
 
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>100% Anonymous</span>
+            <span className="hidden sm:inline">100% </span>
+            <span>Anonymous</span>
           </div>
         </div>
       </header>

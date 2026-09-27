@@ -148,10 +148,16 @@ export function FormResultsConsole({ initialReport }: Props) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-600 font-medium">
-                  {report.branch} • {report.semester} • {report.academicYear}
-                  {isSemester && report.facultyGrids ? ` • ${report.facultyGrids.length} Teachers Evaluated` : ''}
-                </p>
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 font-medium">
+                  <span>{report.branch} • {report.semester} • {report.academicYear}</span>
+                  {isSemester && report.facultyGrids ? <span>• {report.facultyGrids.length} Teachers Evaluated</span> : null}
+                  <span className="text-slate-300">•</span>
+                  <span className="font-semibold text-slate-800">
+                    {report.totalSubmissions ?? report.totalResponses} total submissions •{' '}
+                    <span className="text-emerald-700">{report.includedCount ?? report.totalResponses} included</span> •{' '}
+                    <span className="text-rose-700">{report.excludedCount ?? 0} excluded</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -184,7 +190,7 @@ export function FormResultsConsole({ initialReport }: Props) {
             </Link>
 
             {isSemester ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => handleDownloadPdf(semesterOverviewPdfUrl, `semester-report-${report.formId}.pdf`, 'SEMESTER')}
@@ -336,25 +342,49 @@ export function FormResultsConsole({ initialReport }: Props) {
         </div>
       )}
 
+      {/* Exclusion Advisory Notice */}
+      {Boolean(report.excludedCount && report.excludedCount > 0) && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <Info className="w-4 h-4 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold">Manual Response Moderation Active:</span>{' '}
+              <span>
+                {report.excludedCount} submission(s) are currently excluded. All average ratings, faculty reports, and distribution metrics reflect only the{' '}
+                <strong>{report.includedCount ?? report.totalResponses} included submission(s)</strong>.
+              </span>
+            </div>
+          </div>
+          <Link
+            href={`/admin/dashboard/results/${report.formId}/responses`}
+            className="inline-flex items-center gap-1 font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+          >
+            <span>Review Excluded Responses</span>
+          </Link>
+        </div>
+      )}
+
       {/* KPI Metric Summary Blocks */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Total Responses */}
         <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
-              {isSemester && selectedGridIndex === -1 ? 'Total Students' : 'Total Submissions'}
+              {isSemester && selectedGridIndex === -1 ? 'Included Students' : 'Included Submissions'}
             </span>
             <Users className="w-4 h-4 text-blue-600" />
           </div>
           <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
             {isSemester && selectedGridIndex === -1
-              ? (currentReport.totalStudents ?? currentReport.totalResponses)
-              : currentReport.totalResponses}
+              ? (currentReport.includedCount ?? currentReport.totalStudents ?? currentReport.totalResponses)
+              : (currentReport.includedCount ?? currentReport.totalResponses)}
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
-            {isSemester && selectedGridIndex === -1
+            {currentReport.totalSubmissions !== undefined && currentReport.excludedCount !== undefined && currentReport.excludedCount > 0
+              ? `${currentReport.totalSubmissions} total • ${currentReport.excludedCount} excluded`
+              : isSemester && selectedGridIndex === -1
               ? 'Unique student submission(s)'
-              : 'Recorded in Google Sheet'}
+              : 'Active in ratings calculation'}
           </p>
         </div>
 
@@ -438,7 +468,7 @@ export function FormResultsConsole({ initialReport }: Props) {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
+            <table className="w-full text-xs text-left min-w-[550px]">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
                   <th className="py-2.5 px-3">Faculty Member</th>

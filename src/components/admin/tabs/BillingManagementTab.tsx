@@ -356,7 +356,7 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
       {/* Admin Billing Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs w-full min-w-0">
         <div className="overflow-x-auto min-w-0">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs min-w-[650px]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-slate-600">College Tenant</th>

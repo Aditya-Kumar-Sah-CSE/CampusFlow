@@ -383,7 +383,7 @@ export default async function FeedbackFormsPage({
         ) : (
           <>
             <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[650px]">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3">Form Details</th>

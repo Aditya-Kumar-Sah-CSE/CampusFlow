@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Download, X, Share, PlusSquare, School, Check, ArrowRight } from 'lucide-react';
+import { Download, X, Share, PlusSquare, School, Check } from 'lucide-react';
 import type { TenantContext } from '@/types/tenant';
 
 interface BeforeInstallPromptEvent extends Event {

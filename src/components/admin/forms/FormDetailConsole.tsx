@@ -178,20 +178,20 @@ export function FormDetailConsole({
             <div className="flex items-center gap-2">
               <Link
                 href="/admin/dashboard/forms"
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h2 className="text-xl font-bold text-slate-900">{form.title}</h2>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 break-words">{form.title}</h2>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-500 ml-8">
-              <span>Form ID: <code className="font-mono text-[11px] text-slate-700">{form.id}</code></span>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 sm:ml-8">
+              <span>Form ID: <code className="font-mono text-[11px] text-slate-700" title={form.id}>{form.id.length > 12 ? `${form.id.slice(0, 8)}…` : form.id}</code></span>
               <span>•</span>
               <span>Created {formatDateShort(form.created_at, hydrated)}</span>
               {currentUserEmail && (
                 <>
                   <span>•</span>
-                  <span>Console: <strong className="text-slate-700 font-mono text-[11px]">{currentUserEmail}</strong></span>
+                  <span className="truncate max-w-[200px]">Console: <strong className="text-slate-700 font-mono text-[11px]">{currentUserEmail}</strong></span>
                 </>
               )}
             </div>

@@ -438,14 +438,10 @@ export async function generateIndividualFacultyPDF(
     {
       left: { label: 'Academic Session: ', value: report.academicYear || 'N/A' },
       right: {
-        label: 'Report Generated: ',
-        value: new Date().toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
+        label: 'Submissions: ',
+        value: report.excludedCount && report.excludedCount > 0
+          ? `${report.includedCount ?? report.totalResponses} included (${report.totalSubmissions} total, ${report.excludedCount} excluded)`
+          : `${report.totalResponses} total`,
       },
     },
   ];
@@ -460,8 +456,8 @@ export async function generateIndividualFacultyPDF(
 
   // Box 1: Total Responses
   doc.rect(margin, currentY, boxWidth, boxHeight).fillAndStroke('#EFF6FF', '#BFDBFE');
-  doc.font('Helvetica').fontSize(7.5).fillColor('#1E40AF').text('TOTAL RESPONSES', margin, currentY + 8, { width: boxWidth, align: 'center' });
-  doc.font('Helvetica-Bold').fontSize(16).fillColor('#1E3A8A').text(String(report.totalResponses), margin, currentY + 22, { width: boxWidth, align: 'center' });
+  doc.font('Helvetica').fontSize(7.5).fillColor('#1E40AF').text(report.excludedCount ? 'INCLUDED SUBMISSIONS' : 'TOTAL RESPONSES', margin, currentY + 8, { width: boxWidth, align: 'center' });
+  doc.font('Helvetica-Bold').fontSize(16).fillColor('#1E3A8A').text(String(report.includedCount ?? report.totalResponses), margin, currentY + 22, { width: boxWidth, align: 'center' });
 
   // Box 2: Valid Responses
   const box2X = margin + boxWidth + boxGap;
@@ -516,7 +512,8 @@ export async function generateIndividualFacultyPDF(
   currentY += 14;
 
   const tableTop = currentY;
-  const colWidths = [165, 48, 48, 48, 48, 52, 58, 56]; // Total 523pt
+  // Optimized column widths: 255pt for parameter title, compact allocations for metrics (Total 523pt)
+  const colWidths = [255, 42, 38, 40, 34, 30, 34, 50];
   const headers = ['Parameter (1 to 8)', 'Avg (5.0)', 'Excell %', 'V. Good %', 'Good %', 'Sat %', 'Unsat %', 'Visual Bar'];
 
   // Table header background
@@ -534,7 +531,11 @@ export async function generateIndividualFacultyPDF(
 
   // Table Rows
   report.parameters.forEach((p, idx) => {
-    const rowHeight = 22;
+    // Dynamically calculate required text height for complete, unclipped display
+    doc.font('Helvetica-Bold').fontSize(7.5);
+    const titleText = `${p.parameterId}. ${p.title}`;
+    const textHeight = doc.heightOfString(titleText, { width: colWidths[0] - 8, lineGap: 1.5 });
+    const rowHeight = Math.max(20, Math.ceil(textHeight + 7));
     const isAlt = idx % 2 === 1;
 
     // Zebra striping
@@ -546,46 +547,50 @@ export async function generateIndividualFacultyPDF(
 
     let cellX = margin;
 
-    // Col 0: Parameter Title
+    // Col 0: Parameter Title with proper lineGap and vertical centering
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary);
-    doc.text(`${p.parameterId}. ${p.title}`, cellX + 4, currentY + 7, { width: colWidths[0] - 8, align: 'left' });
+    const textY = currentY + Math.max(3.5, (rowHeight - textHeight) / 2);
+    doc.text(titleText, cellX + 4, textY, { width: colWidths[0] - 8, align: 'left', lineGap: 1.5 });
     cellX += colWidths[0];
+
+    // Centered vertical baseline for metric cells
+    const numY = currentY + (rowHeight - 8.5) / 2;
 
     // Col 1: Avg Score
     doc.font('Helvetica-Bold').fontSize(8).fillColor(p.averageScore >= 4.0 ? '#4F46E5' : p.averageScore >= 3.0 ? '#059669' : p.averageScore >= 2.0 ? '#D97706' : '#DC2626');
-    doc.text(p.validCount > 0 ? p.averageScore.toFixed(2) : '-', cellX + 2, currentY + 7, { width: colWidths[1] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? p.averageScore.toFixed(2) : '-', cellX + 2, numY, { width: colWidths[1] - 4, align: 'center' });
     cellX += colWidths[1];
 
     // Col 2: Excellent %
     doc.font('Helvetica').fontSize(7.5).fillColor('#4338CA');
-    doc.text(p.validCount > 0 ? `${p.excellentPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[2] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.excellentPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[2] - 4, align: 'center' });
     cellX += colWidths[2];
 
     // Col 3: Very Good %
     doc.font('Helvetica').fontSize(7.5).fillColor('#059669');
-    doc.text(p.validCount > 0 ? `${p.veryGoodPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[3] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.veryGoodPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[3] - 4, align: 'center' });
     cellX += colWidths[3];
 
     // Col 4: Good %
     doc.font('Helvetica').fontSize(7.5).fillColor('#2563EB');
-    doc.text(p.validCount > 0 ? `${p.goodPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[4] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.goodPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[4] - 4, align: 'center' });
     cellX += colWidths[4];
 
     // Col 5: Satisfactory %
     doc.font('Helvetica').fontSize(7.5).fillColor('#D97706');
-    doc.text(p.validCount > 0 ? `${p.satisfactoryPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[5] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.satisfactoryPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[5] - 4, align: 'center' });
     cellX += colWidths[5];
 
     // Col 6: Unsatisfactory %
     doc.font('Helvetica').fontSize(7.5).fillColor('#DC2626');
-    doc.text(p.validCount > 0 ? `${p.unsatisfactoryPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[6] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.unsatisfactoryPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[6] - 4, align: 'center' });
     cellX += colWidths[6];
 
     // Col 7: Vector Bar Visual (Score out of 5.0 mapped to bar)
-    const barWidth = 46;
-    const barHeight = 8;
-    const barX = cellX + 5;
-    const barY = currentY + 7;
+    const barWidth = 40;
+    const barHeight = 7;
+    const barX = cellX + Math.round((colWidths[7] - barWidth) / 2);
+    const barY = currentY + (rowHeight - barHeight) / 2;
 
     // Background track
     doc.rect(barX, barY, barWidth, barHeight).fill('#E2E8F0');
@@ -808,7 +813,8 @@ export async function generateOverallFeedbackPDF(
   currentY += 14;
 
   const tableTop = currentY;
-  const colWidths = [165, 48, 48, 48, 48, 52, 58, 56];
+  // Optimized column widths: 255pt for parameter title, compact allocations for metrics (Total 523pt)
+  const colWidths = [255, 42, 38, 40, 34, 30, 34, 50];
   const headers = ['Parameter (1 to 8)', 'Avg (5.0)', 'Excell %', 'V. Good %', 'Good %', 'Sat %', 'Unsat %', 'Visual Bar'];
 
   doc.rect(margin, tableTop, contentWidth, 18).fill(COLORS.bgHeader);
@@ -824,7 +830,11 @@ export async function generateOverallFeedbackPDF(
   currentY += 18;
 
   report.parameters.forEach((p, idx) => {
-    const rowHeight = 22;
+    // Dynamically calculate required text height for complete, unclipped display
+    doc.font('Helvetica-Bold').fontSize(7.5);
+    const titleText = `${p.parameterId}. ${p.title}`;
+    const textHeight = doc.heightOfString(titleText, { width: colWidths[0] - 8, lineGap: 1.5 });
+    const rowHeight = Math.max(20, Math.ceil(textHeight + 7));
     const isAlt = idx % 2 === 1;
 
     if (isAlt) doc.rect(margin, currentY, contentWidth, rowHeight).fill('#F8FAFC');
@@ -832,36 +842,50 @@ export async function generateOverallFeedbackPDF(
 
     let cellX = margin;
 
+    // Col 0: Parameter Title with proper lineGap and vertical centering
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary);
-    doc.text(`${p.parameterId}. ${p.title}`, cellX + 4, currentY + 7, { width: colWidths[0] - 8, align: 'left' });
+    const textY = currentY + Math.max(3.5, (rowHeight - textHeight) / 2);
+    doc.text(titleText, cellX + 4, textY, { width: colWidths[0] - 8, align: 'left', lineGap: 1.5 });
     cellX += colWidths[0];
 
+    // Centered vertical baseline for metric cells
+    const numY = currentY + (rowHeight - 8.5) / 2;
+
+    // Col 1: Avg Score
     doc.font('Helvetica-Bold').fontSize(8).fillColor(p.averageScore >= 4.0 ? '#4F46E5' : p.averageScore >= 3.0 ? '#059669' : p.averageScore >= 2.0 ? '#D97706' : '#DC2626');
-    doc.text(p.validCount > 0 ? p.averageScore.toFixed(2) : '-', cellX + 2, currentY + 7, { width: colWidths[1] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? p.averageScore.toFixed(2) : '-', cellX + 2, numY, { width: colWidths[1] - 4, align: 'center' });
     cellX += colWidths[1];
 
+    // Col 2: Excellent %
     doc.font('Helvetica').fontSize(7.5).fillColor('#4338CA');
-    doc.text(p.validCount > 0 ? `${p.excellentPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[2] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.excellentPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[2] - 4, align: 'center' });
     cellX += colWidths[2];
 
+    // Col 3: Very Good %
     doc.font('Helvetica').fontSize(7.5).fillColor('#059669');
-    doc.text(p.validCount > 0 ? `${p.veryGoodPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[3] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.veryGoodPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[3] - 4, align: 'center' });
     cellX += colWidths[3];
 
-    doc.text(p.validCount > 0 ? `${p.goodPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[4] - 4, align: 'center' });
+    // Col 4: Good %
+    doc.font('Helvetica').fontSize(7.5).fillColor('#2563EB');
+    doc.text(p.validCount > 0 ? `${p.goodPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[4] - 4, align: 'center' });
     cellX += colWidths[4];
 
-    doc.text(p.validCount > 0 ? `${p.satisfactoryPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[5] - 4, align: 'center' });
+    // Col 5: Satisfactory %
+    doc.font('Helvetica').fontSize(7.5).fillColor('#D97706');
+    doc.text(p.validCount > 0 ? `${p.satisfactoryPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[5] - 4, align: 'center' });
     cellX += colWidths[5];
 
-    doc.text(p.validCount > 0 ? `${p.unsatisfactoryPct.toFixed(0)}%` : '-', cellX + 2, currentY + 7, { width: colWidths[6] - 4, align: 'center' });
+    // Col 6: Unsatisfactory %
+    doc.font('Helvetica').fontSize(7.5).fillColor('#DC2626');
+    doc.text(p.validCount > 0 ? `${p.unsatisfactoryPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: colWidths[6] - 4, align: 'center' });
     cellX += colWidths[6];
 
-    // Bar
-    const barWidth = 46;
-    const barHeight = 8;
-    const barX = cellX + 5;
-    const barY = currentY + 7;
+    // Col 7: Vector Bar Visual
+    const barWidth = 40;
+    const barHeight = 7;
+    const barX = cellX + Math.round((colWidths[7] - barWidth) / 2);
+    const barY = currentY + (rowHeight - barHeight) / 2;
     doc.rect(barX, barY, barWidth, barHeight).fill('#E2E8F0');
     if (p.validCount > 0) {
       const fillW = Math.max(2, Math.min(barWidth, (p.averageScore / 5.0) * barWidth));
@@ -977,6 +1001,8 @@ export async function generateSemesterComparativePDF(
 
   let currentY = 104;
 
+  const totalStudents = report.totalStudents ?? report.totalResponses;
+
   // Metadata Table Grid (2 Columns, dynamic wrapped row heights)
   const metadataRows: MetadataRow[] = [
     {
@@ -995,19 +1021,17 @@ export async function generateSemesterComparativePDF(
     {
       left: { label: 'Form Title: ', value: report.title || 'Semester Feedback Form' },
       right: {
-        label: 'Faculty Evaluated: ',
-        value: `${report.facultyGrids?.length || 0} Faculty-Subject Evaluations`,
+        label: 'Submissions: ',
+        value: report.excludedCount && report.excludedCount > 0
+          ? `${report.includedCount ?? totalStudents} included (${report.totalSubmissions ?? totalStudents} total, ${report.excludedCount} excluded)`
+          : `${totalStudents} submissions`,
       },
     },
     {
       left: { label: 'System: ', value: `${brand.name} Feedback System` },
       right: {
-        label: 'Report Generated: ',
-        value: new Date().toLocaleDateString('en-IN', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-        }),
+        label: 'Faculty Evaluated: ',
+        value: `${report.facultyGrids?.length || 0} Faculty-Subject Evaluations`,
       },
     },
   ];
@@ -1020,15 +1044,14 @@ export async function generateSemesterComparativePDF(
   const boxWidth = (contentWidth - boxGap * 4) / 5;
   const boxHeight = 44;
 
-  const totalStudents = report.totalStudents ?? report.totalResponses;
   const evaluatedItems = report.evaluatedItems ?? report.validResponses;
   const benchmarkScore = report.compositeAverageScore;
   const percentage = report.percentage ?? (report.hasData ? Number(((benchmarkScore / 5) * 100).toFixed(1)) : 0);
 
   // Box 1: Total Students (COUNT DISTINCT google_response_id)
   doc.rect(margin, currentY, boxWidth, boxHeight).fillAndStroke('#EFF6FF', '#BFDBFE');
-  doc.font('Helvetica').fontSize(7).fillColor('#1E40AF').text('TOTAL STUDENTS', margin, currentY + 7, { width: boxWidth, align: 'center' });
-  doc.font('Helvetica-Bold').fontSize(15).fillColor('#1E3A8A').text(String(totalStudents), margin, currentY + 20, { width: boxWidth, align: 'center' });
+  doc.font('Helvetica').fontSize(7).fillColor('#1E40AF').text(report.excludedCount ? 'INCLUDED STUDENTS' : 'TOTAL STUDENTS', margin, currentY + 7, { width: boxWidth, align: 'center' });
+  doc.font('Helvetica-Bold').fontSize(15).fillColor('#1E3A8A').text(String(report.includedCount ?? totalStudents), margin, currentY + 20, { width: boxWidth, align: 'center' });
 
   // Box 2: Evaluated Items (Total faculty-subject evaluations)
   const box2X = margin + (boxWidth + boxGap);
@@ -1150,7 +1173,8 @@ export async function generateSemesterComparativePDF(
   doc.font('Helvetica-Bold').fontSize(9.5).fillColor(COLORS.primary).text('ALL-SUBJECTS COMBINED 8-PARAMETER EVALUATION BENCHMARK', margin, currentY);
   currentY += 13;
 
-  const tableColWidths = [165, 48, 48, 48, 48, 52, 58, 56];
+  // Optimized column widths: 255pt for parameter title, compact allocations for metrics (Total 523pt)
+  const tableColWidths = [255, 42, 38, 40, 34, 30, 34, 50];
   const tableHeaders = ['Parameter (1 to 8)', 'Avg (5.0)', 'Excell %', 'V. Good %', 'Good %', 'Sat %', 'Unsat %', 'Visual Bar'];
 
   doc.rect(margin, currentY, contentWidth, 16).fill(COLORS.bgHeader);
@@ -1166,44 +1190,81 @@ export async function generateSemesterComparativePDF(
   currentY += 16;
 
   report.parameters.forEach((p, idx) => {
-    const rowHeight = 18;
+    // Dynamically calculate required text height for complete, unclipped display
+    doc.font('Helvetica-Bold').fontSize(7.5);
+    const titleText = `${p.parameterId}. ${p.title}`;
+    const textHeight = doc.heightOfString(titleText, { width: tableColWidths[0] - 8, lineGap: 1.5 });
+    const rowHeight = Math.max(19, Math.ceil(textHeight + 7));
     const isAlt = idx % 2 === 1;
+
+    // Check if adding this row would overflow current page
+    if (currentY + rowHeight > pageHeight - 65) {
+      drawFooter(doc, currentPage, 2, brand);
+      doc.addPage();
+      currentPage++;
+      drawHeader(doc, 'Semester Feedback Comparative Evaluation Report', brand, logoBuffer);
+      currentY = 104;
+
+      doc.rect(margin, currentY, contentWidth, 16).fill(COLORS.bgHeader);
+      let curXNew = margin;
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.white);
+      tableHeaders.forEach((h, i) => {
+        const align = i === 0 ? 'left' : 'center';
+        doc.text(h, curXNew + 4, currentY + 4, { width: tableColWidths[i] - 8, align });
+        curXNew += tableColWidths[i];
+      });
+      currentY += 16;
+    }
 
     if (isAlt) doc.rect(margin, currentY, contentWidth, rowHeight).fill('#F8FAFC');
     doc.strokeColor('#E2E8F0').lineWidth(0.5).moveTo(margin, currentY + rowHeight).lineTo(margin + contentWidth, currentY + rowHeight).stroke();
 
     let cellX = margin;
 
+    // Col 0: Parameter Title with proper lineGap and vertical centering
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary);
-    doc.text(`${p.parameterId}. ${p.title}`, cellX + 4, currentY + 5, { width: tableColWidths[0] - 8, align: 'left' });
+    const textY = currentY + Math.max(3.5, (rowHeight - textHeight) / 2);
+    doc.text(titleText, cellX + 4, textY, { width: tableColWidths[0] - 8, align: 'left', lineGap: 1.5 });
     cellX += tableColWidths[0];
 
+    // Centered vertical baseline for metric cells
+    const numY = currentY + (rowHeight - 8.5) / 2;
+
+    // Col 1: Avg (5.0)
     doc.font('Helvetica-Bold').fontSize(8).fillColor(p.averageScore >= 4.0 ? '#4F46E5' : p.averageScore >= 3.0 ? '#059669' : p.averageScore >= 2.0 ? '#D97706' : '#DC2626');
-    doc.text(p.validCount > 0 ? p.averageScore.toFixed(2) : '-', cellX + 2, currentY + 5, { width: tableColWidths[1] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? p.averageScore.toFixed(2) : '-', cellX + 2, numY, { width: tableColWidths[1] - 4, align: 'center' });
     cellX += tableColWidths[1];
 
+    // Col 2: Excell %
     doc.font('Helvetica').fontSize(7.5).fillColor('#4338CA');
-    doc.text(p.validCount > 0 ? `${p.excellentPct.toFixed(0)}%` : '-', cellX + 2, currentY + 5, { width: tableColWidths[2] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.excellentPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: tableColWidths[2] - 4, align: 'center' });
     cellX += tableColWidths[2];
 
+    // Col 3: V. Good %
     doc.font('Helvetica').fontSize(7.5).fillColor('#059669');
-    doc.text(p.validCount > 0 ? `${p.veryGoodPct.toFixed(0)}%` : '-', cellX + 2, currentY + 5, { width: tableColWidths[3] - 4, align: 'center' });
+    doc.text(p.validCount > 0 ? `${p.veryGoodPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: tableColWidths[3] - 4, align: 'center' });
     cellX += tableColWidths[3];
 
-    doc.text(p.validCount > 0 ? `${p.goodPct.toFixed(0)}%` : '-', cellX + 2, currentY + 5, { width: tableColWidths[4] - 4, align: 'center' });
+    // Col 4: Good %
+    doc.font('Helvetica').fontSize(7.5).fillColor('#2563EB');
+    doc.text(p.validCount > 0 ? `${p.goodPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: tableColWidths[4] - 4, align: 'center' });
     cellX += tableColWidths[4];
 
-    doc.text(p.validCount > 0 ? `${p.satisfactoryPct.toFixed(0)}%` : '-', cellX + 2, currentY + 5, { width: tableColWidths[5] - 4, align: 'center' });
+    // Col 5: Sat %
+    doc.font('Helvetica').fontSize(7.5).fillColor('#D97706');
+    doc.text(p.validCount > 0 ? `${p.satisfactoryPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: tableColWidths[5] - 4, align: 'center' });
     cellX += tableColWidths[5];
 
-    doc.text(p.validCount > 0 ? `${p.unsatisfactoryPct.toFixed(0)}%` : '-', cellX + 2, currentY + 5, { width: tableColWidths[6] - 4, align: 'center' });
+    // Col 6: Unsat %
+    doc.font('Helvetica').fontSize(7.5).fillColor('#DC2626');
+    doc.text(p.validCount > 0 ? `${p.unsatisfactoryPct.toFixed(0)}%` : '-', cellX + 2, numY, { width: tableColWidths[6] - 4, align: 'center' });
     cellX += tableColWidths[6];
 
-    // Bar
-    const barWidth = 46;
+    // Col 7: Visual Bar (vertically centered)
+    const barWidth = 40;
     const barHeight = 7;
-    const barX = cellX + 5;
-    const barY = currentY + 5;
+    const barX = cellX + Math.round((tableColWidths[7] - barWidth) / 2);
+    const barY = currentY + (rowHeight - barHeight) / 2;
     doc.rect(barX, barY, barWidth, barHeight).fill('#E2E8F0');
     if (p.validCount > 0) {
       const fillW = Math.max(2, Math.min(barWidth, (p.averageScore / 5.0) * barWidth));
@@ -1309,6 +1370,8 @@ export interface StudentResponsePDFData {
   formTitle: string;
   submittedAt?: string | null;
   submissionId?: string | null;
+  isExcluded?: boolean;
+  exclusionReason?: string | null;
   facultyEvaluations: Array<{
     facultyName: string;
     subjectName: string;
@@ -1434,7 +1497,20 @@ export async function generateStudentResponsePDF(
   }
 
   const metaHeight = renderMetadataGrid(doc, currentY, contentWidth, margin, metadataRows);
-  currentY += metaHeight + 12;
+  currentY += metaHeight + 10;
+
+  // Active Exclusion Notice if excluded by Admin/HOD
+  if (data.isExcluded) {
+    doc.rect(margin, currentY, contentWidth, 22).fill('#FEF2F2');
+    doc.rect(margin, currentY, contentWidth, 22).lineWidth(0.8).stroke('#EF4444');
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#B91C1C').text(
+      `EXCLUDED FROM ANALYTICS: This submission is excluded from faculty performance reports and rating aggregates.${data.exclusionReason ? ` Reason: ${data.exclusionReason}` : ''}`,
+      margin + 8,
+      currentY + 6.5,
+      { width: contentWidth - 16 }
+    );
+    currentY += 28;
+  }
 
   // Render Faculty Evaluations
   for (const evaluation of data.facultyEvaluations) {

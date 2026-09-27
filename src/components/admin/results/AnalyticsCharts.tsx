@@ -153,21 +153,22 @@ export function ParameterDistributionStackedChart({
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{ top: 15, right: 15, left: -20, bottom: 25 }}
+          margin={{ top: 15, right: 15, left: -15, bottom: 45 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
           <XAxis
             dataKey="name"
             stroke="#94A3B8"
             fontSize={10}
-            angle={-25}
+            angle={-35}
             textAnchor="end"
             interval={0}
+            height={45}
           />
           <YAxis
             domain={[0, 100]}
             stroke="#94A3B8"
-            fontSize={12}
+            fontSize={11}
             tickFormatter={val => `${val}%`}
           />
           <Tooltip
@@ -331,10 +332,18 @@ export function FacultyComparisonBarChart({
   return (
     <div className="w-full h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 30, left: -10, bottom: 20 }}>
+        <BarChart data={data} margin={{ top: 20, right: 15, left: -10, bottom: 50 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-          <XAxis dataKey="name" stroke="#94A3B8" fontSize={11} interval={0} />
-          <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} stroke="#94A3B8" fontSize={12} />
+          <XAxis
+            dataKey="name"
+            stroke="#94A3B8"
+            fontSize={10}
+            angle={-35}
+            textAnchor="end"
+            interval={0}
+            height={50}
+          />
+          <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} stroke="#94A3B8" fontSize={11} />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {

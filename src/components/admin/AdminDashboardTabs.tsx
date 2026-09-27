@@ -449,8 +449,8 @@ export function AdminDashboardTabs({
         />
       </div>
 
-      {/* Primary Navigation Tabs */}
-      <div className="relative z-30 bg-white p-1 sm:p-2 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-1 sm:gap-1.5 w-full max-w-full min-w-0 overflow-visible">
+      {/* Primary Navigation Tabs (Desktop only; mobile uses the AdminMobileNav drawer above) */}
+      <div className="hidden md:flex relative z-30 bg-white p-1 sm:p-2 rounded-2xl border border-slate-200 shadow-xs flex-wrap items-center gap-1 sm:gap-1.5 w-full max-w-full min-w-0 overflow-visible">
         {/* Direct Tabs: Overview, Academic Structure, Feedback Forms */}
         {directTabs.map((tab) => {
           const Icon = tab.icon;

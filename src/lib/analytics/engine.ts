@@ -587,9 +587,15 @@ export function aggregateAnalytics(
 
   let totalStudents = 0;
   let evaluatedItems = 0;
+  let totalSubmissions = 0;
+  let includedCount = 0;
+  let excludedCount = 0;
   for (const report of formReports) {
     totalStudents += report.totalStudents ?? report.totalResponses;
     evaluatedItems += report.evaluatedItems ?? report.validResponses;
+    totalSubmissions += report.totalSubmissions ?? report.totalResponses;
+    includedCount += report.includedCount ?? report.totalResponses;
+    excludedCount += report.excludedCount ?? 0;
   }
 
   const percentage =
@@ -620,6 +626,9 @@ export function aggregateAnalytics(
     formsWithResponses,
     totalResponses,
     totalStudents,
+    totalSubmissions,
+    includedCount,
+    excludedCount,
     evaluatedItems,
     percentage,
     validResponses,

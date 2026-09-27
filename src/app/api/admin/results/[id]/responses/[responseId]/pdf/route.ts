@@ -307,7 +307,30 @@ export async function GET(
       });
     }
 
-    // 10. Generate Student Response PDF Binary with Tenant Branding
+    // 10. Check Exclusion Status for Audit Clarity
+    let isExcluded = Boolean((cachedRecord as any)?.is_excluded);
+    let exclusionReason = (cachedRecord as any)?.exclusion_reason || null;
+    if (!isExcluded && (cachedRecord?.id || targetGoogleResponseId || decodedResponseId)) {
+      try {
+        const targetId = cachedRecord?.id || targetGoogleResponseId || decodedResponseId;
+        const { data: auditLogs } = await supabase
+          .from('audit_logs')
+          .select('action, details, created_at')
+          .eq('target_id', targetId)
+          .in('action', ['EXCLUDE_FEEDBACK_RESPONSE', 'INCLUDE_FEEDBACK_RESPONSE'])
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (auditLogs && auditLogs.length > 0 && auditLogs[0].action === 'EXCLUDE_FEEDBACK_RESPONSE') {
+          isExcluded = true;
+          exclusionReason = auditLogs[0].details?.reason || null;
+        }
+      } catch {
+        // Non-blocking fallback
+      }
+    }
+
+    // 11. Generate Student Response PDF Binary with Tenant Branding
     const branding = await getCollegeBranding(form.college_id);
     const pdfBuffer = await generateStudentResponsePDF({
       studentName,
@@ -319,6 +342,8 @@ export async function GET(
       formTitle: form.title,
       submittedAt,
       submissionId: targetGoogleResponseId || decodedResponseId,
+      isExcluded,
+      exclusionReason,
       facultyEvaluations,
       generalFeedback,
     }, branding);

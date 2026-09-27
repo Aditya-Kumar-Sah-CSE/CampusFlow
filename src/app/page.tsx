@@ -39,9 +39,10 @@ export default async function HomePage() {
           {/* Right: Super Admin Login Only */}
           <Link
             href="/admin/login"
-            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg shadow-sm transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg shadow-sm transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
           >
-            <span>Super Admin Login</span>
+            <span className="hidden sm:inline">Super Admin </span>
+            <span>Login</span>
             <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
           </Link>
         </div>

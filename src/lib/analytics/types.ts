@@ -99,6 +99,9 @@ export interface FormAnalyticsReport {
   googleFormUrl?: string;
   totalResponses: number;
   totalStudents?: number;
+  totalSubmissions?: number; // Total raw submissions recorded before manual exclusion
+  includedCount?: number; // Count of submissions included in analytics
+  excludedCount?: number; // Count of submissions manually excluded
   evaluatedItems?: number;
   percentage?: number;
   validResponses: number;
@@ -148,6 +151,9 @@ export interface AggregatedAnalyticsReport {
   formsWithResponses: number;
   totalResponses: number;
   totalStudents?: number;
+  totalSubmissions?: number;
+  includedCount?: number;
+  excludedCount?: number;
   evaluatedItems?: number;
   percentage?: number;
   validResponses: number;

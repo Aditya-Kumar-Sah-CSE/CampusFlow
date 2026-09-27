@@ -47,7 +47,18 @@ export function TenantSwitcher({
       const res = await setActiveCollegeAction(collegeId);
       if (res.success) {
         setIsOpen(false);
-        router.refresh();
+        // Post message to Service Worker to invalidate tenant-specific cached state
+        if (typeof window !== 'undefined') {
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'FMS_TENANT_SWITCH' });
+          }
+          // Small tick allows service worker message event to start cache purge before page reloads
+          setTimeout(() => {
+            window.location.reload();
+          }, 150);
+        } else {
+          router.refresh();
+        }
       } else {
         alert(res.error || 'Failed to switch institution.');
       }
@@ -55,21 +66,24 @@ export function TenantSwitcher({
   };
 
   return (
-    <div className="relative inline-block text-left z-50">
+    <div className="relative inline-block text-left z-50 shrink-0">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPending}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-white text-xs border border-amber-500/40 shadow-xs transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-400"
+        className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-white text-xs border border-amber-500/40 shadow-xs transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-400"
         title="Switch Active Institution"
       >
         <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-        <div className="flex flex-col text-left max-w-[160px] sm:max-w-[220px]">
-          <span className="font-semibold text-white truncate text-xs">
+        <div className="flex flex-col text-left max-w-[80px] xs:max-w-[110px] sm:max-w-[220px]">
+          <span className="font-semibold text-white truncate text-xs hidden sm:inline">
             {activeCollege ? activeCollege.name : 'Select Institution'}
           </span>
+          <span className="font-semibold text-white truncate text-xs sm:hidden">
+            {activeCollege ? activeCollege.code : 'Switch'}
+          </span>
           {activeCollege && (
-            <span className="text-[10px] text-amber-300 font-mono">
+            <span className="text-[9px] sm:text-[10px] text-amber-300 font-mono truncate">
               {activeCollege.code}
             </span>
           )}

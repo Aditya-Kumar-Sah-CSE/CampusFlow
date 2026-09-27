@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { TenantProvider } from '@/components/tenant/TenantProvider';
 import { CollegePwaInstallPrompt } from '@/components/pwa/CollegePwaInstallPrompt';
@@ -8,6 +8,33 @@ interface TenantLayoutProps {
   params: Promise<{
     tenant: string;
   }>;
+}
+
+export async function generateViewport({
+  params,
+}: {
+  params: Promise<{ tenant: string }>;
+}): Promise<Viewport> {
+  const { tenant: rawSlug } = await params;
+  try {
+    const tenant = await resolveTenantOrNotFound(rawSlug);
+    const primaryColor = tenant.branding?.primaryColor || '#0B192C';
+    return {
+      themeColor: primaryColor,
+      width: 'device-width',
+      initialScale: 1,
+      maximumScale: 5,
+      viewportFit: 'cover',
+    };
+  } catch {
+    return {
+      themeColor: '#0B192C',
+      width: 'device-width',
+      initialScale: 1,
+      maximumScale: 5,
+      viewportFit: 'cover',
+    };
+  }
 }
 
 export async function generateMetadata({
@@ -21,35 +48,31 @@ export async function generateMetadata({
 
     const title = `${tenant.name} | Faculty Feedback Portal`;
     const description = `Official Faculty Evaluation & Feedback Management System for ${tenant.name} (${tenant.shortName || tenant.code}). Submit anonymous institutional feedback.`;
+    const collegeCode = tenant.shortName || tenant.code || 'College';
 
     return {
       title: {
         default: title,
-        template: `%s | ${tenant.shortName || tenant.name}`,
+        template: `%s | ${collegeCode}`,
       },
       description,
-      manifest: `/api/manifest/${tenant.slug}`,
+      manifest: `/manifest.webmanifest?college=${tenant.slug}`,
       appleWebApp: {
         capable: true,
         statusBarStyle: 'black-translucent',
-        title: tenant.shortName || tenant.name,
+        title: `${collegeCode} Feedback`,
       },
-      applicationName: `${tenant.shortName || tenant.name} Feedback`,
+      applicationName: `${collegeCode} Feedback`,
       icons: {
-        icon: tenant.logo
-          ? [
-              { url: tenant.logo, sizes: 'any' },
-              { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-              { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-            ]
-          : [
-              { url: '/favicon.ico', sizes: '32x32' },
-              { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-              { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-            ],
-        apple: tenant.logo
-          ? [{ url: tenant.logo, sizes: '180x180' }]
-          : [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+        icon: [
+          ...(tenant.logo ? [{ url: tenant.logo, sizes: 'any' }] : []),
+          { url: `/api/tenant/${tenant.slug}/icon?size=192`, sizes: '192x192', type: 'image/png' },
+          { url: `/api/tenant/${tenant.slug}/icon?size=512`, sizes: '512x512', type: 'image/png' },
+        ],
+        apple: [
+          ...(tenant.logo ? [{ url: tenant.logo, sizes: '180x180' }] : []),
+          { url: `/api/tenant/${tenant.slug}/icon?size=180&apple=1`, sizes: '180x180', type: 'image/png' },
+        ],
       },
     };
   } catch {

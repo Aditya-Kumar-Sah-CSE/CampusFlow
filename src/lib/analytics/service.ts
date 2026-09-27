@@ -34,9 +34,71 @@ export interface ScopeFilters {
 }
 
 /**
+ * Resolves excluded response IDs and count metadata for a given feedback form.
+ * Works with native feedback_response_records is_excluded column, with seamless
+ * fallback to audit_logs for backward compatibility.
+ */
+export async function getFormExcludedResponseIds(supabase: any, formId: string): Promise<{
+  excludedIds: Set<string>;
+  totalRecordCount: number;
+  totalExcludedCount: number;
+}> {
+  const excludedIds = new Set<string>();
+  let totalRecordCount = 0;
+  let totalExcludedCount = 0;
+
+  try {
+    const { data: records, error: recErr } = await supabase
+      .from('feedback_response_records')
+      .select('id, google_response_id, is_excluded')
+      .eq('form_id', formId);
+
+    if (!recErr && records) {
+      totalRecordCount = records.length;
+      for (const r of records) {
+        if (r.is_excluded) {
+          totalExcludedCount++;
+          if (r.google_response_id) excludedIds.add(r.google_response_id.trim());
+          if (r.id) excludedIds.add(r.id.trim());
+        }
+      }
+    } else {
+      // Fallback: Check audit_logs if is_excluded column is not yet present on table
+      const { data: auditLogs } = await supabase
+        .from('audit_logs')
+        .select('action, entity_id, metadata, created_at')
+        .in('action', ['EXCLUDE_FEEDBACK_RESPONSE', 'INCLUDE_FEEDBACK_RESPONSE'])
+        .order('created_at', { ascending: true });
+
+      if (auditLogs) {
+        for (const log of auditLogs) {
+          const meta = (log.metadata as any) || {};
+          if (meta.formId === formId) {
+            const respId = meta.googleResponseId || log.entity_id;
+            if (log.action === 'EXCLUDE_FEEDBACK_RESPONSE') {
+              if (respId) excludedIds.add(respId.trim());
+              if (meta.recordId) excludedIds.add(meta.recordId.trim());
+            } else if (log.action === 'INCLUDE_FEEDBACK_RESPONSE') {
+              if (respId) excludedIds.delete(respId.trim());
+              if (meta.recordId) excludedIds.delete(meta.recordId.trim());
+            }
+          }
+        }
+        totalExcludedCount = excludedIds.size;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not determine response exclusions for form', formId, err);
+  }
+
+  return { excludedIds, totalRecordCount, totalExcludedCount };
+}
+
+/**
  * Fetches real-time analytics for a specific feedback form.
  * Directly sources responses from the connected Google Sheet and normalizes them.
  * Authoritative single source of truth for both dashboard and PDF reporting.
+ * Excludes responses marked as excluded by Admin/HOD.
  */
 export async function getFormAnalyticsData(
   formId: string,
@@ -86,25 +148,37 @@ export async function getFormAnalyticsData(
     }
   }
 
-  // 3. Fetch Real Response Data from Google Sheet
+  // 3. Resolve Excluded Response IDs (Admin / HOD manual exclusion)
+  const { excludedIds, totalRecordCount, totalExcludedCount } = await getFormExcludedResponseIds(supabase, formId);
+
+  // 4. Fetch Real Response Data from Google Sheet
   let canonicalRows: ReturnType<typeof normalizeSheetRows> = [];
   const isSemester = form.form_type === 'SEMESTER_FEEDBACK';
   let facultyGrids: FacultyGridAnalyticsItem[] = [];
+  let totalRawSubmissions = 0;
 
   if (form.google_sheet_id && isGoogleConfigured()) {
     try {
       const sheetData = await fetchRawSheetResponses(form.google_sheet_id, form.college_id);
 
       if (sheetData.rows.length > 0) {
+        const rawCanonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+        totalRawSubmissions = countUniqueStudentResponses(rawCanonicalRows);
+
         if (isSemester) {
           const detectedGrids = detectMultiGrids(sheetData.headers);
 
           if (detectedGrids.length > 0) {
             facultyGrids = detectedGrids.map(grid => {
-              const gridRows = normalizeSheetRowsForSpecificGrid(
+              const rawGridRows = normalizeSheetRowsForSpecificGrid(
                 sheetData.headers,
                 sheetData.rows,
                 grid.paramColIndices
+              );
+
+              // Filter out EXCLUDED responses so faculty reports reflect ONLY included responses
+              const includedGridRows = rawGridRows.filter(
+                r => !excludedIds.has(r.responseId?.trim())
               );
 
               const gridReport = calculateFormAnalytics({
@@ -121,8 +195,12 @@ export async function getFormAnalyticsData(
                 lastSyncedAt: form.last_synced_at,
                 googleSheetUrl: form.google_sheet_url,
                 googleFormUrl: form.google_form_url,
-                responses: gridRows,
+                responses: includedGridRows,
               });
+
+              gridReport.totalSubmissions = countUniqueStudentResponses(rawGridRows);
+              gridReport.includedCount = countUniqueStudentResponses(includedGridRows);
+              gridReport.excludedCount = Math.max(0, gridReport.totalSubmissions - gridReport.includedCount);
 
               return {
                 gridTitle: grid.gridTitle,
@@ -133,25 +211,26 @@ export async function getFormAnalyticsData(
               };
             });
 
-            // Combined: Each student's grid evaluation becomes a logical evaluation record
-            canonicalRows = detectedGrids.flatMap(grid =>
-              normalizeSheetRowsForSpecificGrid(
+            // Combined: Each student's grid evaluation (included only)
+            canonicalRows = detectedGrids.flatMap(grid => {
+              const rawRows = normalizeSheetRowsForSpecificGrid(
                 sheetData.headers,
                 sheetData.rows,
                 grid.paramColIndices
-              )
-            );
+              );
+              return rawRows.filter(r => !excludedIds.has(r.responseId?.trim()));
+            });
           } else {
-            canonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+            canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
           }
         } else {
-          canonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+          canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
         }
 
-        // Authoritative unique student response count (1 Google response ID = 1 student response)
+        // Authoritative unique student response count (included responses)
         const uniqueStudentCount = countUniqueStudentResponses(canonicalRows);
 
-        // Update database response_count if changed
+        // Update database response_count if changed (representing active included submissions)
         if (form.response_count !== uniqueStudentCount && uniqueStudentCount > 0) {
           await supabase
             .from('feedback_forms')
@@ -167,7 +246,7 @@ export async function getFormAnalyticsData(
     }
   }
 
-  // 4. Compute Unified Analytics
+  // 5. Compute Unified Analytics (strictly using INCLUDED canonical responses)
   const report = calculateFormAnalytics({
     formId: form.id,
     title: form.title,
@@ -185,13 +264,20 @@ export async function getFormAnalyticsData(
     responses: canonicalRows,
   });
 
+  const totalRawCount = Math.max(totalRawSubmissions, totalRecordCount);
+  const includedStudents = countUniqueStudentResponses(canonicalRows);
+  const excludedStudents = Math.max(totalRawCount - includedStudents, totalExcludedCount);
+
+  report.totalSubmissions = totalRawCount;
+  report.includedCount = includedStudents;
+  report.excludedCount = excludedStudents;
+
   if (isSemester) {
     report.isSemesterForm = true;
     report.facultyGrids = facultyGrids;
-    const uniqueStudents = countUniqueStudentResponses(canonicalRows);
-    if (uniqueStudents > 0) {
-      report.totalResponses = uniqueStudents;
-      report.totalStudents = uniqueStudents;
+    if (includedStudents > 0) {
+      report.totalResponses = includedStudents;
+      report.totalStudents = includedStudents;
     }
   }
 
@@ -316,19 +402,30 @@ export async function getOverallAnalyticsData(
     const isSemesterForm = form.form_type === 'SEMESTER_FEEDBACK';
     let facultyGrids: FacultyGridAnalyticsItem[] = [];
 
+    const { excludedIds, totalRecordCount, totalExcludedCount } = await getFormExcludedResponseIds(supabase, form.id);
+    let totalRawSubmissions = 0;
+
     if (form.google_sheet_id && isGoogleConfigured()) {
       try {
         const sheetData = await fetchRawSheetResponses(form.google_sheet_id, form.college_id);
         if (sheetData.rows.length > 0) {
+          const rawCanonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+          totalRawSubmissions = countUniqueStudentResponses(rawCanonicalRows);
+
           if (isSemesterForm) {
             const detectedGrids = detectMultiGrids(sheetData.headers);
             if (detectedGrids.length > 0) {
               facultyGrids = detectedGrids.map(grid => {
-                const gridRows = normalizeSheetRowsForSpecificGrid(
+                const rawGridRows = normalizeSheetRowsForSpecificGrid(
                   sheetData.headers,
                   sheetData.rows,
                   grid.paramColIndices
                 );
+
+                const includedGridRows = rawGridRows.filter(
+                  r => !excludedIds.has(r.responseId?.trim())
+                );
+
                 const gridReport = calculateFormAnalytics({
                   formId: form.id,
                   title: `${grid.subjectName} — ${grid.facultyName}`,
@@ -343,8 +440,13 @@ export async function getOverallAnalyticsData(
                   lastSyncedAt: form.last_synced_at,
                   googleSheetUrl: form.google_sheet_url,
                   googleFormUrl: form.google_form_url,
-                  responses: gridRows,
+                  responses: includedGridRows,
                 });
+
+                gridReport.totalSubmissions = countUniqueStudentResponses(rawGridRows);
+                gridReport.includedCount = countUniqueStudentResponses(includedGridRows);
+                gridReport.excludedCount = Math.max(0, gridReport.totalSubmissions - gridReport.includedCount);
+
                 return {
                   gridTitle: grid.gridTitle,
                   facultyName: grid.facultyName,
@@ -354,18 +456,19 @@ export async function getOverallAnalyticsData(
                 };
               });
 
-              canonicalRows = detectedGrids.flatMap(grid =>
-                normalizeSheetRowsForSpecificGrid(
+              canonicalRows = detectedGrids.flatMap(grid => {
+                const rawRows = normalizeSheetRowsForSpecificGrid(
                   sheetData.headers,
                   sheetData.rows,
                   grid.paramColIndices
-                )
-              );
+                );
+                return rawRows.filter(r => !excludedIds.has(r.responseId?.trim()));
+              });
             } else {
-              canonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+              canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
             }
           } else {
-            canonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+            canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
           }
         }
       } catch (err) {
@@ -390,9 +493,21 @@ export async function getOverallAnalyticsData(
       responses: canonicalRows,
     });
 
+    const totalRawCount = Math.max(totalRawSubmissions, totalRecordCount);
+    const includedStudents = countUniqueStudentResponses(canonicalRows);
+    const excludedStudents = Math.max(totalRawCount - includedStudents, totalExcludedCount);
+
+    singleReport.totalSubmissions = totalRawCount;
+    singleReport.includedCount = includedStudents;
+    singleReport.excludedCount = excludedStudents;
+
     if (isSemesterForm) {
       singleReport.isSemesterForm = true;
       singleReport.facultyGrids = facultyGrids;
+      if (includedStudents > 0) {
+        singleReport.totalResponses = includedStudents;
+        singleReport.totalStudents = includedStudents;
+      }
     }
 
     formReports.push(singleReport);

@@ -31,10 +31,17 @@ export async function GET(
     const shortName = tenant.shortName || tenant.code || 'College';
     const primaryColor = tenant.branding?.primaryColor || '#0B192C';
 
+    const formattedName = collegeName.toLowerCase().includes('feedback')
+      ? collegeName
+      : `${collegeName} Feedback`;
+    const formattedShortName = shortName.toLowerCase().includes('feedback')
+      ? shortName
+      : `${shortName} Feedback`;
+
     const manifest = {
       $schema: 'https://json.schemastore.org/web-manifest-combined.json',
-      name: `${collegeName} Feedback Portal`,
-      short_name: shortName,
+      name: formattedName,
+      short_name: formattedShortName,
       description: `Official Faculty Evaluation & Feedback Management System for ${collegeName} (${shortName})`,
       id: `/${tenant.slug}/`,
       start_url: `/${tenant.slug}`,
@@ -57,22 +64,28 @@ export async function GET(
             ]
           : []),
         {
-          src: '/icon-192.png',
+          src: `/api/tenant/${tenant.slug}/icon?size=192`,
           sizes: '192x192',
           type: 'image/png',
           purpose: 'any',
         },
         {
-          src: '/icon-512.png',
+          src: `/api/tenant/${tenant.slug}/icon?size=512`,
           sizes: '512x512',
           type: 'image/png',
           purpose: 'any',
         },
         {
-          src: '/icon-maskable.png',
+          src: `/api/tenant/${tenant.slug}/icon?size=512&maskable=1`,
           sizes: '512x512',
           type: 'image/png',
           purpose: 'maskable',
+        },
+        {
+          src: `/api/tenant/${tenant.slug}/icon?size=512&format=svg`,
+          sizes: '512x512',
+          type: 'image/svg+xml',
+          purpose: 'any',
         },
       ],
       shortcuts: [
@@ -83,7 +96,7 @@ export async function GET(
           url: `/${tenant.slug}/feedback`,
           icons: [
             {
-              src: '/icon-192.png',
+              src: `/api/tenant/${tenant.slug}/icon?size=192`,
               sizes: '192x192',
               type: 'image/png',
             },
@@ -96,7 +109,7 @@ export async function GET(
           url: `/${tenant.slug}/admin/login`,
           icons: [
             {
-              src: '/icon-192.png',
+              src: `/api/tenant/${tenant.slug}/icon?size=192`,
               sizes: '192x192',
               type: 'image/png',
             },

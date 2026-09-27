@@ -1068,7 +1068,7 @@ export function AcademicManagementTab({
                   No faculty members found matching your search.
                 </div>
               ) : (
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[580px]">
                   <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Name</th>
@@ -1143,9 +1143,9 @@ export function AcademicManagementTab({
 
           {/* Edit Faculty Modal */}
           {editingFaculty && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <Edit2 className="w-4 h-4 text-bce-cobalt" />
                     <span>Edit Faculty Member</span>
@@ -1159,7 +1159,7 @@ export function AcademicManagementTab({
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdateFacultySubmit} className="p-5 space-y-4">
+                <form onSubmit={handleUpdateFacultySubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Faculty Name
@@ -1407,7 +1407,7 @@ export function AcademicManagementTab({
                   No subjects registered matching your criteria.
                 </div>
               ) : (
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[560px]">
                   <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Code</th>
@@ -1486,9 +1486,9 @@ export function AcademicManagementTab({
 
           {/* Edit Subject Modal */}
           {editingSubject && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <Edit2 className="w-4 h-4 text-bce-cobalt" />
                     <span>Edit Course Subject</span>
@@ -1502,7 +1502,7 @@ export function AcademicManagementTab({
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdateSubjectSubmit} className="p-5 space-y-4">
+                <form onSubmit={handleUpdateSubjectSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Subject Name
@@ -1774,7 +1774,7 @@ export function AcademicManagementTab({
                   No faculty assignments configured for the selected filters.
                 </div>
               ) : (
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-xs min-w-[560px]">
                   <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Faculty</th>
@@ -1842,9 +1842,9 @@ export function AcademicManagementTab({
 
           {/* Edit Assignment Modal */}
           {editingAssignment && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <Edit2 className="w-4 h-4 text-bce-cobalt" />
                     <span>Edit Course Assignment</span>
@@ -1858,7 +1858,7 @@ export function AcademicManagementTab({
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdateAssignmentSubmit} className="p-5 space-y-4">
+                <form onSubmit={handleUpdateAssignmentSubmit} className="p-4 sm:p-5 space-y-4 overflow-y-auto">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Faculty Member
@@ -2036,7 +2036,7 @@ export function AcademicManagementTab({
               <h4 className="text-sm font-bold text-slate-900">Academic Sessions ({yearList.length})</h4>
             </div>
             <div className="overflow-x-auto min-w-0">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[360px]">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
                 <tr>
                   <th className="px-5 py-3">Session Name</th>
@@ -2123,7 +2123,7 @@ export function AcademicManagementTab({
               <h4 className="text-sm font-bold text-slate-900">Engineering Branches ({branchList.length})</h4>
             </div>
             <div className="overflow-x-auto min-w-0">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[480px]">
               <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
                 <tr>
                   <th className="px-5 py-3">Code</th>
@@ -2495,7 +2495,7 @@ export function AcademicManagementTab({
                 </div>
               ) : (
                 <div className="overflow-x-auto min-w-0">
-                  <table className="w-full text-left text-xs">
+                  <table className="w-full text-left text-xs min-w-[500px]">
                     <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
                       <tr>
                         <th className="px-5 py-3">Semester</th>
@@ -2555,9 +2555,9 @@ export function AcademicManagementTab({
 
           {/* Delete Semester Confirmation Modal */}
           {deletingSemester && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
+              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between shrink-0">
                   <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4 text-rose-600" />
                     <span>Confirm Semester Deletion</span>
