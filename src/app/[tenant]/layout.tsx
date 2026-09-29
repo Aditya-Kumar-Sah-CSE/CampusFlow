@@ -56,7 +56,7 @@ export async function generateMetadata({
         template: `%s | ${collegeCode}`,
       },
       description,
-      manifest: `/manifest.webmanifest?college=${tenant.slug}`,
+      manifest: `/api/manifest/${tenant.slug}`,
       appleWebApp: {
         capable: true,
         statusBarStyle: 'black-translucent',

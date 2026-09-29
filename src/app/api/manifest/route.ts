@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
           short_name: formattedShortName,
           description: `Official Faculty Evaluation & Feedback Management System for ${collegeName} (${shortName})`,
           id: `/${tenant.slug}/`,
-          start_url: `/${tenant.slug}`,
+          start_url: `/${tenant.slug}/`,
           scope: `/${tenant.slug}/`,
           display: 'standalone',
           orientation: 'portrait',
