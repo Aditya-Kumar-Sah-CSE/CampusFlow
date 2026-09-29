@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition, useCallback, useRef, useEffect } from 'react';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Sparkles,
   Search,
@@ -67,10 +67,9 @@ function getPageNumbers(current: number, total: number): (number | '...')[] {
   return pages;
 }
 
-export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, initialSearch = '' }: Props) {
+export function AllFeedbackFormsSection({ initialData, collegeId, initialSearch = '' }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const [data, setData] = useState<PublicActiveFormsResult>(initialData);
   const [search, setSearch] = useState(initialSearch);
