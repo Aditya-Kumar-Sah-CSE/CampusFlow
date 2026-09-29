@@ -5,6 +5,7 @@ import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
+import { getPwaInstallCount } from '@/lib/pwa/installations';
 import { School, UserCheck, ArrowRight, ExternalLink } from 'lucide-react';
 import type { Branch, AcademicYear, Semester } from '@/types/database';
 
@@ -22,9 +23,10 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
   // Fetch tenant-scoped academic data and active forms
-  const [{ academicYears, branches, semesters }, initialActiveForms] = await Promise.all([
+  const [{ academicYears, branches, semesters }, initialActiveForms, pwaInstallCount] = await Promise.all([
     getCachedAcademicMasters(tenant.collegeId),
     getPublicActiveFormsAction({ page: 1, pageSize: 12, collegeId: tenant.collegeId }),
+    getPwaInstallCount(tenant.collegeId),
   ]);
 
   return (
@@ -142,6 +144,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
           <p>
             Multi-Tenant Feedback Management System • Confidential & Anonymous Institutional Feedback
           </p>
+          <p className="text-[11px] text-slate-500">PWA Installations: {pwaInstallCount}</p>
           <p className="text-[11px] text-slate-500">
             Designed & Developed by{' '}
             <a

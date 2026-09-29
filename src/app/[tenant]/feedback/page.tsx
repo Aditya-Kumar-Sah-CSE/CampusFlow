@@ -5,6 +5,7 @@ import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
+import { getPwaInstallCount } from '@/lib/pwa/installations';
 import { School, ArrowLeft, ShieldCheck, GraduationCap } from 'lucide-react';
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
@@ -21,9 +22,10 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
   // Fetch tenant-scoped academic masters and active forms
-  const [{ academicYears, branches, semesters }, initialActiveForms] = await Promise.all([
+  const [{ academicYears, branches, semesters }, initialActiveForms, pwaInstallCount] = await Promise.all([
     getCachedAcademicMasters(tenant.collegeId),
     getPublicActiveFormsAction({ page: 1, pageSize: 12, collegeId: tenant.collegeId }),
+    getPwaInstallCount(tenant.collegeId),
   ]);
 
   return (
@@ -146,6 +148,7 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <span>PWA Installations: {pwaInstallCount}</span>
             <Link href={`/${tenant.slug}`} className="text-slate-300 hover:text-white transition-colors">
               Portal Home
             </Link>

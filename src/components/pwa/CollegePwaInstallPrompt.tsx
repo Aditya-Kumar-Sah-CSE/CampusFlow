@@ -99,22 +99,42 @@ export function CollegePwaInstallPrompt({ tenant }: CollegePwaInstallPromptProps
       }
     };
 
-    // 6. Listen for app installed event
-    const handleAppInstalled = () => {
-      setIsInstalledJustNow(true);
-      setTimeout(() => setShowPrompt(false), 2500);
-    };
-
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     window.addEventListener('fms:open-college-pwa-install', handleOpenTrigger);
-    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
       window.removeEventListener('fms:open-college-pwa-install', handleOpenTrigger);
-      window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, [dismissKey]);
+  }, [dismissKey, tenant.collegeId]);
+
+  // Keep tracking active even when the install prompt is dismissed or the app is standalone.
+  useEffect(() => {
+    const handleAppInstalled = () => {
+      setIsInstalledJustNow(true);
+      try {
+        const storageKey = 'fms_pwa_installation_id';
+        let installationId = localStorage.getItem(storageKey);
+        if (!installationId) {
+          installationId = crypto.randomUUID();
+          localStorage.setItem(storageKey, installationId);
+        }
+        const ua = navigator.userAgent.toLowerCase();
+        const deviceType = /mobile|android|iphone|ipad/.test(ua) ? 'mobile' : 'desktop';
+        void fetch('/api/pwa/installations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ collegeId: tenant.collegeId, installationId, deviceType }),
+          keepalive: true,
+        }).catch((error) => console.warn('[College PWA] Installation tracking failed:', error));
+      } catch (error) {
+        console.warn('[College PWA] Installation tracking unavailable:', error);
+      }
+      setTimeout(() => setShowPrompt(false), 2500);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+    return () => window.removeEventListener('appinstalled', handleAppInstalled);
+  }, [tenant.collegeId]);
 
   const handleInstallClick = async () => {
     if (isIos) {
