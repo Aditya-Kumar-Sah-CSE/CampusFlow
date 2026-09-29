@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useCallback, useRef, useEffect } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import {
   Sparkles,
   Search,
@@ -21,9 +22,16 @@ import {
 } from '@/app/feedback/actions';
 import { useHydrated, formatDateShort } from '@/lib/hooks/use-hydrated';
 
+/** Forms per page — desktop shows a 3×2 grid */
+const PAGE_SIZE = 6;
+
 interface Props {
   initialData: PublicActiveFormsResult;
   collegeId?: string;
+  /** Tenant slug, used to construct URL-state paths */
+  tenantSlug?: string;
+  /** Initial search term from URL (SSR) */
+  initialSearch?: string;
 }
 
 /**
@@ -59,27 +67,67 @@ function getPageNumbers(current: number, total: number): (number | '...')[] {
   return pages;
 }
 
-export function AllFeedbackFormsSection({ initialData, collegeId }: Props) {
+export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, initialSearch = '' }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [data, setData] = useState<PublicActiveFormsResult>(initialData);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch);
   const [currentPage, setCurrentPage] = useState(initialData.page || 1);
   const [isPending, startTransition] = useTransition();
   const hydrated = useHydrated();
 
+  // Debounce timer ref for search
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Build a new URL preserving the current pathname but updating page/search params.
+   * Omits page=1 and empty search for cleaner URLs.
+   */
+  const buildUrl = useCallback(
+    (page: number, searchTerm: string) => {
+      const params = new URLSearchParams();
+      if (page > 1) params.set('page', String(page));
+      if (searchTerm.trim()) params.set('search', searchTerm.trim());
+      const qs = params.toString();
+      return qs ? `${pathname}?${qs}` : pathname;
+    },
+    [pathname]
+  );
+
+  /**
+   * Push URL state without full navigation — uses router.replace for shallow update.
+   */
+  const syncUrl = useCallback(
+    (page: number, searchTerm: string) => {
+      const url = buildUrl(page, searchTerm);
+      router.replace(url, { scroll: false });
+    },
+    [buildUrl, router]
+  );
+
   const handleSearchChange = (val: string) => {
     setSearch(val);
-    startTransition(async () => {
-      const res = await getPublicActiveFormsAction({
-        page: 1,
-        pageSize: 12,
-        search: val,
-        collegeId,
+
+    // Debounce search requests to avoid spamming the server on fast typing
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+    searchTimerRef.current = setTimeout(() => {
+      startTransition(async () => {
+        const res = await getPublicActiveFormsAction({
+          page: 1,
+          pageSize: PAGE_SIZE,
+          search: val,
+          collegeId,
+        });
+        if (res.success) {
+          setData(res);
+          setCurrentPage(1);
+          syncUrl(1, val);
+        }
       });
-      if (res.success) {
-        setData(res);
-        setCurrentPage(1);
-      }
-    });
+    }, 300);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -87,16 +135,26 @@ export function AllFeedbackFormsSection({ initialData, collegeId }: Props) {
     startTransition(async () => {
       const res = await getPublicActiveFormsAction({
         page: newPage,
-        pageSize: 12,
+        pageSize: PAGE_SIZE,
         search,
         collegeId,
       });
       if (res.success) {
+        // Clamp to valid page if backend returns fewer pages than requested
+        const safePage = Math.min(newPage, res.totalPages || 1);
         setData(res);
-        setCurrentPage(newPage);
+        setCurrentPage(safePage);
+        syncUrl(safePage, search);
       }
     });
   };
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
 
   return (
     <section className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 border-t border-slate-200">

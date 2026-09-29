@@ -15,16 +15,26 @@ interface TenantFeedbackPageProps {
   params: Promise<{
     tenant: string;
   }>;
+  searchParams: Promise<{
+    page?: string;
+    search?: string;
+  }>;
 }
 
-export default async function TenantFeedbackPortalPage({ params }: TenantFeedbackPageProps) {
+export default async function TenantFeedbackPortalPage({ params, searchParams }: TenantFeedbackPageProps) {
   const { tenant: rawSlug } = await params;
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
+  // Read URL search params for initial page/search state
+  const sp = await searchParams;
+  const initialPage = Math.max(1, parseInt(sp.page || '1', 10) || 1);
+  const initialSearch = (sp.search || '').trim();
+
   // Fetch tenant-scoped academic masters and active forms
+  const PAGE_SIZE = 6;
   const [{ academicYears, branches, semesters }, initialActiveForms, pwaInstallCount] = await Promise.all([
     getCachedAcademicMasters(tenant.collegeId),
-    getPublicActiveFormsAction({ page: 1, pageSize: 12, collegeId: tenant.collegeId }),
+    getPublicActiveFormsAction({ page: initialPage, pageSize: PAGE_SIZE, search: initialSearch || undefined, collegeId: tenant.collegeId }),
     getPwaInstallCount(tenant.collegeId),
   ]);
 
@@ -108,7 +118,7 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
         />
 
         {/* All Currently Active Feedback Forms Section for this Tenant */}
-        <AllFeedbackFormsSection initialData={initialActiveForms} collegeId={tenant.collegeId} />
+        <AllFeedbackFormsSection initialData={initialActiveForms} collegeId={tenant.collegeId} tenantSlug={tenant.slug} initialSearch={initialSearch} />
       </main>
 
       {/* Footer */}

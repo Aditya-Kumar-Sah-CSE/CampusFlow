@@ -61,7 +61,7 @@ export default async function FeedbackPortalPage() {
     supabase.from('academic_years').select('*').eq('is_active', true).order('name', { ascending: false }),
     supabase.from('branches').select('id, name, code, is_active').eq('is_active', true).order('name', { ascending: true }),
     supabase.from('semesters').select('*').eq('is_active', true).order('semester_number', { ascending: true }),
-    getPublicActiveFormsAction({ page: 1, pageSize: 12 }),
+    getPublicActiveFormsAction({ page: 1, pageSize: 6 }),
     collegeQuery.limit(1),
   ]);
 
