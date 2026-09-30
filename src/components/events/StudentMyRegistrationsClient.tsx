@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   UserCheck,
@@ -23,26 +23,14 @@ import {
   loginToEventAction,
   logoutFromEventAction,
   getStudentRegistrationsAction,
+  type StudentProgramRegistrationItem,
 } from '@/app/admin/events/event-registration-actions';
-
-interface ProgramRegItem {
-  registrationNumber: string;
-  programName: string;
-  participationType: string;
-  teamId: string;
-  teamName: string;
-  participantRole: string;
-  paymentAmount: number;
-  paymentStatus: string;
-  paymentReference: string;
-  registrationStatus: string;
-  registeredAt: string;
-}
+import { ManageTeamModal } from './ManageTeamModal';
 
 interface Props {
   event: CollegeEvent;
   initialSession: EventSessionPayload | null;
-  initialPrograms: ProgramRegItem[];
+  initialPrograms: StudentProgramRegistrationItem[];
 }
 
 export function StudentMyRegistrationsClient({
@@ -51,7 +39,8 @@ export function StudentMyRegistrationsClient({
   initialPrograms,
 }: Props) {
   const [session, setSession] = useState<EventSessionPayload | null>(initialSession);
-  const [programs, setPrograms] = useState<ProgramRegItem[]>(initialPrograms);
+  const [programs, setPrograms] = useState<StudentProgramRegistrationItem[]>(initialPrograms);
+  const [selectedTeamProgram, setSelectedTeamProgram] = useState<StudentProgramRegistrationItem | null>(null);
 
   // Login inputs
   const [loginRegNum, setLoginRegNum] = useState('');
@@ -92,7 +81,7 @@ export function StudentMyRegistrationsClient({
         // Fetch their programs
         const regRes = await getStudentRegistrationsAction(event.id);
         if (regRes.success && regRes.programs) {
-          setPrograms(regRes.programs as ProgramRegItem[]);
+          setPrograms(regRes.programs);
         }
       } else {
         setErrorMsg(res.error || 'Verification failed. Please check your credentials.');
@@ -108,7 +97,37 @@ export function StudentMyRegistrationsClient({
     await logoutFromEventAction(event.id);
     setSession(null);
     setPrograms([]);
+    setSelectedTeamProgram(null);
   };
+
+  const refreshRegistrations = async () => {
+    const regRes = await getStudentRegistrationsAction(event.id);
+    if (regRes.success && regRes.programs) {
+      setPrograms(regRes.programs);
+      if (selectedTeamProgram) {
+        const updated = regRes.programs.find(
+          pr =>
+            pr.registrationNumber === selectedTeamProgram.registrationNumber ||
+            (pr.teamId && pr.teamId === selectedTeamProgram.teamId)
+        );
+        if (updated) setSelectedTeamProgram(updated);
+      }
+    }
+  };
+
+  // Support ?manageTeam=<teamId> query param to open modal automatically
+  useEffect(() => {
+    if (typeof window !== 'undefined' && programs.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const targetTeam = params.get('manageTeam');
+      if (targetTeam) {
+        const match = programs.find(p => p.teamId?.toUpperCase() === targetTeam.toUpperCase());
+        if (match) {
+          setSelectedTeamProgram(match);
+        }
+      }
+    }
+  }, [programs]);
 
   // NOT LOGGED IN VIEW
   if (!session) {
@@ -268,43 +287,124 @@ export function StudentMyRegistrationsClient({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {programs.map((p, idx) => (
-              <div
-                key={idx}
-                className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold text-slate-900">{p.programName}</span>
-                  <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                    {p.participationType}
-                  </span>
-                </div>
+            {programs.map((p, idx) => {
+              const isTeamProgram = Boolean(p.teamId || p.participationType === 'TEAM');
+              const isLeader = p.participantRole === 'TEAM LEADER';
+              const memberCount = p.teamMembers?.length || 1;
 
-                <div className="space-y-1.5 text-xs text-slate-600 border-t border-slate-100 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Program ID:</span>
-                    <span className="font-mono font-bold text-slate-800">{p.registrationNumber}</span>
+              return (
+                <div
+                  key={idx}
+                  className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-900">{p.programName}</span>
+                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                        {p.participationType}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs text-slate-600 border-t border-slate-100 pt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Program ID:</span>
+                        <span className="font-mono font-bold text-slate-800">{p.registrationNumber}</span>
+                      </div>
+
+                      {p.teamName && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Team:</span>
+                          <span className="font-bold text-purple-700 flex items-center gap-1">
+                            {p.teamName}
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 font-semibold">
+                              {isLeader ? 'Leader' : 'Member'}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+
+                      {isTeamProgram && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Roster:</span>
+                          <span className="text-slate-700 font-medium">
+                            {memberCount} member{memberCount > 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-400">Payment:</span>
+                        <span
+                          className={`font-semibold ${
+                            p.paymentStatus === 'VERIFIED' || p.paymentStatus === 'PAID'
+                              ? 'text-emerald-600'
+                              : 'text-amber-600'
+                          }`}
+                        >
+                          {p.paymentStatus}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {p.teamName && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Team:</span>
-                      <span className="font-bold text-purple-700">{p.teamName} ({p.participantRole})</span>
+                  {/* Team Management Action Button */}
+                  {isTeamProgram && (
+                    <div className="pt-2 border-t border-slate-100">
+                      {isLeader ? (
+                        p.isRegistrationOpen ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTeamProgram(p)}
+                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                            <span>Manage Team Members ({memberCount})</span>
+                          </button>
+                        ) : (
+                          <div className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTeamProgram(p)}
+                              className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <Users className="w-3.5 h-3.5" />
+                              <span>View Team Roster (Locked)</span>
+                            </button>
+                            <div className="text-[10px] text-amber-700 text-center font-medium">
+                              Registration closed • Team roster finalized
+                            </div>
+                          </div>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedTeamProgram(p)}
+                          className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span>View Teammates ({memberCount})</span>
+                        </button>
+                      )}
                     </div>
                   )}
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Payment:</span>
-                    <span className={`font-semibold ${p.paymentStatus === 'VERIFIED' || p.paymentStatus === 'PAID' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {p.paymentStatus}
-                    </span>
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Manage Team Modal */}
+      {selectedTeamProgram && session && (
+        <ManageTeamModal
+          isOpen={Boolean(selectedTeamProgram)}
+          onClose={() => setSelectedTeamProgram(null)}
+          eventId={event.id}
+          program={selectedTeamProgram}
+          userRegistrationNumber={session.registrationNumber}
+          onTeamUpdated={refreshRegistrations}
+        />
+      )}
     </div>
   );
 }

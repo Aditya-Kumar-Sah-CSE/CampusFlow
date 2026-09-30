@@ -49,7 +49,9 @@ export interface ExistingProgramReg {
   registrationNumber: string;
   programName: string;
   participationType: string;
-  teamName: string;
+  teamId?: string;
+  teamName?: string;
+  participantRole?: string;
   paymentStatus: string;
   registeredAt: string;
 }
@@ -573,8 +575,15 @@ export function ProgramRegistrationClient({ event, program, initialSession, tena
           </div>
           {existingReg.teamName && (
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-medium">Team Name:</span>
-              <span className="font-semibold text-purple-700">{existingReg.teamName}</span>
+              <span className="text-slate-500 font-medium">Team:</span>
+              <span className="font-semibold text-purple-700 flex items-center gap-1.5">
+                <span>{existingReg.teamName}</span>
+                {existingReg.participantRole && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 font-bold">
+                    {existingReg.participantRole === 'TEAM LEADER' ? 'Leader' : 'Member'}
+                  </span>
+                )}
+              </span>
             </div>
           )}
           <div className="flex items-center justify-between text-xs">
@@ -584,6 +593,27 @@ export function ProgramRegistrationClient({ event, program, initialSession, tena
             </span>
           </div>
         </div>
+
+        {existingReg.teamName && existingReg.participantRole === 'TEAM LEADER' && (
+          <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="space-y-0.5 text-center sm:text-left">
+              <div className="font-bold text-purple-900 flex items-center justify-center sm:justify-start gap-1">
+                <Users className="w-3.5 h-3.5 text-purple-700" />
+                <span>Team Leader Controls</span>
+              </div>
+              <p className="text-purple-700 text-[11px]">
+                You can add, edit, or remove team members while registration remains open.
+              </p>
+            </div>
+            <Link
+              href={`${myRegistrationsPath}?manageTeam=${existingReg.teamId || ''}`}
+              className="px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors shrink-0"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Manage Team</span>
+            </Link>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Link

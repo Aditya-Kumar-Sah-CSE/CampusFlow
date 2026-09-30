@@ -1384,21 +1384,29 @@ export async function addTeamMember(
     registeredAt,
   ];
 
+  // One Sheets batchUpdate keeps the authoritative master row and program row in sync:
+  // Google applies all requests in a batch atomically or applies none of them.
   await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
-    await sheets.spreadsheets.values.append({
+    const metadata = await sheets.spreadsheets.get({
       spreadsheetId,
-      range: `'${MASTER_SHEET_NAME}'!A:V`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: [masterRow] },
+      fields: 'sheets.properties(sheetId,title)',
     });
-
-    await sheets.spreadsheets.values.append({
+    const masterSheetId = metadata.data.sheets?.find(sheet => sheet.properties?.title === MASTER_SHEET_NAME)?.properties?.sheetId;
+    const programSheetId = metadata.data.sheets?.find(sheet => sheet.properties?.title === tabName)?.properties?.sheetId;
+    if (masterSheetId === undefined || programSheetId === undefined) {
+      throw new Error('Event or program registration sheet is unavailable.');
+    }
+    const makeRow = (values: string[]) => ({
+      values: values.map(value => ({ userEnteredValue: { stringValue: String(value) } })),
+    });
+    await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
-      range: `'${tabName}'!A:N`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: { values: [programRow] },
+      requestBody: {
+        requests: [
+          { appendCells: { sheetId: masterSheetId, rows: [makeRow(masterRow)], fields: 'userEnteredValue' } },
+          { appendCells: { sheetId: programSheetId, rows: [makeRow(programRow)], fields: 'userEnteredValue' } },
+        ],
+      },
     });
   });
 
@@ -1420,7 +1428,7 @@ export async function getTeamMembers(
   }
 
   const all = await getEventRegistrations(collegeId, spreadsheetId);
-  const matching = all.filter(r => r.teamId.toUpperCase() === teamId.trim().toUpperCase());
+  const matching = all.filter(r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED');
   return matching.map(r => ({
     registrationNumber: r.registrationNumber,
     teamId: r.teamId,
@@ -1437,6 +1445,208 @@ export async function getTeamMembers(
     paymentStatus: r.paymentStatus,
     registeredAt: r.registeredAt,
   }));
+}
+
+/**
+ * Update team name across all members of a team in EVENT_REGISTRATIONS and PROGRAM tab.
+ */
+export async function updateTeamNameInSheets(
+  collegeId: string,
+  spreadsheetId: string,
+  programSlug: string,
+  teamId: string,
+  newTeamName: string
+): Promise<boolean> {
+  await assertCollegeGoogleConnected(collegeId);
+  const cleanTeamId = teamId.trim().toUpperCase();
+  const cleanNewName = newTeamName.trim();
+  if (!cleanNewName) return false;
+
+  // 1. Update master sheet EVENT_REGISTRATIONS
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const targetRows = all.filter(
+    r => r.teamId.toUpperCase() === cleanTeamId && r.registrationStatus !== 'CANCELLED'
+  );
+  if (targetRows.length === 0) return false;
+
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    const dataUpdates = targetRows.map(r => ({
+      range: `'${MASTER_SHEET_NAME}'!G${r.rowIndex}`,
+      values: [[cleanNewName]],
+    }));
+
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: dataUpdates,
+      },
+    });
+  });
+
+  // 2. Update PROGRAM_<slug> tab if exists
+  try {
+    const tabName = getProgramTabName(programSlug);
+    const progRows = await getProgramRegistrations(collegeId, spreadsheetId, programSlug);
+    const targetProgRows = progRows.filter(r => r.teamId.toUpperCase() === cleanTeamId);
+    if (targetProgRows.length > 0) {
+      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+        const progUpdates = targetProgRows.map(r => ({
+          range: `'${tabName}'!C${r.rowIndex}`,
+          values: [[cleanNewName]],
+        }));
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            valueInputOption: 'USER_ENTERED',
+            data: progUpdates,
+          },
+        });
+      });
+    }
+  } catch (err) {
+    console.warn('[EventRegSheets] Update team name in program tab notice:', err);
+  }
+
+  return true;
+}
+
+/**
+ * Update a team member's personal and contact details in both EVENT_REGISTRATIONS and PROGRAM tab.
+ */
+export async function updateTeamMemberDetailsInSheet(
+  collegeId: string,
+  spreadsheetId: string,
+  programSlug: string,
+  registrationNumber: string,
+  details: {
+    fullName: string;
+    studentId: string;
+    email: string;
+    mobile: string;
+    branch?: string;
+    semester?: string;
+    gender?: string;
+  }
+): Promise<boolean> {
+  await assertCollegeGoogleConnected(collegeId);
+  const cleanReg = registrationNumber.trim().toUpperCase();
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const target = all.find(r => r.registrationNumber.toUpperCase() === cleanReg);
+  if (!target || !target.rowIndex) return false;
+
+  const cleanName = details.fullName.trim();
+  const cleanStudentId = details.studentId.trim().toUpperCase();
+  const cleanEmail = details.email.trim().toLowerCase();
+  const cleanMobile = details.mobile.trim();
+  const cleanBranch = details.branch?.trim() || '';
+  const cleanSemester = details.semester?.trim() || '';
+  const cleanGender = details.gender?.trim() || '';
+
+  // Master sheet columns I to O:
+  // I: Participant Name, J: Student ID, K: Email, L: Mobile, M: Branch, N: Semester, O: Gender
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `'${MASTER_SHEET_NAME}'!I${target.rowIndex}:O${target.rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[cleanName, cleanStudentId, cleanEmail, cleanMobile, cleanBranch, cleanSemester, cleanGender]],
+      },
+    });
+  });
+
+  // PROGRAM_<slug> tab columns F to K:
+  // F: Student Name, G: Student ID, H: Email, I: Mobile, J: Branch, K: Semester
+  try {
+    const tabName = getProgramTabName(programSlug);
+    const progRows = await getProgramRegistrations(collegeId, spreadsheetId, programSlug);
+    const targetProg = progRows.find(r => r.registrationNumber.toUpperCase() === cleanReg);
+    if (targetProg && targetProg.rowIndex) {
+      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+        await sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `'${tabName}'!F${targetProg.rowIndex}:K${targetProg.rowIndex}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [[cleanName, cleanStudentId, cleanEmail, cleanMobile, cleanBranch, cleanSemester]],
+          },
+        });
+      });
+    }
+  } catch (err) {
+    console.warn('[EventRegSheets] Update member in program tab notice:', err);
+  }
+
+  return true;
+}
+
+/**
+ * Remove a team member by cancelling in EVENT_REGISTRATIONS and deleting the row in PROGRAM tab.
+ */
+export async function removeTeamMemberFromSheet(
+  collegeId: string,
+  spreadsheetId: string,
+  programSlug: string,
+  registrationNumber: string
+): Promise<boolean> {
+  await assertCollegeGoogleConnected(collegeId);
+  const cleanReg = registrationNumber.trim().toUpperCase();
+
+  // 1. Mark CANCELLED in EVENT_REGISTRATIONS master tab
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const target = all.find(r => r.registrationNumber.toUpperCase() === cleanReg);
+  if (!target || !target.rowIndex) return false;
+
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    // Col T is Registration Status
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `'${MASTER_SHEET_NAME}'!T${target.rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [['CANCELLED']] },
+    });
+  });
+
+  // 2. Delete row in PROGRAM_<slug> tab if exists
+  try {
+    const tabName = getProgramTabName(programSlug);
+    const progRows = await getProgramRegistrations(collegeId, spreadsheetId, programSlug);
+    const targetProg = progRows.find(r => r.registrationNumber.toUpperCase() === cleanReg);
+    if (targetProg && typeof targetProg.rowIndex === 'number') {
+      const progRowIndex = targetProg.rowIndex;
+      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+        const meta = await sheets.spreadsheets.get({
+          spreadsheetId,
+          fields: 'sheets.properties',
+        });
+        const sheetObj = (meta.data.sheets || []).find(s => s.properties?.title === tabName);
+        if (sheetObj?.properties?.sheetId !== undefined) {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            requestBody: {
+              requests: [
+                {
+                  deleteDimension: {
+                    range: {
+                      sheetId: sheetObj.properties.sheetId,
+                      dimension: 'ROWS',
+                      startIndex: progRowIndex - 1,
+                      endIndex: progRowIndex,
+                    },
+                  },
+                },
+              ],
+            },
+          });
+        }
+      });
+    }
+  } catch (err) {
+    console.warn('[EventRegSheets] Delete member in program tab notice:', err);
+  }
+
+  return true;
 }
 
 // ============================================================

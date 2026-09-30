@@ -26,6 +26,9 @@ import {
   updatePaymentStatus,
   getEventRegistrations,
   resolveEventRegistrationSpreadsheet,
+  updateTeamNameInSheets,
+  updateTeamMemberDetailsInSheet,
+  removeTeamMemberFromSheet,
 } from '@/lib/google/event-registration-sheets';
 import {
   createEventSession,
@@ -38,6 +41,7 @@ import {
   batchResolveAcademicDisplayValues,
 } from '@/lib/events/academic-resolver';
 import type { SheetEventRegistrationInput, EventLoginInput } from '@/types/events';
+import { checkIsRegistrationOpen } from '@/lib/events/registration-status';
 
 // ============================================================
 // HELPERS
@@ -638,7 +642,9 @@ export async function checkProgramRegistrationAction(
     registrationNumber: string;
     programName: string;
     participationType: string;
+    teamId: string;
     teamName: string;
+    participantRole: string;
     paymentStatus: string;
     registeredAt: string;
   };
@@ -675,7 +681,9 @@ export async function checkProgramRegistrationAction(
           registrationNumber: existing.registrationNumber,
           programName: existing.programName,
           participationType: existing.participationType,
+          teamId: existing.teamId,
           teamName: existing.teamName,
+          participantRole: existing.participantRole,
           paymentStatus: existing.paymentStatus,
           registeredAt: existing.registeredAt,
         },
@@ -1299,6 +1307,40 @@ export async function submitPaymentReferenceAction(
 // 9. STUDENT: GET OWN REGISTRATIONS (From Google Sheet)
 // ============================================================
 
+export interface TeamMemberDetails {
+  registrationNumber: string;
+  fullName: string;
+  studentId: string;
+  email: string;
+  mobile: string;
+  branch: string;
+  semester: string;
+  gender?: string;
+  participantRole: string;
+  registeredAt?: string;
+}
+
+export interface StudentProgramRegistrationItem {
+  registrationNumber: string;
+  programId: string;
+  programSlug: string;
+  programName: string;
+  participationType: string;
+  teamId: string;
+  teamName: string;
+  participantRole: string;
+  paymentAmount: number;
+  paymentStatus: string;
+  paymentReference: string;
+  registrationStatus: string;
+  registeredAt: string;
+  minTeamSize?: number;
+  maxTeamSize?: number;
+  isRegistrationOpen: boolean;
+  registrationClosedReason?: string;
+  teamMembers?: TeamMemberDetails[];
+}
+
 export async function getStudentRegistrationsAction(
   eventId: string
 ): Promise<{
@@ -1311,19 +1353,7 @@ export async function getStudentRegistrationsAction(
     email: string;
     registeredAt: string;
   };
-  programs?: {
-    registrationNumber: string;
-    programName: string;
-    participationType: string;
-    teamId: string;
-    teamName: string;
-    participantRole: string;
-    paymentAmount: number;
-    paymentStatus: string;
-    paymentReference: string;
-    registrationStatus: string;
-    registeredAt: string;
-  }[];
+  programs?: StudentProgramRegistrationItem[];
 }> {
   try {
     const sessionResult = await verifyEventSession(eventId);
@@ -1350,14 +1380,92 @@ export async function getStudentRegistrationsAction(
           r.studentId.toUpperCase() === session.studentId.toUpperCase())
     );
 
-    // 2. Program registrations for this student (either directly or via team leader)
-    const myPrograms = allRows.filter(
+    // 2. Program registrations for this student (their own participation row)
+    const myProgramRows = allRows.filter(
       r =>
         r.programId !== '' &&
+        r.registrationStatus !== 'CANCELLED' &&
         (r.studentId.toUpperCase() === session.studentId.toUpperCase() ||
           r.email.toLowerCase() === session.email.toLowerCase() ||
-          r.teamLeaderRegistrationNumber === session.registrationNumber)
+          r.registrationNumber.toUpperCase() === session.registrationNumber.toUpperCase() ||
+          (r.participantRole === 'TEAM LEADER' && r.teamLeaderRegistrationNumber.toUpperCase() === session.registrationNumber.toUpperCase()))
     );
+
+    // Fetch programs from DB to retrieve team limits, slugs, and deadlines
+    const supabase = createAdminClient();
+    let dbPrograms: any[] = [];
+    if (supabase) {
+      const { data: progs } = await supabase
+        .from('event_programs')
+        .select('id, name, slug, min_team_size, max_team_size, is_active, registration_open_at, registration_close_at')
+        .eq('event_id', event.id);
+      dbPrograms = progs || [];
+    }
+
+    // Deduplicate by programId and teamId so each registration appears once
+    const seenPrograms = new Set<string>();
+    const uniquePrograms: typeof myProgramRows = [];
+    for (const r of myProgramRows) {
+      const key = `${r.programId}_${r.teamId || ''}`;
+      if (!seenPrograms.has(key)) {
+        seenPrograms.add(key);
+        uniquePrograms.push(r);
+      }
+    }
+
+    const enrichedPrograms: StudentProgramRegistrationItem[] = uniquePrograms.map(p => {
+      const dbProg = dbPrograms.find(dp => dp.id === p.programId || dp.slug === p.programName);
+      const openCheck = checkIsRegistrationOpen(event, dbProg);
+
+      // If team program, get all members of this team
+      let teamMembers: TeamMemberDetails[] = [];
+      if (p.teamId) {
+        teamMembers = allRows
+          .filter(
+            r => r.teamId.toUpperCase() === p.teamId.toUpperCase() && r.registrationStatus !== 'CANCELLED'
+          )
+          .map(m => ({
+            registrationNumber: m.registrationNumber,
+            fullName: m.participantName,
+            studentId: m.studentId,
+            email: m.email,
+            mobile: m.mobile,
+            branch: m.branch,
+            semester: m.semester,
+            gender: m.gender,
+            participantRole: m.participantRole,
+            registeredAt: m.registeredAt,
+          }));
+
+        // Sort so TEAM LEADER appears first
+        teamMembers.sort((a, b) => {
+          if (a.participantRole === 'TEAM LEADER') return -1;
+          if (b.participantRole === 'TEAM LEADER') return 1;
+          return a.fullName.localeCompare(b.fullName);
+        });
+      }
+
+      return {
+        registrationNumber: p.registrationNumber,
+        programId: p.programId,
+        programSlug: dbProg?.slug || '',
+        programName: p.programName || dbProg?.name || '',
+        participationType: p.participationType,
+        teamId: p.teamId,
+        teamName: p.teamName,
+        participantRole: p.participantRole,
+        paymentAmount: p.paymentAmount,
+        paymentStatus: p.paymentStatus,
+        paymentReference: p.paymentReference,
+        registrationStatus: p.registrationStatus,
+        registeredAt: p.registeredAt,
+        minTeamSize: dbProg?.min_team_size || 1,
+        maxTeamSize: dbProg?.max_team_size || 20,
+        isRegistrationOpen: openCheck.isOpen,
+        registrationClosedReason: openCheck.reason,
+        teamMembers,
+      };
+    });
 
     return {
       success: true,
@@ -1376,23 +1484,448 @@ export async function getStudentRegistrationsAction(
             email: session.email,
             registeredAt: '',
           },
-      programs: myPrograms.map(p => ({
-        registrationNumber: p.registrationNumber,
-        programName: p.programName,
-        participationType: p.participationType,
-        teamId: p.teamId,
-        teamName: p.teamName,
-        participantRole: p.participantRole,
-        paymentAmount: p.paymentAmount,
-        paymentStatus: p.paymentStatus,
-        paymentReference: p.paymentReference,
-        registrationStatus: p.registrationStatus,
-        registeredAt: p.registeredAt,
-      })),
+      programs: enrichedPrograms,
     };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message || 'Failed to fetch registrations.' };
   }
+}
+
+// ============================================================
+// 9B. TEAM LEADER: MANAGE TEAM MEMBERS (While Registration Is Open)
+// ============================================================
+
+export async function updateTeamNameAction(
+  eventId: string,
+  programId: string,
+  teamId: string,
+  newTeamName: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sessionResult = await verifyEventSession(eventId);
+    if (!sessionResult.isValid || !sessionResult.session) {
+      return { success: false, error: 'Unauthorized. Please login.' };
+    }
+    const session = sessionResult.session;
+
+    const event = await getEventWithCollege(eventId);
+    if (!event.registration_sheet_id) {
+      return { success: false, error: 'Event registration data is temporarily unavailable.' };
+    }
+
+    const program = await getProgramWithEvent(programId, session.collegeId);
+
+    // Check if registration is open
+    const openCheck = checkIsRegistrationOpen(event, program);
+    if (!openCheck.isOpen) {
+      return { success: false, error: openCheck.reason || 'Registration is closed. Team details can no longer be edited.' };
+    }
+
+    const cleanName = newTeamName.trim();
+    if (!cleanName) {
+      return { success: false, error: 'Team name cannot be empty.' };
+    }
+
+    // Check caller is Team Leader
+    const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
+    const teamRows = allRows.filter(
+      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+    );
+    const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
+    if (!leaderRow) {
+      return { success: false, error: 'Team leader record not found.' };
+    }
+
+    const isLeader =
+      session.registrationNumber.toUpperCase() === leaderRow.registrationNumber.toUpperCase() ||
+      session.registrationNumber.toUpperCase() === leaderRow.teamLeaderRegistrationNumber.toUpperCase() ||
+      session.studentId.toUpperCase() === leaderRow.studentId.toUpperCase() ||
+      session.email.toLowerCase() === leaderRow.email.toLowerCase();
+
+    if (!isLeader) {
+      return { success: false, error: 'Only the Team Leader has permission to edit team details.' };
+    }
+
+    const updated = await updateTeamNameInSheets(
+      session.collegeId,
+      event.registration_sheet_id,
+      program.slug,
+      teamId,
+      cleanName
+    );
+
+    if (!updated) {
+      return { success: false, error: 'Could not update team name in sheets.' };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message || 'Failed to update team name.' };
+  }
+}
+
+export async function updateTeamMemberAction(
+  eventId: string,
+  programId: string,
+  teamId: string,
+  registrationNumber: string,
+  memberData: {
+    fullName: string;
+    studentId: string;
+    email: string;
+    mobile: string;
+    branch?: string;
+    semester?: string;
+    gender?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sessionResult = await verifyEventSession(eventId);
+    if (!sessionResult.isValid || !sessionResult.session) {
+      return { success: false, error: 'Unauthorized. Please login.' };
+    }
+    const session = sessionResult.session;
+
+    const event = await getEventWithCollege(eventId);
+    if (!event.registration_sheet_id) {
+      return { success: false, error: 'Event registration data is temporarily unavailable.' };
+    }
+
+    const program = await getProgramWithEvent(programId, session.collegeId);
+
+    // Check if registration is open
+    const openCheck = checkIsRegistrationOpen(event, program);
+    if (!openCheck.isOpen) {
+      return { success: false, error: openCheck.reason || 'Registration is closed. Team members can no longer be edited.' };
+    }
+
+    // Validate inputs
+    if (!memberData.fullName?.trim()) {
+      return { success: false, error: 'Full name is required.' };
+    }
+    if (!memberData.studentId?.trim()) {
+      return { success: false, error: 'Student ID / Roll Number is required.' };
+    }
+    if (!memberData.email?.trim() || !memberData.email.includes('@')) {
+      return { success: false, error: 'Valid email address is required.' };
+    }
+
+    // Check caller is Team Leader
+    const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
+    const teamRows = allRows.filter(
+      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+    );
+    const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
+    if (!leaderRow) {
+      return { success: false, error: 'Team leader not found.' };
+    }
+
+    const isLeader =
+      session.registrationNumber.toUpperCase() === leaderRow.registrationNumber.toUpperCase() ||
+      session.registrationNumber.toUpperCase() === leaderRow.teamLeaderRegistrationNumber.toUpperCase() ||
+      session.studentId.toUpperCase() === leaderRow.studentId.toUpperCase() ||
+      session.email.toLowerCase() === leaderRow.email.toLowerCase();
+
+    if (!isLeader) {
+      return { success: false, error: 'Only the Team Leader has permission to edit team details.' };
+    }
+
+    // Verify member belongs to this team
+    const targetMember = teamRows.find(
+      r => r.registrationNumber.toUpperCase() === registrationNumber.trim().toUpperCase()
+    );
+    if (!targetMember) {
+      return { success: false, error: 'Member not found in this team.' };
+    }
+
+    // Check duplicates within the team (excluding the member being edited)
+    const cleanStudentId = memberData.studentId.trim().toUpperCase();
+    const cleanEmail = memberData.email.trim().toLowerCase();
+    const otherMembers = teamRows.filter(
+      r => r.registrationNumber.toUpperCase() !== registrationNumber.trim().toUpperCase()
+    );
+
+    if (otherMembers.some(m => m.studentId.toUpperCase() === cleanStudentId)) {
+      return { success: false, error: `Student ID "${cleanStudentId}" is already used by another team member.` };
+    }
+    if (otherMembers.some(m => m.email.toLowerCase() === cleanEmail)) {
+      return { success: false, error: `Email "${cleanEmail}" is already used by another team member.` };
+    }
+
+    // Resolve academic values
+    const academic = await resolveAcademicDisplayValues(
+      session.collegeId,
+      memberData.branch,
+      memberData.semester
+    );
+
+    const updated = await updateTeamMemberDetailsInSheet(
+      session.collegeId,
+      event.registration_sheet_id,
+      program.slug,
+      registrationNumber,
+      {
+        fullName: memberData.fullName.trim(),
+        studentId: cleanStudentId,
+        email: cleanEmail,
+        mobile: memberData.mobile?.trim() || '',
+        branch: academic.branch,
+        semester: academic.semester,
+        gender: memberData.gender?.trim() || '',
+      }
+    );
+
+    if (!updated) {
+      return { success: false, error: 'Could not update member in sheets.' };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message || 'Failed to update team member.' };
+  }
+}
+
+export async function removeTeamMemberAction(
+  eventId: string,
+  programId: string,
+  teamId: string,
+  registrationNumber: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const sessionResult = await verifyEventSession(eventId);
+    if (!sessionResult.isValid || !sessionResult.session) {
+      return { success: false, error: 'Unauthorized. Please login.' };
+    }
+    const session = sessionResult.session;
+
+    const event = await getEventWithCollege(eventId);
+    if (!event.registration_sheet_id) {
+      return { success: false, error: 'Event registration data is temporarily unavailable.' };
+    }
+
+    const program = await getProgramWithEvent(programId, session.collegeId);
+
+    // Check if registration is open
+    const openCheck = checkIsRegistrationOpen(event, program);
+    if (!openCheck.isOpen) {
+      return { success: false, error: openCheck.reason || 'Registration is closed. Team members can no longer be edited.' };
+    }
+
+    // Check caller is Team Leader
+    const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
+    const teamRows = allRows.filter(
+      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+    );
+    const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
+    if (!leaderRow) {
+      return { success: false, error: 'Team leader not found.' };
+    }
+
+    const isLeader =
+      session.registrationNumber.toUpperCase() === leaderRow.registrationNumber.toUpperCase() ||
+      session.registrationNumber.toUpperCase() === leaderRow.teamLeaderRegistrationNumber.toUpperCase() ||
+      session.studentId.toUpperCase() === leaderRow.studentId.toUpperCase() ||
+      session.email.toLowerCase() === leaderRow.email.toLowerCase();
+
+    if (!isLeader) {
+      return { success: false, error: 'Only the Team Leader has permission to remove team members.' };
+    }
+
+    // Verify member belongs to this team
+    const targetMember = teamRows.find(
+      r => r.registrationNumber.toUpperCase() === registrationNumber.trim().toUpperCase()
+    );
+    if (!targetMember) {
+      return { success: false, error: 'Member not found in this team.' };
+    }
+
+    // Team Leader cannot be removed
+    if (targetMember.participantRole === 'TEAM LEADER') {
+      return { success: false, error: 'The Team Leader cannot be removed from the team.' };
+    }
+
+    // Validate min team size: (total remaining members) >= min_team_size
+    const remainingCount = teamRows.length - 1;
+    if (program.min_team_size != null && remainingCount < program.min_team_size) {
+      return {
+        success: false,
+        error: `Cannot remove member. This program requires at least ${program.min_team_size} members (including leader).`,
+      };
+    }
+
+    const removed = await removeTeamMemberFromSheet(
+      session.collegeId,
+      event.registration_sheet_id,
+      program.slug,
+      registrationNumber
+    );
+
+    if (!removed) {
+      return { success: false, error: 'Could not remove member from sheets.' };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message || 'Failed to remove team member.' };
+  }
+}
+
+export async function addMemberToExistingTeamAction(
+  _eventId: string,
+  _programId: string,
+  _teamId: string,
+  _memberData: {
+    fullName: string;
+    studentId: string;
+    email: string;
+    mobile: string;
+    branch?: string;
+    semester?: string;
+    gender?: string;
+    eventRegNumber?: string;
+  }
+): Promise<{ success: boolean; error?: string; registrationNumber?: string }> {
+  // Team leaders may no longer finalize another student's membership from the browser.
+  return { success: false, error: 'Team members must join through a secure invitation.' };
+  /*
+  // Legacy direct-write implementation is retained below for migration history only.
+  try {
+    const sessionResult = await verifyEventSession(eventId);
+    if (!sessionResult.isValid || !sessionResult.session) {
+      return { success: false, error: 'Unauthorized. Please login.' };
+    }
+    const session = sessionResult.session;
+
+    const event = await getEventWithCollege(eventId);
+    if (!event.registration_sheet_id) {
+      return { success: false, error: 'Event registration data is temporarily unavailable.' };
+    }
+
+    const program = await getProgramWithEvent(programId, session.collegeId);
+
+    // Check if registration is open
+    const openCheck = checkIsRegistrationOpen(event, program);
+    if (!openCheck.isOpen) {
+      return { success: false, error: openCheck.reason || 'Registration is closed. Team members can no longer be edited.' };
+    }
+
+    // Validate input fields
+    if (!memberData.fullName?.trim()) {
+      return { success: false, error: 'Full name is required.' };
+    }
+    if (!memberData.studentId?.trim()) {
+      return { success: false, error: 'Student ID / Roll Number is required.' };
+    }
+    if (!memberData.email?.trim() || !memberData.email.includes('@')) {
+      return { success: false, error: 'Valid email address is required.' };
+    }
+
+    // Check caller is Team Leader
+    const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
+    const teamRows = allRows.filter(
+      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+    );
+    const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
+    if (!leaderRow) {
+      return { success: false, error: 'Team leader not found.' };
+    }
+
+    const isLeader =
+      session.registrationNumber.toUpperCase() === leaderRow.registrationNumber.toUpperCase() ||
+      session.registrationNumber.toUpperCase() === leaderRow.teamLeaderRegistrationNumber.toUpperCase() ||
+      session.studentId.toUpperCase() === leaderRow.studentId.toUpperCase() ||
+      session.email.toLowerCase() === leaderRow.email.toLowerCase();
+
+    if (!isLeader) {
+      return { success: false, error: 'Only the Team Leader has permission to add team members.' };
+    }
+
+    // Validate max team size: (current + 1) <= max_team_size
+    const newTotal = teamRows.length + 1;
+    if (program.max_team_size != null && newTotal > program.max_team_size) {
+      return {
+        success: false,
+        error: `Team can have at most ${program.max_team_size} members (including leader).`,
+      };
+    }
+
+    const cleanStudentId = memberData.studentId.trim().toUpperCase();
+    const cleanEmail = memberData.email.trim().toLowerCase();
+    const cleanEventRegNum = memberData.eventRegNumber?.trim().toUpperCase();
+
+    // Check duplicate within the current team
+    if (teamRows.some(m => m.studentId.toUpperCase() === cleanStudentId)) {
+      return { success: false, error: `Student ID "${cleanStudentId}" is already in this team.` };
+    }
+    if (teamRows.some(m => m.email.toLowerCase() === cleanEmail)) {
+      return { success: false, error: `Email "${cleanEmail}" is already in this team.` };
+    }
+    if (cleanEventRegNum && teamRows.some(m => m.registrationNumber.toUpperCase() === cleanEventRegNum)) {
+      return { success: false, error: `Registration number "${cleanEventRegNum}" is already in this team.` };
+    }
+
+    // Check duplicate across the entire program (another team or individual)
+    const existingProgReg = await findExistingProgramRegistration(
+      session.collegeId,
+      event.registration_sheet_id,
+      event.id,
+      program.id,
+      {
+        eventRegNumber: cleanEventRegNum,
+        studentId: cleanStudentId,
+        email: cleanEmail,
+      }
+    );
+    if (existingProgReg) {
+      return {
+        success: false,
+        error: `Student is already registered for this program (${existingProgReg.teamName ? `in team "${existingProgReg.teamName}"` : 'as Individual'}).`,
+      };
+    }
+
+    // Resolve academic values
+    const academic = await resolveAcademicDisplayValues(
+      session.collegeId,
+      memberData.branch,
+      memberData.semester
+    );
+
+    const paymentRequired = (event.payment_required || program.registration_fee > 0) && program.registration_fee > 0;
+    const paymentStatus = paymentRequired ? (leaderRow.paymentStatus || 'PENDING') : 'NOT_REQUIRED';
+
+    const addRes = await addTeamMember(session.collegeId, event.registration_sheet_id, program.slug, {
+      eventId: event.id,
+      eventSlug: event.slug,
+      programId: program.id,
+      programName: program.name,
+      teamId: leaderRow.teamId,
+      teamName: leaderRow.teamName,
+      member: {
+        fullName: memberData.fullName.trim(),
+        studentId: cleanStudentId,
+        email: cleanEmail,
+        mobile: memberData.mobile?.trim() || '',
+        branch: academic.branch,
+        semester: academic.semester,
+        gender: memberData.gender?.trim() || '',
+        role: 'TEAM MEMBER',
+        eventRegNumber: cleanEventRegNum,
+      },
+      paymentRequired,
+      paymentAmount: 0, // fee charged once per team to leader
+      paymentStatus,
+      paymentReference: leaderRow.paymentReference || '',
+      leaderEventRegNumber: leaderRow.teamLeaderRegistrationNumber || leaderRow.registrationNumber,
+    });
+
+    return {
+      success: true,
+      registrationNumber: addRes.programRegNumber,
+    };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message || 'Failed to add team member.' };
+  }
+  */
 }
 
 // ============================================================
