@@ -20,12 +20,15 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { StudentProgramRegistrationItem, TeamMemberDetails } from '@/app/admin/events/event-registration-actions';
+import type { Branch, Semester } from '@/types/database';
+import { formatOrdinal } from '@/lib/events/academic-formatter';
 import {
   updateTeamNameAction,
   updateTeamMemberAction,
   removeTeamMemberAction,
   addMemberToExistingTeamAction,
   lookupTeamMemberAction,
+  getEventAcademicMastersByEventIdAction,
 } from '@/app/admin/events/event-registration-actions';
 import { cancelTeamInvitationAction, findTeamInvitationStudentAction, getTeamInvitationsAction, inviteTeamMemberAction } from '@/app/events/invitations/actions';
 import {
@@ -137,6 +140,23 @@ export function ManageTeamModal({
   const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
   const [joinRequestsLoading, setJoinRequestsLoading] = useState(false);
   const [processingJoinReqId, setProcessingJoinReqId] = useState<string | null>(null);
+
+  // Academic master data for manual member add
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [customBranch, setCustomBranch] = useState(false);
+  const [customSemester, setCustomSemester] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && eventId) {
+      getEventAcademicMastersByEventIdAction(eventId)
+        .then((res) => {
+          if (res.branches) setBranches(res.branches);
+          if (res.semesters) setSemesters(res.semesters);
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, eventId]);
 
   // Reset form when program prop changes
   useEffect(() => {
@@ -1103,25 +1123,104 @@ export function ManageTeamModal({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="font-semibold text-slate-700">Branch</label>
-                      <input
-                        type="text"
-                        value={manualForm.branch}
-                        onChange={(e) => setManualForm({ ...manualForm, branch: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
-                        placeholder="Computer Science"
-                      />
+                      <div className="flex items-center justify-between">
+                        <label className="font-semibold text-slate-700">Branch</label>
+                        {branches.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomBranch(!customBranch);
+                              setManualForm({ ...manualForm, branch: '' });
+                            }}
+                            className="text-[11px] text-indigo-600 hover:underline cursor-pointer font-normal"
+                          >
+                            {customBranch ? 'Select from list' : 'Custom branch?'}
+                          </button>
+                        )}
+                      </div>
+                      {branches.length > 0 && !customBranch ? (
+                        <select
+                          value={manualForm.branch}
+                          onChange={(e) => {
+                            if (e.target.value === '__OTHER__') {
+                              setCustomBranch(true);
+                              setManualForm({ ...manualForm, branch: '' });
+                            } else {
+                              setManualForm({ ...manualForm, branch: e.target.value });
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm cursor-pointer"
+                        >
+                          <option value="">Select Branch (e.g. CSE)</option>
+                          {branches.map((b) => (
+                            <option key={b.id} value={b.code || b.name}>
+                              {b.name} {b.code ? `(${b.code})` : ''}
+                            </option>
+                          ))}
+                          <option value="__OTHER__">Other / Custom Branch...</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={manualForm.branch}
+                          onChange={(e) => setManualForm({ ...manualForm, branch: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs sm:text-sm"
+                          placeholder="e.g. Civil Engineering"
+                        />
+                      )}
                     </div>
 
                     <div className="space-y-1">
-                      <label className="font-semibold text-slate-700">Semester</label>
-                      <input
-                        type="text"
-                        value={manualForm.semester}
-                        onChange={(e) => setManualForm({ ...manualForm, semester: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
-                        placeholder="4th Semester"
-                      />
+                      <div className="flex items-center justify-between">
+                        <label className="font-semibold text-slate-700">Semester</label>
+                        {semesters.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomSemester(!customSemester);
+                              setManualForm({ ...manualForm, semester: '' });
+                            }}
+                            className="text-[11px] text-indigo-600 hover:underline cursor-pointer font-normal"
+                          >
+                            {customSemester ? 'Select from list' : 'Custom semester?'}
+                          </button>
+                        )}
+                      </div>
+                      {semesters.length > 0 && !customSemester ? (
+                        <select
+                          value={manualForm.semester}
+                          onChange={(e) => {
+                            if (e.target.value === '__OTHER__') {
+                              setCustomSemester(true);
+                              setManualForm({ ...manualForm, semester: '' });
+                            } else {
+                              setManualForm({ ...manualForm, semester: e.target.value });
+                            }
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm cursor-pointer"
+                        >
+                          <option value="">Select Semester (e.g. 4th Sem)</option>
+                          {semesters.map((s) => {
+                            const semLabel = s.name.toLowerCase().startsWith('semester')
+                              ? `${formatOrdinal(s.semester_number)} Semester`
+                              : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`;
+                            return (
+                              <option key={s.id} value={semLabel}>
+                                {semLabel}
+                              </option>
+                            );
+                          })}
+                          <option value="__OTHER__">Other / Custom Semester...</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={manualForm.semester}
+                          onChange={(e) => setManualForm({ ...manualForm, semester: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs sm:text-sm"
+                          placeholder="e.g. 4th Semester"
+                        />
+                      )}
                     </div>
                   </div>
 

@@ -4,6 +4,7 @@ import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicEventBySlug } from '@/lib/events/service';
 import { getPublicProgramBySlug } from '@/lib/events/programs-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
+import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { ProgramRegistrationClient } from '@/components/events/programs/ProgramRegistrationClient';
 import { ArrowLeft, Ticket } from 'lucide-react';
@@ -22,7 +23,10 @@ export default async function TenantProgramRegisterPage({ params }: Props) {
   const { tenant: rawSlug, slug, programSlug } = await params;
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
-  const event = await getPublicEventBySlug(tenant.collegeId, slug);
+  const [event, academic] = await Promise.all([
+    getPublicEventBySlug(tenant.collegeId, slug),
+    getCachedAcademicMasters(tenant.collegeId),
+  ]);
   if (!event || event.status !== 'PUBLISHED') notFound();
 
   const program = await getPublicProgramBySlug(event.id, tenant.collegeId, programSlug);
@@ -54,6 +58,8 @@ export default async function TenantProgramRegisterPage({ params }: Props) {
           program={program}
           initialSession={session}
           tenantSlug={tenant.slug}
+          branches={academic.branches}
+          semesters={academic.semesters}
         />
       </main>
 

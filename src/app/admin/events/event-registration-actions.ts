@@ -1966,3 +1966,22 @@ export async function getEventAcademicMastersAction(collegeId: string): Promise<
   }
 }
 
+/**
+ * Safely fetches active academic master records (branches and semesters)
+ * given an event ID.
+ */
+export async function getEventAcademicMastersByEventIdAction(eventId: string): Promise<{
+  branches: Branch[];
+  semesters: Semester[];
+}> {
+  try {
+    if (!eventId) return { branches: [], semesters: [] };
+    const event = await getEventWithCollege(eventId);
+    return await getEventAcademicMastersAction(event.college_id);
+  } catch (err) {
+    console.error('Failed to get academic masters by eventId:', err);
+    return { branches: [], semesters: [] };
+  }
+}
+
+

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getPublicEventBySlugGlobal } from '@/lib/events/service';
 import { getPublicProgramBySlug } from '@/lib/events/programs-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
+import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { ProgramRegistrationClient } from '@/components/events/programs/ProgramRegistrationClient';
 import { ArrowLeft, Ticket } from 'lucide-react';
@@ -21,10 +22,12 @@ export default async function ProgramRegisterPage({ params }: Props) {
   const event = await getPublicEventBySlugGlobal(slug);
   if (!event || event.status !== 'PUBLISHED') notFound();
 
-  const program = await getPublicProgramBySlug(event.id, event.college_id, programSlug);
+  const [program, academic, session] = await Promise.all([
+    getPublicProgramBySlug(event.id, event.college_id, programSlug),
+    getCachedAcademicMasters(event.college_id),
+    getCurrentEventSession(event.id),
+  ]);
   if (!program || !program.is_active) notFound();
-
-  const session = await getCurrentEventSession(event.id);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -49,6 +52,8 @@ export default async function ProgramRegisterPage({ params }: Props) {
           event={event}
           program={program}
           initialSession={session}
+          branches={academic.branches}
+          semesters={academic.semesters}
         />
       </main>
 

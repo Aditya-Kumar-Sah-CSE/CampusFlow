@@ -23,6 +23,8 @@ import {
 import type { CollegeEvent } from '@/types/events';
 import type { EventProgram } from '@/types/programs';
 import type { EventSessionPayload } from '@/lib/events/event-session';
+import type { Branch, Semester } from '@/types/database';
+import { formatOrdinal } from '@/lib/events/academic-formatter';
 import {
   verifyEventRegistrationAction,
   resolveCurrentEventRegistrationAction,
@@ -32,6 +34,7 @@ import {
   registerForTeamProgramAction,
   submitPaymentReferenceAction,
   logoutFromEventAction,
+  getEventAcademicMastersAction,
 } from '@/app/admin/events/event-registration-actions';
 import { FindTeamModal } from '@/components/events/FindTeamModal';
 
@@ -74,6 +77,8 @@ interface TeamMemberItem {
   branch: string;
   semester: string;
   gender: string;
+  isCustomBranch?: boolean;
+  isCustomSemester?: boolean;
 }
 
 interface Props {
@@ -81,13 +86,45 @@ interface Props {
   program: EventProgram;
   initialSession: EventSessionPayload | null;
   tenantSlug?: string;
+  branches?: Branch[];
+  semesters?: Semester[];
 }
 
-export function ProgramRegistrationClient({ event, program, initialSession, tenantSlug }: Props) {
+export function ProgramRegistrationClient({
+  event,
+  program,
+  initialSession,
+  tenantSlug,
+  branches: initialBranches,
+  semesters: initialSemesters,
+}: Props) {
   // Navigation prefix helper
   const basePath = tenantSlug ? `/${tenantSlug}/events/${event.slug}` : `/events/${event.slug}`;
   const myRegistrationsPath = tenantSlug ? `/${tenantSlug}/events/${event.slug}/my-registrations` : `/events/${event.slug}/my-registrations`;
   const registerEventPath = tenantSlug ? `/${tenantSlug}/events/${event.slug}/register` : `/events/${event.slug}/register`;
+
+  // Academic master data for member manual entry dropdowns
+  const [branches, setBranches] = useState<Branch[]>(initialBranches || []);
+  const [semesters, setSemesters] = useState<Semester[]>(initialSemesters || []);
+
+  useEffect(() => {
+    if (initialBranches && initialBranches.length > 0) setBranches(initialBranches);
+  }, [initialBranches]);
+
+  useEffect(() => {
+    if (initialSemesters && initialSemesters.length > 0) setSemesters(initialSemesters);
+  }, [initialSemesters]);
+
+  useEffect(() => {
+    if ((!initialBranches || initialBranches.length === 0) && event.college_id) {
+      getEventAcademicMastersAction(event.college_id)
+        .then((res) => {
+          if (res.branches && res.branches.length > 0) setBranches(res.branches);
+          if (res.semesters && res.semesters.length > 0) setSemesters(res.semesters);
+        })
+        .catch(() => {});
+    }
+  }, [event.college_id, initialBranches]);
 
   // 1. Session & Verified Participant
   const [participant, setParticipant] = useState<VerifiedParticipant | null>(
@@ -1107,20 +1144,132 @@ export function ProgramRegistrationClient({ event, program, initialSession, tena
                         />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          placeholder="Branch (e.g. CSE)"
-                          value={member.branch}
-                          onChange={(e) => handleUpdateManualMember(member.id, 'branch', e.target.value)}
-                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Semester (e.g. 4)"
-                          value={member.semester}
-                          onChange={(e) => handleUpdateManualMember(member.id, 'semester', e.target.value)}
-                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
-                        />
+                        {/* Branch Dropdown with Other / Custom */}
+                        <div className="space-y-1">
+                          {branches.length > 0 && !member.isCustomBranch ? (
+                            <select
+                              value={member.branch}
+                              onChange={(e) => {
+                                if (e.target.value === '__OTHER__') {
+                                  setMembers((prev) =>
+                                    prev.map((m) =>
+                                      m.id === member.id
+                                        ? { ...m, isCustomBranch: true, branch: '' }
+                                        : m
+                                    )
+                                  );
+                                } else {
+                                  handleUpdateManualMember(member.id, 'branch', e.target.value);
+                                }
+                              }}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 cursor-pointer"
+                            >
+                              <option value="">Select Branch (e.g. CSE)</option>
+                              {branches.map((b) => (
+                                <option key={b.id} value={b.code || b.name}>
+                                  {b.name} {b.code ? `(${b.code})` : ''}
+                                </option>
+                              ))}
+                              <option value="__OTHER__">Other / Custom Branch...</option>
+                            </select>
+                          ) : (
+                            <div className="space-y-1">
+                              {branches.length > 0 && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-purple-700 font-semibold">Custom Branch</span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setMembers((prev) =>
+                                        prev.map((m) =>
+                                          m.id === member.id
+                                            ? { ...m, isCustomBranch: false, branch: '' }
+                                            : m
+                                        )
+                                      )
+                                    }
+                                    className="text-[10px] text-purple-600 hover:underline cursor-pointer"
+                                  >
+                                    Select from list
+                                  </button>
+                                </div>
+                              )}
+                              <input
+                                type="text"
+                                placeholder="Branch (e.g. Civil Engineering)"
+                                value={member.branch}
+                                onChange={(e) => handleUpdateManualMember(member.id, 'branch', e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Semester Dropdown with Other / Custom */}
+                        <div className="space-y-1">
+                          {semesters.length > 0 && !member.isCustomSemester ? (
+                            <select
+                              value={member.semester}
+                              onChange={(e) => {
+                                if (e.target.value === '__OTHER__') {
+                                  setMembers((prev) =>
+                                    prev.map((m) =>
+                                      m.id === member.id
+                                        ? { ...m, isCustomSemester: true, semester: '' }
+                                        : m
+                                    )
+                                  );
+                                } else {
+                                  handleUpdateManualMember(member.id, 'semester', e.target.value);
+                                }
+                              }}
+                              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 cursor-pointer"
+                            >
+                              <option value="">Select Semester (e.g. 4th Sem)</option>
+                              {semesters.map((s) => {
+                                const semLabel = s.name.toLowerCase().startsWith('semester')
+                                  ? `${formatOrdinal(s.semester_number)} Semester`
+                                  : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`;
+                                return (
+                                  <option key={s.id} value={semLabel}>
+                                    {semLabel}
+                                  </option>
+                                );
+                              })}
+                              <option value="__OTHER__">Other / Custom Semester...</option>
+                            </select>
+                          ) : (
+                            <div className="space-y-1">
+                              {semesters.length > 0 && (
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-purple-700 font-semibold">Custom Semester</span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setMembers((prev) =>
+                                        prev.map((m) =>
+                                          m.id === member.id
+                                            ? { ...m, isCustomSemester: false, semester: '' }
+                                            : m
+                                        )
+                                      )
+                                    }
+                                    className="text-[10px] text-purple-600 hover:underline cursor-pointer"
+                                  >
+                                    Select from list
+                                  </button>
+                                </div>
+                              )}
+                              <input
+                                type="text"
+                                placeholder="Semester (e.g. 4th Semester)"
+                                value={member.semester}
+                                onChange={(e) => handleUpdateManualMember(member.id, 'semester', e.target.value)}
+                                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
