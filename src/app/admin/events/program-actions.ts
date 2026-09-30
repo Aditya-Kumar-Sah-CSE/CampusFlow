@@ -142,12 +142,17 @@ export async function createProgramAction(
 export async function updateProgramAction(
   programId: string,
   data: Partial<ProgramFormData>,
-  targetCollegeId?: string
+  targetCollegeId?: string,
+  eventId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { collegeId } = await assertAdminCollegeAuth(targetCollegeId);
     const result = await updateProgram(programId, collegeId, data);
     if (result.success) {
+      if (eventId) {
+        revalidatePath(`/admin/dashboard/events/${eventId}/programs`);
+        revalidatePath(`/admin/dashboard/events/${eventId}`);
+      }
       revalidatePath('/admin/dashboard');
     }
     return result;

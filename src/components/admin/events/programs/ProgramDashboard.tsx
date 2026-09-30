@@ -23,7 +23,7 @@ import {
   IndianRupee,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
-import type { EventCategory, EventProgram, EventProgramsStats } from '@/types/programs';
+import type { EventCategory, EventProgram, EventProgramsStats, ProgramFormData } from '@/types/programs';
 import {
   createCategoryAction,
   updateCategoryAction,
@@ -55,6 +55,7 @@ export function ProgramDashboard({
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [showProgramForm, setShowProgramForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
+  const [editingProgram, setEditingProgram] = useState<EventProgram | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -190,6 +191,82 @@ export function ProgramDashboard({
     setLoading(false);
   };
 
+  const startEditingProgram = (prog: EventProgram) => {
+    setEditingCategory(null);
+    setShowCategoryForm(false);
+    setShowProgramForm(false);
+    setEditingProgram(prog);
+    setProgName(prog.name || '');
+    setProgSlug(prog.slug || '');
+    setProgCategoryId(prog.category_id || '');
+    setProgDesc(prog.description || '');
+    setProgRules(prog.rules || '');
+    setProgType(prog.participation_type || 'INDIVIDUAL');
+    setProgFee(String(prog.registration_fee ?? 0));
+    setProgMinTeam(prog.min_team_size ? String(prog.min_team_size) : '');
+    setProgMaxTeam(prog.max_team_size ? String(prog.max_team_size) : '');
+    setProgMaxParticipants(prog.max_participants ? String(prog.max_participants) : '');
+    setProgMaxTeams(prog.max_teams ? String(prog.max_teams) : '');
+    setProgRegOpen(prog.registration_open_at ? new Date(prog.registration_open_at).toISOString().slice(0, 16) : '');
+    setProgRegClose(prog.registration_close_at ? new Date(prog.registration_close_at).toISOString().slice(0, 16) : '');
+    setProgShowParticipants(Boolean(prog.show_public_participants));
+
+    // Scroll up smoothly to the form
+    window.scrollTo({ top: 120, behavior: 'smooth' });
+  };
+
+  const handleUpdateProgram = async () => {
+    if (!editingProgram || !progName.trim() || !progSlug.trim() || !progCategoryId) return;
+    setLoading(true);
+    const updates: Partial<ProgramFormData> = {
+      name: progName.trim(),
+      slug: progSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, ''),
+      category_id: progCategoryId,
+      description: progDesc.trim() || undefined,
+      rules: progRules.trim() || undefined,
+      participation_type: progType,
+      registration_fee: Number(progFee) || 0,
+      min_team_size: (progType === 'TEAM' || progType === 'BOTH') && progMinTeam ? Number(progMinTeam) : null,
+      max_team_size: (progType === 'TEAM' || progType === 'BOTH') && progMaxTeam ? Number(progMaxTeam) : null,
+      max_participants: progMaxParticipants ? Number(progMaxParticipants) : null,
+      max_teams: progMaxTeams ? Number(progMaxTeams) : null,
+      registration_open_at: progRegOpen || undefined,
+      registration_close_at: progRegClose || undefined,
+      show_public_participants: progShowParticipants,
+    };
+
+    const res = await updateProgramAction(editingProgram.id, updates, activeCollegeId, event.id);
+    if (res.success) {
+      showFeedbackMsg('success', `Program "${progName}" updated successfully.`);
+      const matchedCategory = categories.find((c) => c.id === progCategoryId);
+      setPrograms((prev) =>
+        prev.map((p) =>
+          p.id === editingProgram.id
+            ? {
+                ...p,
+                ...updates,
+                name: updates.name ?? p.name,
+                slug: updates.slug ?? p.slug,
+                category_id: updates.category_id ?? p.category_id,
+                description: updates.description || null,
+                rules: updates.rules || null,
+                registration_open_at: updates.registration_open_at || null,
+                registration_close_at: updates.registration_close_at || null,
+                registration_fee: updates.registration_fee ?? p.registration_fee,
+                show_public_participants: updates.show_public_participants ?? p.show_public_participants,
+                category: matchedCategory || p.category,
+              }
+            : p
+        )
+      );
+      setEditingProgram(null);
+      resetProgramForm();
+    } else {
+      showFeedbackMsg('error', res.error || 'Failed to update program.');
+    }
+    setLoading(false);
+  };
+
   const resetProgramForm = () => {
     setProgName('');
     setProgSlug('');
@@ -205,6 +282,7 @@ export function ProgramDashboard({
     setProgRegClose('');
     setProgShowParticipants(false);
     setProgCategoryId('');
+    setEditingProgram(null);
   };
 
   const getParticipationLabel = (type: string) => {
@@ -373,17 +451,49 @@ export function ProgramDashboard({
         </div>
       )}
 
-      {/* Program Form Modal */}
-      {showProgramForm && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-slate-900">Add New Program</h3>
+      {/* Program Form Modal (Create or Edit) */}
+      {(showProgramForm || Boolean(editingProgram)) && (
+        <div className={`bg-white rounded-2xl border ${editingProgram ? 'border-blue-400 shadow-md ring-2 ring-blue-100' : 'border-slate-200'} p-5 shadow-sm space-y-4`}>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                {editingProgram ? (
+                  <>
+                    <Edit3 className="w-4 h-4 text-blue-600" />
+                    <span>Edit Program: <span className="text-blue-600">{editingProgram.name}</span></span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 text-blue-600" />
+                    <span>Add New Program</span>
+                  </>
+                )}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {editingProgram
+                  ? 'Modify program configuration, participation rules, limits, and fees.'
+                  : 'Configure a new competition, match, or stage activity under an event category.'}
+              </p>
+            </div>
+            {editingProgram && (
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full shrink-0">
+                Editing Mode
+              </span>
+            )}
+          </div>
+
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Program Name *</label>
               <input
                 type="text"
                 value={progName}
-                onChange={(e) => { setProgName(e.target.value); if (!progSlug || progSlug === autoSlug(progName)) setProgSlug(autoSlug(e.target.value)); }}
+                onChange={(e) => {
+                  setProgName(e.target.value);
+                  if (!editingProgram && (!progSlug || progSlug === autoSlug(progName))) {
+                    setProgSlug(autoSlug(e.target.value));
+                  }
+                }}
                 placeholder="e.g. Cricket, Debate"
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -475,17 +585,30 @@ export function ProgramDashboard({
               <label htmlFor="showParticipants" className="text-xs font-semibold text-slate-700">Show participants publicly</label>
             </div>
           </div>
-          <div className="flex gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
             <button
-              onClick={handleCreateProgram}
+              onClick={editingProgram ? handleUpdateProgram : handleCreateProgram}
               disabled={loading || !progName.trim() || !progSlug.trim() || !progCategoryId}
-              className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+              className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors flex items-center gap-1.5"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Program'}
+              {loading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : editingProgram ? (
+                'Save Changes'
+              ) : (
+                'Create Program'
+              )}
             </button>
             <button
-              onClick={() => setShowProgramForm(false)}
-              className="px-4 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg"
+              onClick={() => {
+                setShowProgramForm(false);
+                setEditingProgram(null);
+                resetProgramForm();
+              }}
+              className="px-4 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors"
             >
               Cancel
             </button>
@@ -545,23 +668,39 @@ export function ProgramDashboard({
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-slate-100">
               {cat.programs.map((prog) => (
-                <div key={prog.id} className={`bg-white p-4 space-y-3 ${!prog.is_active ? 'opacity-60' : ''}`}>
+                <div
+                  key={prog.id}
+                  className={`bg-white p-4 space-y-3 rounded-xl border transition-all ${
+                    editingProgram?.id === prog.id
+                      ? 'border-blue-500 ring-2 ring-blue-400 shadow-md bg-blue-50/20'
+                      : 'border-slate-100 hover:border-slate-200'
+                  } ${!prog.is_active ? 'opacity-60' : ''}`}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="text-sm font-bold text-slate-900 truncate">{prog.name}</h3>
                       <p className="text-[10px] text-slate-400 font-mono">/{prog.slug}</p>
                     </div>
-                    <button
-                      onClick={() => handleToggleProgram(prog)}
-                      className="shrink-0"
-                      title={prog.is_active ? 'Deactivate' : 'Activate'}
-                    >
-                      {prog.is_active ? (
-                        <ToggleRight className="w-5 h-5 text-emerald-500" />
-                      ) : (
-                        <ToggleLeft className="w-5 h-5 text-slate-300" />
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => startEditingProgram(prog)}
+                        className="p-1 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                        title="Edit program"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleProgram(prog)}
+                        className="shrink-0"
+                        title={prog.is_active ? 'Deactivate' : 'Activate'}
+                      >
+                        {prog.is_active ? (
+                          <ToggleRight className="w-5 h-5 text-emerald-500" />
+                        ) : (
+                          <ToggleLeft className="w-5 h-5 text-slate-300" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Badges */}
@@ -610,6 +749,14 @@ export function ProgramDashboard({
                     >
                       View Registrations
                     </Link>
+                    <button
+                      onClick={() => startEditingProgram(prog)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-lg border border-slate-200 hover:border-blue-200 transition-colors"
+                      title="Edit program details"
+                    >
+                      <Edit3 className="w-3 h-3 text-slate-500" />
+                      <span>Edit</span>
+                    </button>
                     <a
                       href={`/api/admin/events/${event.id}/programs/${prog.id}/pdf`}
                       target="_blank"
