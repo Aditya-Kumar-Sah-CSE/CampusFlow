@@ -7,11 +7,11 @@ import type { CollegeEvent } from '@/types/events';
 
 export const dynamic = 'force-dynamic';
 
-async function getAllPublishedEvents(): Promise<(CollegeEvent & { college?: { name: string; slug: string; short_name?: string } })[]> {
+async function getAllPublishedEvents(): Promise<(CollegeEvent & { college?: { name: string; slug: string; code?: string } })[]> {
   const supabase = createAdminClient() || await createClient();
   const { data, error } = await supabase
     .from('events')
-    .select('*, college:colleges(name, slug, short_name)')
+    .select('*, college:colleges(name, slug, code)')
     .eq('status', 'PUBLISHED')
     .order('start_at', { ascending: true });
 
@@ -70,7 +70,7 @@ export default async function PublicEventsDirectoryPage() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                          {event.college?.short_name || event.college?.name || 'Campus Event'}
+                          {event.college?.code || event.college?.name || 'Campus Event'}
                         </span>
                         {event.payment_required ? (
                           <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">

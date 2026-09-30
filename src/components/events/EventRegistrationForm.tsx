@@ -34,6 +34,7 @@ import { formatOrdinal } from '@/lib/events/academic-formatter';
 interface Props {
   event: CollegeEvent;
   collegeName: string;
+  tenantSlug?: string;
   branches?: Branch[];
   semesters?: Semester[];
 }
@@ -41,9 +42,14 @@ interface Props {
 export function EventRegistrationForm({
   event,
   collegeName,
+  tenantSlug,
   branches: initialBranches,
   semesters: initialSemesters,
 }: Props) {
+  // Navigation helpers
+  const eventDetailPath = tenantSlug ? `/${tenantSlug}/events/${event.slug}` : `/events/${event.slug}`;
+  const myRegistrationsPath = tenantSlug ? `/${tenantSlug}/events/${event.slug}/my-registrations` : `/events/${event.slug}/my-registrations`;
+
   // Mode: 'register' (Form) or 'lookup' (Check existing registration)
   const [activeTab, setActiveTab] = useState<'register' | 'lookup'>('register');
 
@@ -259,7 +265,7 @@ export function EventRegistrationForm({
         {/* Action Buttons */}
         <div className="pt-2 flex flex-col sm:flex-row gap-3">
           <Link
-            href={`/events/${event.slug}#programs`}
+            href={`${eventDetailPath}#programs`}
             className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
           >
             <Ticket className="w-4 h-4" />
@@ -267,7 +273,7 @@ export function EventRegistrationForm({
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href={`/events/${event.slug}/my-registrations`}
+            href={myRegistrationsPath}
             className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition-colors flex items-center justify-center"
           >
             <span>View My Registrations</span>
@@ -331,7 +337,7 @@ export function EventRegistrationForm({
         {/* Action Buttons */}
         <div className="pt-4 flex flex-col sm:flex-row gap-3">
           <Link
-            href={`/events/${event.slug}#programs`}
+            href={`${eventDetailPath}#programs`}
             className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
           >
             <Ticket className="w-4 h-4" />
@@ -339,7 +345,7 @@ export function EventRegistrationForm({
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            href={`/events/${event.slug}/my-registrations`}
+            href={myRegistrationsPath}
             className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition-colors flex items-center justify-center"
           >
             <span>View My Registrations</span>

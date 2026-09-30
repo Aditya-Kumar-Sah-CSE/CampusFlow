@@ -47,7 +47,7 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code || event.college?.short_name} />
+      <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code} />
 
       <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 flex-1 w-full space-y-6">
         {/* Navigation Breadcrumb */}

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const event = await getPublicEventBySlugGlobal(slug);
-  const tenant = { code: event?.college?.code || event?.college?.short_name };
+  const tenant = { code: event?.college?.code };
   const brand = getCampusFlowBrand(tenant);
   return {
     title: { default: brand.displayName, template: `%s | ${brand.displayName}` },

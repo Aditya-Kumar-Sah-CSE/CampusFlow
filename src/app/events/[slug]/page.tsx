@@ -18,10 +18,10 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const event = await getPublicEventBySlugGlobal(slug);
-  const brand = getCampusFlowBrand({ code: event?.college?.code || event?.college?.short_name });
+  const brand = getCampusFlowBrand({ code: event?.college?.code });
   return {
     title: event ? `${brand.displayName} | ${event.title}` : brand.displayName,
-    description: getCampusFlowDescription({ code: event?.college?.code || event?.college?.short_name }),
+    description: getCampusFlowDescription({ code: event?.college?.code }),
     openGraph: { title: event ? `${brand.displayName} | ${event.title}` : brand.displayName },
     twitter: { title: event ? `${brand.displayName} | ${event.title}` : brand.displayName },
   };
@@ -80,7 +80,7 @@ export default async function PublicEventPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code || event.college?.short_name} />
+      <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code} />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 sm:py-10 space-y-8">
         {/* Navigation Breadcrumb */}
@@ -107,7 +107,7 @@ export default async function PublicEventPage({ params }: Props) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                {event.college?.short_name || event.college?.name || 'Institution Event'}
+                {event.college?.code || event.college?.name || 'Institution Event'}
               </span>
               {event.payment_required ? (
                 <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">

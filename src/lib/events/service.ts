@@ -215,21 +215,21 @@ export async function getPublicEventBySlug(
  */
 export async function getPublicEventBySlugGlobal(
   slugOrId: string
-): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; code?: string; short_name?: string } }) | null> {
+): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; code?: string } }) | null> {
   if (!slugOrId) return null;
   const db = await getDb();
   const clean = normalizeEventSlug(slugOrId);
 
   let { data, error } = await db
     .from('events')
-    .select('*, college:colleges(id, name, slug, code, short_name)')
+    .select('*, college:colleges(id, name, slug, code)')
     .eq('slug', clean)
     .maybeSingle();
 
   if (!data && isUuid(slugOrId)) {
     const res = await db
       .from('events')
-      .select('*, college:colleges(id, name, slug, code, short_name)')
+      .select('*, college:colleges(id, name, slug, code)')
       .eq('id', slugOrId.trim())
       .maybeSingle();
     data = res.data;
