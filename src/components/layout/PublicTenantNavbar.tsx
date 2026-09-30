@@ -29,7 +29,6 @@ export interface PublicTenantNavbarProps {
 export function PublicTenantNavbar({
   tenant,
   currentPage = 'home',
-  hideAnonymousBadge = false,
 }: PublicTenantNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -110,18 +109,6 @@ export function PublicTenantNavbar({
 
           {/* Right: Desktop Navigation Items */}
           <div className="hidden md:flex items-center gap-2 shrink-0">
-            <CollegeInstallButton tenant={tenant} />
-
-            {!hideAnonymousBadge && (isFeedbackActive || currentPage === 'home') && (
-              <div
-                className="hidden lg:inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 shrink-0"
-                title="Your feedback submissions are 100% anonymous"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>100% Anonymous</span>
-              </div>
-            )}
-
             {showFeedbacks && (
               <Link
                 href={`/${tenant.slug}/feedback`}

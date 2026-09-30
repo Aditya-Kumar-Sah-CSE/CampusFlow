@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getPublicFeedbackFormByIdAction } from '@/app/feedback/actions';
 import { PublicFeedbackCard } from '@/components/public/PublicFeedbackCard';
-import { School, ArrowLeft, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import { School, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
 
 
 export const dynamic = 'force-dynamic';
@@ -59,12 +59,6 @@ export default async function DirectFeedbackPage({
               </p>
             </div>
           </Link>
-
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline">100% Anonymous</span>
-            <span className="sm:hidden text-[11px]">Anonymous</span>
-          </div>
         </div>
       </header>
 

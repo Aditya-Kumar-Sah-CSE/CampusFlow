@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { getPublicActiveFormsAction } from '@/app/feedback/actions';
-import { School, ArrowLeft, ShieldCheck, GraduationCap } from 'lucide-react';
+import { School, ArrowLeft, GraduationCap } from 'lucide-react';
 
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
@@ -112,12 +112,6 @@ export default async function FeedbackPortalPage() {
               </p>
             </div>
           </Link>
-
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline">100% Anonymous</span>
-            <span className="sm:hidden text-[11px]">Anonymous</span>
-          </div>
         </div>
       </header>
 
