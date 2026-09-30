@@ -63,10 +63,13 @@ export async function GET(
       registrationStatus,
     });
 
-    // Fetch college branding
+    // Fetch college branding and details
     const branding = await getCollegeBranding(collegeId);
     const collegeName = session.activeCollege?.name || 'College';
     const collegeCode = session.activeCollege?.code || 'COLLEGE';
+
+    const db = (await import('@/lib/supabase/admin')).createAdminClient() || await (await import('@/lib/supabase/server')).createClient();
+    const { data: collegeDetails } = await db.from('colleges').select('*').eq('id', collegeId).maybeSingle();
 
     const pdfBuffer = await generateEventEnrollmentPDF({
       event,
@@ -75,6 +78,7 @@ export async function GET(
       collegeName,
       collegeCode,
       branding,
+      collegeDetails: collegeDetails || undefined,
     });
 
     const safeTitle = event.slug || 'event';
