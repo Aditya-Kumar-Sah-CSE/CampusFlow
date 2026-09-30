@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicEventBySlug } from '@/lib/events/service';
+import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { EventRegistrationForm } from '@/components/events/EventRegistrationForm';
 import { ArrowLeft, Ticket } from 'lucide-react';
@@ -19,7 +20,10 @@ export default async function TenantEventRegisterPage({ params }: Props) {
   const { tenant: rawSlug, slug } = await params;
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
-  const event = await getPublicEventBySlug(tenant.collegeId, slug);
+  const [event, academic] = await Promise.all([
+    getPublicEventBySlug(tenant.collegeId, slug),
+    getCachedAcademicMasters(tenant.collegeId),
+  ]);
   if (!event || event.status !== 'PUBLISHED' || !event.registration_enabled) {
     notFound();
   }
@@ -70,6 +74,8 @@ export default async function TenantEventRegisterPage({ params }: Props) {
         <EventRegistrationForm
           event={event}
           collegeName={tenant.name}
+          branches={academic.branches}
+          semesters={academic.semesters}
         />
       </main>
 

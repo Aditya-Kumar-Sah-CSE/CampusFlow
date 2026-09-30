@@ -25,17 +25,33 @@ import {
   identifyStudentAction,
   resolveCurrentEventRegistrationAction,
   logoutFromEventAction,
+  getEventAcademicMastersAction,
 } from '@/app/admin/events/event-registration-actions';
 import type { CollegeEvent } from '@/types/events';
+import type { Branch, Semester } from '@/types/database';
+import { formatOrdinal } from '@/lib/events/academic-formatter';
 
 interface Props {
   event: CollegeEvent;
   collegeName: string;
+  branches?: Branch[];
+  semesters?: Semester[];
 }
 
-export function EventRegistrationForm({ event, collegeName }: Props) {
+export function EventRegistrationForm({
+  event,
+  collegeName,
+  branches: initialBranches,
+  semesters: initialSemesters,
+}: Props) {
   // Mode: 'register' (Form) or 'lookup' (Check existing registration)
   const [activeTab, setActiveTab] = useState<'register' | 'lookup'>('register');
+
+  // Academic master data for dropdowns
+  const [branches, setBranches] = useState<Branch[]>(initialBranches || []);
+  const [semesters, setSemesters] = useState<Semester[]>(initialSemesters || []);
+  const [customBranch, setCustomBranch] = useState(false);
+  const [customSemester, setCustomSemester] = useState(false);
 
   // Existing verified participant if already registered
   const [alreadyRegisteredParticipant, setAlreadyRegisteredParticipant] = useState<{
@@ -86,6 +102,29 @@ export function EventRegistrationForm({ event, collegeName }: Props) {
       isMounted = false;
     };
   }, [event.id]);
+
+  useEffect(() => {
+    if (initialBranches && initialBranches.length > 0) {
+      setBranches(initialBranches);
+    }
+  }, [initialBranches]);
+
+  useEffect(() => {
+    if (initialSemesters && initialSemesters.length > 0) {
+      setSemesters(initialSemesters);
+    }
+  }, [initialSemesters]);
+
+  useEffect(() => {
+    if ((!initialBranches || initialBranches.length === 0) && event.college_id) {
+      getEventAcademicMastersAction(event.college_id)
+        .then((res) => {
+          if (res.branches && res.branches.length > 0) setBranches(res.branches);
+          if (res.semesters && res.semesters.length > 0) setSemesters(res.semesters);
+        })
+        .catch(() => {});
+    }
+  }, [event.college_id, initialBranches]);
 
   // SUBMIT NEW EVENT REGISTRATION
   const handleSubmit = async (e: React.FormEvent) => {
@@ -493,31 +532,112 @@ export function EventRegistrationForm({ event, collegeName }: Props) {
             {/* Branch & Semester */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Branch / Department</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Computer Science"
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all"
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Branch / Department</span>
+                  </label>
+                  {branches.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomBranch(!customBranch);
+                        setBranch('');
+                      }}
+                      className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      {customBranch ? 'Select from list' : 'Not listed?'}
+                    </button>
+                  )}
+                </div>
+
+                {branches.length > 0 && !customBranch ? (
+                  <select
+                    value={branch}
+                    onChange={(e) => {
+                      if (e.target.value === '__OTHER__') {
+                        setCustomBranch(true);
+                        setBranch('');
+                      } else {
+                        setBranch(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all bg-white text-slate-800 cursor-pointer"
+                  >
+                    <option value="">Select Branch / Department</option>
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.code || b.name}>
+                        {b.name} {b.code ? `(${b.code})` : ''}
+                      </option>
+                    ))}
+                    <option value="__OTHER__">Other / Not Listed (Type manually)...</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="e.g. Computer Science"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all"
+                  />
+                )}
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Semester</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. 6th Semester"
-                  value={semester}
-                  onChange={(e) => setSemester(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all"
-                />
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Semester</span>
+                  </label>
+                  {semesters.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomSemester(!customSemester);
+                        setSemester('');
+                      }}
+                      className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      {customSemester ? 'Select from list' : 'Not listed?'}
+                    </button>
+                  )}
+                </div>
+
+                {semesters.length > 0 && !customSemester ? (
+                  <select
+                    value={semester}
+                    onChange={(e) => {
+                      if (e.target.value === '__OTHER__') {
+                        setCustomSemester(true);
+                        setSemester('');
+                      } else {
+                        setSemester(e.target.value);
+                      }
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all bg-white text-slate-800 cursor-pointer"
+                  >
+                    <option value="">Select Semester</option>
+                    {semesters.map((s) => {
+                      const semLabel = s.name.toLowerCase().startsWith('semester')
+                        ? `${formatOrdinal(s.semester_number)} Semester`
+                        : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`;
+                      return (
+                        <option key={s.id} value={semLabel}>
+                          {semLabel}
+                        </option>
+                      );
+                    })}
+                    <option value="__OTHER__">Other / Not Listed (Type manually)...</option>
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="e.g. 6th Semester"
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all"
+                  />
+                )}
               </div>
             </div>
 

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPublicEventBySlugGlobal } from '@/lib/events/service';
+import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { EventRegistrationForm } from '@/components/events/EventRegistrationForm';
 import { ArrowLeft, Ticket } from 'lucide-react';
@@ -20,6 +21,8 @@ export default async function EventRegisterPage({ params }: Props) {
   if (!event || event.status !== 'PUBLISHED' || !event.registration_enabled) {
     notFound();
   }
+
+  const academic = await getCachedAcademicMasters(event.college_id);
 
   const now = new Date();
   if (now > new Date(event.registration_end)) {
@@ -67,6 +70,8 @@ export default async function EventRegisterPage({ params }: Props) {
         <EventRegistrationForm
           event={event}
           collegeName={event.college?.name || 'College'}
+          branches={academic.branches}
+          semesters={academic.semesters}
         />
       </main>
 

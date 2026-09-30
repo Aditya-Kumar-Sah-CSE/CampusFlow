@@ -40,6 +40,7 @@ import {
   batchResolveAcademicDisplayValues,
 } from '@/lib/events/academic-resolver';
 import type { SheetEventRegistrationInput, EventLoginInput } from '@/types/events';
+import type { Branch, Semester } from '@/types/database';
 import { checkIsRegistrationOpen } from '@/lib/events/registration-status';
 import { getEventWithCollege } from '@/lib/events/event-context';
 
@@ -122,7 +123,18 @@ export async function registerForEventAction(
       event.title
     );
 
-    // 5. Append registration (collision-safe, duplicate-checked)
+    // 5. Resolve branch and semester to clean display values
+    let finalBranch = input.branch?.trim() || '';
+    let finalSemester = input.semester?.trim() || '';
+    try {
+      const academic = await resolveAcademicDisplayValues(event.college_id, finalBranch, finalSemester);
+      finalBranch = academic.branch;
+      finalSemester = academic.semester;
+    } catch {
+      // non-fatal fallback
+    }
+
+    // Append registration (collision-safe, duplicate-checked)
     const result = await appendEventRegistration(
       event.college_id,
       spreadsheetId,
@@ -133,8 +145,8 @@ export async function registerForEventAction(
         studentId: input.student_id,
         email: input.email,
         mobile: input.mobile || '',
-        branch: input.branch || '',
-        semester: input.semester || '',
+        branch: finalBranch,
+        semester: finalSemester,
         gender: input.gender || '',
       }
     );
@@ -148,8 +160,8 @@ export async function registerForEventAction(
       eventId: event.id,
       collegeId: event.college_id,
       mobile: input.mobile?.trim() || '',
-      branch: input.branch?.trim() || '',
-      semester: input.semester?.trim() || '',
+      branch: finalBranch,
+      semester: finalSemester,
       gender: input.gender?.trim() || '',
     });
 
@@ -1931,3 +1943,26 @@ export async function getSafePublicParticipantsAction(
     return { success: true, participants: [] };
   }
 }
+
+/**
+  * Safely fetches active academic master records (branches and semesters)
+  * for an event's college.
+  */
+export async function getEventAcademicMastersAction(collegeId: string): Promise<{
+  branches: Branch[];
+  semesters: Semester[];
+}> {
+  try {
+    if (!collegeId) return { branches: [], semesters: [] };
+    const { getCachedAcademicMasters } = await import('@/lib/supabase/academic-cache');
+    const masters = await getCachedAcademicMasters(collegeId);
+    return {
+      branches: masters.branches || [],
+      semesters: masters.semesters || [],
+    };
+  } catch (err) {
+    console.error('Failed to get academic masters for event:', err);
+    return { branches: [], semesters: [] };
+  }
+}
+
