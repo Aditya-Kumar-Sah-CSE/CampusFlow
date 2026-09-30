@@ -17,6 +17,9 @@ import {
   LogOut,
   IndianRupee,
   Bell,
+  Search,
+  Send,
+  ChevronRight,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -27,7 +30,9 @@ import {
   type StudentProgramRegistrationItem,
 } from '@/app/admin/events/event-registration-actions';
 import { ManageTeamModal } from './ManageTeamModal';
+import { FindTeamModal } from './FindTeamModal';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
+import { getMyJoinRequestsAction } from '@/app/events/join-requests/actions';
 
 interface Props {
   event: CollegeEvent;
@@ -50,11 +55,22 @@ export function StudentMyRegistrationsClient({
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [unreadInvitationCount, setUnreadInvitationCount] = useState(0);
+  const [unreadJoinRequestCount, setUnreadJoinRequestCount] = useState(0);
+
+  // Find Team modal state
+  const [findTeamProgram, setFindTeamProgram] = useState<{
+    programId: string;
+    programName: string;
+    initialView?: 'search' | 'requests';
+  } | null>(null);
 
   useEffect(() => {
-    if (!session) { setUnreadInvitationCount(0); return; }
+    if (!session) { setUnreadInvitationCount(0); setUnreadJoinRequestCount(0); return; }
     getMyTeamInvitationsAction(event.id).then(result => {
       if (result.success) setUnreadInvitationCount(result.unreadCount || 0);
+    });
+    getMyJoinRequestsAction(event.id).then(result => {
+      if (result.success) setUnreadJoinRequestCount(result.unreadCount || 0);
     });
   }, [event.id, session]);
 
@@ -270,6 +286,26 @@ export function StudentMyRegistrationsClient({
         {unreadInvitationCount > 0 && <span className="rounded-full bg-violet-700 px-2.5 py-1 text-xs font-bold text-white">{unreadInvitationCount} unread</span>}
       </Link>
 
+      {/* My Team Requests link */}
+      <button
+        type="button"
+        onClick={() => setFindTeamProgram({ programId: '', programName: '', initialView: 'requests' })}
+        className="w-full flex items-center justify-between rounded-2xl border border-amber-200 bg-white p-4 shadow-sm hover:bg-amber-50/50 transition-colors cursor-pointer text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-bold text-slate-800">
+          <Send className="h-4 w-4 text-amber-600" />
+          <span>My Team Join Requests</span>
+        </span>
+        <div className="flex items-center gap-2">
+          {unreadJoinRequestCount > 0 && (
+            <span className="rounded-full bg-amber-600 px-2.5 py-1 text-xs font-bold text-white">
+              {unreadJoinRequestCount} new
+            </span>
+          )}
+          <ChevronRight className="w-4 h-4 text-slate-400" />
+        </div>
+      </button>
+
       {/* Programs Joined Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -418,6 +454,20 @@ export function StudentMyRegistrationsClient({
           program={selectedTeamProgram}
           userRegistrationNumber={session.registrationNumber}
           onTeamUpdated={refreshRegistrations}
+        />
+      )}
+
+      {/* Find Team Modal */}
+      {findTeamProgram && session && (
+        <FindTeamModal
+          isOpen={Boolean(findTeamProgram)}
+          onClose={() => setFindTeamProgram(null)}
+          eventId={event.id}
+          programId={findTeamProgram.programId}
+          programName={findTeamProgram.programName}
+          initialView={findTeamProgram.initialView}
+          userRegistrationNumber={session.registrationNumber}
+          onTeamJoined={refreshRegistrations}
         />
       )}
     </div>

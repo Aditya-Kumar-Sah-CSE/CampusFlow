@@ -33,6 +33,7 @@ import {
   submitPaymentReferenceAction,
   logoutFromEventAction,
 } from '@/app/admin/events/event-registration-actions';
+import { FindTeamModal } from '@/components/events/FindTeamModal';
 
 export interface VerifiedParticipant {
   fullName: string;
@@ -140,6 +141,7 @@ export function ProgramRegistrationClient({ event, program, initialSession, tena
     paymentStatus?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isFindTeamOpen, setIsFindTeamOpen] = useState(false);
 
   // Resolve full details and check duplicate if already logged in on mount
   useEffect(() => {
@@ -850,6 +852,29 @@ export function ProgramRegistrationClient({ event, program, initialSession, tena
         </div>
       )}
 
+      {/* Option to find/request to join existing team instead of creating one */}
+      {(regType === 'TEAM' || allowedType === 'TEAM') && (
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <p className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-indigo-700" />
+              <span>Looking to join an existing team?</span>
+            </p>
+            <p className="text-[11px] text-indigo-700">
+              Browse teams with open slots in this program and send a join request to the team leader.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsFindTeamOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 cursor-pointer"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span>Find Team &amp; Join</span>
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmitRegistration} className="space-y-6">
         {/* TEAM FIELDS */}
         {regType === 'TEAM' && (
@@ -1167,6 +1192,27 @@ export function ProgramRegistrationClient({ event, program, initialSession, tena
           )}
         </button>
       </form>
+
+      {/* Find Team & Request to Join Modal */}
+      {isFindTeamOpen && participant && (
+        <FindTeamModal
+          isOpen={isFindTeamOpen}
+          onClose={() => setIsFindTeamOpen(false)}
+          eventId={event.id}
+          programId={program.id}
+          programName={program.name}
+          userRegistrationNumber={participant.registrationNumber}
+          onTeamJoined={async () => {
+            setIsFindTeamOpen(false);
+            setCheckingDuplicate(true);
+            const dupCheck = await checkProgramRegistrationAction(event.id, program.id);
+            setCheckingDuplicate(false);
+            if (dupCheck.isRegistered && dupCheck.registration) {
+              setExistingReg(dupCheck.registration);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

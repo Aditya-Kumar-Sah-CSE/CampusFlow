@@ -28,6 +28,12 @@ import {
   lookupTeamMemberAction,
 } from '@/app/admin/events/event-registration-actions';
 import { cancelTeamInvitationAction, findTeamInvitationStudentAction, getTeamInvitationsAction, inviteTeamMemberAction } from '@/app/events/invitations/actions';
+import {
+  getTeamJoinRequestsAction,
+  acceptJoinRequestAction,
+  rejectJoinRequestAction,
+  type JoinRequestItem,
+} from '@/app/events/join-requests/actions';
 
 interface Props {
   isOpen: boolean;
@@ -127,6 +133,11 @@ export function ManageTeamModal({
   const [capacityReserved, setCapacityReserved] = useState(program.teamMembers?.length || 0);
   const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
 
+  // Join Requests
+  const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
+  const [joinRequestsLoading, setJoinRequestsLoading] = useState(false);
+  const [processingJoinReqId, setProcessingJoinReqId] = useState<string | null>(null);
+
   // Reset form when program prop changes
   useEffect(() => {
     setTeamName(program.teamName || '');
@@ -146,6 +157,12 @@ export function ManageTeamModal({
     getTeamInvitationsAction(eventId, program.programId, program.teamId).then(res => {
       if (res.success) { setInvitations(res.invitations || []); setCapacityReserved(res.capacityReserved || 0); }
       else setErrorMsg(formatTeamManagementError(res.error || 'Could not load invitations.'));
+    });
+    // Load join requests
+    setJoinRequestsLoading(true);
+    getTeamJoinRequestsAction(eventId, program.programId, program.teamId).then(res => {
+      if (res.success) setJoinRequests(res.requests || []);
+      setJoinRequestsLoading(false);
     });
   }, [isOpen, eventId, program]);
 
@@ -797,6 +814,124 @@ export function ManageTeamModal({
                 {invitations.map(inv => <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs"><div><strong>{inv.invitedName || 'Student'}</strong><div className="text-slate-500">{inv.invitedRegistrationNumber}</div></div><div className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 font-bold">{inv.status}</span>{inv.status === 'PENDING' && canEdit && <button disabled={cancellingInvite === inv.id} onClick={async () => { setCancellingInvite(inv.id); const res = await cancelTeamInvitationAction(eventId, program.programId, program.teamId, inv.id); setCancellingInvite(null); if (res.success) { setInvitations(prev => prev.map(x => x.id === inv.id ? { ...x, status: 'CANCELLED' } : x)); setCapacityReserved(n => Math.max(0, n - 1)); } else setFeedback(res.error || 'Could not cancel invitation.', null); }} className="font-bold text-red-600">Cancel</button>}</div></div>)}
                 {!invitations.length && <p className="text-xs text-slate-500">No invitations yet.</p>}
               </div>
+            </section>
+          )}
+
+          {/* Join Requests Section (for team leader) */}
+          {isLeader && (
+            <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  Join Requests
+                  {joinRequests.filter(r => r.status === 'PENDING').length > 0 && (
+                    <span className="ml-1 w-5 h-5 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">
+                      {joinRequests.filter(r => r.status === 'PENDING').length}
+                    </span>
+                  )}
+                </h3>
+                <span className="text-[10px] font-semibold text-amber-700">
+                  {currentCount} / {maxTeam} members
+                  {currentCount < maxTeam && ` • ${maxTeam - currentCount} slot${maxTeam - currentCount > 1 ? 's' : ''} available`}
+                </span>
+              </div>
+
+              {joinRequestsLoading ? (
+                <div className="flex items-center gap-2 py-3 text-xs text-slate-500">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Loading join requests...</span>
+                </div>
+              ) : joinRequests.length === 0 ? (
+                <p className="text-xs text-slate-500">No join requests yet. Students can find your team using &ldquo;Find a Team&rdquo; in the program page.</p>
+              ) : (
+                <div className="space-y-2">
+                  {joinRequests.map(req => {
+                    const isPending = req.status === 'PENDING';
+                    const isProcessing = processingJoinReqId === req.id;
+                    return (
+                      <div key={req.id} className={`rounded-xl border bg-white px-4 py-3 space-y-2 ${isPending ? 'border-amber-200' : 'border-slate-100'}`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-slate-900">{req.requesterName}</p>
+                            <p className="text-[10px] text-slate-500">
+                              {req.requesterStudentId && <span>Roll: {req.requesterStudentId}</span>}
+                              {req.requesterBranch && <span> • {req.requesterBranch}</span>}
+                              {req.requesterSemester && <span> • Sem {req.requesterSemester}</span>}
+                            </p>
+                            <p className="text-[10px] font-mono text-slate-500">Event Reg: {req.requesterRegistrationNumber}</p>
+                            <p className="text-[10px] text-slate-400">
+                              Requested {new Date(req.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                            req.status === 'APPROVED' ? 'text-emerald-700 bg-emerald-100 border-emerald-300' :
+                            req.status === 'REJECTED' ? 'text-red-700 bg-red-100 border-red-300' :
+                            'text-amber-700 bg-amber-100 border-amber-300'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </div>
+
+                        {isPending && canEdit && currentCount < maxTeam && (
+                          <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                            <button
+                              disabled={isProcessing}
+                              onClick={async () => {
+                                setProcessingJoinReqId(req.id);
+                                setFeedback(null, null);
+                                const res = await acceptJoinRequestAction(eventId, program.programId, program.teamId, req.id);
+                                setProcessingJoinReqId(null);
+                                if (res.success) {
+                                  setFeedback(null, `${req.requesterName} has been added to the team!`);
+                                  setJoinRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'APPROVED' } : r));
+                                  await onTeamUpdated();
+                                } else {
+                                  setFeedback(res.error || 'Could not accept request.', null);
+                                }
+                              }}
+                              className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                              <span>Accept</span>
+                            </button>
+                            <button
+                              disabled={isProcessing}
+                              onClick={async () => {
+                                setProcessingJoinReqId(req.id);
+                                setFeedback(null, null);
+                                const res = await rejectJoinRequestAction(eventId, program.programId, program.teamId, req.id);
+                                setProcessingJoinReqId(null);
+                                if (res.success) {
+                                  setJoinRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: 'REJECTED' } : r));
+                                  setFeedback(null, 'Request rejected.');
+                                } else {
+                                  setFeedback(res.error || 'Could not reject request.', null);
+                                }
+                              }}
+                              className="flex-1 py-1.5 px-3 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Reject</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {isPending && !canEdit && (
+                          <p className="text-[10px] text-amber-600 font-medium pt-1 border-t border-slate-100">
+                            Registration is closed. This request cannot be processed.
+                          </p>
+                        )}
+
+                        {isPending && canEdit && currentCount >= maxTeam && (
+                          <p className="text-[10px] text-red-600 font-medium pt-1 border-t border-slate-100">
+                            Team is full. Remove a member before accepting.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           )}
 
