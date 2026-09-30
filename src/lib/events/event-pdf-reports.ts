@@ -627,17 +627,21 @@ export function renderOfficialHeader(
   const { college, event, program, reportTitle, reportSubtitle, logoBuffer } = options;
   const margin = 36;
   const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
   const contentWidth = pageWidth - margin * 2;
+  const isLandscape = pageWidth > pageHeight;
 
   let y = margin;
 
   // Outer container border with subtle shadow background
-  doc.rect(margin, y, contentWidth, 76).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
+  // Portrait requires 94pt to comfortably display 4-5 lines of college details without any clipping
+  const headerH = isLandscape ? 82 : 94;
+  doc.rect(margin, y, contentWidth, headerH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
 
   // Left: College Logo or Crisp Monogram
-  const logoBoxSize = 52;
-  const logoX = margin + 12;
-  const logoY = y + 12;
+  const logoBoxSize = isLandscape ? 54 : 50;
+  const logoX = margin + 10;
+  const logoY = y + Math.floor((headerH - logoBoxSize) / 2);
 
   if (logoBuffer) {
     try {
@@ -658,59 +662,76 @@ export function renderOfficialHeader(
       .text((college.code || 'COL').slice(0, 4), logoX, logoY + 18, { width: logoBoxSize, align: 'center' });
   }
 
-  // Middle-Left: College Details
-  const collegeTextX = logoX + logoBoxSize + 12;
-  const collegeColWidth = contentWidth * 0.52;
+  // Right Block: Report Title Badge & Generation Time
+  // Placed first with strictly bounded coordinates so it NEVER overlaps middle college text
+  const badgeWidth = isLandscape ? 210 : 160;
+  const badgeX = margin + contentWidth - badgeWidth - 8;
+  const badgeY = y + 8;
+  const badgeHeight = headerH - 16;
 
-  doc.font('Helvetica-Bold').fontSize(13).fillColor(college.primary_color || PDF_COLORS.primary)
-    .text(college.name.toUpperCase(), collegeTextX, y + 10, { width: collegeColWidth, ellipsis: true });
+  doc.rect(badgeX, badgeY, badgeWidth, badgeHeight).fillAndStroke(PDF_COLORS.white, PDF_COLORS.border);
+
+  const titleFontSize = isLandscape ? 9.5 : 8.5;
+  doc.font('Helvetica-Bold').fontSize(titleFontSize).fillColor(PDF_COLORS.primary)
+    .text(reportTitle.toUpperCase(), badgeX + 4, badgeY + 8, { width: badgeWidth - 8, align: 'center', ellipsis: true });
+
+  if (reportSubtitle) {
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.secondary)
+      .text(reportSubtitle, badgeX + 4, badgeY + 23, { width: badgeWidth - 8, align: 'center', ellipsis: true });
+  }
+
+  const generatedTimeStr = formatDateTime(new Date());
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
+    .text(`Generated: ${generatedTimeStr}`, badgeX + 4, badgeY + badgeHeight - 15, { width: badgeWidth - 8, align: 'center' });
+
+  // Middle: College Details (Strictly bounded between logo and right badge)
+  const collegeTextX = logoX + logoBoxSize + 10;
+  const collegeColWidth = badgeX - collegeTextX - 10;
+
+  const collegeNameFontSize = isLandscape ? 13 : 11;
+  doc.font('Helvetica-Bold').fontSize(collegeNameFontSize).fillColor(college.primary_color || PDF_COLORS.primary)
+    .text(college.name.toUpperCase(), collegeTextX, y + 8, { width: collegeColWidth, ellipsis: true });
 
   const codeAndAffil = [
     college.code ? college.code.toUpperCase() : null,
     'Official Event Registration Roster',
   ].filter(Boolean).join('  •  ');
 
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.secondary)
-    .text(codeAndAffil, collegeTextX, y + 26, { width: collegeColWidth, ellipsis: true });
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.secondary)
+    .text(codeAndAffil, collegeTextX, y + 24, { width: collegeColWidth, ellipsis: true });
 
-  // Address & Contacts (Gracefully omitted if blank)
-  const contactParts: string[] = [];
-  if (college.contact_phone) contactParts.push(`Phone: ${college.contact_phone}`);
-  if (college.contact_email) contactParts.push(`Email: ${college.contact_email}`);
-  if (college.website_url) contactParts.push(`Web: ${college.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}`);
-
-  let addressY = y + 40;
+  // Address & Contacts (Gracefully separated and spaced)
+  let textCursorY = y + 37;
   if (college.address) {
     doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateMuted)
-      .text(college.address, collegeTextX, addressY, { width: collegeColWidth, ellipsis: true });
-    addressY += 11;
+      .text(college.address, collegeTextX, textCursorY, { width: collegeColWidth, ellipsis: true });
+    textCursorY += 12;
   }
 
-  if (contactParts.length > 0) {
-    doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateMuted)
-      .text(contactParts.join('  |  '), collegeTextX, addressY, { width: collegeColWidth, ellipsis: true });
+  const contactItems: string[] = [];
+  if (college.contact_phone) contactItems.push(`Phone: ${college.contact_phone}`);
+  if (college.contact_email) contactItems.push(`Email: ${college.contact_email}`);
+
+  if (isLandscape) {
+    if (college.website_url) contactItems.push(`Web: ${college.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}`);
+    if (contactItems.length > 0) {
+      doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateMuted)
+        .text(contactItems.join('  |  '), collegeTextX, textCursorY, { width: collegeColWidth, ellipsis: true });
+    }
+  } else {
+    // In portrait mode: line 1 for Phone & Email, line 2 for Web so nothing ever clips or wraps awkwardly
+    if (contactItems.length > 0) {
+      doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateMuted)
+        .text(contactItems.join('  |  '), collegeTextX, textCursorY, { width: collegeColWidth, ellipsis: true });
+      textCursorY += 10;
+    }
+    if (college.website_url) {
+      doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateMuted)
+        .text(`Web: ${college.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}`, collegeTextX, textCursorY, { width: collegeColWidth, ellipsis: true });
+    }
   }
 
-  // Right Block: Report Title Badge & Generation Time
-  const badgeWidth = Math.min(220, contentWidth * 0.35);
-  const badgeX = margin + contentWidth - badgeWidth - 10;
-  const badgeY = y + 10;
-
-  doc.rect(badgeX, badgeY, badgeWidth, 56).fillAndStroke(PDF_COLORS.white, PDF_COLORS.border);
-
-  doc.font('Helvetica-Bold').fontSize(9.5).fillColor(PDF_COLORS.primary)
-    .text(reportTitle.toUpperCase(), badgeX + 6, badgeY + 8, { width: badgeWidth - 12, align: 'center', ellipsis: true });
-
-  if (reportSubtitle) {
-    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.secondary)
-      .text(reportSubtitle, badgeX + 6, badgeY + 23, { width: badgeWidth - 12, align: 'center', ellipsis: true });
-  }
-
-  const generatedTimeStr = formatDateTime(new Date());
-  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
-    .text(`Generated: ${generatedTimeStr}`, badgeX + 6, badgeY + 41, { width: badgeWidth - 12, align: 'center' });
-
-  y += 82;
+  y += headerH + 6;
 
   // Metadata Strip: Event, Program, Category, Dates, Venue, Status
   doc.rect(margin, y, contentWidth, 32).fillAndStroke(PDF_COLORS.secondary, PDF_COLORS.secondary);
@@ -749,6 +770,48 @@ export function renderOfficialHeader(
 
   y += 38;
   return y;
+}
+
+export function renderOfficialSignatureBlock(
+  doc: PDFKit.PDFDocument,
+  currentY: number
+): number {
+  const margin = 36;
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const contentWidth = pageWidth - margin * 2;
+  const blockHeight = 44;
+
+  let y = currentY;
+  // Ensure the signature block has enough room before the page footer
+  if (y + blockHeight > pageHeight - margin - 35) {
+    doc.addPage();
+    y = margin + 14;
+  } else {
+    y += 14;
+  }
+
+  const sigLineWidth = 180;
+
+  // Left signature line: Organizing Committee / Convener
+  const leftX = margin + 8;
+  doc.moveTo(leftX, y + 18).lineTo(leftX + sigLineWidth, y + 18)
+    .strokeColor(PDF_COLORS.border).lineWidth(0.8).stroke();
+  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
+    .text('Organizing Committee / Convener', leftX, y + 22, { width: sigLineWidth, align: 'center' });
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
+    .text('Verified Official Record', leftX, y + 32, { width: sigLineWidth, align: 'center' });
+
+  // Right signature line: Event Coordinator / Faculty In-Charge
+  const rightX = margin + contentWidth - sigLineWidth - 8;
+  doc.moveTo(rightX, y + 18).lineTo(rightX + sigLineWidth, y + 18)
+    .strokeColor(PDF_COLORS.border).lineWidth(0.8).stroke();
+  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
+    .text('Event Coordinator / Faculty In-Charge', rightX, y + 22, { width: sigLineWidth, align: 'center' });
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
+    .text('Authorized Signature & Seal', rightX, y + 32, { width: sigLineWidth, align: 'center' });
+
+  return y + blockHeight;
 }
 
 export function renderOfficialFooter(doc: PDFKit.PDFDocument, collegeName: string) {
@@ -832,13 +895,15 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
 
   // Table Columns Definition
   const cols = [
-    { label: '#', w: 30, align: 'center' as const },
-    { label: 'Team ID', w: 105, align: 'left' as const },
-    { label: 'Team Name', w: 120, align: 'left' as const },
-    { label: 'Team Leader', w: 135, align: 'left' as const },
-    { label: 'Leader Roll / Reg No.', w: 120, align: 'left' as const },
-    { label: 'Leader Email', w: 145, align: 'left' as const },
-    { label: 'Members', w: 55, align: 'center' as const },
+    { label: '#', w: 22, align: 'center' as const },
+    { label: 'Team ID', w: 82, align: 'left' as const },
+    { label: 'Team Name', w: 90, align: 'left' as const },
+    { label: 'Team Leader', w: 100, align: 'left' as const },
+    { label: 'Leader Roll / Reg', w: 90, align: 'left' as const },
+    { label: 'Leader Mobile', w: 75, align: 'left' as const },
+    { label: 'Leader Email', w: 125, align: 'left' as const },
+    { label: 'Branch / Sem', w: 80, align: 'left' as const },
+    { label: 'Members', w: 46, align: 'center' as const },
     { label: 'Status', w: 60, align: 'center' as const },
   ];
 
@@ -905,25 +970,36 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
       doc.text(rollOrReg, colX + 4, y + 5, { width: cols[4].w - 8, align: 'left', ellipsis: true });
       colX += cols[4].w;
 
-      // 6. Leader Email
-      const leaderEmail = t.leader?.email || '—';
-      doc.text(leaderEmail, colX + 4, y + 5, { width: cols[5].w - 8, align: 'left', ellipsis: true });
+      // 6. Leader Mobile
+      const leaderMobile = t.leader?.mobile || '—';
+      doc.text(leaderMobile, colX + 4, y + 5, { width: cols[5].w - 8, align: 'left', ellipsis: true });
       colX += cols[5].w;
 
-      // 7. Members
-      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize}` : String(t.teamSize);
-      doc.font('Helvetica-Bold').text(sizeStr, colX + 2, y + 5, { width: cols[6].w - 4, align: 'center' });
-      doc.font('Helvetica');
+      // 7. Leader Email
+      const leaderEmail = t.leader?.email || '—';
+      doc.text(leaderEmail, colX + 4, y + 5, { width: cols[6].w - 8, align: 'left', ellipsis: true, lineBreak: false });
       colX += cols[6].w;
 
-      // 8. Status
+      // 8. Branch / Sem
+      const bSem = t.leader ? `${t.leader.branch || '-'}${t.leader.semester ? ` (${t.leader.semester.replace(/Semester/i, 'Sem').trim()})` : ''}` : '—';
+      doc.text(bSem, colX + 4, y + 5, { width: cols[7].w - 8, align: 'left', ellipsis: true });
+      colX += cols[7].w;
+
+      // 9. Members
+      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize}` : String(t.teamSize);
+      doc.font('Helvetica-Bold').text(sizeStr, colX + 2, y + 5, { width: cols[8].w - 4, align: 'center' });
+      doc.font('Helvetica');
+      colX += cols[8].w;
+
+      // 10. Status
       const statusColor = t.status === 'CONFIRMED' || t.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(statusColor).text(t.status, colX + 2, y + 5, { width: cols[7].w - 4, align: 'center', ellipsis: true });
+      doc.font('Helvetica-Bold').fillColor(statusColor).text(t.status, colX + 2, y + 5, { width: cols[9].w - 4, align: 'center', ellipsis: true });
 
       y += rowH;
     });
   }
 
+  y = renderOfficialSignatureBlock(doc, y);
   renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
@@ -977,7 +1053,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   }
 
   // --- TEAM INFORMATION CARD ---
-  const infoCardH = 74;
+  const infoCardH = 98;
   doc.rect(margin, y, contentWidth, infoCardH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
 
   // Top header of info card
@@ -988,7 +1064,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   const colW = Math.floor(contentWidth / 3);
   let cardY = y + 24;
 
-  // Row 1
+  // Row 1: Team Essentials
   // Col 1: Team Name
   doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('TEAM NAME', margin + 10, cardY);
   doc.font('Helvetica-Bold').fontSize(9).fillColor(PDF_COLORS.primary).text(team.teamName, margin + 10, cardY + 9, { width: colW - 16, ellipsis: true });
@@ -1002,7 +1078,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   const statusColor = team.status === 'CONFIRMED' || team.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
   doc.font('Helvetica-Bold').fontSize(9).fillColor(statusColor).text(team.status, margin + colW * 2 + 6, cardY + 9);
 
-  // Row 2
+  // Row 2: Team Leader Identity
   cardY += 24;
   // Col 1: Team Leader
   doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('TEAM LEADER', margin + 10, cardY);
@@ -1012,9 +1088,25 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('LEADER REGISTRATION NO.', margin + colW + 6, cardY);
   doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.primary).text(team.leader?.eventRegNumber || '—', margin + colW + 6, cardY + 8, { width: colW - 16, ellipsis: true });
 
-  // Col 3: Leader Email
-  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('LEADER EMAIL', margin + colW * 2 + 6, cardY);
-  doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(team.leader?.email || '—', margin + colW * 2 + 6, cardY + 8, { width: colW - 16, ellipsis: true });
+  // Col 3: Leader Student ID / Roll
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('LEADER STUDENT ID / ROLL', margin + colW * 2 + 6, cardY);
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.primary).text(team.leader?.studentId || '—', margin + colW * 2 + 6, cardY + 8, { width: colW - 16, ellipsis: true });
+
+  // Row 3: Leader Contact & Academic Info
+  cardY += 24;
+  // Col 1: Leader Mobile No.
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('LEADER MOBILE NO.', margin + 10, cardY);
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.primary).text(team.leader?.mobile || '—', margin + 10, cardY + 8, { width: colW - 16, ellipsis: true });
+
+  // Col 2: Leader Email
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('LEADER EMAIL', margin + colW + 6, cardY);
+  doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(team.leader?.email || '—', margin + colW + 6, cardY + 8, { width: colW - 16, ellipsis: true, lineBreak: false });
+
+  // Col 3: Leader Branch & Semester
+  doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('LEADER BRANCH & SEMESTER', margin + colW * 2 + 6, cardY);
+  const semFormatted = team.leader?.semester ? ` (${team.leader.semester.replace(/Semester/i, 'Sem').trim()})` : '';
+  const leaderBranchSem = team.leader ? `${team.leader.branch || '—'}${semFormatted}` : '—';
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.primary).text(leaderBranchSem, margin + colW * 2 + 6, cardY + 8, { width: colW - 16, ellipsis: true });
 
   y += infoCardH + 12;
 
@@ -1027,15 +1119,15 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
 
   // Members Table Columns
   const mCols = [
-    { label: '#', w: 22, align: 'center' as const },
-    { label: 'Role', w: 76, align: 'center' as const },
-    { label: 'Name', w: 90, align: 'left' as const },
-    { label: 'Event Reg No.', w: 75, align: 'left' as const },
-    { label: 'Student ID', w: 50, align: 'left' as const },
-    { label: 'Email', w: 95, align: 'left' as const },
-    { label: 'Mobile', w: 55, align: 'left' as const },
-    { label: 'Branch', w: 35, align: 'left' as const },
-    { label: 'Semester', w: 25, align: 'center' as const },
+    { label: '#', w: 18, align: 'center' as const },
+    { label: 'Role', w: 70, align: 'center' as const },
+    { label: 'Name', w: 85, align: 'left' as const },
+    { label: 'Event Reg No.', w: 72, align: 'left' as const },
+    { label: 'Student ID', w: 46, align: 'left' as const },
+    { label: 'Email', w: 106, align: 'left' as const },
+    { label: 'Mobile', w: 60, align: 'left' as const },
+    { label: 'Branch', w: 36, align: 'left' as const },
+    { label: 'Sem', w: 30, align: 'center' as const },
   ];
 
   // Scale table to fit portrait contentWidth
@@ -1099,7 +1191,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
     colX += mCols[4].w;
 
     // 6. Email
-    doc.text(m.email, colX + 2, y + 5, { width: mCols[5].w - 4, align: 'left', ellipsis: true });
+    doc.text(m.email, colX + 2, y + 5, { width: mCols[5].w - 4, align: 'left', ellipsis: true, lineBreak: false });
     colX += mCols[5].w;
 
     // 7. Mobile
@@ -1149,15 +1241,9 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text('PAYMENT REFERENCE', margin + bColW * 3 + 6, y + 8);
   doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(team.paymentReference || 'NOT REQUIRED', margin + bColW * 3 + 6, y + 19, { width: bColW - 12, ellipsis: true });
 
-  // Sign-off signature line
-  y += bottomCardH + 16;
-  if (y + 40 < pageHeight - margin - 30) {
-    const sigBoxW = 180;
-    const sigX = margin + contentWidth - sigBoxW;
-    doc.moveTo(sigX, y + 26).lineTo(sigX + sigBoxW, y + 26).strokeColor(PDF_COLORS.border).lineWidth(0.8).stroke();
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
-      .text('Event Coordinator / Faculty In-Charge', sigX, y + 30, { width: sigBoxW, align: 'center' });
-  }
+  // Official Dual Sign-off Block (Organizing Committee & Event Coordinator / Faculty In-Charge)
+  y += bottomCardH + 10;
+  y = renderOfficialSignatureBlock(doc, y);
 
   renderOfficialFooter(doc, college.name);
   doc.end();
@@ -1321,6 +1407,7 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
     });
   }
 
+  y = renderOfficialSignatureBlock(doc, y);
   renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
@@ -1408,13 +1495,15 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
   } else {
     // Teams Table
     const tCols = [
-      { label: '#', w: 25, align: 'center' as const },
-      { label: 'Team ID', w: 100, align: 'left' as const },
-      { label: 'Team Name', w: 115, align: 'left' as const },
-      { label: 'Team Leader', w: 130, align: 'left' as const },
-      { label: 'Leader Roll / Reg No.', w: 115, align: 'left' as const },
-      { label: 'Leader Email', w: 145, align: 'left' as const },
-      { label: 'Size', w: 50, align: 'center' as const },
+      { label: '#', w: 22, align: 'center' as const },
+      { label: 'Team ID', w: 82, align: 'left' as const },
+      { label: 'Team Name', w: 90, align: 'left' as const },
+      { label: 'Team Leader', w: 100, align: 'left' as const },
+      { label: 'Leader Roll / Reg', w: 90, align: 'left' as const },
+      { label: 'Leader Mobile', w: 75, align: 'left' as const },
+      { label: 'Leader Email', w: 125, align: 'left' as const },
+      { label: 'Branch / Sem', w: 80, align: 'left' as const },
+      { label: 'Size', w: 46, align: 'center' as const },
       { label: 'Status', w: 60, align: 'center' as const },
     ];
     const tScale = contentWidth / tCols.reduce((s, c) => s + c.w, 0);
@@ -1465,16 +1554,24 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       doc.text(rollReg, colX + 3, y + 5, { width: tCols[4].w - 6, ellipsis: true });
       colX += tCols[4].w;
 
-      doc.text(t.leader?.email || '—', colX + 3, y + 5, { width: tCols[5].w - 6, ellipsis: true });
+      const leaderMobile = t.leader?.mobile || '—';
+      doc.text(leaderMobile, colX + 3, y + 5, { width: tCols[5].w - 6, ellipsis: true });
       colX += tCols[5].w;
 
-      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize}` : String(t.teamSize);
-      doc.font('Helvetica-Bold').text(sizeStr, colX + 2, y + 5, { width: tCols[6].w - 4, align: 'center' });
-      doc.font('Helvetica');
+      doc.text(t.leader?.email || '—', colX + 3, y + 5, { width: tCols[6].w - 6, ellipsis: true, lineBreak: false });
       colX += tCols[6].w;
 
+      const bSem = t.leader ? `${t.leader.branch || '-'}${t.leader.semester ? ` (${t.leader.semester.replace(/Semester/i, 'Sem').trim()})` : ''}` : '—';
+      doc.text(bSem, colX + 3, y + 5, { width: tCols[7].w - 6, ellipsis: true });
+      colX += tCols[7].w;
+
+      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize}` : String(t.teamSize);
+      doc.font('Helvetica-Bold').text(sizeStr, colX + 2, y + 5, { width: tCols[8].w - 4, align: 'center' });
+      doc.font('Helvetica');
+      colX += tCols[8].w;
+
       const statusColor = t.status === 'CONFIRMED' || t.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(statusColor).text(t.status, colX + 2, y + 5, { width: tCols[7].w - 4, align: 'center' });
+      doc.font('Helvetica-Bold').fillColor(statusColor).text(t.status, colX + 2, y + 5, { width: tCols[9].w - 4, align: 'center' });
 
       y += rowH;
     });
@@ -1700,6 +1797,7 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
   doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.primary)
     .text(finalSummaryText, margin + 12, y + 8, { width: contentWidth - 24, align: 'center' });
 
+  y = renderOfficialSignatureBlock(doc, y + 26);
   renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
@@ -1900,6 +1998,7 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
     }
   }
 
+  y = renderOfficialSignatureBlock(doc, y);
   renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
@@ -2082,6 +2181,7 @@ export async function generateEventEnrollmentPDF(params: {
     y += rowHeight;
   }
 
+  y = renderOfficialSignatureBlock(doc, y);
   renderOfficialFooter(doc, collegeName);
   doc.end();
   return bufferPromise;
