@@ -10,6 +10,11 @@ import {
 
 const dbClient = () => createAdminClient();
 
+/** Returns true when the error means the table hasn't been created yet (migration pending). */
+function isTableMissing(err: { code?: string } | null | undefined): boolean {
+  return !!err && (err.code === 'PGRST205' || err.code === '42P01');
+}
+
 async function verifiedLeader(eventId: string, programId: string, teamId: string) {
   const auth = await verifyEventSession(eventId);
   if (!auth.isValid || !auth.session) throw new Error('Sign in to your event pass first.');
@@ -36,7 +41,12 @@ async function findEligibleInvitee(eventId: string, programId: string, teamId: s
   if (!open.isOpen) throw new Error(open.reason || 'Team registration is closed.');
   const maxSize = program.max_team_size || 20;
   const db = dbClient(); if (!db) throw new Error('Invitation service is unavailable.');
-  const { count } = await db.from('event_team_invitations').select('id', { count: 'exact', head: true }).eq('college_id', event.college_id).eq('event_id', event.id).eq('program_id', program.id).eq('team_id', leader.teamId).eq('status', 'PENDING').gt('expires_at', new Date().toISOString());
+  const { count, error: capacityError } = await db.from('event_team_invitations').select('id', { count: 'exact', head: true }).eq('college_id', event.college_id).eq('event_id', event.id).eq('program_id', program.id).eq('team_id', leader.teamId).eq('status', 'PENDING').gt('expires_at', new Date().toISOString());
+  if (capacityError && !isTableMissing(capacityError)) {
+    console.error('[TeamInvitations] Capacity check failed:', capacityError.code, capacityError.message);
+    throw new Error('Could not verify team capacity. Please try again later.');
+  }
+  if (isTableMissing(capacityError)) console.warn('[TeamInvitations] Invitation table pending migration — treating pending count as 0.');
   if (teamRows.length + (count || 0) >= maxSize) throw new Error('Team capacity is full.');
 
   const value = identifier.trim();
@@ -48,8 +58,11 @@ async function findEligibleInvitee(eventId: string, programId: string, teamId: s
   if (teamRows.some(r => r.registrationNumber.toUpperCase() === registrationNumber || r.email.toLowerCase() === target.email.toLowerCase() || (target.studentId && r.studentId.toUpperCase() === target.studentId.toUpperCase()))) throw new Error('This student is already a member of this team.');
   const existingParticipation = await findExistingProgramRegistration(event.college_id, event.registration_sheet_id, event.id, program.id, { eventRegNumber: registrationNumber, studentId: target.studentId, email: target.email });
   if (existingParticipation) throw new Error('This student already participates in this program.');
-  const { data: duplicate, error: duplicateError } = await db.from('event_team_invitations').select('id').eq('college_id', event.college_id).eq('event_id', event.id).eq('program_id', program.id).eq('invited_registration_number', registrationNumber).eq('status', 'PENDING').gt('expires_at', new Date().toISOString()).maybeSingle();
-  if (duplicateError) throw new Error('Could not verify existing invitations.');
+  const { data: duplicate, error: duplicateError } = await db.from('event_team_invitations').select('id').eq('college_id', event.college_id).eq('event_id', event.id).eq('program_id', program.id).eq('invited_registration_number', registrationNumber).eq('status', 'PENDING').gt('expires_at', new Date().toISOString()).limit(1).maybeSingle();
+  if (duplicateError && !isTableMissing(duplicateError)) {
+    console.error('[TeamInvitations] Duplicate check failed:', duplicateError.code, duplicateError.message);
+    throw new Error('Could not verify existing invitations. Please try again later.');
+  }
   if (duplicate) throw new Error('This student already has a pending invitation for this program.');
   return { ...context, target, registrationNumber };
 }
@@ -83,7 +96,8 @@ export async function getTeamInvitationsAction(eventId: string, programId: strin
     const { event, program, leader, teamRows } = await verifiedLeader(eventId, programId, teamId);
     const db = dbClient(); if (!db) throw new Error('Invitation service unavailable.');
     const { data, error } = await db.from('event_team_invitations').select('id,invited_name,invited_registration_number,status,expires_at').eq('college_id', event.college_id).eq('event_id', event.id).eq('program_id', program.id).eq('team_id', leader.teamId).order('created_at', { ascending: false });
-    if (error) throw new Error('Could not load invitations.');
+    if (error && !isTableMissing(error)) throw new Error('Could not load invitations.');
+    if (isTableMissing(error)) return { success: true, invitations: [], capacityReserved: teamRows.length, maxTeamSize: program.max_team_size || 20 };
     const now = new Date().toISOString(); const isOpen = checkIsRegistrationOpen(event, program).isOpen;
     await db.from('event_team_invitations').update({ status: 'EXPIRED' }).eq('college_id', event.college_id).eq('event_id', event.id).eq('program_id', program.id).eq('team_id', leader.teamId).eq('status', 'PENDING').is('acceptance_started_at', null).or(`expires_at.lte.${now}${isOpen ? '' : ',expires_at.gt.' + now}`);
     const pending = (data || []).filter(i => i.status === 'PENDING' && i.expires_at > now);
@@ -114,7 +128,8 @@ export async function getMyTeamInvitationsAction(eventId: string): Promise<{ suc
     if (!event.registration_sheet_id || event.college_id !== auth.session.collegeId) throw new Error('Event registration data is unavailable.');
     const db = dbClient(); if (!db) throw new Error('Invitation service unavailable.');
     const { data, error } = await db.from('event_team_invitations').select('*').eq('college_id', event.college_id).eq('event_id', event.id).eq('invited_registration_number', auth.session.registrationNumber.toUpperCase()).order('created_at', { ascending: false });
-    if (error) throw new Error('Could not load invitations.');
+    if (error && !isTableMissing(error)) throw new Error('Could not load invitations.');
+    if (isTableMissing(error)) return { success: true, invitations: [], unreadCount: 0 };
     const now = new Date().toISOString(); const rows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
     const invitations: MyTeamInvitation[] = [];
     for (const inv of data || []) {
@@ -137,7 +152,8 @@ export async function markInvitationNotificationReadAction(eventId: string, invi
     const auth = await verifyEventSession(eventId); if (!auth.isValid || !auth.session) throw new Error('Please sign in.');
     const db = dbClient(); if (!db) throw new Error('Invitation service unavailable.');
     const { error } = await db.from('event_team_invitations').update({ notification_read_at: new Date().toISOString() }).eq('id', invitationId).eq('event_id', eventId).eq('college_id', auth.session.collegeId).eq('invited_registration_number', auth.session.registrationNumber.toUpperCase());
-    if (error) throw new Error('Could not update notification.');
+    if (error && !isTableMissing(error)) throw new Error('Could not update notification.');
+    if (isTableMissing(error)) return { success: true };
     return { success: true };
   } catch (e) { return { success: false, error: (e as Error).message }; }
 }
