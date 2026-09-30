@@ -16,6 +16,7 @@ import {
   ArrowRight,
   LogOut,
   IndianRupee,
+  Bell,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -26,6 +27,7 @@ import {
   type StudentProgramRegistrationItem,
 } from '@/app/admin/events/event-registration-actions';
 import { ManageTeamModal } from './ManageTeamModal';
+import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
 
 interface Props {
   event: CollegeEvent;
@@ -47,6 +49,14 @@ export function StudentMyRegistrationsClient({
   const [loginEmail, setLoginEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [unreadInvitationCount, setUnreadInvitationCount] = useState(0);
+
+  useEffect(() => {
+    if (!session) { setUnreadInvitationCount(0); return; }
+    getMyTeamInvitationsAction(event.id).then(result => {
+      if (result.success) setUnreadInvitationCount(result.unreadCount || 0);
+    });
+  }, [event.id, session]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,6 +264,11 @@ export function StudentMyRegistrationsClient({
           </div>
         </div>
       </div>
+
+      <Link href={`/events/invitations?eventId=${encodeURIComponent(event.id)}`} className="flex items-center justify-between rounded-2xl border border-violet-200 bg-white p-4 shadow-sm hover:bg-violet-50">
+        <span className="flex items-center gap-2 text-sm font-bold text-slate-800"><Bell className="h-4 w-4 text-violet-700"/> My Invitations</span>
+        {unreadInvitationCount > 0 && <span className="rounded-full bg-violet-700 px-2.5 py-1 text-xs font-bold text-white">{unreadInvitationCount} unread</span>}
+      </Link>
 
       {/* Programs Joined Section */}
       <div className="space-y-4">

@@ -27,7 +27,7 @@ import {
   addMemberToExistingTeamAction,
   lookupTeamMemberAction,
 } from '@/app/admin/events/event-registration-actions';
-import { cancelTeamInvitationAction, createTeamMemberInvitationAction, getTeamInvitationsAction } from '@/app/events/invitations/actions';
+import { cancelTeamInvitationAction, findTeamInvitationStudentAction, getTeamInvitationsAction, inviteTeamMemberAction } from '@/app/events/invitations/actions';
 
 interface Props {
   isOpen: boolean;
@@ -106,12 +106,10 @@ export function ManageTeamModal({
   });
   const [addingMember, setAddingMember] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteName, setInviteName] = useState('');
-  const [inviteStudentId, setInviteStudentId] = useState('');
-  const [inviteLink, setInviteLink] = useState('');
+  const [inviteIdentifier, setInviteIdentifier] = useState('');
+  const [invitePreview, setInvitePreview] = useState<{ fullName: string; registrationNumber: string; email: string; branch: string; semester: string } | null>(null);
   const [creatingInvite, setCreatingInvite] = useState(false);
-  const [invitations, setInvitations] = useState<{ id: string; invitedEmail: string; invitedName: string | null; status: string; expiresAt: string }[]>([]);
+  const [invitations, setInvitations] = useState<{ id: string; invitedName: string | null; invitedRegistrationNumber: string; status: string; expiresAt: string }[]>([]);
   const [capacityReserved, setCapacityReserved] = useState(program.teamMembers?.length || 0);
   const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
 
@@ -123,7 +121,7 @@ export function ManageTeamModal({
     setConfirmRemoveRegNum(null);
     setShowAddForm(false);
     setShowInviteForm(false);
-    setInviteLink('');
+    setInvitePreview(null);
     setVerifiedMember(null);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -547,7 +545,7 @@ export function ManageTeamModal({
                   className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>Invite Team Member</span>
+                  <span>Invite Member</span>
                 </button>
               )}
             </div>
@@ -770,22 +768,18 @@ export function ManageTeamModal({
               {showInviteForm && canEdit && capacityReserved < maxTeam && (
                 <form className="grid gap-3 rounded-xl border border-violet-100 bg-white p-3 sm:grid-cols-2" onSubmit={async e => {
                   e.preventDefault(); setCreatingInvite(true); setFeedback(null, null);
-                  const res = await createTeamMemberInvitationAction({ eventId, programId: program.programId, teamId: program.teamId, email: inviteEmail, name: inviteName, studentId: inviteStudentId });
+                  const res = await findTeamInvitationStudentAction({ eventId, programId: program.programId, teamId: program.teamId, identifier: inviteIdentifier });
                   setCreatingInvite(false);
-                  if (!res.success || !res.inviteUrl) { setFeedback(res.error || 'Could not create invitation.', null); return; }
-                  setInviteLink(res.inviteUrl); setFeedback(null, 'Invitation created successfully.');
-                  const fresh = await getTeamInvitationsAction(eventId, program.programId, program.teamId);
-                  if (fresh.success) { setInvitations(fresh.invitations || []); setCapacityReserved(fresh.capacityReserved || 0); }
+                  if (!res.success || !res.student) { setInvitePreview(null); setFeedback(res.error || 'Student not found.', null); return; }
+                  setInvitePreview(res.student); setFeedback(null, null);
                 }}>
-                  <label className="space-y-1 text-xs font-semibold text-slate-700">Student Email *<input type="email" required value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" /></label>
-                  <label className="space-y-1 text-xs font-semibold text-slate-700">Student Name (optional)<input value={inviteName} onChange={e => setInviteName(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" /></label>
-                  <label className="space-y-1 text-xs font-semibold text-slate-700">Student ID / Roll No (optional)<input value={inviteStudentId} onChange={e => setInviteStudentId(e.target.value)} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal uppercase" /></label>
-                  <div className="flex items-end gap-2"><button disabled={creatingInvite} className="rounded-lg bg-violet-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{creatingInvite ? 'Creating…' : 'Create invitation'}</button><button type="button" onClick={() => setShowInviteForm(false)} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold">Cancel</button></div>
-                  {inviteLink && <div className="sm:col-span-2 space-y-2"><label className="text-xs font-semibold text-slate-700">Invite link<input readOnly value={inviteLink} className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-xs" /></label><button type="button" onClick={() => navigator.clipboard.writeText(inviteLink)} className="rounded-lg border px-3 py-1.5 text-xs font-bold">Copy Link</button></div>}
+                  <label className="space-y-1 text-xs font-semibold text-slate-700 sm:col-span-2">Event Registration Number or Registered Student Email<input required value={inviteIdentifier} onChange={e => { setInviteIdentifier(e.target.value); setInvitePreview(null); }} className="w-full rounded-lg border border-slate-300 px-3 py-2 font-normal" placeholder="EVENT-E004 or student@example.com" /></label>
+                  <div className="flex items-center gap-2"><button disabled={creatingInvite} className="rounded-lg bg-violet-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{creatingInvite ? 'Finding…' : 'Find Student'}</button><button type="button" onClick={() => setShowInviteForm(false)} className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold">Cancel</button></div>
+                  {invitePreview && <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs"><p className="font-bold text-emerald-900">Verified student</p><p className="mt-1"><strong>Name:</strong> {invitePreview.fullName}</p><p><strong>Registration:</strong> {invitePreview.registrationNumber}</p><p><strong>Email:</strong> {invitePreview.email}</p><p><strong>Branch:</strong> {invitePreview.branch || '—'} <strong>Semester:</strong> {invitePreview.semester || '—'}</p><p className="mt-2"><strong>Program:</strong> {program.programName} <strong>Team:</strong> {program.teamName}</p><button type="button" disabled={creatingInvite} onClick={async () => { setCreatingInvite(true); const sent = await inviteTeamMemberAction({ eventId, programId: program.programId, teamId: program.teamId, registrationNumber: invitePreview.registrationNumber }); setCreatingInvite(false); if (!sent.success) { setFeedback(sent.error || 'Could not send invitation.', null); return; } setFeedback(null, 'Invitation sent in the app.'); setInvitePreview(null); setInviteIdentifier(''); const fresh = await getTeamInvitationsAction(eventId, program.programId, program.teamId); if (fresh.success) { setInvitations(fresh.invitations || []); setCapacityReserved(fresh.capacityReserved || 0); } }} className="mt-3 rounded-lg bg-emerald-700 px-3 py-2 font-bold text-white disabled:opacity-50">{creatingInvite ? 'Sending…' : 'Send Invitation'}</button></div>}
                 </form>
               )}
               <div className="space-y-2">
-                {invitations.map(inv => <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs"><div><strong>{inv.invitedName || inv.invitedEmail}</strong>{inv.invitedName && <div className="text-slate-500">{inv.invitedEmail}</div>}</div><div className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 font-bold">{inv.status}</span>{inv.status === 'PENDING' && canEdit && <button disabled={cancellingInvite === inv.id} onClick={async () => { setCancellingInvite(inv.id); const res = await cancelTeamInvitationAction(eventId, program.programId, program.teamId, inv.id); setCancellingInvite(null); if (res.success) { setInvitations(prev => prev.map(x => x.id === inv.id ? { ...x, status: 'CANCELLED' } : x)); setCapacityReserved(n => Math.max(0, n - 1)); } else setFeedback(res.error || 'Could not cancel invitation.', null); }} className="font-bold text-red-600">Cancel</button>}</div></div>)}
+                {invitations.map(inv => <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs"><div><strong>{inv.invitedName || 'Student'}</strong><div className="text-slate-500">{inv.invitedRegistrationNumber}</div></div><div className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 font-bold">{inv.status}</span>{inv.status === 'PENDING' && canEdit && <button disabled={cancellingInvite === inv.id} onClick={async () => { setCancellingInvite(inv.id); const res = await cancelTeamInvitationAction(eventId, program.programId, program.teamId, inv.id); setCancellingInvite(null); if (res.success) { setInvitations(prev => prev.map(x => x.id === inv.id ? { ...x, status: 'CANCELLED' } : x)); setCapacityReserved(n => Math.max(0, n - 1)); } else setFeedback(res.error || 'Could not cancel invitation.', null); }} className="font-bold text-red-600">Cancel</button>}</div></div>)}
                 {!invitations.length && <p className="text-xs text-slate-500">No invitations yet.</p>}
               </div>
             </section>

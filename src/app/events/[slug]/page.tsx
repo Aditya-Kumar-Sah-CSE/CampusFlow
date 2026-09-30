@@ -65,7 +65,7 @@ export default async function PublicEventPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      <RootPublicNavbar />
+      <RootPublicNavbar eventId={event.id} />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 sm:py-10 space-y-8">
         {/* Navigation Breadcrumb */}

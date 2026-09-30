@@ -23,23 +23,6 @@ export interface EmailDeliveryResult {
   error?: string;
 }
 
-export async function sendTeamInvitationEmail(params: {
-  studentEmail: string; teamName: string; programName: string; eventName: string; leaderName: string; inviteUrl: string;
-}): Promise<EmailDeliveryResult> {
-  if (!params.studentEmail || !params.studentEmail.includes('@')) return { status: 'FAILED', sentAt: null, error: 'Invalid student email address' };
-  if (!process.env.RESEND_API_KEY) return { status: 'EMAIL_NOT_CONFIGURED', sentAt: null, error: 'No supported server email transport is configured.' };
-  const subject = `Invitation to join ${params.teamName} - ${params.programName}`;
-  const text = `You have been invited to join ${params.teamName} for ${params.programName} at ${params.eventName}.\n\nInvited by:\n${params.leaderName}\n\nAccept the invitation using this secure link:\n${params.inviteUrl}`;
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.EMAIL_FROM || 'Feedback System <noreply@feedbacksystem.internal>', to: params.studentEmail, subject, text }),
-    });
-    if (!response.ok) return { status: 'FAILED', sentAt: null, error: 'Email service rejected the invitation.' };
-    return { status: 'SENT', sentAt: new Date().toISOString() };
-  } catch { return { status: 'FAILED', sentAt: null, error: 'Could not send invitation email.' }; }
-}
-
 export function isEmailConfigured(): boolean {
   return Boolean(
     (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS) ||
