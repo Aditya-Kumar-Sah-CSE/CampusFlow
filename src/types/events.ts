@@ -22,12 +22,45 @@ export interface CollegeEvent {
   payment_qr_url: string | null;
   payment_instructions: string | null;
   show_public_participants: boolean;
+  registration_sheet_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
   // Computed / joined
   registrations_count?: number;
   active_registrations_count?: number;
+}
+
+// ============================================================
+// GOOGLE SHEETS-BACKED EVENT REGISTRATION (NEW FLOW)
+// ============================================================
+
+export interface SheetEventRegistrationInput {
+  college_id: string;
+  event_id: string;
+  full_name: string;
+  student_id: string;
+  email: string;
+  mobile: string;
+  branch?: string;
+  semester?: string;
+  gender?: string;
+}
+
+export interface EventLoginInput {
+  event_id: string;
+  college_id: string;
+  registration_number: string;
+  email: string;
+}
+
+export interface EventSessionInfo {
+  registrationNumber: string;
+  email: string;
+  fullName: string;
+  studentId: string;
+  eventId: string;
+  collegeId: string;
 }
 
 export interface EventRegistration {

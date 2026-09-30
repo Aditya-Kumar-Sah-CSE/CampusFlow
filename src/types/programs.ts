@@ -115,6 +115,7 @@ export interface ProgramRegistration {
   gender: string | null;
   // Team
   team_name: string | null;
+  team_role?: string | null;
   // Payment
   payment_status: ProgramPaymentStatus;
   payment_reference: string | null;

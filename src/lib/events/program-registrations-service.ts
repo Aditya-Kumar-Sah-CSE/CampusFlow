@@ -52,6 +52,83 @@ export async function getAdminProgramRegistrations(params: {
 }): Promise<ProgramRegistration[]> {
   const db = await getDb();
 
+  // Check if event has registration_sheet_id (Google Sheets is source of truth)
+  const { data: program } = await db
+    .from('event_programs')
+    .select('id, name, slug, event_id, event:events(id, registration_sheet_id)')
+    .eq('id', params.programId)
+    .eq('college_id', params.collegeId)
+    .maybeSingle();
+
+  const eventRef = program?.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+  if (eventRef?.registration_sheet_id && program?.slug) {
+    try {
+      const { getProgramRegistrations } = await import('@/lib/google/event-registration-sheets');
+      const sheetRows = await getProgramRegistrations(
+        params.collegeId,
+        eventRef.registration_sheet_id,
+        program.slug
+      );
+
+      let registrations: ProgramRegistration[] = sheetRows.map((r, idx) => ({
+        id: r.registrationNumber || `reg-${idx}`,
+        event_id: eventRef.id,
+        program_id: params.programId,
+        category_id: '',
+        college_id: params.collegeId,
+        registration_number: r.registrationNumber,
+        registration_type: (r.participationType === 'TEAM' ? 'TEAM' : 'INDIVIDUAL'),
+        participant_name: r.studentName,
+        student_id: r.studentId,
+        email: r.email,
+        mobile: r.mobile,
+        branch: r.branch,
+        semester: r.semester,
+        gender: null,
+        team_name: r.teamName || null,
+        payment_status: (r.paymentStatus === 'PAID' ? 'VERIFIED' : r.paymentStatus as any) || 'NOT_REQUIRED',
+        payment_reference: null,
+        payment_method: null,
+        payment_amount: r.paymentAmount,
+        payment_screenshot_url: null,
+        paid_at: null,
+        verified_at: null,
+        verified_by: null,
+        registration_status: 'REGISTERED',
+        registered_at: r.registeredAt,
+        updated_at: r.registeredAt,
+      }));
+
+      // Search filter
+      if (params.search?.trim()) {
+        const s = params.search.trim().toLowerCase();
+        registrations = registrations.filter(
+          (r) =>
+            r.participant_name?.toLowerCase().includes(s) ||
+            r.registration_number?.toLowerCase().includes(s) ||
+            r.email?.toLowerCase().includes(s) ||
+            r.mobile?.includes(s) ||
+            r.student_id?.toLowerCase().includes(s) ||
+            r.team_name?.toLowerCase().includes(s)
+        );
+      }
+
+      if (params.paymentStatus && params.paymentStatus !== 'ALL') {
+        registrations = registrations.filter((r) => r.payment_status === params.paymentStatus);
+      }
+      if (params.registrationStatus && params.registrationStatus !== 'ALL') {
+        registrations = registrations.filter((r) => r.registration_status === params.registrationStatus);
+      }
+      if (params.registrationType && params.registrationType !== 'ALL') {
+        registrations = registrations.filter((r) => r.registration_type === params.registrationType);
+      }
+
+      return registrations;
+    } catch (sheetErr) {
+      console.warn('[GET_ADMIN_PROG_REGS_SHEET_ERROR]', sheetErr);
+    }
+  }
+
   let query = db
     .from('program_registrations')
     .select('*')
@@ -128,6 +205,53 @@ export async function getAdminEventProgramRegistrations(
   collegeId: string
 ): Promise<ProgramRegistration[]> {
   const db = await getDb();
+
+  // Check if event has registration_sheet_id
+  const { data: event } = await db
+    .from('events')
+    .select('id, registration_sheet_id')
+    .eq('id', eventId)
+    .eq('college_id', collegeId)
+    .maybeSingle();
+
+  if (event?.registration_sheet_id) {
+    try {
+      const { getEventRegistrations } = await import('@/lib/google/event-registration-sheets');
+      const sheetRows = await getEventRegistrations(collegeId, event.registration_sheet_id);
+
+      const progRows = sheetRows.filter(r => r.programId !== '' && r.registrationStatus !== 'CANCELLED');
+      return progRows.map((r, idx) => ({
+        id: r.registrationNumber || `reg-${idx}`,
+        event_id: eventId,
+        program_id: r.programId,
+        category_id: '',
+        college_id: collegeId,
+        registration_number: r.registrationNumber,
+        registration_type: (r.participationType === 'TEAM' ? 'TEAM' : 'INDIVIDUAL'),
+        participant_name: r.participantName,
+        student_id: r.studentId,
+        email: r.email,
+        mobile: r.mobile,
+        branch: r.branch,
+        semester: r.semester,
+        gender: null,
+        team_name: r.teamName || null,
+        payment_status: (r.paymentStatus === 'PAID' ? 'VERIFIED' : r.paymentStatus as any) || 'NOT_REQUIRED',
+        payment_reference: r.paymentReference,
+        payment_method: null,
+        payment_amount: r.paymentAmount,
+        payment_screenshot_url: null,
+        paid_at: null,
+        verified_at: null,
+        verified_by: null,
+        registration_status: 'REGISTERED',
+        registered_at: r.registeredAt,
+        updated_at: r.registeredAt,
+      }));
+    } catch (sheetErr) {
+      console.warn('[GET_ADMIN_EVENT_PROG_REGS_SHEET_ERROR]', sheetErr);
+    }
+  }
 
   const { data, error } = await db
     .from('program_registrations')
@@ -253,135 +377,168 @@ export async function registerForProgram(
     return { success: false, error: 'Name and email are required.' };
   }
 
-  // 7. Duplicate registration check (individual)
-  if (regType === 'INDIVIDUAL' && cleanStudentId) {
-    const { data: existingReg } = await db
-      .from('program_registrations')
-      .select('id')
-      .eq('program_id', input.program_id)
-      .eq('registration_type', 'INDIVIDUAL')
-      .eq('registration_status', 'REGISTERED')
-      .ilike('student_id', cleanStudentId)
-      .maybeSingle();
-
-    if (existingReg) {
-      return { success: false, error: 'You are already registered for this program.' };
-    }
+  // 7. GOOGLE SHEETS IS THE ONLY SOURCE OF TRUTH FOR REGISTRATION DATA
+  const { isCollegeGoogleConfigured } = await import('@/lib/google/auth');
+  const googleConnected = await isCollegeGoogleConfigured(input.college_id);
+  if (!googleConnected) {
+    return {
+      success: false,
+      error: 'Registration is temporarily unavailable because the college registration service is not connected.',
+    };
   }
 
-  // 8. Capacity check
-  if (regType === 'INDIVIDUAL' && program.max_participants != null) {
-    const { count: currentCount } = await db
-      .from('program_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('program_id', input.program_id)
-      .eq('registration_type', 'INDIVIDUAL')
-      .eq('registration_status', 'REGISTERED');
+  try {
+    const {
+      getOrCreateEventRegistrationSpreadsheet,
+      appendProgramRegistration,
+      findRegistrationByStudentId,
+      findRegistrationByNumber,
+      createTeam,
+      addTeamMember,
+      checkDuplicateProgramRegistration,
+    } = await import('@/lib/google/event-registration-sheets');
 
-    if ((currentCount || 0) >= program.max_participants) {
-      return { success: false, error: 'Program capacity has been reached.' };
+    const spreadsheetId = await getOrCreateEventRegistrationSpreadsheet(
+      input.college_id,
+      event.id,
+      event.title
+    );
+
+    // Verify student is event-registered first (Mandatory requirement Section 7, 9)
+    let eventReg = await findRegistrationByStudentId(input.college_id, spreadsheetId, cleanStudentId);
+    if (!eventReg && cleanEmail) {
+      const allMaster = await (await import('@/lib/google/event-registration-sheets')).getEventRegistrations(input.college_id, spreadsheetId);
+      eventReg = allMaster.find(r => r.programId === '' && r.email.toLowerCase() === cleanEmail) || null;
     }
-  }
 
-  if (regType === 'TEAM' && program.max_teams != null) {
-    const { count: teamCount } = await db
-      .from('program_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('program_id', input.program_id)
-      .eq('registration_type', 'TEAM')
-      .eq('registration_status', 'REGISTERED');
-
-    if ((teamCount || 0) >= program.max_teams) {
-      return { success: false, error: 'Maximum number of teams reached.' };
+    if (!eventReg) {
+      return {
+        success: false,
+        error: 'Event registration is mandatory before joining any program. Please register for the event first.',
+      };
     }
-  }
 
-  // 9. Generate registration number
-  const { count: seqCount } = await db
-    .from('program_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', input.event_id);
+    const paymentRequired = event.payment_required && program.registration_fee > 0;
+    const paymentStatus: ProgramPaymentStatus = paymentRequired
+      ? (input.payment_reference ? 'SUBMITTED' : 'PENDING')
+      : 'NOT_REQUIRED';
 
-  const regNumber = generateRegistrationNumber(
-    event.slug,
-    program.slug,
-    (seqCount || 0) + 1
-  );
+    if (regType === 'INDIVIDUAL') {
+      const isDuplicate = await checkDuplicateProgramRegistration(
+        input.college_id,
+        spreadsheetId,
+        program.id,
+        cleanStudentId,
+        cleanEmail
+      );
+      if (isDuplicate) {
+        return { success: false, error: 'You are already registered for this program.' };
+      }
 
-  // 10. Determine payment status
-  const paymentRequired = event.payment_required && program.registration_fee > 0;
-  const paymentStatus: ProgramPaymentStatus = paymentRequired
-    ? (input.payment_reference ? 'SUBMITTED' : 'PENDING')
-    : 'NOT_REQUIRED';
+      const result = await appendProgramRegistration(
+        input.college_id,
+        spreadsheetId,
+        program.slug,
+        {
+          eventId: event.id,
+          eventSlug: event.slug,
+          programId: program.id,
+          programName: program.name,
+          participationType: 'INDIVIDUAL',
+          participantRole: 'INDIVIDUAL',
+          fullName: cleanName,
+          studentId: cleanStudentId,
+          email: cleanEmail,
+          mobile: cleanMobile,
+          branch: input.branch?.trim() || '',
+          semester: input.semester?.trim() || '',
+          gender: input.gender?.trim() || '',
+          paymentRequired,
+          paymentAmount: program.registration_fee || 0,
+          paymentStatus,
+          paymentReference: input.payment_reference?.trim() || '',
+          leaderEventRegNumber: eventReg.registrationNumber,
+        }
+      );
 
-  // 11. Insert registration
-  const { data: inserted, error: insertErr } = await db
-    .from('program_registrations')
-    .insert({
-      event_id: input.event_id,
-      program_id: input.program_id,
-      category_id: program.category_id,
-      college_id: input.college_id,
-      registration_number: regNumber,
-      registration_type: regType,
-      participant_name: cleanName,
-      student_id: cleanStudentId || null,
-      email: cleanEmail,
-      mobile: cleanMobile || null,
-      branch: input.branch?.trim() || null,
-      semester: input.semester?.trim() || null,
-      gender: input.gender?.trim() || null,
-      team_name: regType === 'TEAM' ? input.team_name?.trim() : null,
-      payment_status: paymentStatus,
-      payment_reference: input.payment_reference?.trim() || null,
-      payment_amount: paymentRequired ? program.registration_fee : null,
-      payment_screenshot_url: input.payment_screenshot_url || null,
-      registration_status: 'REGISTERED',
-    })
-    .select('id')
-    .single();
+      return {
+        success: true,
+        registration_id: result.registrationNumber,
+        registration_number: result.registrationNumber,
+        payment_status: paymentStatus,
+      };
+    } else {
+      // TEAM REGISTRATION
+      const { teamId } = await createTeam(input.college_id, spreadsheetId, program.slug);
 
-  if (insertErr) {
-    if (insertErr.code === '23505') {
-      return { success: false, error: 'Duplicate registration detected.' };
+      // Add leader
+      const leaderResult = await addTeamMember(input.college_id, spreadsheetId, program.slug, {
+        eventId: event.id,
+        eventSlug: event.slug,
+        programId: program.id,
+        programName: program.name,
+        teamId,
+        teamName: input.team_name?.trim() || 'Team',
+        member: {
+          fullName: cleanName,
+          studentId: cleanStudentId,
+          email: cleanEmail,
+          mobile: cleanMobile,
+          branch: input.branch?.trim() || '',
+          semester: input.semester?.trim() || '',
+          gender: input.gender?.trim() || '',
+          role: 'TEAM LEADER',
+        },
+        paymentRequired,
+        paymentAmount: program.registration_fee || 0,
+        paymentStatus,
+        paymentReference: input.payment_reference?.trim() || '',
+        leaderEventRegNumber: eventReg.registrationNumber,
+      });
+
+      // Add members (each member auto-registers for event if not yet registered)
+      if (input.members && input.members.length > 0) {
+        for (const m of input.members) {
+          if (!m.member_name?.trim()) continue;
+          await addTeamMember(input.college_id, spreadsheetId, program.slug, {
+            eventId: event.id,
+            eventSlug: event.slug,
+            programId: program.id,
+            programName: program.name,
+            teamId,
+            teamName: input.team_name?.trim() || 'Team',
+            member: {
+              fullName: m.member_name.trim(),
+              studentId: m.student_id?.trim().toUpperCase() || '',
+              email: m.email?.trim().toLowerCase() || '',
+              mobile: m.mobile?.trim() || '',
+              branch: m.branch?.trim() || '',
+              semester: m.semester?.trim() || '',
+              gender: m.gender?.trim() || '',
+              role: 'TEAM MEMBER',
+            },
+            paymentRequired,
+            paymentAmount: 0,
+            paymentStatus,
+            leaderEventRegNumber: eventReg.registrationNumber,
+          });
+        }
+      }
+
+      return {
+        success: true,
+        registration_id: leaderResult.programRegNumber,
+        registration_number: leaderResult.programRegNumber,
+        payment_status: paymentStatus,
+      };
     }
-    console.error('[REGISTER_FOR_PROGRAM_ERROR]', insertErr);
-    return { success: false, error: insertErr.message || 'Registration failed.' };
+  } catch (sheetErr: any) {
+    console.error('[REGISTER_FOR_PROGRAM_SHEET_ERROR]', sheetErr);
+    return {
+      success: false,
+      error: sheetErr.message || 'Registration is temporarily unavailable because the college registration service is not connected.',
+    };
   }
-
-  // 12. Insert team members
-  if (regType === 'TEAM' && input.members && input.members.length > 0) {
-    const memberRows = input.members.map((m, idx) => ({
-      registration_id: inserted.id,
-      program_id: input.program_id,
-      college_id: input.college_id,
-      member_name: m.member_name.trim(),
-      student_id: m.student_id?.trim().toUpperCase() || null,
-      email: m.email?.trim().toLowerCase() || null,
-      mobile: m.mobile?.trim() || null,
-      branch: m.branch?.trim() || null,
-      semester: m.semester?.trim() || null,
-      gender: m.gender?.trim() || null,
-      is_leader: idx === 0,
-      display_order: idx,
-    }));
-
-    const { error: membersErr } = await db
-      .from('program_registration_members')
-      .insert(memberRows);
-
-    if (membersErr) {
-      console.error('[INSERT_TEAM_MEMBERS_ERROR]', membersErr);
-      // Don't fail the whole registration, members are supplementary
-    }
-  }
-
-  return {
-    success: true,
-    registration_id: inserted.id,
-    registration_number: regNumber,
-    payment_status: paymentStatus,
-  };
 }
 
 // ============================================================
@@ -480,15 +637,37 @@ export async function getPublicProgramParticipants(
 ): Promise<(PublicParticipant | PublicTeamParticipant)[]> {
   const db = await getDb();
 
-  // Check visibility setting
+  // Check visibility setting & event registration sheet
   const { data: program } = await db
     .from('event_programs')
-    .select('show_public_participants, name, category:event_categories(name)')
+    .select('show_public_participants, name, slug, event:events(id, registration_sheet_id), category:event_categories(name)')
     .eq('id', programId)
     .eq('college_id', collegeId)
     .maybeSingle();
 
   if (!program || !program.show_public_participants) return [];
+
+  const categoryName = (program.category as unknown as { name: string } | null)?.name || '';
+  const eventRef = program.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+
+  if (eventRef?.registration_sheet_id && program.slug) {
+    try {
+      const { getProgramRegistrations } = await import('@/lib/google/event-registration-sheets');
+      const sheetRows = await getProgramRegistrations(collegeId, eventRef.registration_sheet_id, program.slug);
+
+      // Safe fields only — NEVER return email, mobile, payment info!
+      return sheetRows.map((r) => ({
+        registration_number: r.registrationNumber,
+        participant_name: r.studentName,
+        registration_type: (r.participationType === 'TEAM' ? 'TEAM' : 'INDIVIDUAL'),
+        team_name: r.teamName || null,
+        program_name: program.name,
+        category_name: categoryName,
+      }));
+    } catch (sheetErr) {
+      console.warn('[GET_PUBLIC_PARTICIPANTS_SHEET_ERROR]', sheetErr);
+    }
+  }
 
   const { data: regs } = await db
     .from('program_registrations')
@@ -517,7 +696,6 @@ export async function getPublicProgramParticipants(
     }
   }
 
-  const categoryName = (program.category as unknown as { name: string } | null)?.name || '';
 
   return regs.map((r) => {
     const base: PublicParticipant = {

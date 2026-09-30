@@ -400,23 +400,35 @@ export function StudentRegistrationModal({
             </div>
 
             {registrationId && (
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 inline-block text-center max-w-xs mx-auto">
+              <div className="p-4 bg-slate-900 rounded-2xl text-white inline-block text-center max-w-xs mx-auto shadow-inner space-y-1">
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Registration Reference ID
+                  Event Registration Number
                 </span>
-                <p className="font-mono text-xs font-bold text-slate-900 mt-0.5 select-all">
+                <p className="font-mono text-base font-black text-amber-400 select-all">
                   {registrationId}
                 </p>
+                <p className="text-[10px] text-slate-400">Save this number to join individual or team programs.</p>
               </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  const el = document.getElementById('programs-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+              >
+                Join Event Programs &rarr;
+              </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shadow-2xs"
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
               >
-                Done
+                Close
               </button>
             </div>
           </div>

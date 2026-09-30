@@ -15,6 +15,7 @@ export async function middleware(request: NextRequest) {
     'admin',
     'api',
     'auth',
+    'events',
     'offline',
     'favicon.ico',
     'privacy-policy',

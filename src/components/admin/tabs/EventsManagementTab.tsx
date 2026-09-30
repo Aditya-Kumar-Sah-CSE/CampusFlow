@@ -12,6 +12,7 @@ import {
   Loader2,
   Trash2,
   Edit,
+  Trophy,
 } from 'lucide-react';
 import type { CollegeEvent, EventStatus } from '@/types/events';
 import { updateEventStatusAction, deleteEventAction } from '@/app/admin/events/actions';
@@ -68,15 +69,20 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
     }
   };
 
-  const handleDelete = async (eventId: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete/cancel the event "${title}"?`)) {
+  const handleDelete = async (eventId: string, title: string, currentStatus?: EventStatus) => {
+    const isCancelled = currentStatus === 'CANCELLED';
+    const confirmPrompt = isCancelled
+      ? `Event "${title}" is marked as CANCELLED.\n\nDo you want to PERMANENTLY DELETE this event and all associated records? This action cannot be undone.`
+      : `Are you sure you want to delete/cancel the event "${title}"?`;
+
+    if (!confirm(confirmPrompt)) {
       return;
     }
 
     try {
       setUpdatingId(eventId);
       setFeedbackMsg(null);
-      const res = await deleteEventAction(eventId, activeCollegeId || undefined);
+      const res = await deleteEventAction(eventId, activeCollegeId || undefined, isCancelled);
       if (res.success) {
         if (res.actionTaken === 'CANCELLED') {
           setEvents((prev) =>
@@ -84,11 +90,11 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
           );
           setFeedbackMsg({
             type: 'success',
-            text: 'Event has active registrations, so it was marked as CANCELLED instead of deleting.',
+            text: 'Event has active registrations, so it was marked as CANCELLED. Click delete again to permanently remove it.',
           });
         } else {
           setEvents((prev) => prev.filter((e) => e.id !== eventId));
-          setFeedbackMsg({ type: 'success', text: 'Event permanently deleted.' });
+          setFeedbackMsg({ type: 'success', text: `Event "${title}" permanently deleted.` });
         }
       } else {
         setFeedbackMsg({ type: 'error', text: res.error || 'Failed to delete event.' });
@@ -261,6 +267,15 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                   {/* Actions bar */}
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Link
+                      href={`/admin/dashboard/events/${event.id}/programs`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"
+                      title="Manage Categories and Programs for this event"
+                    >
+                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Manage Programs</span>
+                    </Link>
+
+                    <Link
                       href={`/admin/dashboard/events/${event.id}/registrations`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
                     >
@@ -311,10 +326,14 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                     )}
 
                     <button
-                      onClick={() => handleDelete(event.id, event.title)}
+                      onClick={() => handleDelete(event.id, event.title, event.status)}
                       disabled={isUpdating}
-                      className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer"
-                      title="Delete or cancel event"
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                        event.status === 'CANCELLED'
+                          ? 'text-red-600 hover:bg-red-100 bg-red-50 border border-red-200'
+                          : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                      }`}
+                      title={event.status === 'CANCELLED' ? 'Permanently delete cancelled event' : 'Delete or cancel event'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

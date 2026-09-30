@@ -210,6 +210,37 @@ export async function getPublicEventBySlug(
 }
 
 /**
+ * Fetch a public event by its slug (without collegeId in URL).
+ * Used by root /events/[slug] routes to resolve event and its owning college.
+ */
+export async function getPublicEventBySlugGlobal(
+  slugOrId: string
+): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; short_name?: string } }) | null> {
+  if (!slugOrId) return null;
+  const db = await getDb();
+  const clean = normalizeEventSlug(slugOrId);
+
+  let { data, error } = await db
+    .from('events')
+    .select('*, college:colleges(id, name, slug, short_name)')
+    .eq('slug', clean)
+    .maybeSingle();
+
+  if (!data && isUuid(slugOrId)) {
+    const res = await db
+      .from('events')
+      .select('*, college:colleges(id, name, slug, short_name)')
+      .eq('id', slugOrId.trim())
+      .maybeSingle();
+    data = res.data;
+    error = res.error;
+  }
+
+  if (error || !data) return null;
+  return data as any;
+}
+
+/**
  * Fetch registrations for an event with comprehensive filters
  */
 export async function getEventRegistrations(params: {
@@ -239,7 +270,89 @@ export async function getEventRegistrations(params: {
     };
   }
 
-  // Build query with joins - ALWAYS use canonical UUID (event.id)
+  // GOOGLE SHEETS IS SOURCE OF TRUTH FOR REGISTRATION DATA
+  if (event.registration_sheet_id) {
+    try {
+      const { getEventRegistrations: getSheetEventRegistrations } = await import('@/lib/google/event-registration-sheets');
+      const sheetRows = await getSheetEventRegistrations(params.collegeId, event.registration_sheet_id);
+
+      let registrations: EventRegistration[] = sheetRows.map((r, idx) => ({
+        id: r.registrationNumber || `reg-${idx}`,
+        event_id: event.id,
+        college_id: params.collegeId,
+        registration_number: r.registrationNumber,
+        student_name: r.participantName,
+        email: r.email,
+        mobile: r.mobile,
+        branch_id: null,
+        branch: r.branch ? { id: '', name: r.branch, code: r.branch } : null,
+        semester_id: null,
+        semester: r.semester ? { id: '', name: r.semester, semester_number: parseInt(r.semester) || 1 } : null,
+        transaction_id: r.paymentReference,
+        payment_status: (r.paymentStatus === 'PAID' ? 'VERIFIED' : r.paymentStatus as any) || 'NOT_REQUIRED',
+        payment_screenshot_url: null,
+        registration_status: (r.registrationStatus as any) || 'REGISTERED',
+        registered_at: r.registeredAt,
+        updated_at: r.registeredAt,
+      }));
+
+      // Search filter
+      if (params.search && params.search.trim()) {
+        const s = params.search.trim().toLowerCase();
+        registrations = registrations.filter(
+          (r) =>
+            r.student_name?.toLowerCase().includes(s) ||
+            r.registration_number?.toLowerCase().includes(s) ||
+            r.email?.toLowerCase().includes(s) ||
+            r.mobile?.includes(s) ||
+            r.transaction_id?.toLowerCase().includes(s)
+        );
+      }
+
+      if (params.paymentStatus && params.paymentStatus !== 'ALL') {
+        registrations = registrations.filter((r) => r.payment_status === params.paymentStatus);
+      }
+      if (params.registrationStatus && params.registrationStatus !== 'ALL') {
+        registrations = registrations.filter((r) => r.registration_status === params.registrationStatus);
+      }
+
+      // Compute stats directly from Google Sheets
+      let totalEnrolled = 0;
+      let paymentPending = 0;
+      let paymentVerified = 0;
+      let paymentRejected = 0;
+
+      for (const r of sheetRows) {
+        if (r.registrationStatus !== 'CANCELLED') {
+          totalEnrolled++;
+          if (r.paymentStatus === 'PENDING' || r.paymentStatus === 'SUBMITTED') paymentPending++;
+          if (r.paymentStatus === 'VERIFIED' || r.paymentStatus === 'PAID') paymentVerified++;
+          if (r.paymentStatus === 'REJECTED') paymentRejected++;
+        }
+      }
+
+      const availableSeats =
+        event.max_capacity !== null
+          ? Math.max(0, event.max_capacity - totalEnrolled)
+          : null;
+
+      return {
+        registrations,
+        stats: {
+          totalEnrolled,
+          paymentPending,
+          paymentVerified,
+          paymentRejected,
+          availableSeats,
+          maxCapacity: event.max_capacity,
+        },
+      };
+    } catch (sheetErr) {
+      console.warn('[GET_EVENT_REGS_SHEET_ERROR]', sheetErr);
+    }
+  }
+
+  // Fallback: Build query with joins - ALWAYS use canonical UUID (event.id)
   let query = db
     .from('event_registrations')
     .select(`
@@ -417,96 +530,57 @@ export async function registerStudentForEvent(
     }
   }
 
-  // 5. Try calling atomic RPC procedure first
+  // 5. GOOGLE SHEETS IS THE ONLY SOURCE OF TRUTH FOR REGISTRATIONS
+  // Fail closed if Google Workspace is not connected
+  const { isCollegeGoogleConfigured } = await import('@/lib/google/auth');
+  const googleConnected = await isCollegeGoogleConfigured(input.college_id);
+  if (!googleConnected) {
+    return {
+      success: false,
+      error: 'Registration is temporarily unavailable because the college registration service is not connected.',
+    };
+  }
+
   try {
-    const { data: rpcData, error: rpcError } = await db.rpc('register_for_event', {
-      p_event_id: input.event_id,
-      p_registration_number: cleanRegNum,
-      p_student_name: cleanName,
-      p_email: cleanEmail,
-      p_mobile: cleanMobile,
-      p_branch_id: input.branch_id || null,
-      p_semester_id: input.semester_id || null,
-      p_transaction_id: input.transaction_id || null,
-      p_payment_screenshot_url: input.payment_screenshot_url || null,
-    });
+    const {
+      getOrCreateEventRegistrationSpreadsheet,
+      appendEventRegistration,
+    } = await import('@/lib/google/event-registration-sheets');
 
-    if (!rpcError && rpcData) {
-      if (rpcData.success) {
-        return {
-          success: true,
-          registration_id: rpcData.registration_id,
-          payment_status: rpcData.payment_status,
-        };
-      } else {
-        return {
-          success: false,
-          error: rpcData.error || 'Registration failed.',
-        };
+    const spreadsheetId = await getOrCreateEventRegistrationSpreadsheet(
+      input.college_id,
+      event.id,
+      event.title
+    );
+
+    const result = await appendEventRegistration(
+      input.college_id,
+      spreadsheetId,
+      event.slug,
+      {
+        eventId: event.id,
+        fullName: cleanName,
+        studentId: cleanRegNum,
+        email: cleanEmail,
+        mobile: cleanMobile,
+        branch: input.branch_id || '',
+        semester: input.semester_id || '',
+        gender: '',
       }
-    }
-  } catch (rpcEx) {
-    console.warn('[REGISTER_RPC_FALLBACK]', rpcEx);
-  }
+    );
 
-  // 6. Server fallback if RPC not yet deployed:
-  // Duplicate registration check
-  const { data: existingReg } = await db
-    .from('event_registrations')
-    .select('id')
-    .eq('event_id', input.event_id)
-    .eq('registration_number', cleanRegNum)
-    .maybeSingle();
+    const paymentStatus: EventPaymentStatus = event.payment_required ? 'PENDING' : 'NOT_REQUIRED';
 
-  if (existingReg) {
-    return { success: false, error: 'You are already registered for this event.' };
-  }
-
-  // Capacity check
-  if (event.max_capacity !== null) {
-    const { count: activeCount } = await db
-      .from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', input.event_id)
-      .eq('registration_status', 'REGISTERED');
-
-    if ((activeCount || 0) >= event.max_capacity) {
-      return { success: false, error: 'Event capacity has been reached. No seats available.' };
-    }
-  }
-
-  const paymentStatus: EventPaymentStatus = event.payment_required ? 'PENDING' : 'NOT_REQUIRED';
-
-  const { data: inserted, error: insertErr } = await db
-    .from('event_registrations')
-    .insert({
-      event_id: input.event_id,
-      college_id: input.college_id,
-      registration_number: cleanRegNum,
-      student_name: cleanName,
-      email: cleanEmail,
-      mobile: cleanMobile,
-      branch_id: input.branch_id || null,
-      semester_id: input.semester_id || null,
-      transaction_id: input.transaction_id ? input.transaction_id.trim() : null,
+    return {
+      success: true,
+      registration_id: result.registrationNumber,
       payment_status: paymentStatus,
-      payment_screenshot_url: input.payment_screenshot_url || null,
-      registration_status: 'REGISTERED',
-    })
-    .select('id')
-    .single();
-
-  if (insertErr) {
-    if (insertErr.code === '23505') {
-      return { success: false, error: 'You are already registered for this event.' };
-    }
-    console.error('[EVENT_REG_INSERT_ERROR]', insertErr);
-    return { success: false, error: insertErr.message || 'Failed to submit registration.' };
+    };
+  } catch (sheetErr: any) {
+    console.error('[EVENT_REG_SHEET_ERROR]', sheetErr);
+    return {
+      success: false,
+      error: sheetErr.message || 'Registration is temporarily unavailable because the college registration service is not connected.',
+    };
   }
-
-  return {
-    success: true,
-    registration_id: inserted.id,
-    payment_status: paymentStatus,
-  };
 }

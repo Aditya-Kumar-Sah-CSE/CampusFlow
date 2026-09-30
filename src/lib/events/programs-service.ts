@@ -454,6 +454,41 @@ export async function getProgramStats(
 ): Promise<ProgramStats> {
   const db = await getDb();
 
+  // Check if event has registration_sheet_id (Google Sheets is source of truth)
+  const { data: programData } = await db
+    .from('event_programs')
+    .select('id, slug, max_participants, max_teams, event:events(id, registration_sheet_id)')
+    .eq('id', programId)
+    .eq('college_id', collegeId)
+    .maybeSingle();
+
+  const eventRef = programData?.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+  if (eventRef?.registration_sheet_id && programData?.slug) {
+    try {
+      const { getProgramStats: getSheetStats } = await import('@/lib/google/event-registration-sheets');
+      const sheetStats = await getSheetStats(collegeId, eventRef.registration_sheet_id, programData.slug);
+
+      return {
+        totalRegistrations: sheetStats.totalRegistrations,
+        totalParticipants: sheetStats.totalParticipants,
+        totalTeams: sheetStats.totalTeams,
+        totalIndividual: sheetStats.totalIndividual,
+        paymentPending: sheetStats.paymentPending,
+        paymentVerified: sheetStats.paymentVerified,
+        paymentRejected: sheetStats.paymentRejected,
+        paymentSubmitted: sheetStats.paymentSubmitted,
+        totalRevenue: sheetStats.totalRevenue,
+        availableSlots: programData.max_participants
+          ? Math.max(0, programData.max_participants - sheetStats.totalParticipants)
+          : null,
+        maxParticipants: programData.max_participants,
+        maxTeams: programData.max_teams,
+      };
+    } catch (sheetErr) {
+      console.warn('[GET_PROGRAM_STATS_SHEET_ERROR]', sheetErr);
+    }
+  }
+
   const { data: regs } = await db
     .from('program_registrations')
     .select('id, registration_type, payment_status, payment_amount, registration_status')

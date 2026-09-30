@@ -343,11 +343,14 @@ export async function updateEventStatusAction(
 }
 
 /**
- * Safely delete an event. If registrations exist, marks as CANCELLED instead of deleting.
+ * Safely delete an event.
+ * If the event is NOT CANCELLED and has active registrations, it is marked as CANCELLED first to prevent accidental loss.
+ * If the event is ALREADY CANCELLED (or forceDelete is requested), it is PERMANENTLY DELETED along with associated records.
  */
 export async function deleteEventAction(
   eventId: string,
-  targetCollegeId?: string
+  targetCollegeId?: string,
+  forceDelete?: boolean
 ): Promise<{ success: boolean; error?: string; actionTaken?: 'DELETED' | 'CANCELLED' }> {
   try {
     const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
@@ -355,7 +358,7 @@ export async function deleteEventAction(
 
     const { data: existing, error: findError } = await db
       .from('events')
-      .select('id, title')
+      .select('id, title, status')
       .eq('id', eventId)
       .eq('college_id', collegeId)
       .single();
@@ -364,38 +367,53 @@ export async function deleteEventAction(
       return { success: false, error: 'Event not found.' };
     }
 
-    // Check if any registrations exist
-    const { count: regCount } = await db
-      .from('event_registrations')
-      .select('id', { count: 'exact', head: true })
-      .eq('event_id', eventId);
+    const isAlreadyCancelled = existing.status === 'CANCELLED';
 
-    if ((regCount || 0) > 0) {
-      // Archive / cancel rather than deleting
-      await db
-        .from('events')
-        .update({ status: 'CANCELLED', registration_enabled: false })
-        .eq('id', eventId)
-        .eq('college_id', collegeId);
+    // If not yet cancelled and forceDelete is false, check if registrations exist
+    if (!isAlreadyCancelled && !forceDelete) {
+      const { count: regCount } = await db
+        .from('event_registrations')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId);
 
-      await logAudit(
-        db,
-        { userId: session.userId, email: session.email },
-        collegeId,
-        'CANCEL_EVENT_ON_DELETE_ATTEMPT',
-        'events',
-        eventId,
-        `Marked event "${existing.title}" as CANCELLED because it already has ${regCount} registration(s).`
-      );
+      if ((regCount || 0) > 0) {
+        // Archive / cancel rather than deleting
+        await db
+          .from('events')
+          .update({ status: 'CANCELLED', registration_enabled: false })
+          .eq('id', eventId)
+          .eq('college_id', collegeId);
 
-      revalidatePath('/admin/dashboard');
-      return {
-        success: true,
-        actionTaken: 'CANCELLED',
-      };
+        await logAudit(
+          db,
+          { userId: session.userId, email: session.email },
+          collegeId,
+          'CANCEL_EVENT_ON_DELETE_ATTEMPT',
+          'events',
+          eventId,
+          `Marked event "${existing.title}" as CANCELLED because it already has ${regCount} registration(s). Click delete again to permanently remove.`
+        );
+
+        revalidatePath('/admin/dashboard');
+        revalidatePath('/admin/dashboard/events');
+        return {
+          success: true,
+          actionTaken: 'CANCELLED',
+        };
+      }
     }
 
-    // Delete clean event
+    // Permanently delete event:
+    // First safely clean up child rows if any to ensure no foreign key constraints block deletion
+    try {
+      await db.from('program_registrations').delete().eq('event_id', eventId).eq('college_id', collegeId);
+      await db.from('event_programs').delete().eq('event_id', eventId).eq('college_id', collegeId);
+      await db.from('event_categories').delete().eq('event_id', eventId).eq('college_id', collegeId);
+      await db.from('event_registrations').delete().eq('event_id', eventId).eq('college_id', collegeId);
+    } catch (cleanErr) {
+      console.warn('[DELETE_EVENT_CHILD_CLEANUP_WARNING]', cleanErr);
+    }
+
     const { error: delError } = await db
       .from('events')
       .delete()
@@ -413,10 +431,11 @@ export async function deleteEventAction(
       'DELETE_EVENT',
       'events',
       eventId,
-      `Permanently deleted empty event "${existing.title}".`
+      `Permanently deleted event "${existing.title}".`
     );
 
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/dashboard/events');
     return { success: true, actionTaken: 'DELETED' };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to delete event.' };
