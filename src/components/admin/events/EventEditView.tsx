@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { getAdminEventById } from '@/lib/events/service';
 import { EventForm } from '@/components/admin/events/EventForm';
-import { ArrowLeft, Users, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Users, ExternalLink, Trophy } from 'lucide-react';
 
 interface EventEditViewProps {
   idOrSlug: string;
@@ -55,7 +55,15 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          <Link
+            href={`/admin/dashboard/events/${event.id}/programs`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-600" />
+            <span>Manage Programs</span>
+          </Link>
+
           <Link
             href={`/admin/dashboard/events/${event.slug || event.id}/registrations`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"

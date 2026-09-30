@@ -3,7 +3,11 @@ import Link from 'next/link';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicEventBySlug } from '@/lib/events/service';
 import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
+import { getPublicEventPrograms } from '@/lib/events/programs-service';
+import { getPublicEventParticipants } from '@/lib/events/program-registrations-service';
 import { PublicEventDetailClient } from '@/components/events/PublicEventDetailClient';
+import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
+import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { ArrowLeft } from 'lucide-react';
 
@@ -29,6 +33,12 @@ export default async function PublicEventDetailPage({ params }: Props) {
     notFound();
   }
 
+  // Fetch programs and public participants in parallel
+  const [programData, publicParticipants] = await Promise.all([
+    getPublicEventPrograms(event.id, tenant.collegeId),
+    getPublicEventParticipants(event.id, tenant.collegeId),
+  ]);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       {/* Top Banner */}
@@ -48,13 +58,27 @@ export default async function PublicEventDetailPage({ params }: Props) {
       <PublicTenantNavbar tenant={tenant} currentPage="event-detail" />
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 flex-1 w-full">
+      <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 flex-1 w-full space-y-10">
         <PublicEventDetailClient
           event={event}
           tenant={tenant}
           branches={academic.branches}
           semesters={academic.semesters}
         />
+
+        {/* Programs Section */}
+        {programData.categories.length > 0 && (
+          <ProgramCategorySection
+            event={event}
+            tenant={tenant}
+            categories={programData.categories}
+          />
+        )}
+
+        {/* Public Participants */}
+        {publicParticipants.length > 0 && (
+          <PublicParticipantsList programGroups={publicParticipants} />
+        )}
       </main>
 
       {/* Footer */}

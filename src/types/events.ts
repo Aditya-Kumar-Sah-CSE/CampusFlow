@@ -21,6 +21,7 @@ export interface CollegeEvent {
   payment_upi_id: string | null;
   payment_qr_url: string | null;
   payment_instructions: string | null;
+  show_public_participants: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
