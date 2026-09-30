@@ -1,0 +1,101 @@
+export type EventStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'CANCELLED';
+export type EventPaymentStatus = 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+export type EventRegistrationStatus = 'REGISTERED' | 'CANCELLED' | 'REJECTED';
+
+export interface CollegeEvent {
+  id: string;
+  college_id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  venue: string;
+  start_at: string;
+  end_at: string;
+  registration_start: string;
+  registration_end: string;
+  max_capacity: number | null;
+  status: EventStatus;
+  registration_enabled: boolean;
+  payment_required: boolean;
+  payment_amount: number | null;
+  payment_upi_id: string | null;
+  payment_qr_url: string | null;
+  payment_instructions: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Computed / joined
+  registrations_count?: number;
+  active_registrations_count?: number;
+}
+
+export interface EventRegistration {
+  id: string;
+  event_id: string;
+  college_id: string;
+  registration_number: string;
+  student_name: string;
+  email: string;
+  mobile: string;
+  branch_id: string | null;
+  semester_id: string | null;
+  transaction_id: string | null;
+  payment_status: EventPaymentStatus;
+  payment_screenshot_url: string | null;
+  registration_status: EventRegistrationStatus;
+  registered_at: string;
+  updated_at: string;
+  // Joined relations
+  branch?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
+  semester?: {
+    id: string;
+    name: string;
+    semester_number: number;
+  } | null;
+  event?: CollegeEvent;
+}
+
+export interface EventStats {
+  totalEnrolled: number;
+  paymentPending: number;
+  paymentVerified: number;
+  paymentRejected: number;
+  availableSeats: number | null;
+  maxCapacity: number | null;
+}
+
+export interface EventFormData {
+  title: string;
+  slug: string;
+  description?: string;
+  venue: string;
+  start_at: string;
+  end_at: string;
+  registration_start: string;
+  registration_end: string;
+  max_capacity?: number | null;
+  status: EventStatus;
+  registration_enabled: boolean;
+  payment_required: boolean;
+  payment_amount?: number | null;
+  payment_upi_id?: string;
+  payment_qr_url?: string;
+  payment_instructions?: string;
+}
+
+export interface PublicEventRegistrationInput {
+  college_id: string;
+  event_id: string;
+  registration_number: string;
+  student_name: string;
+  email: string;
+  mobile: string;
+  branch_id?: string | null;
+  semester_id?: string | null;
+  transaction_id?: string | null;
+  payment_screenshot_url?: string | null;
+}

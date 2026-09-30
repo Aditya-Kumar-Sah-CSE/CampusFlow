@@ -1,0 +1,558 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
+import { getAdminSession } from '@/lib/auth/admin-auth';
+import type { EventStatus, EventRegistrationStatus, EventFormData } from '@/types/events';
+
+async function getAdminDb() {
+  return createAdminClient() || await createClient();
+}
+
+async function logAudit(
+  db: any,
+  actor: { userId?: string | null; email?: string | null },
+  collegeId: string,
+  action: string,
+  entityType: string,
+  entityId: string,
+  details: string
+) {
+  try {
+    await db.from('audit_logs').insert({
+      college_id: collegeId,
+      actor_user_id: actor.userId || null,
+      actor_email: actor.email || null,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      details,
+    });
+  } catch (e) {
+    console.error('[EVENT_AUDIT_LOG_ERROR]', e);
+  }
+}
+
+/**
+ * Asserts active admin authorization for the current institution.
+ */
+async function assertAdminCollegeAuth(targetCollegeId?: string) {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    throw new Error('Authentication required.');
+  }
+
+  const collegeId = targetCollegeId || session.activeCollegeId;
+  if (!collegeId) {
+    throw new Error('Active institution context is required.');
+  }
+
+  // Super Admin has rights across colleges; College Admin must have an ACTIVE membership for that college
+  if (!session.isPlatformSuperAdmin) {
+    const isMember = session.colleges.some(
+      (c) => c.collegeId === collegeId && c.status === 'ACTIVE'
+    );
+    if (!isMember) {
+      throw new Error('Forbidden: You do not possess administrative permissions for this institution.');
+    }
+  }
+
+  return { session, collegeId };
+}
+
+/**
+ * Create a new event
+ */
+export async function createEventAction(
+  data: EventFormData,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string; eventId?: string }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    // Validation
+    const cleanTitle = data.title.trim();
+    const cleanSlug = data.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    const cleanVenue = data.venue.trim();
+
+    if (!cleanTitle || !cleanSlug || !cleanVenue) {
+      return { success: false, error: 'Title, slug, and venue are required.' };
+    }
+
+    if (new Date(data.end_at) < new Date(data.start_at)) {
+      return { success: false, error: 'Event end time must be after start time.' };
+    }
+
+    if (new Date(data.registration_end) < new Date(data.registration_start)) {
+      return { success: false, error: 'Registration end time must be after registration start time.' };
+    }
+
+    if (data.payment_required) {
+      if (!data.payment_amount || data.payment_amount <= 0) {
+        return { success: false, error: 'Payment amount must be greater than zero for paid events.' };
+      }
+      if (!data.payment_upi_id && !data.payment_qr_url) {
+        return { success: false, error: 'At least one payment method (UPI ID or Payment QR) must be provided for paid events.' };
+      }
+    }
+
+    // Slug collision check within this college
+    const { data: existingSlug } = await db
+      .from('events')
+      .select('id')
+      .eq('college_id', collegeId)
+      .eq('slug', cleanSlug)
+      .maybeSingle();
+
+    if (existingSlug) {
+      return { success: false, error: 'An event with this URL slug already exists in this institution.' };
+    }
+
+    const { data: newEvent, error: insertError } = await db
+      .from('events')
+      .insert({
+        college_id: collegeId,
+        title: cleanTitle,
+        slug: cleanSlug,
+        description: data.description?.trim() || null,
+        venue: cleanVenue,
+        start_at: data.start_at,
+        end_at: data.end_at,
+        registration_start: data.registration_start,
+        registration_end: data.registration_end,
+        max_capacity: data.max_capacity && data.max_capacity > 0 ? data.max_capacity : null,
+        status: data.status || 'DRAFT',
+        registration_enabled: data.registration_enabled ?? true,
+        payment_required: Boolean(data.payment_required),
+        payment_amount: data.payment_required ? data.payment_amount : null,
+        payment_upi_id: data.payment_required ? (data.payment_upi_id?.trim() || null) : null,
+        payment_qr_url: data.payment_required ? (data.payment_qr_url?.trim() || null) : null,
+        payment_instructions: data.payment_required ? (data.payment_instructions?.trim() || null) : null,
+        created_by: session.userId,
+      })
+      .select('id')
+      .single();
+
+    if (insertError) {
+      console.error('[CREATE_EVENT_ERROR]', insertError);
+      return { success: false, error: insertError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      'CREATE_EVENT',
+      'events',
+      newEvent.id,
+      `Created event "${cleanTitle}" with status ${data.status}`
+    );
+
+    revalidatePath('/admin/dashboard');
+    return { success: true, eventId: newEvent.id };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to create event.' };
+  }
+}
+
+/**
+ * Edit an existing event
+ */
+export async function updateEventAction(
+  eventId: string,
+  data: Partial<EventFormData>,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    // Verify event ownership
+    const { data: existing, error: findError } = await db
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (findError || !existing) {
+      return { success: false, error: 'Event not found or unauthorized.' };
+    }
+
+    const updates: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (data.title !== undefined) updates.title = data.title.trim();
+    if (data.venue !== undefined) updates.venue = data.venue.trim();
+    if (data.description !== undefined) updates.description = data.description?.trim() || null;
+    if (data.start_at !== undefined) updates.start_at = data.start_at;
+    if (data.end_at !== undefined) updates.end_at = data.end_at;
+    if (data.registration_start !== undefined) updates.registration_start = data.registration_start;
+    if (data.registration_end !== undefined) updates.registration_end = data.registration_end;
+    if (data.max_capacity !== undefined) {
+      updates.max_capacity = data.max_capacity && data.max_capacity > 0 ? data.max_capacity : null;
+    }
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.registration_enabled !== undefined) updates.registration_enabled = data.registration_enabled;
+
+    if (data.payment_required !== undefined) {
+      updates.payment_required = Boolean(data.payment_required);
+      if (updates.payment_required) {
+        updates.payment_amount = data.payment_amount || existing.payment_amount;
+        updates.payment_upi_id = data.payment_upi_id?.trim() || existing.payment_upi_id;
+        updates.payment_qr_url = data.payment_qr_url?.trim() || existing.payment_qr_url;
+        updates.payment_instructions = data.payment_instructions?.trim() || existing.payment_instructions;
+      } else {
+        updates.payment_amount = null;
+        updates.payment_upi_id = null;
+        updates.payment_qr_url = null;
+        updates.payment_instructions = null;
+      }
+    }
+
+    if (data.slug !== undefined) {
+      const cleanSlug = data.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+      if (cleanSlug !== existing.slug) {
+        const { data: collision } = await db
+          .from('events')
+          .select('id')
+          .eq('college_id', collegeId)
+          .eq('slug', cleanSlug)
+          .neq('id', eventId)
+          .maybeSingle();
+
+        if (collision) {
+          return { success: false, error: 'URL slug is already in use by another event.' };
+        }
+        updates.slug = cleanSlug;
+      }
+    }
+
+    const { error: updateError } = await db
+      .from('events')
+      .update(updates)
+      .eq('id', eventId)
+      .eq('college_id', collegeId);
+
+    if (updateError) {
+      console.error('[UPDATE_EVENT_ERROR]', updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      'UPDATE_EVENT',
+      'events',
+      eventId,
+      `Updated event "${existing.title}"`
+    );
+
+    revalidatePath('/admin/dashboard');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update event.' };
+  }
+}
+
+/**
+ * Change event lifecycle status (PUBLISH, CLOSE, CANCEL)
+ */
+export async function updateEventStatusAction(
+  eventId: string,
+  newStatus: EventStatus,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    const { data: existing, error: findError } = await db
+      .from('events')
+      .select('id, title, status')
+      .eq('id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (findError || !existing) {
+      return { success: false, error: 'Event not found or unauthorized.' };
+    }
+
+    const { error: updateError } = await db
+      .from('events')
+      .update({
+        status: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', eventId)
+      .eq('college_id', collegeId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      `EVENT_${newStatus}`,
+      'events',
+      eventId,
+      `Changed status of event "${existing.title}" from ${existing.status} to ${newStatus}`
+    );
+
+    revalidatePath('/admin/dashboard');
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to change event status.' };
+  }
+}
+
+/**
+ * Safely delete an event. If registrations exist, marks as CANCELLED instead of deleting.
+ */
+export async function deleteEventAction(
+  eventId: string,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string; actionTaken?: 'DELETED' | 'CANCELLED' }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    const { data: existing, error: findError } = await db
+      .from('events')
+      .select('id, title')
+      .eq('id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (findError || !existing) {
+      return { success: false, error: 'Event not found.' };
+    }
+
+    // Check if any registrations exist
+    const { count: regCount } = await db
+      .from('event_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId);
+
+    if ((regCount || 0) > 0) {
+      // Archive / cancel rather than deleting
+      await db
+        .from('events')
+        .update({ status: 'CANCELLED', registration_enabled: false })
+        .eq('id', eventId)
+        .eq('college_id', collegeId);
+
+      await logAudit(
+        db,
+        { userId: session.userId, email: session.email },
+        collegeId,
+        'CANCEL_EVENT_ON_DELETE_ATTEMPT',
+        'events',
+        eventId,
+        `Marked event "${existing.title}" as CANCELLED because it already has ${regCount} registration(s).`
+      );
+
+      revalidatePath('/admin/dashboard');
+      return {
+        success: true,
+        actionTaken: 'CANCELLED',
+      };
+    }
+
+    // Delete clean event
+    const { error: delError } = await db
+      .from('events')
+      .delete()
+      .eq('id', eventId)
+      .eq('college_id', collegeId);
+
+    if (delError) {
+      return { success: false, error: delError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      'DELETE_EVENT',
+      'events',
+      eventId,
+      `Permanently deleted empty event "${existing.title}".`
+    );
+
+    revalidatePath('/admin/dashboard');
+    return { success: true, actionTaken: 'DELETED' };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to delete event.' };
+  }
+}
+
+/**
+ * Verify a student registration payment
+ */
+export async function verifyRegistrationPaymentAction(
+  registrationId: string,
+  eventId: string,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    // Verify registration belongs to this event and college
+    const { data: reg, error: regError } = await db
+      .from('event_registrations')
+      .select('id, registration_number, student_name, payment_status')
+      .eq('id', registrationId)
+      .eq('event_id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (regError || !reg) {
+      return { success: false, error: 'Registration record not found.' };
+    }
+
+    const { error: updateError } = await db
+      .from('event_registrations')
+      .update({
+        payment_status: 'VERIFIED',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', registrationId)
+      .eq('college_id', collegeId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      'VERIFY_EVENT_PAYMENT',
+      'event_registrations',
+      registrationId,
+      `Verified payment for ${reg.student_name} (${reg.registration_number})`
+    );
+
+    revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to verify payment.' };
+  }
+}
+
+/**
+ * Reject a student registration payment
+ */
+export async function rejectRegistrationPaymentAction(
+  registrationId: string,
+  eventId: string,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    const { data: reg, error: regError } = await db
+      .from('event_registrations')
+      .select('id, registration_number, student_name')
+      .eq('id', registrationId)
+      .eq('event_id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (regError || !reg) {
+      return { success: false, error: 'Registration record not found.' };
+    }
+
+    const { error: updateError } = await db
+      .from('event_registrations')
+      .update({
+        payment_status: 'REJECTED',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', registrationId)
+      .eq('college_id', collegeId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      'REJECT_EVENT_PAYMENT',
+      'event_registrations',
+      registrationId,
+      `Rejected payment for ${reg.student_name} (${reg.registration_number})`
+    );
+
+    revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to reject payment.' };
+  }
+}
+
+/**
+ * Cancel or restore student registration
+ */
+export async function updateRegistrationStatusAction(
+  registrationId: string,
+  eventId: string,
+  newStatus: EventRegistrationStatus,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    const { data: reg, error: regError } = await db
+      .from('event_registrations')
+      .select('id, registration_number, student_name, registration_status')
+      .eq('id', registrationId)
+      .eq('event_id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (regError || !reg) {
+      return { success: false, error: 'Registration record not found.' };
+    }
+
+    const { error: updateError } = await db
+      .from('event_registrations')
+      .update({
+        registration_status: newStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', registrationId)
+      .eq('college_id', collegeId);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    await logAudit(
+      db,
+      { userId: session.userId, email: session.email },
+      collegeId,
+      `REGISTRATION_${newStatus}`,
+      'event_registrations',
+      registrationId,
+      `Changed registration status for ${reg.student_name} (${reg.registration_number}) to ${newStatus}`
+    );
+
+    revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update registration status.' };
+  }
+}

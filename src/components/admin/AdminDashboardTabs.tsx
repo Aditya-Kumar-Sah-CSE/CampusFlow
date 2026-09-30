@@ -8,6 +8,7 @@ import { OverviewTab, type DashboardCounts } from './tabs/OverviewTab';
 import { AdminMobileNav } from './AdminMobileNav';
 import { GoogleConnectionCard } from './GoogleConnectionCard';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   LayoutDashboard,
   ShieldCheck,
@@ -25,6 +26,7 @@ import {
   Globe,
   Sliders,
   CheckCircle2,
+  Calendar,
 } from 'lucide-react';
 import type {
   AcademicYear,
@@ -99,17 +101,37 @@ const InstitutionsManagementTab = dynamic(
     loading: () => <TabLoadingSkeleton title="Institutions" />,
   }
 );
+const EventsManagementTab = dynamic(
+  () => import('./tabs/EventsManagementTab').then((mod) => mod.EventsManagementTab),
+  {
+    loading: () => <TabLoadingSkeleton title="Events Management" />,
+  }
+);
 
 export type AdminTab =
   | 'overview'
   | 'admins'
   | 'academic'
   | 'forms'
+  | 'events'
   | 'audit'
   | 'billing'
   | 'institutions'
   | 'google'
   | 'settings';
+
+const VALID_TABS: AdminTab[] = [
+  'overview',
+  'admins',
+  'academic',
+  'forms',
+  'events',
+  'audit',
+  'billing',
+  'institutions',
+  'google',
+  'settings',
+];
 
 interface DropdownItem {
   id: string;
@@ -297,7 +319,18 @@ export function AdminDashboardTabs({
   activeCollegeLogoUrl,
   googleStatus,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams?.get('tab') as AdminTab | null;
+  const initialActiveTab: AdminTab = requestedTab && VALID_TABS.includes(requestedTab) ? requestedTab : 'overview';
+  const [activeTab, setActiveTab] = useState<AdminTab>(initialActiveTab);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams?.get('tab') as AdminTab | null;
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, activeTab]);
+
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isNavigatingToResults, setIsNavigatingToResults] = useState(false);
   const router = useRouter();
@@ -319,6 +352,7 @@ export function AdminDashboardTabs({
     { id: 'overview' as const, label: 'Overview', icon: LayoutDashboard },
     { id: 'academic' as const, label: 'Academic Structure', icon: GraduationCap },
     { id: 'forms' as const, label: 'Feedback Forms', icon: FileSpreadsheet },
+    { id: 'events' as const, label: 'Events', icon: Calendar },
   ];
 
   const isSettingsActive = [
@@ -398,6 +432,8 @@ export function AdminDashboardTabs({
         return 'Academic Structure';
       case 'forms':
         return 'Feedback Forms';
+      case 'events':
+        return 'Events';
       case 'admins':
         return 'Settings: Admins';
       case 'audit':
@@ -612,6 +648,10 @@ export function AdminDashboardTabs({
             faculties={faculties}
             subjects={subjects}
           />
+        )}
+
+        {activeTab === 'events' && (
+          <EventsManagementTab activeCollegeId={activeCollegeId} />
         )}
 
         {activeTab === 'audit' && (

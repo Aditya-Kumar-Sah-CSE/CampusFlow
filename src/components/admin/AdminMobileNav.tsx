@@ -18,6 +18,7 @@ import {
   Building2,
   Settings,
   Globe,
+  Calendar,
 } from 'lucide-react';
 import type { AdminTab } from './AdminDashboardTabs';
 
@@ -63,6 +64,7 @@ export function AdminMobileNav({
         { id: 'overview', label: 'Overview', icon: LayoutDashboard },
         { id: 'academic', label: 'Academic Structure', icon: GraduationCap },
         { id: 'forms', label: 'Feedback Forms', icon: FileSpreadsheet },
+        { id: 'events', label: 'Events', icon: Calendar },
       ],
     },
     {
