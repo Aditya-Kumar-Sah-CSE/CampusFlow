@@ -1,18 +1,16 @@
 'use server';
 
-import { createAdminClient } from '@/lib/supabase/admin';
 import { verifyEventSession } from '@/lib/events/event-session';
 import { checkIsRegistrationOpen } from '@/lib/events/registration-status';
 import { getInvitationEvent, getInvitationProgram } from '@/lib/events/invitation-context';
 import {
-  addTeamMember, findExistingProgramRegistration, getEventRegistrations,
+  addTeamMember,
+  findExistingProgramRegistration,
+  getEventRegistrations,
+  createTeamJoinRequestInSheet,
+  getTeamJoinRequestsFromSheet,
+  updateTeamJoinRequestStatusInSheet,
 } from '@/lib/google/event-registration-sheets';
-
-const dbClient = () => createAdminClient();
-
-function isTableMissing(err: { code?: string } | null | undefined): boolean {
-  return !!err && (err.code === 'PGRST205' || err.code === '42P01');
-}
 
 // ============================================================
 // 1. TEAM SEARCH (Student searching for teams to join)
@@ -125,6 +123,9 @@ export async function requestToJoinTeamAction(input: {
     if (!event.registration_sheet_id) throw new Error('REGISTRATION_SHEET_NOT_FOUND');
     const program = await getInvitationProgram(input.programId, event.college_id);
     if (program.event_id !== event.id) throw new Error('PROGRAM_NOT_FOUND');
+    if (program.participation_type !== 'TEAM' && program.participation_type !== 'BOTH') {
+      throw new Error('This program does not support teams.');
+    }
 
     const open = checkIsRegistrationOpen(event, program);
     if (!open.isOpen) throw new Error(open.reason || 'Registration is closed.');
@@ -174,31 +175,30 @@ export async function requestToJoinTeamAction(input: {
     );
     if (existingProgramReg) throw new Error('You are already registered for this program.');
 
-    // Create join request in Supabase
-    const db = dbClient();
-    if (!db) throw new Error('Request service unavailable.');
+    // Write join request directly to Google Sheets (single source of truth)
+    const requestId = await createTeamJoinRequestInSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      {
+        eventId: event.id,
+        programId: program.id,
+        programName: program.name,
+        teamId: leader.teamId,
+        teamName: leader.teamName,
+        requesterRegistrationNumber: session.registrationNumber,
+        requesterName: studentEventReg.participantName,
+        requesterStudentId: studentEventReg.studentId,
+        requesterEmail: studentEventReg.email,
+        requesterBranch: studentEventReg.branch,
+        requesterSemester: studentEventReg.semester,
+        requesterMobile: studentEventReg.mobile,
+      }
+    );
 
-    const { data: requestId, error } = await db.rpc('create_team_join_request', {
-      p_college_id: event.college_id,
-      p_event_id: event.id,
-      p_program_id: program.id,
-      p_team_id: leader.teamId,
-      p_requester_registration_number: session.registrationNumber,
-      p_requester_name: studentEventReg.participantName,
-      p_requester_student_id: studentEventReg.studentId,
-      p_requester_branch: studentEventReg.branch || '',
-      p_requester_semester: studentEventReg.semester || '',
-    });
-
-    if (error) {
-      if (isTableMissing(error)) throw new Error('Join request service is being set up. Please try again shortly.');
-      if (error.message.includes('pending')) throw new Error('You already have a pending join request for this program.');
-      console.error('[JoinRequest] RPC failed:', error.code, error.message);
-      throw new Error('Could not create join request. Please try again.');
-    }
-
-    return { success: true, requestId: requestId || undefined };
-  } catch (e) { return { success: false, error: (e as Error).message }; }
+    return { success: true, requestId };
+  } catch (e) {
+    return { success: false, error: (e as Error).message };
+  }
 }
 
 // ============================================================
@@ -242,48 +242,34 @@ export async function getTeamJoinRequestsAction(
                      leader.registrationNumber.toUpperCase() === session.registrationNumber.toUpperCase();
     if (!isLeader) throw new Error('NOT_TEAM_LEADER');
 
-    const db = dbClient();
-    if (!db) throw new Error('Request service unavailable.');
+    const allRequests = await getTeamJoinRequestsFromSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      event.id
+    );
 
-    const { data, error } = await db.from('team_join_requests')
-      .select('id,requester_registration_number,requester_name,requester_student_id,requester_branch,requester_semester,status,created_at,leader_notification_read_at')
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('program_id', program.id)
-      .eq('team_id', leader.teamId)
-      .order('created_at', { ascending: false });
+    const teamRequests = allRequests.filter(
+      r =>
+        r.programId === program.id &&
+        r.teamId.toUpperCase() === leader.teamId.toUpperCase()
+    );
 
-    if (error && !isTableMissing(error)) throw new Error('Could not load join requests.');
-    if (isTableMissing(error)) return { success: true, requests: [], unreadCount: 0 };
-
-    const requests: JoinRequestItem[] = (data || []).map(r => ({
-      id: r.id,
-      requesterName: r.requester_name || 'Student',
-      requesterRegistrationNumber: r.requester_registration_number,
-      requesterStudentId: r.requester_student_id || '',
-      requesterBranch: r.requester_branch || '',
-      requesterSemester: r.requester_semester || '',
+    const requests: JoinRequestItem[] = teamRequests.map(r => ({
+      id: r.requestId,
+      requesterName: r.requesterName || 'Student',
+      requesterRegistrationNumber: r.requesterRegistrationNumber,
+      requesterStudentId: r.requesterStudentId || '',
+      requesterBranch: r.requesterBranch || '',
+      requesterSemester: r.requesterSemester || '',
       status: r.status,
-      createdAt: r.created_at,
-      unread: !r.leader_notification_read_at && r.status === 'PENDING',
+      createdAt: r.createdAt,
+      unread: r.status === 'PENDING',
     }));
-
-    // Mark leader notifications as read
-    if (requests.some(r => r.unread)) {
-      await db.from('team_join_requests')
-        .update({ leader_notification_read_at: new Date().toISOString() })
-        .eq('college_id', event.college_id)
-        .eq('event_id', event.id)
-        .eq('program_id', program.id)
-        .eq('team_id', leader.teamId)
-        .eq('status', 'PENDING')
-        .is('leader_notification_read_at', null);
-    }
 
     return {
       success: true,
       requests,
-      unreadCount: requests.filter(r => r.unread).length,
+      unreadCount: requests.filter(r => r.status === 'PENDING').length,
     };
   } catch (e) { return { success: false, error: (e as Error).message }; }
 }
@@ -324,27 +310,26 @@ export async function acceptJoinRequestAction(
     const maxSize = program.max_team_size || 20;
     if (teamRows.length >= maxSize) throw new Error('This team is already full.');
 
-    const db = dbClient();
-    if (!db) throw new Error('Request service unavailable.');
+    // Fetch the request from Google Sheets
+    const allRequests = await getTeamJoinRequestsFromSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      event.id
+    );
 
-    // Fetch the request
-    const { data: req, error: reqErr } = await db.from('team_join_requests')
-      .select('*')
-      .eq('id', requestId)
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('program_id', program.id)
-      .eq('team_id', leader.teamId)
-      .eq('status', 'PENDING')
-      .maybeSingle();
-    if (reqErr && !isTableMissing(reqErr)) throw new Error('Could not verify request.');
+    const req = allRequests.find(
+      r =>
+        r.requestId.toUpperCase() === requestId.trim().toUpperCase() &&
+        r.teamId.toUpperCase() === leader.teamId.toUpperCase() &&
+        r.status === 'PENDING'
+    );
     if (!req) throw new Error('Request not found or already processed.');
 
     // Re-verify requester's event registration
     const requesterReg = rows.find(r =>
       r.programId === '' &&
       r.eventId === event.id &&
-      r.registrationNumber.toUpperCase() === req.requester_registration_number.toUpperCase() &&
+      r.registrationNumber.toUpperCase() === req.requesterRegistrationNumber.toUpperCase() &&
       r.registrationStatus !== 'CANCELLED'
     );
     if (!requesterReg) throw new Error('The student\'s event registration could not be verified.');
@@ -352,7 +337,7 @@ export async function acceptJoinRequestAction(
     // Check student hasn't joined another team in the meantime
     const existingProgramReg = await findExistingProgramRegistration(
       event.college_id, event.registration_sheet_id, event.id, program.id,
-      { eventRegNumber: req.requester_registration_number, studentId: requesterReg.studentId, email: requesterReg.email }
+      { eventRegNumber: req.requesterRegistrationNumber, studentId: requesterReg.studentId, email: requesterReg.email }
     );
     if (existingProgramReg) throw new Error('This student has already joined another team for this program.');
 
@@ -382,26 +367,14 @@ export async function acceptJoinRequestAction(
       leaderEventRegNumber: leader.teamLeaderRegistrationNumber || leader.registrationNumber,
     });
 
-    // Mark request as approved
-    await db.from('team_join_requests')
-      .update({
-        status: 'APPROVED',
-        responded_at: new Date().toISOString(),
-        responded_by: session.registrationNumber.toUpperCase(),
-        requester_notification_read_at: null, // Reset so student sees notification
-      })
-      .eq('id', requestId)
-      .eq('status', 'PENDING');
-
-    // Cancel any other pending requests from this student for this program
-    await db.from('team_join_requests')
-      .update({ status: 'CANCELLED', responded_at: new Date().toISOString() })
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('program_id', program.id)
-      .eq('requester_registration_number', req.requester_registration_number)
-      .eq('status', 'PENDING')
-      .neq('id', requestId);
+    // Mark request as approved in Google Sheets
+    await updateTeamJoinRequestStatusInSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      requestId,
+      'APPROVED',
+      session.registrationNumber.toUpperCase()
+    );
 
     return { success: true };
   } catch (e) { return { success: false, error: (e as Error).message }; }
@@ -435,27 +408,13 @@ export async function rejectJoinRequestAction(
                      leader.registrationNumber.toUpperCase() === session.registrationNumber.toUpperCase();
     if (!isLeader) throw new Error('Only the team leader can manage requests.');
 
-    const db = dbClient();
-    if (!db) throw new Error('Request service unavailable.');
-
-    const { data, error } = await db.from('team_join_requests')
-      .update({
-        status: 'REJECTED',
-        responded_at: new Date().toISOString(),
-        responded_by: session.registrationNumber.toUpperCase(),
-        requester_notification_read_at: null,
-      })
-      .eq('id', requestId)
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('program_id', program.id)
-      .eq('team_id', leader.teamId)
-      .eq('status', 'PENDING')
-      .select('id')
-      .maybeSingle();
-
-    if (error && !isTableMissing(error)) throw new Error('Could not process request.');
-    if (!data) throw new Error('Request not found or already processed.');
+    await updateTeamJoinRequestStatusInSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      requestId,
+      'REJECTED',
+      session.registrationNumber.toUpperCase()
+    );
 
     return { success: true };
   } catch (e) { return { success: false, error: (e as Error).message }; }
@@ -490,54 +449,26 @@ export async function getMyJoinRequestsAction(eventId: string): Promise<{
     if (event.college_id !== session.collegeId) throw new Error('UNAUTHORIZED');
     if (!event.registration_sheet_id) throw new Error('REGISTRATION_SHEET_NOT_FOUND');
 
-    const db = dbClient();
-    if (!db) throw new Error('Request service unavailable.');
+    const allRequests = await getTeamJoinRequestsFromSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      event.id
+    );
 
-    const { data, error } = await db.from('team_join_requests')
-      .select('*')
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('requester_registration_number', session.registrationNumber.toUpperCase())
-      .order('created_at', { ascending: false });
+    const myReqs = allRequests.filter(
+      r => r.requesterRegistrationNumber.toUpperCase() === session.registrationNumber.toUpperCase()
+    );
 
-    if (error && !isTableMissing(error)) throw new Error('Could not load requests.');
-    if (isTableMissing(error)) return { success: true, requests: [], unreadCount: 0 };
-
-    const rows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
-    const requests: MyJoinRequest[] = [];
-
-    for (const req of data || []) {
-      const program = await getInvitationProgram(req.program_id, event.college_id).catch(() => null);
-      if (!program) continue;
-
-      const teamMembers = rows.filter(r =>
-        r.eventId === event.id && r.programId === req.program_id &&
-        r.teamId.toUpperCase() === req.team_id.toUpperCase() &&
-        r.registrationStatus !== 'CANCELLED'
-      );
-      const leader = teamMembers.find(r => r.participantRole === 'TEAM LEADER');
-
-      requests.push({
-        id: req.id,
-        teamId: req.team_id,
-        teamName: leader?.teamName || 'Team',
-        programName: program.name,
-        leaderName: leader?.participantName || 'Team Leader',
-        status: req.status,
-        createdAt: req.created_at,
-        unread: !req.requester_notification_read_at && (req.status === 'APPROVED' || req.status === 'REJECTED'),
-      });
-    }
-
-    // Mark requester notifications as read
-    const unreadIds = (data || []).filter(r => !r.requester_notification_read_at && (r.status === 'APPROVED' || r.status === 'REJECTED')).map(r => r.id);
-    if (unreadIds.length > 0) {
-      for (const id of unreadIds) {
-        await db.from('team_join_requests')
-          .update({ requester_notification_read_at: new Date().toISOString() })
-          .eq('id', id);
-      }
-    }
+    const requests: MyJoinRequest[] = myReqs.map(r => ({
+      id: r.requestId,
+      teamId: r.teamId,
+      teamName: r.teamName || 'Team',
+      programName: r.programName || 'Program',
+      leaderName: 'Team Leader',
+      status: r.status,
+      createdAt: r.createdAt,
+      unread: r.status === 'APPROVED' || r.status === 'REJECTED',
+    }));
 
     return {
       success: true,
@@ -560,22 +491,15 @@ export async function cancelJoinRequestAction(
     const session = auth.session;
     const event = await getInvitationEvent(eventId);
     if (event.college_id !== session.collegeId) throw new Error('UNAUTHORIZED');
+    if (!event.registration_sheet_id) throw new Error('REGISTRATION_SHEET_NOT_FOUND');
 
-    const db = dbClient();
-    if (!db) throw new Error('Request service unavailable.');
-
-    const { data, error } = await db.from('team_join_requests')
-      .update({ status: 'CANCELLED', responded_at: new Date().toISOString() })
-      .eq('id', requestId)
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('requester_registration_number', session.registrationNumber.toUpperCase())
-      .eq('status', 'PENDING')
-      .select('id')
-      .maybeSingle();
-
-    if (error && !isTableMissing(error)) throw new Error('Could not cancel request.');
-    if (!data) throw new Error('Request not found or already processed.');
+    await updateTeamJoinRequestStatusInSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      requestId,
+      'CANCELLED',
+      session.registrationNumber.toUpperCase()
+    );
 
     return { success: true };
   } catch (e) { return { success: false, error: (e as Error).message }; }
@@ -593,19 +517,21 @@ export async function getPendingJoinRequestCountAction(
     if (!auth.isValid || !auth.session) return { success: true, count: 0 };
     const event = await getInvitationEvent(eventId);
     if (event.college_id !== auth.session.collegeId) return { success: true, count: 0 };
+    if (!event.registration_sheet_id) return { success: true, count: 0 };
 
-    const db = dbClient();
-    if (!db) return { success: true, count: 0 };
+    const allRequests = await getTeamJoinRequestsFromSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      eventId
+    );
 
-    const { count, error } = await db.from('team_join_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('college_id', event.college_id)
-      .eq('event_id', event.id)
-      .eq('program_id', programId)
-      .eq('team_id', teamId)
-      .eq('status', 'PENDING');
+    const count = allRequests.filter(
+      r =>
+        r.programId === programId &&
+        r.teamId.toUpperCase() === teamId.toUpperCase() &&
+        r.status === 'PENDING'
+    ).length;
 
-    if (error || isTableMissing(error)) return { success: true, count: 0 };
-    return { success: true, count: count || 0 };
+    return { success: true, count };
   } catch { return { success: true, count: 0 }; }
 }

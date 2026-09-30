@@ -1875,3 +1875,289 @@ export async function getProgramStats(
     totalRevenue,
   };
 }
+
+// ============================================================
+// TEAM JOIN REQUESTS (Stored in event spreadsheet)
+// ============================================================
+
+export const TEAM_JOIN_REQUESTS_SHEET = 'TEAM_JOIN_REQUESTS';
+
+export const TEAM_JOIN_REQUEST_HEADERS = [
+  'Request ID',                   // Col A (0)
+  'Event ID',                     // Col B (1)
+  'Program ID',                   // Col C (2)
+  'Program Name',                 // Col D (3)
+  'Team ID',                      // Col E (4)
+  'Team Name',                    // Col F (5)
+  'Requester Reg Number',         // Col G (6)
+  'Requester Name',               // Col H (7)
+  'Requester Student ID',         // Col I (8)
+  'Requester Email',              // Col J (9)
+  'Requester Branch',             // Col K (10)
+  'Requester Semester',           // Col L (11)
+  'Requester Mobile',             // Col M (12)
+  'Status',                       // Col N (13) - PENDING | APPROVED | REJECTED | CANCELLED
+  'Created At',                   // Col O (14) - ISO string
+  'Responded At',                 // Col P (15) - ISO string
+  'Responded By',                 // Col Q (16) - Leader Reg Number
+];
+
+export interface TeamJoinRequestRow {
+  requestId: string;
+  eventId: string;
+  programId: string;
+  programName: string;
+  teamId: string;
+  teamName: string;
+  requesterRegistrationNumber: string;
+  requesterName: string;
+  requesterStudentId: string;
+  requesterEmail: string;
+  requesterBranch: string;
+  requesterSemester: string;
+  requesterMobile: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  createdAt: string;
+  respondedAt?: string;
+  respondedBy?: string;
+  rowIndex?: number;
+}
+
+/**
+ * Ensure TEAM_JOIN_REQUESTS sheet exists in the spreadsheet.
+ */
+export async function ensureTeamJoinRequestsSheet(
+  collegeId: string,
+  spreadsheetId: string
+): Promise<void> {
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets.properties.title',
+    });
+
+    const hasSheet = (meta.data.sheets || []).some(
+      s => s.properties?.title === TEAM_JOIN_REQUESTS_SHEET
+    );
+
+    if (!hasSheet) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: TEAM_JOIN_REQUESTS_SHEET,
+                  gridProperties: { frozenRowCount: 1 },
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      const lastCol = getColumnLetter(TEAM_JOIN_REQUEST_HEADERS.length);
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `'${TEAM_JOIN_REQUESTS_SHEET}'!A1:${lastCol}1`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [TEAM_JOIN_REQUEST_HEADERS] },
+      });
+    }
+  });
+}
+
+/**
+ * Get all join requests from the spreadsheet.
+ */
+export async function getTeamJoinRequestsFromSheet(
+  collegeId: string,
+  spreadsheetId: string,
+  eventId?: string
+): Promise<TeamJoinRequestRow[]> {
+  await assertCollegeGoogleConnected(collegeId);
+  return executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    try {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `'${TEAM_JOIN_REQUESTS_SHEET}'!A2:Q`,
+      });
+
+      const rows = res.data.values || [];
+      const result: TeamJoinRequestRow[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || !r[0]) continue;
+        const reqEventId = r[1] || '';
+        if (eventId && reqEventId && reqEventId !== eventId) continue;
+
+        result.push({
+          requestId: String(r[0] || '').trim(),
+          eventId: reqEventId,
+          programId: String(r[2] || '').trim(),
+          programName: String(r[3] || '').trim(),
+          teamId: String(r[4] || '').trim(),
+          teamName: String(r[5] || '').trim(),
+          requesterRegistrationNumber: String(r[6] || '').trim().toUpperCase(),
+          requesterName: String(r[7] || '').trim(),
+          requesterStudentId: String(r[8] || '').trim(),
+          requesterEmail: String(r[9] || '').trim(),
+          requesterBranch: String(r[10] || '').trim(),
+          requesterSemester: String(r[11] || '').trim(),
+          requesterMobile: String(r[12] || '').trim(),
+          status: (String(r[13] || '').trim().toUpperCase() as TeamJoinRequestRow['status']) || 'PENDING',
+          createdAt: String(r[14] || '').trim(),
+          respondedAt: r[15] ? String(r[15]).trim() : undefined,
+          respondedBy: r[16] ? String(r[16]).trim() : undefined,
+          rowIndex: i + 2,
+        });
+      }
+
+      return result;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Unable to parse range') || msg.includes('not found')) {
+        return [];
+      }
+      throw err;
+    }
+  });
+}
+
+/**
+ * Create a new join request row in Google Sheets.
+ */
+export async function createTeamJoinRequestInSheet(
+  collegeId: string,
+  spreadsheetId: string,
+  data: {
+    eventId: string;
+    programId: string;
+    programName: string;
+    teamId: string;
+    teamName: string;
+    requesterRegistrationNumber: string;
+    requesterName: string;
+    requesterStudentId?: string;
+    requesterEmail?: string;
+    requesterBranch?: string;
+    requesterSemester?: string;
+    requesterMobile?: string;
+  }
+): Promise<string> {
+  await assertCollegeGoogleConnected(collegeId);
+  await ensureTeamJoinRequestsSheet(collegeId, spreadsheetId);
+
+  const cleanReg = data.requesterRegistrationNumber.trim().toUpperCase();
+  const all = await getTeamJoinRequestsFromSheet(collegeId, spreadsheetId, data.eventId);
+
+  // Check for duplicate pending request for this program
+  const duplicate = all.find(
+    r =>
+      r.programId === data.programId &&
+      r.requesterRegistrationNumber.toUpperCase() === cleanReg &&
+      r.status === 'PENDING'
+  );
+  if (duplicate) {
+    throw new Error('You already have a pending join request for this program.');
+  }
+
+  const requestId = 'REQ-' + crypto.randomUUID().slice(0, 8).toUpperCase();
+  const now = new Date().toISOString();
+
+  const newRow = [
+    requestId,
+    data.eventId,
+    data.programId,
+    data.programName || '',
+    data.teamId,
+    data.teamName || '',
+    cleanReg,
+    data.requesterName.trim(),
+    data.requesterStudentId?.trim() || '',
+    data.requesterEmail?.trim() || '',
+    data.requesterBranch?.trim() || '',
+    data.requesterSemester?.trim() || '',
+    data.requesterMobile?.trim() || '',
+    'PENDING',
+    now,
+    '',
+    '',
+  ];
+
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `'${TEAM_JOIN_REQUESTS_SHEET}'!A:Q`,
+      valueInputOption: 'USER_ENTERED',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: { values: [newRow] },
+    });
+  });
+
+  return requestId;
+}
+
+/**
+ * Update join request status (APPROVED | REJECTED | CANCELLED).
+ */
+export async function updateTeamJoinRequestStatusInSheet(
+  collegeId: string,
+  spreadsheetId: string,
+  requestId: string,
+  status: 'APPROVED' | 'REJECTED' | 'CANCELLED',
+  respondedBy?: string
+): Promise<boolean> {
+  await assertCollegeGoogleConnected(collegeId);
+  const cleanId = requestId.trim().toUpperCase();
+  const all = await getTeamJoinRequestsFromSheet(collegeId, spreadsheetId);
+
+  const target = all.find(r => r.requestId.toUpperCase() === cleanId);
+  if (!target || !target.rowIndex) return false;
+
+  const now = new Date().toISOString();
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `'${TEAM_JOIN_REQUESTS_SHEET}'!N${target.rowIndex}:Q${target.rowIndex}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[status, target.createdAt, now, respondedBy || '']],
+      },
+    });
+  });
+
+  // If approved, cancel any other pending requests from this student for this program
+  if (status === 'APPROVED') {
+    const otherPending = all.filter(
+      r =>
+        r.requestId.toUpperCase() !== cleanId &&
+        r.programId === target.programId &&
+        r.requesterRegistrationNumber.toUpperCase() === target.requesterRegistrationNumber.toUpperCase() &&
+        r.status === 'PENDING' &&
+        r.rowIndex
+    );
+
+    for (const other of otherPending) {
+      if (!other.rowIndex) continue;
+      try {
+        await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+          await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `'${TEAM_JOIN_REQUESTS_SHEET}'!N${other.rowIndex}:Q${other.rowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: [['CANCELLED', other.createdAt, now, 'AUTO_CANCELLED']],
+            },
+          });
+        });
+      } catch (cancelErr) {
+        console.warn('[EventRegSheets] Cancel duplicate request notice:', cancelErr);
+      }
+    }
+  }
+
+  return true;
+}
