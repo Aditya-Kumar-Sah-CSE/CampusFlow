@@ -61,20 +61,26 @@ export async function fetchDirectLandingSettings(collegeId: string): Promise<Lan
 }
 
 /**
- * Cached lookup for landing page settings by collegeId.
+ * Module-level cached lookup for landing page settings by collegeId.
+ * Defining unstable_cache at module scope ensures stable callback reference in Next.js runtime.
+ */
+const getCachedLandingSettings = unstable_cache(
+  async (collegeId: string): Promise<LandingPageSettings> => {
+    return fetchDirectLandingSettings(collegeId);
+  },
+  ['college_landing_settings'],
+  {
+    revalidate: 60,
+    tags: ['colleges'],
+  }
+);
+
+/**
+ * Public getter for landing page settings by collegeId with safe fallback.
  */
 export async function getCollegeLandingSettings(collegeId: string): Promise<LandingPageSettings> {
   try {
-    const fetchSettings = unstable_cache(
-      () => fetchDirectLandingSettings(collegeId),
-      ['college_landing_settings', collegeId],
-      {
-        revalidate: 60,
-        tags: ['colleges', `landing_settings_${collegeId}`],
-      }
-    );
-
-    return await fetchSettings();
+    return await getCachedLandingSettings(collegeId);
   } catch {
     // If unstable_cache fails (e.g. running in script or test outside of Next request context)
     return fetchDirectLandingSettings(collegeId);

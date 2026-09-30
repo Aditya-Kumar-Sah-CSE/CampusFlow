@@ -85,21 +85,16 @@ const fetchCollegeBySlugDirect = async (slug: string): Promise<College | null> =
   return data as College;
 };
 
-const getCachedCollegeBySlug = async (slug: string): Promise<College | null> => {
-  try {
-    return await unstable_cache(
-      () => fetchCollegeBySlugDirect(slug),
-      ['tenant_college_slug', slug],
-      {
-        revalidate: 60, // 60s cache TTL
-        tags: ['colleges', `tenant_${slug}`],
-      }
-    )();
-  } catch {
-    // If unstable_cache is not available in current execution context (e.g. scripts or testing)
+const getCachedCollegeBySlug = unstable_cache(
+  async (slug: string): Promise<College | null> => {
     return fetchCollegeBySlugDirect(slug);
+  },
+  ['tenant_college_slug'],
+  {
+    revalidate: 60, // 60s cache TTL
+    tags: ['colleges'],
   }
-};
+);
 
 /**
  * Resolves a tenant by slug.
@@ -120,7 +115,13 @@ export const getTenantBySlug = cache(
       return null;
     }
 
-    const college = await getCachedCollegeBySlug(slug);
+    let college: College | null = null;
+    try {
+      college = await getCachedCollegeBySlug(slug);
+    } catch {
+      college = await fetchCollegeBySlugDirect(slug);
+    }
+
     if (!college) {
       return null;
     }
@@ -165,28 +166,36 @@ export async function resolveTenantOrNotFound(rawSlug: string): Promise<TenantCo
  */
 export const requireTenant = resolveTenantOrNotFound;
 
+const fetchAllActiveCollegesDirect = async (): Promise<College[]> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('colleges')
+    .select('*')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (error || !data) return [];
+  return data as College[];
+};
+
+const getCachedAllActiveColleges = unstable_cache(
+  fetchAllActiveCollegesDirect,
+  ['all_active_colleges_cache'],
+  { revalidate: 60, tags: ['colleges'] }
+);
+
 /**
  * Fetches all active colleges for the root directory or tenant switcher.
  * Uses public anon client (never service-role credentials).
  */
 export const getAllActiveColleges = cache(async (): Promise<TenantContext[]> => {
-  const fetchAll = unstable_cache(
-    async (): Promise<College[]> => {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('colleges')
-        .select('*')
-        .eq('is_active', true)
-        .order('name', { ascending: true });
+  let colleges: College[] = [];
+  try {
+    colleges = await getCachedAllActiveColleges();
+  } catch {
+    colleges = await fetchAllActiveCollegesDirect();
+  }
 
-      if (error || !data) return [];
-      return data as College[];
-    },
-    ['all_active_colleges_cache'],
-    { revalidate: 60, tags: ['colleges'] }
-  );
-
-  const colleges = await fetchAll();
   return Promise.all(
     colleges.map(async (c) => {
       const landingSettings = await getCollegeLandingSettings(c.id);
