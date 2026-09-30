@@ -26,7 +26,7 @@ export async function getAdminEvents(collegeId: string): Promise<CollegeEvent[]>
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('[GET_ADMIN_EVENTS_ERROR]', error);
+    console.error('[GET_ADMIN_EVENTS_ERROR]', error.message || error);
     return [];
   }
 
@@ -103,7 +103,7 @@ export async function getPublicTenantEvents(collegeId: string): Promise<CollegeE
     .order('start_at', { ascending: true });
 
   if (error) {
-    console.error('[GET_PUBLIC_EVENTS_ERROR]', error);
+    console.error('[GET_PUBLIC_EVENTS_ERROR]', error.message || error);
     return [];
   }
 
@@ -204,7 +204,7 @@ export async function getEventRegistrations(params: {
   const { data, error } = await query;
 
   if (error) {
-    console.error('[GET_EVENT_REGISTRATIONS_ERROR]', error);
+    console.error('[GET_EVENT_REGISTRATIONS_ERROR]', error.message || error);
     return {
       registrations: [],
       stats: {

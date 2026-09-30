@@ -43,6 +43,7 @@ export function CollegeInstallButton({ tenant, className }: CollegeInstallButton
   return (
     <button
       type="button"
+      suppressHydrationWarning
       onClick={handleInstallClick}
       className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 hover:text-amber-950 border border-amber-200/80 rounded-lg transition-all shadow-2xs active:scale-98 cursor-pointer ${className || ''}`}
       aria-label={`Install ${tenant.name} App`}

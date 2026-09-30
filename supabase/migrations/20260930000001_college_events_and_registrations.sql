@@ -19,16 +19,16 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.events (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     college_id UUID NOT NULL REFERENCES public.colleges(id) ON DELETE CASCADE,
-    title VARCHAR(255) NOT NULL,
-    slug VARCHAR(150) NOT NULL,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL,
     description TEXT,
-    venue VARCHAR(255) NOT NULL,
-    start_at TIMESTAMPTZ NOT NULL,
-    end_at TIMESTAMPTZ NOT NULL,
-    registration_start TIMESTAMPTZ NOT NULL,
-    registration_end TIMESTAMPTZ NOT NULL,
+    venue TEXT,
+    start_at TIMESTAMPTZ,
+    end_at TIMESTAMPTZ,
+    registration_start TIMESTAMPTZ,
+    registration_end TIMESTAMPTZ,
     max_capacity INTEGER NULL CHECK (max_capacity IS NULL OR max_capacity > 0),
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT' 
+    status TEXT NOT NULL DEFAULT 'DRAFT' 
         CHECK (status IN ('DRAFT', 'PUBLISHED', 'CLOSED', 'CANCELLED')),
     registration_enabled BOOLEAN NOT NULL DEFAULT true,
     payment_required BOOLEAN NOT NULL DEFAULT false,
@@ -64,17 +64,17 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
     college_id UUID NOT NULL REFERENCES public.colleges(id) ON DELETE CASCADE,
-    registration_number VARCHAR(100) NOT NULL,
-    student_name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    mobile VARCHAR(20) NOT NULL,
+    registration_number TEXT NOT NULL,
+    student_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    mobile TEXT,
     branch_id UUID NULL REFERENCES public.branches(id) ON DELETE SET NULL,
     semester_id UUID NULL REFERENCES public.semesters(id) ON DELETE SET NULL,
-    transaction_id VARCHAR(150) NULL,
-    payment_status VARCHAR(20) NOT NULL DEFAULT 'NOT_REQUIRED' 
+    transaction_id TEXT NULL,
+    payment_status TEXT NOT NULL DEFAULT 'NOT_REQUIRED' 
         CHECK (payment_status IN ('NOT_REQUIRED', 'PENDING', 'VERIFIED', 'REJECTED')),
     payment_screenshot_url TEXT NULL,
-    registration_status VARCHAR(20) NOT NULL DEFAULT 'REGISTERED' 
+    registration_status TEXT NOT NULL DEFAULT 'REGISTERED' 
         CHECK (registration_status IN ('REGISTERED', 'CANCELLED', 'REJECTED')),
     registered_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -83,7 +83,9 @@ CREATE TABLE IF NOT EXISTS public.event_registrations (
 
 CREATE INDEX IF NOT EXISTS idx_event_reg_event_college ON public.event_registrations(event_id, college_id);
 CREATE INDEX IF NOT EXISTS idx_event_reg_college ON public.event_registrations(college_id);
-CREATE INDEX IF NOT EXISTS idx_event_reg_regnum ON public.event_registrations(event_id, LOWER(registration_number));
+CREATE INDEX IF NOT EXISTS idx_event_reg_event_id ON public.event_registrations(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_reg_regnum ON public.event_registrations(registration_number);
+CREATE INDEX IF NOT EXISTS idx_event_reg_payment_status ON public.event_registrations(payment_status);
 CREATE INDEX IF NOT EXISTS idx_event_reg_status ON public.event_registrations(event_id, registration_status, payment_status);
 CREATE INDEX IF NOT EXISTS idx_event_reg_created ON public.event_registrations(registered_at DESC);
 
@@ -322,3 +324,6 @@ BEGIN
             WITH CHECK (bucket_id = 'event-assets');
     END IF;
 END $$;
+
+-- 7. NOTIFY POSTGREST TO RELOAD SCHEMA CACHE IMMEDIATELY
+NOTIFY pgrst, 'reload schema';
