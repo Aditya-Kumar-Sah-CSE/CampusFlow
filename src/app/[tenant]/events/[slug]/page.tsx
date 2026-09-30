@@ -5,6 +5,8 @@ import { getPublicEventBySlug } from '@/lib/events/service';
 import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { getPublicEventPrograms } from '@/lib/events/programs-service';
 import { getPublicEventParticipants } from '@/lib/events/program-registrations-service';
+import { getCurrentEventSession } from '@/lib/events/event-session';
+import { EventStudentIdentityCard } from '@/components/events/EventStudentIdentityCard';
 import { PublicEventDetailClient } from '@/components/events/PublicEventDetailClient';
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
 import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
@@ -33,10 +35,11 @@ export default async function PublicEventDetailPage({ params }: Props) {
     notFound();
   }
 
-  // Fetch programs and public participants in parallel
-  const [programData, publicParticipants] = await Promise.all([
+  // Fetch programs, public participants, and student session in parallel
+  const [programData, publicParticipants, session] = await Promise.all([
     getPublicEventPrograms(event.id, tenant.collegeId),
     getPublicEventParticipants(event.id, tenant.collegeId),
+    getCurrentEventSession(event.id),
   ]);
 
   return (
@@ -66,13 +69,24 @@ export default async function PublicEventDetailPage({ params }: Props) {
           semesters={academic.semesters}
         />
 
+        {/* Student Event Identity / Verification Section (Step 1 in architecture) */}
+        <section id="identity">
+          <EventStudentIdentityCard
+            event={event}
+            initialSession={session}
+            tenantSlug={tenant.slug}
+          />
+        </section>
+
         {/* Programs Section */}
         {programData.categories.length > 0 && (
-          <ProgramCategorySection
-            event={event}
-            tenant={tenant}
-            categories={programData.categories}
-          />
+          <section id="programs">
+            <ProgramCategorySection
+              event={event}
+              tenant={tenant}
+              categories={programData.categories}
+            />
+          </section>
         )}
 
         {/* Public Participants */}

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicEventBySlug } from '@/lib/events/service';
 import { getPublicProgramBySlug } from '@/lib/events/programs-service';
+import { getCurrentEventSession } from '@/lib/events/event-session';
 import { ProgramRegistrationForm } from '@/components/events/programs/ProgramRegistrationForm';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { ArrowLeft, Trophy, Users, User, IndianRupee, Clock, Ticket } from 'lucide-react';
@@ -26,6 +27,8 @@ export default async function PublicProgramPage({ params }: Props) {
 
   const program = await getPublicProgramBySlug(event.id, tenant.collegeId, programSlug);
   if (!program) notFound();
+
+  const session = await getCurrentEventSession(event.id);
 
   const now = new Date();
   const regOpen = program.registration_open_at ? new Date(program.registration_open_at) : null;
@@ -129,7 +132,7 @@ export default async function PublicProgramPage({ params }: Props) {
 
         {/* Registration Form or Status */}
         {canRegister ? (
-          <ProgramRegistrationForm event={event} program={program} tenant={tenant} />
+          <ProgramRegistrationForm event={event} program={program} tenant={tenant} initialSession={session} />
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center space-y-2">
             <p className="text-sm font-bold text-slate-700">

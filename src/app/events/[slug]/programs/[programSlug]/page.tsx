@@ -2,19 +2,16 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getPublicEventBySlugGlobal } from '@/lib/events/service';
 import { getPublicProgramBySlug } from '@/lib/events/programs-service';
+import { getCurrentEventSession } from '@/lib/events/event-session';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
+import { ProgramRegistrationClient } from '@/components/events/programs/ProgramRegistrationClient';
 import {
   ArrowLeft,
-  Trophy,
   Users,
   User,
-  IndianRupee,
   Clock,
-  Ticket,
   CheckCircle,
   QrCode,
-  ArrowRight,
-  ShieldAlert,
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +30,8 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
 
   const program = await getPublicProgramBySlug(event.id, event.college_id, programSlug);
   if (!program) notFound();
+
+  const session = await getCurrentEventSession(event.id);
 
   const now = new Date();
   const regOpen = program.registration_open_at ? new Date(program.registration_open_at) : null;
@@ -166,25 +165,35 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
             </div>
           )}
 
-          {/* CTA Box */}
-          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-xs text-slate-500 flex items-center gap-1.5">
-              <ShieldAlert className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Event registration is mandatory before joining this program.</span>
-            </div>
+        </div>
 
-            {canRegister && (
-              <Link
-                href={`/events/${event.slug}/programs/${program.slug}/register`}
-                className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-              >
-                <Ticket className="w-4 h-4" />
-                <span>Register for {program.name}</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+        {/* Program Registration Entry Section */}
+        {canRegister ? (
+          <section id="register" className="pt-2">
+            <ProgramRegistrationClient
+              event={event}
+              program={program}
+              initialSession={session}
+            />
+          </section>
+        ) : (
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 text-center space-y-2">
+            <p className="text-sm font-bold text-slate-700">
+              {isBeforeOpen
+                ? 'Registration has not opened yet.'
+                : isPastDeadline
+                ? 'Registration deadline has passed.'
+                : !program.is_active
+                ? 'This program is currently inactive.'
+                : 'Registration is not available.'}
+            </p>
+            {regOpen && isBeforeOpen && (
+              <p className="text-xs text-slate-500">
+                Opens: {new Date(regOpen).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
             )}
           </div>
-        </div>
+        )}
       </main>
 
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">

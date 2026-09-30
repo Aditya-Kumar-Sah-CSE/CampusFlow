@@ -689,25 +689,168 @@ export async function findRegistrationByStudentId(
 }
 
 /**
- * Check if student or email is already registered for a specific program.
+ * Find existing event registration by credentials (server-side verification).
+ * Verifies eventId, registrationNumber, and registered email against Google Sheet.
+ */
+export async function findEventRegistrationByCredentials(
+  collegeId: string,
+  eventId: string,
+  email?: string,
+  registrationNumber?: string,
+  providedSpreadsheetId?: string
+): Promise<MasterRegistrationRow | null> {
+  await assertCollegeGoogleConnected(collegeId);
+
+  let spreadsheetId = providedSpreadsheetId;
+  if (!spreadsheetId) {
+    const supabase = createAdminClient();
+    if (supabase) {
+      const { data: event } = await supabase
+        .from('events')
+        .select('registration_sheet_id')
+        .eq('id', eventId)
+        .eq('college_id', collegeId)
+        .maybeSingle();
+      spreadsheetId = event?.registration_sheet_id || undefined;
+    }
+  }
+
+  if (!spreadsheetId) return null;
+
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const cleanRegNum = registrationNumber?.trim().toUpperCase() || '';
+  const cleanEmail = email?.trim().toLowerCase() || '';
+
+  if (!cleanRegNum && !cleanEmail) return null;
+
+  // Find rows matching registrationNumber and/or email, eventId, and not cancelled
+  const matching = all.filter(r => {
+    const eventMatches = !r.eventId || r.eventId === eventId;
+    const notCancelled = r.registrationStatus !== 'CANCELLED';
+    if (!eventMatches || !notCancelled) return false;
+
+    // Both provided -> both must match (Strict credential verification & Case 8 enforcement)
+    if (cleanRegNum && cleanEmail) {
+      const regMatches = r.registrationNumber.trim().toUpperCase() === cleanRegNum || r.studentId.trim().toUpperCase() === cleanRegNum;
+      const emailMatches = r.email.trim().toLowerCase() === cleanEmail;
+      return regMatches && emailMatches;
+    }
+
+    // Only reg number / student id provided
+    if (cleanRegNum) {
+      return r.registrationNumber.trim().toUpperCase() === cleanRegNum || r.studentId.trim().toUpperCase() === cleanRegNum;
+    }
+
+    // Only email provided
+    if (cleanEmail) {
+      return r.email.trim().toLowerCase() === cleanEmail;
+    }
+
+    return false;
+  });
+
+  if (matching.length === 0) return null;
+
+  // Prefer the primary event registration row (programId is empty)
+  const primary = matching.find(r => r.programId === '');
+  return primary || matching[0];
+}
+
+/**
+ * Lookup an existing event registration by registration number for team member linking.
+ * Returns the verified event registration row if found for this event.
+ */
+export async function lookupEventRegistrationByNumber(
+  collegeId: string,
+  spreadsheetId: string,
+  eventId: string,
+  registrationNumber: string
+): Promise<MasterRegistrationRow | null> {
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const cleanTarget = registrationNumber.trim().toUpperCase();
+
+  const matching = all.filter(
+    r =>
+      r.registrationNumber.trim().toUpperCase() === cleanTarget &&
+      (!r.eventId || r.eventId === eventId) &&
+      r.registrationStatus !== 'CANCELLED'
+  );
+
+  if (matching.length === 0) return null;
+  const primary = matching.find(r => r.programId === '');
+  return primary || matching[0];
+}
+
+/**
+ * Find existing registration for a specific program to prevent duplicates and load details.
+ */
+export async function findExistingProgramRegistration(
+  collegeId: string,
+  spreadsheetId: string,
+  eventId: string,
+  programId: string,
+  params: {
+    eventRegNumber?: string;
+    studentId?: string;
+    email?: string;
+  }
+): Promise<MasterRegistrationRow | null> {
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const cleanEventRegNum = params.eventRegNumber?.trim().toUpperCase() || '';
+  const cleanStudentId = params.studentId?.trim().toUpperCase() || '';
+  const cleanEmail = params.email?.trim().toLowerCase() || '';
+
+  return (
+    all.find(r => {
+      if (r.programId !== programId) return false;
+      if (r.eventId && r.eventId !== eventId) return false;
+      if (r.registrationStatus === 'CANCELLED') return false;
+
+      // Check by event registration number (leader or direct)
+      if (
+        cleanEventRegNum &&
+        (r.teamLeaderRegistrationNumber.toUpperCase() === cleanEventRegNum ||
+          r.registrationNumber.toUpperCase() === cleanEventRegNum ||
+          r.studentId.toUpperCase() === cleanEventRegNum)
+      ) {
+        return true;
+      }
+
+      // Check by student ID / roll number
+      if (cleanStudentId && r.studentId.toUpperCase() === cleanStudentId) {
+        return true;
+      }
+
+      // Check by registered email
+      if (cleanEmail && r.email.toLowerCase() === cleanEmail) {
+        return true;
+      }
+
+      return false;
+    }) || null
+  );
+}
+
+/**
+ * Check if student or email or registration number is already registered for a specific program.
  */
 export async function checkDuplicateProgramRegistration(
   collegeId: string,
   spreadsheetId: string,
   programId: string,
   studentId: string,
-  email: string
+  email: string,
+  eventRegNumber?: string,
+  eventId?: string
 ): Promise<boolean> {
-  const all = await getEventRegistrations(collegeId, spreadsheetId);
-  const cleanStudentId = studentId.trim().toUpperCase();
-  const cleanEmail = email.trim().toLowerCase();
-
-  return all.some(
-    r =>
-      r.programId === programId &&
-      (r.studentId.toUpperCase() === cleanStudentId || r.email.toLowerCase() === cleanEmail) &&
-      r.registrationStatus !== 'CANCELLED'
+  const existing = await findExistingProgramRegistration(
+    collegeId,
+    spreadsheetId,
+    eventId || '',
+    programId,
+    { eventRegNumber, studentId, email }
   );
+  return existing !== null;
 }
 
 // ============================================================
@@ -940,6 +1083,7 @@ export async function addTeamMember(
       semester?: string;
       gender?: string;
       role: 'TEAM LEADER' | 'TEAM MEMBER';
+      eventRegNumber?: string;
     };
     paymentRequired: boolean;
     paymentAmount: number;
@@ -954,20 +1098,50 @@ export async function addTeamMember(
   const cleanStudentId = memberData.member.studentId.trim().toUpperCase();
   const cleanEmail = memberData.member.email.trim().toLowerCase();
   const cleanName = memberData.member.fullName.trim();
+  const providedRegNum = memberData.member.eventRegNumber?.trim().toUpperCase();
 
   // 1. Check if member is already registered for this event
   const existingRows = await getEventRegistrations(collegeId, spreadsheetId);
   let eventRegNumber = '';
 
-  const existingEventReg = existingRows.find(
-    r =>
-      r.programId === '' &&
-      (r.studentId.toUpperCase() === cleanStudentId || r.email.toLowerCase() === cleanEmail) &&
-      r.registrationStatus !== 'CANCELLED'
-  );
+  let existingEventReg: MasterRegistrationRow | undefined;
+  if (providedRegNum) {
+    existingEventReg = existingRows.find(
+      r =>
+        r.registrationNumber.toUpperCase() === providedRegNum &&
+        (!r.eventId || r.eventId === memberData.eventId) &&
+        r.registrationStatus !== 'CANCELLED'
+    );
+  }
+
+  if (!existingEventReg) {
+    existingEventReg = existingRows.find(
+      r =>
+        r.programId === '' &&
+        ((cleanStudentId && r.studentId.toUpperCase() === cleanStudentId) ||
+          (cleanEmail && r.email.toLowerCase() === cleanEmail)) &&
+        r.registrationStatus !== 'CANCELLED'
+    );
+  }
+
+  let finalName = cleanName;
+  let finalStudentId = cleanStudentId;
+  let finalEmail = cleanEmail;
+  let finalMobile = memberData.member.mobile.trim();
+  let finalBranch = memberData.member.branch?.trim() || '';
+  let finalSemester = memberData.member.semester?.trim() || '';
+  let finalGender = memberData.member.gender?.trim() || '';
 
   if (existingEventReg) {
     eventRegNumber = existingEventReg.registrationNumber;
+    // Prefer verified data from existing registration if available
+    finalName = existingEventReg.participantName || finalName;
+    finalStudentId = existingEventReg.studentId || finalStudentId;
+    finalEmail = existingEventReg.email || finalEmail;
+    finalMobile = existingEventReg.mobile || finalMobile;
+    finalBranch = existingEventReg.branch || finalBranch;
+    finalSemester = existingEventReg.semester || finalSemester;
+    finalGender = existingEventReg.gender || finalGender;
   } else {
     // Member does not have event registration -> AUTO REGISTER for event
     const existingNumbers = new Set(existingRows.map(r => r.registrationNumber.toUpperCase()));
@@ -982,13 +1156,13 @@ export async function addTeamMember(
       '',
       '',
       'PARTICIPANT',
-      cleanName,
-      cleanStudentId,
-      cleanEmail,
-      memberData.member.mobile.trim(),
-      memberData.member.branch?.trim() || '',
-      memberData.member.semester?.trim() || '',
-      memberData.member.gender?.trim() || '',
+      finalName,
+      finalStudentId,
+      finalEmail,
+      finalMobile,
+      finalBranch,
+      finalSemester,
+      finalGender,
       'NO',
       '0',
       'NOT_REQUIRED',
@@ -1031,13 +1205,13 @@ export async function addTeamMember(
     memberData.teamId,
     memberData.teamName.trim(),
     memberData.member.role,
-    cleanName,
-    cleanStudentId,
-    cleanEmail,
-    memberData.member.mobile.trim(),
-    memberData.member.branch?.trim() || '',
-    memberData.member.semester?.trim() || '',
-    memberData.member.gender?.trim() || '',
+    finalName,
+    finalStudentId,
+    finalEmail,
+    finalMobile,
+    finalBranch,
+    finalSemester,
+    finalGender,
     memberData.paymentRequired ? 'YES' : 'NO',
     String(memberData.paymentAmount || 0),
     paymentStatus,
@@ -1054,12 +1228,12 @@ export async function addTeamMember(
     memberData.teamName.trim(),
     'TEAM',
     memberData.member.role,
-    cleanName,
-    cleanStudentId,
-    cleanEmail,
-    memberData.member.mobile.trim(),
-    memberData.member.branch?.trim() || '',
-    memberData.member.semester?.trim() || '',
+    finalName,
+    finalStudentId,
+    finalEmail,
+    finalMobile,
+    finalBranch,
+    finalSemester,
     String(memberData.paymentAmount || 0),
     paymentStatus,
     registeredAt,

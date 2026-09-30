@@ -36,6 +36,10 @@ export interface EventSessionPayload {
   studentId: string;
   eventId: string;
   collegeId: string;
+  mobile?: string;
+  branch?: string;
+  semester?: string;
+  gender?: string;
   issuedAt: number;
   expiresAt: number;
 }
@@ -54,7 +58,7 @@ export interface EventSessionResult {
  * Creates a secure, tamper-proof session token.
  * Uses HMAC-SHA256 for integrity, base64url encoding.
  */
-function createSessionToken(payload: EventSessionPayload): string {
+export function createSessionToken(payload: EventSessionPayload): string {
   const serialized = JSON.stringify(payload);
   const signature = crypto
     .createHmac('sha256', SESSION_SECRET)
@@ -70,7 +74,7 @@ function createSessionToken(payload: EventSessionPayload): string {
  * Verifies and decodes a session token.
  * Returns null if tampered, expired, or malformed.
  */
-function verifySessionToken(token: string): EventSessionPayload | null {
+export function verifySessionToken(token: string): EventSessionPayload | null {
   if (!token || typeof token !== 'string') return null;
 
   try {
@@ -130,6 +134,10 @@ export async function createEventSession(params: {
   studentId: string;
   eventId: string;
   collegeId: string;
+  mobile?: string;
+  branch?: string;
+  semester?: string;
+  gender?: string;
 }): Promise<string> {
   const now = Date.now();
   const payload: EventSessionPayload = {
@@ -139,6 +147,10 @@ export async function createEventSession(params: {
     studentId: params.studentId,
     eventId: params.eventId,
     collegeId: params.collegeId,
+    mobile: params.mobile,
+    branch: params.branch,
+    semester: params.semester,
+    gender: params.gender,
     issuedAt: now,
     expiresAt: now + SESSION_MAX_AGE_SECONDS * 1000,
   };

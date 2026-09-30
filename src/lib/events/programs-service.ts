@@ -62,9 +62,7 @@ export async function getAdminEventPrograms(
 
   // Count members per program by gathering registration IDs
   const regToProgram: Record<string, string> = {};
-  for (const r of regCounts || []) {
-    // We need registration IDs mapped to program IDs
-  }
+
   // Re-fetch registrations with IDs for member mapping
   const { data: regsWithIds } = await db
     .from('program_registrations')
@@ -120,7 +118,7 @@ export async function getPublicEventPrograms(
 
   // Enrich programs with registration counts for display
   const programIds = (programs || []).map((p: EventProgram) => p.id);
-  let regCounts: Record<string, { total: number; teams: number; individual: number; members: number }> = {};
+  const regCounts: Record<string, { total: number; teams: number; individual: number; members: number }> = {};
 
   if (programIds.length > 0) {
     const { data: regs } = await db

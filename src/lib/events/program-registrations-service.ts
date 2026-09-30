@@ -18,7 +18,7 @@ async function getDb() {
 // REGISTRATION NUMBER GENERATION
 // ============================================================
 
-function generateRegistrationNumber(
+export function generateRegistrationNumber(
   eventSlug: string,
   programSlug: string,
   sequence: number
@@ -270,7 +270,7 @@ export async function getAdminEventProgramRegistrations(
     .filter((r: ProgramRegistration) => r.registration_type === 'TEAM')
     .map((r: ProgramRegistration) => r.id);
 
-  let memberMap: Record<string, ProgramRegistrationMember[]> = {};
+  const memberMap: Record<string, ProgramRegistrationMember[]> = {};
   if (teamRegIds.length > 0) {
     const { data: members } = await db
       .from('program_registration_members')
@@ -405,7 +405,13 @@ export async function registerForProgram(
     );
 
     // Verify student is event-registered first (Mandatory requirement Section 7, 9)
-    let eventReg = await findRegistrationByStudentId(input.college_id, spreadsheetId, cleanStudentId);
+    let eventReg = (input as any).event_registration_number || (input as any).registration_number
+      ? await findRegistrationByNumber(input.college_id, spreadsheetId, (input as any).event_registration_number || (input as any).registration_number)
+      : null;
+
+    if (!eventReg && cleanStudentId) {
+      eventReg = await findRegistrationByStudentId(input.college_id, spreadsheetId, cleanStudentId);
+    }
     if (!eventReg && cleanEmail) {
       const allMaster = await (await import('@/lib/google/event-registration-sheets')).getEventRegistrations(input.college_id, spreadsheetId);
       eventReg = allMaster.find(r => r.programId === '' && r.email.toLowerCase() === cleanEmail) || null;
@@ -418,6 +424,15 @@ export async function registerForProgram(
       };
     }
 
+    // Reuse verified details from existing event registration
+    const verifiedName = eventReg.participantName || cleanName;
+    const verifiedStudentId = eventReg.studentId || cleanStudentId;
+    const verifiedEmail = eventReg.email || cleanEmail;
+    const verifiedMobile = eventReg.mobile || cleanMobile;
+    const verifiedBranch = eventReg.branch || input.branch?.trim() || '';
+    const verifiedSemester = eventReg.semester || input.semester?.trim() || '';
+    const verifiedGender = eventReg.gender || input.gender?.trim() || '';
+
     const paymentRequired = event.payment_required && program.registration_fee > 0;
     const paymentStatus: ProgramPaymentStatus = paymentRequired
       ? (input.payment_reference ? 'SUBMITTED' : 'PENDING')
@@ -428,8 +443,10 @@ export async function registerForProgram(
         input.college_id,
         spreadsheetId,
         program.id,
-        cleanStudentId,
-        cleanEmail
+        verifiedStudentId,
+        verifiedEmail,
+        eventReg.registrationNumber,
+        event.id
       );
       if (isDuplicate) {
         return { success: false, error: 'You are already registered for this program.' };
@@ -446,13 +463,13 @@ export async function registerForProgram(
           programName: program.name,
           participationType: 'INDIVIDUAL',
           participantRole: 'INDIVIDUAL',
-          fullName: cleanName,
-          studentId: cleanStudentId,
-          email: cleanEmail,
-          mobile: cleanMobile,
-          branch: input.branch?.trim() || '',
-          semester: input.semester?.trim() || '',
-          gender: input.gender?.trim() || '',
+          fullName: verifiedName,
+          studentId: verifiedStudentId,
+          email: verifiedEmail,
+          mobile: verifiedMobile,
+          branch: verifiedBranch,
+          semester: verifiedSemester,
+          gender: verifiedGender,
           paymentRequired,
           paymentAmount: program.registration_fee || 0,
           paymentStatus,
@@ -480,14 +497,15 @@ export async function registerForProgram(
         teamId,
         teamName: input.team_name?.trim() || 'Team',
         member: {
-          fullName: cleanName,
-          studentId: cleanStudentId,
-          email: cleanEmail,
-          mobile: cleanMobile,
-          branch: input.branch?.trim() || '',
-          semester: input.semester?.trim() || '',
-          gender: input.gender?.trim() || '',
+          fullName: verifiedName,
+          studentId: verifiedStudentId,
+          email: verifiedEmail,
+          mobile: verifiedMobile,
+          branch: verifiedBranch,
+          semester: verifiedSemester,
+          gender: verifiedGender,
           role: 'TEAM LEADER',
+          eventRegNumber: eventReg.registrationNumber,
         },
         paymentRequired,
         paymentAmount: program.registration_fee || 0,
@@ -681,7 +699,7 @@ export async function getPublicProgramParticipants(
 
   // Fetch team members
   const teamRegIds = regs.filter((r) => r.registration_type === 'TEAM').map((r) => r.id);
-  let memberMap: Record<string, { member_name: string; is_leader: boolean }[]> = {};
+  const memberMap: Record<string, { member_name: string; is_leader: boolean }[]> = {};
 
   if (teamRegIds.length > 0) {
     const { data: members } = await db

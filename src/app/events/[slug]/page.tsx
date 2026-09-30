@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { getPublicEventBySlugGlobal } from '@/lib/events/service';
 import { getPublicEventPrograms } from '@/lib/events/programs-service';
 import { getPublicEventParticipants } from '@/lib/events/program-registrations-service';
+import { getCurrentEventSession } from '@/lib/events/event-session';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
+import { EventStudentIdentityCard } from '@/components/events/EventStudentIdentityCard';
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
 import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
 import { Calendar, MapPin, Clock, ArrowLeft, Ticket, ShieldCheck, UserCheck } from 'lucide-react';
@@ -26,10 +28,11 @@ export default async function PublicEventPage({ params }: Props) {
   }
 
   const collegeId = event.college_id;
-  const [programData, publicParticipants, tenant] = await Promise.all([
+  const [programData, publicParticipants, tenant, session] = await Promise.all([
     getPublicEventPrograms(event.id, collegeId),
     getPublicEventParticipants(event.id, collegeId),
     resolveTenantOrNotFound(event.college?.slug || 'bce-bgp'),
+    getCurrentEventSession(event.id),
   ]);
 
   const startDateFormatted = new Date(event.start_at).toLocaleDateString('en-IN', {
@@ -171,21 +174,39 @@ export default async function PublicEventPage({ params }: Props) {
 
             {isOpen && (
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                <Link
-                  href={`/events/${event.slug}/register`}
-                  className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <Ticket className="w-4 h-4" />
-                  <span>Register for Event</span>
-                </Link>
+                {session ? (
+                  <a
+                    href="#programs"
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Registered ({session.registrationNumber}) &bull; Choose Program</span>
+                  </a>
+                ) : (
+                  <Link
+                    href={`/events/${event.slug}/register`}
+                    className="w-full sm:w-auto px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <Ticket className="w-4 h-4" />
+                    <span>Register for Event</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>
         </div>
 
+        {/* Student Event Identity / Verification Section (Step 1 in architecture) */}
+        <section id="identity">
+          <EventStudentIdentityCard
+            event={event}
+            initialSession={session}
+          />
+        </section>
+
         {/* Programs / Competitions Section */}
         {programData.categories.length > 0 && (
-          <div className="space-y-4">
+          <section id="programs" className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Programs &amp; Competitions</h2>
@@ -200,7 +221,7 @@ export default async function PublicEventPage({ params }: Props) {
               tenant={tenant}
               categories={programData.categories}
             />
-          </div>
+          </section>
         )}
 
         {/* Public Registered Participants List */}

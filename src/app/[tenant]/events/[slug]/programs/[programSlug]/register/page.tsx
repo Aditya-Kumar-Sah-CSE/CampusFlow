@@ -53,6 +53,7 @@ export default async function TenantProgramRegisterPage({ params }: Props) {
           event={event}
           program={program}
           initialSession={session}
+          tenantSlug={tenant.slug}
         />
       </main>
 
