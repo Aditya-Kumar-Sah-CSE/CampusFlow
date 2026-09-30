@@ -827,7 +827,7 @@ export function AdminDashboardTabs({
                 </div>
                 <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
                   <p className="text-[10px] text-slate-400 font-bold uppercase">Platform Version</p>
-                  <p className="font-bold text-slate-800 mt-1">FMS Core v2.4</p>
+                  <p className="font-bold text-slate-800 mt-1">CampusFlow</p>
                   <p className="text-[10px] text-slate-500 mt-0.5">Next.js 15 + Supabase</p>
                 </div>
               </div>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import type { TenantContext } from '@/types/tenant';
 import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
+import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
 export interface PublicTenantNavbarProps {
   tenant: TenantContext;
@@ -66,6 +67,7 @@ export function PublicTenantNavbar({
 
   const isFeedbackActive = currentPage === 'feedback' || currentPage === 'feedback-detail';
   const isEventsActive = currentPage === 'events' || currentPage === 'event-detail';
+  const brand = getCampusFlowBrand(tenant);
 
   return (
     <>
@@ -76,7 +78,7 @@ export function PublicTenantNavbar({
           <Link
             href={`/${tenant.slug}`}
             className="flex items-center gap-2 sm:gap-3 min-w-0 group focus:outline-hidden focus:ring-2 focus:ring-blue-500 rounded-xl"
-            title={`${tenant.name} (${tenant.shortName}) Home`}
+            title={`${brand.displayName} · ${tenant.name} Home`}
           >
             <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white flex items-center justify-center font-bold text-base sm:text-xl shadow-xs border border-slate-200/90 shrink-0 overflow-hidden p-1 group-hover:border-slate-300 transition-colors">
               {tenant.logo ? (
@@ -98,11 +100,10 @@ export function PublicTenantNavbar({
 
             <div className="min-w-0 flex flex-col justify-center">
               <h1 className="text-xs sm:text-base font-bold tracking-tight text-slate-900 truncate max-w-[170px] xs:max-w-[210px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-none group-hover:text-blue-700 transition-colors">
-                {tenant.name}
+                {brand.displayName}
               </h1>
               <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate max-w-[170px] xs:max-w-[210px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-none">
-                <span className="hidden sm:inline">Faculty Feedback &amp; Evaluation Portal </span>
-                <span>({tenant.shortName})</span>
+                <span className="hidden sm:inline">{tenant.name}</span>
               </p>
             </div>
           </Link>
@@ -202,8 +203,8 @@ export function PublicTenantNavbar({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-xs text-slate-900 truncate">{tenant.name}</p>
-                  <p className="text-[10px] text-slate-500 font-mono truncate">{tenant.code} Portal</p>
+                  <p className="font-bold text-xs text-slate-900 truncate">{brand.displayName}</p>
+                  <p className="text-[10px] text-slate-500 truncate">{tenant.name}</p>
                 </div>
               </div>
 
@@ -336,7 +337,7 @@ export function PublicTenantNavbar({
 
             {/* Drawer Footer */}
             <div className="p-4 border-t border-slate-100 bg-slate-50/60 text-[10px] text-slate-400 text-center space-y-1">
-              <p className="font-semibold text-slate-600">Feedback Management System</p>
+              <p className="font-semibold text-slate-600">{brand.displayName}</p>
               <p>Secure Institutional Evaluation Platform</p>
             </div>
           </aside>

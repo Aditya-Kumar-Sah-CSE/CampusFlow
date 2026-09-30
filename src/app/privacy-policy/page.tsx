@@ -7,8 +7,8 @@ export const dynamic = 'force-static';
 export const revalidate = 86400; // 24 hours
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Feedback Management System',
-  description: 'Privacy Policy for Feedback Management System detailing data collection, processing, multi-tenant isolation, and Google Workspace API usage.',
+  title: 'Privacy Policy | CampusFlow',
+  description: 'Privacy Policy for CampusFlow detailing data collection, processing, multi-tenant isolation, and Google Workspace API usage.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -43,13 +43,13 @@ export default function PrivacyPolicyPage() {
               1. Introduction
             </h2>
             <p>
-              This Privacy Policy explains how <strong>Feedback Management System</strong> (&quot;FMS&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) collects, processes, stores, and protects information when administrators, faculty members, institutional staff, and students access and use our multi-tenant institutional feedback platform available at{' '}
+              This Privacy Policy explains how <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) collects, processes, stores, and protects information when administrators, faculty members, institutional staff, and students access and use our multi-tenant institutional feedback platform available at{' '}
               <a href="https://feedback-management-system-kappa.vercel.app" className="text-blue-600 underline font-medium">
                 https://feedback-management-system-kappa.vercel.app
               </a>.
             </p>
             <p>
-              FMS is designed as an administrative and analytical platform for educational institutions to create, distribute, and analyze institutional feedback and academic surveys. We are committed to transparency and processing only the minimum data required to deliver these services.
+              CampusFlow is designed as an administrative and analytical platform for educational institutions to create, distribute, and analyze institutional feedback and academic surveys. We are committed to transparency and processing only the minimum data required to deliver these services.
             </p>
           </section>
 
@@ -164,7 +164,7 @@ export default function PrivacyPolicyPage() {
             </p>
 
             <div className="bg-slate-100 p-4 rounded-xl border border-slate-200 space-y-2 text-xs sm:text-sm">
-              <p className="font-bold text-slate-900">Exact Scopes Requested by FMS:</p>
+              <p className="font-bold text-slate-900">Exact Scopes Requested by CampusFlow:</p>
               <ul className="space-y-1.5 text-slate-700">
                 <li>
                   <code className="text-blue-700 font-mono text-xs">https://www.googleapis.com/auth/forms.body</code>:
@@ -172,7 +172,7 @@ export default function PrivacyPolicyPage() {
                 </li>
                 <li>
                   <code className="text-blue-700 font-mono text-xs">https://www.googleapis.com/auth/forms.responses.readonly</code>:
-                  <span className="block text-slate-600 ml-4">Used exclusively to read and synchronize feedback responses submitted through Google Forms back to the FMS analytical database.</span>
+                  <span className="block text-slate-600 ml-4">Used exclusively to read and synchronize feedback responses submitted through Google Forms back to the CampusFlow analytical database.</span>
                 </li>
                 <li>
                   <code className="text-blue-700 font-mono text-xs">https://www.googleapis.com/auth/spreadsheets</code>:
@@ -180,7 +180,7 @@ export default function PrivacyPolicyPage() {
                 </li>
                 <li>
                   <code className="text-blue-700 font-mono text-xs">https://www.googleapis.com/auth/drive.file</code>:
-                  <span className="block text-slate-600 ml-4">Used strictly to create and organize institution-specific folders and manage files specifically created by FMS in Google Drive. This does NOT give access to other unrelated files in your Drive.</span>
+                  <span className="block text-slate-600 ml-4">Used strictly to create and organize institution-specific folders and manage files specifically created by CampusFlow in Google Drive. This does NOT give access to other unrelated files in your Drive.</span>
                 </li>
                 <li>
                   <code className="text-blue-700 font-mono text-xs">https://www.googleapis.com/auth/userinfo.email</code> &amp; <code className="text-blue-700 font-mono text-xs">userinfo.profile</code>:
@@ -196,7 +196,7 @@ export default function PrivacyPolicyPage() {
                 <span>Google API Services User Data Policy Compliance (Limited Use)</span>
               </div>
               <p>
-                Feedback Management System&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{' '}
+                CampusFlow&apos;s use and transfer to any other app of information received from Google APIs will adhere to the{' '}
                 <a
                   href="https://developers.google.com/terms/api-services-user-data-policy"
                   target="_blank"
@@ -237,7 +237,7 @@ export default function PrivacyPolicyPage() {
               5. Multi-Tenant Data Isolation & Storage
             </h2>
             <p>
-              FMS operates as a multi-tenant platform. Data belonging to different institutions is strictly segregated at the database layer using PostgreSQL Row Level Security (RLS) policies scoped by <code>college_id</code>.
+              CampusFlow operates as a multi-tenant platform. Data belonging to different institutions is strictly segregated at the database layer using PostgreSQL Row Level Security (RLS) policies scoped by <code>college_id</code>.
             </p>
             <p>
               Administrators and users of Institution A cannot access, query, or view data belonging to Institution B. Google OAuth connections and credentials are saved per-institution (<code>college_google_connections</code>) and are never shared across tenants.
@@ -274,7 +274,7 @@ export default function PrivacyPolicyPage() {
               7. Cookies and Session Technologies
             </h2>
             <p>
-              FMS uses essential, strictly functional cookies to manage authenticated sessions and multi-tenant routing:
+              CampusFlow uses essential, strictly functional cookies to manage authenticated sessions and multi-tenant routing:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
               <li>
@@ -324,7 +324,7 @@ export default function PrivacyPolicyPage() {
               10. User & Administrator Rights
             </h2>
             <p>
-              Institutional administrators and respondents may request information about data held by their institution. Because FMS processes data under the direction of educational institutions, requests regarding academic records, survey questions, or faculty data should be directed to the respective institution&apos;s administrative office.
+              Institutional administrators and respondents may request information about data held by their institution. Because CampusFlow processes data under the direction of educational institutions, requests regarding academic records, survey questions, or faculty data should be directed to the respective institution&apos;s administrative office.
             </p>
           </section>
 
@@ -347,7 +347,7 @@ export default function PrivacyPolicyPage() {
               If you have any questions, concerns, or inquiries regarding this Privacy Policy or our data handling practices, you may contact the system administration team at:
             </p>
             <div className="p-4 bg-white rounded-xl border border-slate-200 text-xs sm:text-sm space-y-1">
-              <p className="font-semibold text-slate-900">Feedback Management System</p>
+              <p className="font-semibold text-slate-900">CampusFlow</p>
               <p className="text-slate-600">Institutional Administration Support</p>
               <p className="text-slate-600">
                 Email: <span className="font-mono text-slate-800">iambestadi@gmail.com</span>
@@ -367,7 +367,7 @@ export default function PrivacyPolicyPage() {
       <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-6 px-4 mt-auto">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
-            <p className="font-semibold text-slate-700">Feedback Management System</p>
+            <p className="font-semibold text-slate-700">CampusFlow</p>
             <p className="text-[11px] text-slate-500">Institutional Feedback Platform</p>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-500">
@@ -384,7 +384,7 @@ export default function PrivacyPolicyPage() {
             </Link>
           </div>
           <p className="text-[11px] text-slate-400">
-            &copy; {new Date().getFullYear()} Feedback Management System. All rights reserved.
+            &copy; {new Date().getFullYear()} CampusFlow. All rights reserved.
           </p>
         </div>
       </footer>

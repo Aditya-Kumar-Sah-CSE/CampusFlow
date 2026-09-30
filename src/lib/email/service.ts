@@ -105,8 +105,8 @@ ${downloadUrl}
 
 (Note: This link is unique and cryptographically signed for your response record.)
 
-${institutionName || 'Faculty Feedback Management System'}
-Academic Feedback Management System
+${institutionName || 'CampusFlow'}
+CampusFlow
 `.trim();
 
   // If Resend API Key is available, dispatch via Resend HTTPS API

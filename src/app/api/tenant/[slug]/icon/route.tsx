@@ -24,7 +24,7 @@ export async function GET(
 
     const tenant = slug ? await getTenantBySlug(slug) : null;
 
-    const collegeCode = tenant?.code || tenant?.shortName || (slug ? slug.toUpperCase().slice(0, 7) : 'FMS');
+    const collegeCode = tenant?.code || tenant?.shortName || 'CF';
     const primaryColor = tenant?.branding?.primaryColor || '#0B192C';
     const secondaryColor = tenant?.branding?.secondaryColor || '#1E3E62';
     const accentColor = tenant?.branding?.accentColor || '#F59E0B';
@@ -193,7 +193,7 @@ export async function GET(
                 justifyContent: 'center',
               }}
             >
-              FEEDBACK
+              CAMPUSFLOW
             </div>
           </div>
         </div>

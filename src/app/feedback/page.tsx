@@ -9,6 +9,7 @@ import type { AcademicYear, Branch, Semester } from '@/types/database';
 
 import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,24 +18,24 @@ export async function generateMetadata(): Promise<Metadata> {
   const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
   const supabase = await createClient();
 
-  let collegeName = 'Feedback Management System';
-  let collegeCode = 'FMS';
+  let collegeCode: string | null = null;
 
   if (activeTenantId) {
     const { data: college } = await supabase
       .from('colleges')
-      .select('name, code')
+      .select('code')
       .eq('id', activeTenantId)
       .maybeSingle();
     if (college) {
-      collegeName = college.name;
       collegeCode = college.code;
     }
   }
 
   return {
-    title: `${collegeCode !== 'FMS' ? `${collegeCode} Feedback` : 'Student Feedback'} | Student Evaluation Portal`,
-    description: `Official student feedback and evaluation portal for ${collegeName}.`,
+    title: getCampusFlowBrand({ code: collegeCode }).displayName,
+    description: getCampusFlowDescription({ code: collegeCode }),
+    openGraph: { title: getCampusFlowBrand({ code: collegeCode }).displayName },
+    twitter: { title: getCampusFlowBrand({ code: collegeCode }).displayName },
   };
 }
 
@@ -67,8 +68,9 @@ export default async function FeedbackPortalPage() {
 
   const activeCollege = activeColleges && activeColleges.length > 0 ? activeColleges[0] : null;
   const collegeLogo = activeCollege?.logo_url || null;
-  const collegeName = activeCollege?.name || 'Feedback Management System';
-  const collegeCode = activeCollege?.code || 'FMS';
+  const collegeName = activeCollege?.name || 'College';
+  const collegeCode = activeCollege?.code || null;
+  const brand = getCampusFlowBrand({ code: collegeCode });
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -80,7 +82,7 @@ export default async function FeedbackPortalPage() {
             <span className="truncate">Government of Bihar | Department of Science, Technology & Technical Education</span>
           </div>
           <Link href={activeCollege ? `/${activeCollege.slug}` : '/'} className="text-slate-300 hover:text-white flex items-center gap-1 text-[10px] sm:text-xs shrink-0">
-            <ArrowLeft className="w-3 h-3" /> {collegeCode !== 'FMS' ? `${collegeCode} Home` : 'Portal Home'}
+            <ArrowLeft className="w-3 h-3" /> {collegeCode ? `${collegeCode} Home` : 'Portal Home'}
           </Link>
         </div>
       </div>
@@ -105,7 +107,7 @@ export default async function FeedbackPortalPage() {
             </div>
             <div className="min-w-0">
               <h1 className="text-xs sm:text-base font-bold tracking-tight text-bce-navy truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
-                {collegeName}
+                {brand.displayName}
               </h1>
               <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
                 Student Feedback Portal
@@ -144,7 +146,7 @@ export default async function FeedbackPortalPage() {
       <footer className="bg-bce-navy text-slate-400 text-xs py-4 px-2.5 sm:px-4 sm:py-6 border-t border-bce-cobalt/30 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
           <div>
-            <span>{collegeName} {collegeCode !== 'FMS' ? `(${collegeCode})` : ''} • Official Student Evaluation Portal</span>
+            <span>{collegeName} · {brand.displayName} · Official Student Evaluation Portal</span>
             <div className="text-[11px] text-slate-400 mt-1">
               Designed & Developed by{' '}
               <a

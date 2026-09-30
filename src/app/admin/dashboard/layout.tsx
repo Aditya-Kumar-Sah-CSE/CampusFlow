@@ -6,14 +6,13 @@ import { AdminHeaderSignOut } from '@/components/admin/AdminHeaderSignOut';
 import { TenantSwitcher } from '@/components/admin/TenantSwitcher';
 import { AdminTitleSync } from '@/components/admin/AdminTitleSync';
 import { School, ShieldCheck, UserCheck, Globe } from 'lucide-react';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function generateViewport(): Promise<Viewport> {
-  const session = await getAdminSession();
-  const college = session.activeCollege;
-  const themeColor = college?.code === 'GEC-GAYA' ? '#1a5276' : '#0B192C';
+  const themeColor = '#0B192C';
 
   return {
     themeColor,
@@ -27,24 +26,23 @@ export async function generateViewport(): Promise<Viewport> {
 export async function generateMetadata(): Promise<Metadata> {
   const session = await getAdminSession();
   const college = session.activeCollege;
-  const collegeName = college ? college.name : 'Institutional';
-  const collegeCode = college ? college.code : 'FMS';
+  const brand = getCampusFlowBrand(college ? { code: college.code } : null);
   const slug = college?.slug;
 
-  const appTitle = college ? `${collegeCode} Feedback` : 'Feedback Management System';
+  const appTitle = brand.displayName;
 
   return {
     title: college
       ? {
-          default: `${collegeCode} Feedback | Admin Dashboard`,
-          template: `%s | ${collegeCode} Feedback Admin`,
+          default: `${brand.displayName} | Admin Dashboard`,
+          template: `%s | ${brand.displayName} Admin`,
         }
       : {
-          absolute: 'Feedback Management System',
+          absolute: brand.displayName,
         },
     description: college
-      ? `Administrative Console for ${collegeName} (${collegeCode}) Faculty Feedback & Evaluation Management System.`
-      : 'Multi-Tenant Institutional Faculty Feedback & Evaluation Management System.',
+      ? getCampusFlowDescription({ code: college?.code })
+      : getCampusFlowDescription(),
     manifest: slug ? `/manifest.webmanifest?college=${slug}` : '/manifest.webmanifest',
     appleWebApp: {
       capable: true,
@@ -136,7 +134,7 @@ export default async function AdminDashboardLayout({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="font-bold text-xs sm:text-base tracking-tight text-white truncate max-w-[100px] xs:max-w-[140px] sm:max-w-none">
-                  {activeCollege ? activeCollege.code : 'FMS'} Feedback
+                  {getCampusFlowBrand(activeCollege ? { code: activeCollege.code } : null).displayName}
                 </span>
                 <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
                   Admin
@@ -198,7 +196,7 @@ export default async function AdminDashboardLayout({
       <footer className="bg-white border-t border-slate-200 py-3 px-2.5 sm:px-4 sm:py-4 text-center text-xs text-slate-500 mt-auto w-full min-w-0">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>
-            Institutional Feedback Management System • Designed & Developed by{' '}
+            CampusFlow • Designed & Developed by{' '}
             <a
               href="https://portfolio-two-ashen-zseywond41.vercel.app/"
               target="_blank"

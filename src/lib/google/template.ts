@@ -191,7 +191,7 @@ export function generateFeedbackFormTitle(meta: FormMetadataInputs): string {
 }
 
 export function generateFeedbackFormDescription(meta: FormMetadataInputs & { institutionName?: string }): string {
-  const institution = meta.institutionName || 'Faculty Feedback Management System';
+  const institution = meta.institutionName || 'CampusFlow';
   return `Official Student Feedback Form for ${meta.facultyName} teaching ${meta.subjectName} (${meta.semesterName}, ${meta.branchName}, Session ${meta.academicYearName}).\n\n${institution}.\n\n${RESPONSE_COPY_INSTRUCTION}\n\nNOTE: Please provide your student details accurately. This feedback is collected to improve instructional delivery, lab engagement, and course learning outcomes.\n\nPlease rate objectively on all 8 parameters. Honest feedback is appreciated.`;
 }
 
@@ -210,7 +210,7 @@ export function generateSemesterFormDescription(meta: {
   facultyCount?: number;
   institutionName?: string;
 }): string {
-  const institution = meta.institutionName || 'Faculty Feedback Management System';
+  const institution = meta.institutionName || 'CampusFlow';
   return `Official Student Feedback Form for ${meta.semesterName} (${meta.branchName}${meta.academicYearName ? `, ${meta.academicYearName}` : ''}).\n\n${institution}.\n\n${RESPONSE_COPY_INSTRUCTION}\n\nNOTE: Please provide your student details accurately. This feedback form contains evaluations for all subjects and faculty members teaching this semester.\n\nPlease rate each teacher across all 8 parameters objectively. Constructive comments and suggestions are welcome.`;
 }
 

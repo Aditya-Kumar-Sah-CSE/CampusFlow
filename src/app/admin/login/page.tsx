@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Platform Admin Login | Feedback Management System',
+  title: 'CampusFlow | Platform Admin Login',
   description: 'Multi-tenant administrator sign-in portal for institutional feedback evaluations.',
 };
 
@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
             <Shield className="w-3 h-3" /> Platform Administration
           </span>
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
-            Feedback Management System
+            CampusFlow
           </h1>
           <p className="mt-1 text-xs text-slate-400 font-medium">
             Super Admin & Institutional Portal Sign In

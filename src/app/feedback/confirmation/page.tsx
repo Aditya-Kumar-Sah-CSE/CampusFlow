@@ -126,14 +126,14 @@ function ConfirmationContent() {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <span className="font-bold text-lg tracking-wide text-white">
-              Feedback Management System
+              CampusFlow
             </span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Submission Confirmation
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Faculty Feedback Management System • Government of Bihar
+            CampusFlow • Government of Bihar
           </p>
         </div>
 

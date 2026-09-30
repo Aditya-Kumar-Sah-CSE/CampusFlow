@@ -5,6 +5,7 @@ import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { TenantLoginForm } from '@/components/admin/TenantLoginForm';
 import { School, Loader2 } from 'lucide-react';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -20,8 +21,8 @@ export async function generateMetadata({ params }: TenantAdminLoginPageProps): P
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
   return {
-    title: `${tenant.name} (${tenant.shortName}) Admin Login | Feedback Management System`,
-    description: `Administrator sign-in portal for ${tenant.name} faculty feedback evaluations.`,
+    title: `${getCampusFlowBrand(tenant).displayName} | Admin Login`,
+    description: getCampusFlowDescription(tenant),
   };
 }
 
@@ -62,7 +63,7 @@ export default async function TenantAdminLoginPage({ params }: TenantAdminLoginP
             {tenant.name}
           </h1>
           <p className="mt-1 text-xs text-slate-400 font-medium">
-            {tenant.code} • Faculty Feedback Management System
+            {getCampusFlowBrand(tenant).displayName}
           </p>
         </div>
       </div>

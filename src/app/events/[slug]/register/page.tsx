@@ -25,7 +25,7 @@ export default async function EventRegisterPage({ params }: Props) {
   if (now > new Date(event.registration_end)) {
     return (
       <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-        <RootPublicNavbar eventId={event.id} />
+        <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code || event.college?.short_name} />
         <main className="flex-1 max-w-md mx-auto w-full px-4 py-16 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 mx-auto flex items-center justify-center font-bold">
             !
@@ -47,7 +47,7 @@ export default async function EventRegisterPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      <RootPublicNavbar eventId={event.id} />
+      <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code || event.college?.short_name} />
 
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 space-y-6">
         <div className="flex items-center justify-between">

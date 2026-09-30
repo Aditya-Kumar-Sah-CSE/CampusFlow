@@ -4,6 +4,7 @@ import { getPublicFeedbackFormByIdAction } from '@/app/feedback/actions';
 import { PublicFeedbackCard } from '@/components/public/PublicFeedbackCard';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { School, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
+import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export default async function TenantDirectFeedbackPage({
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="truncate">Feedback Management System • {tenant.name}</span>
+            <span className="truncate">{getCampusFlowBrand(tenant).displayName} · {tenant.name}</span>
           </div>
           <Link
             href={`/${tenant.slug}/feedback`}

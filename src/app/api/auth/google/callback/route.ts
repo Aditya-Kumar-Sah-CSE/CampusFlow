@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     if (error === 'access_denied') {
       errorTitle = 'Google Authorization Cancelled / Access Denied';
       errorDescription =
-        'Authorization was cancelled or denied on the Google consent screen. If Google displays "Google hasn\'t verified this app", click "Advanced" and proceed to allow Feedback Management System to connect your institutional account.';
+        'Authorization was cancelled or denied on the Google consent screen. If Google displays "Google hasn\'t verified this app", click "Advanced" and proceed to allow CampusFlow to connect your institutional account.';
     } else if (error === 'redirect_uri_mismatch') {
       errorTitle = 'OAuth Redirect URI Mismatch';
       errorDescription =

@@ -25,7 +25,6 @@ import {
   updateRegistration,
   updatePaymentStatus,
   getEventRegistrations,
-  resolveEventRegistrationSpreadsheet,
   updateTeamNameInSheets,
   updateTeamMemberDetailsInSheet,
   removeTeamMemberFromSheet,
@@ -42,68 +41,11 @@ import {
 } from '@/lib/events/academic-resolver';
 import type { SheetEventRegistrationInput, EventLoginInput } from '@/types/events';
 import { checkIsRegistrationOpen } from '@/lib/events/registration-status';
+import { getEventWithCollege } from '@/lib/events/event-context';
 
 // ============================================================
 // HELPERS
 // ============================================================
-
-async function getEventWithCollege(eventId: string) {
-  const supabase = createAdminClient();
-  if (!supabase) throw new Error('Database unavailable.');
-
-  // Attempt with registration_sheet_id column
-  const { data, error } = await supabase
-    .from('events')
-    .select('id, college_id, title, slug, status, registration_enabled, registration_start, registration_end, payment_required, payment_amount, registration_sheet_id')
-    .eq('id', eventId)
-    .maybeSingle();
-
-  if (error && error.code === '42703') {
-    // Column registration_sheet_id does not exist yet — retry without it
-    console.warn('[getEventWithCollege] Column registration_sheet_id not found, retrying without it.');
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('events')
-      .select('id, college_id, title, slug, status, registration_enabled, registration_start, registration_end, payment_required, payment_amount')
-      .eq('id', eventId)
-      .maybeSingle();
-
-    if (fallbackError || !fallbackData) throw new Error('Event not found.');
-
-    // Auto-discover spreadsheet from Google Drive
-    let resolvedSheetId: string | null = null;
-    try {
-      resolvedSheetId = await resolveEventRegistrationSpreadsheet(
-        fallbackData.college_id,
-        fallbackData.id,
-        fallbackData.title
-      );
-    } catch (driveErr) {
-      console.warn('[getEventWithCollege] Drive auto-discovery non-fatal error:', driveErr);
-    }
-
-    return { ...fallbackData, registration_sheet_id: resolvedSheetId };
-  }
-
-  if (error || !data) throw new Error('Event not found.');
-
-  // If registration_sheet_id is null, attempt auto-discovery
-  if (!data.registration_sheet_id) {
-    try {
-      const resolvedSheetId = await resolveEventRegistrationSpreadsheet(
-        data.college_id,
-        data.id,
-        data.title
-      );
-      if (resolvedSheetId) {
-        data.registration_sheet_id = resolvedSheetId;
-      }
-    } catch (driveErr) {
-      console.warn('[getEventWithCollege] Drive auto-discovery non-fatal error:', driveErr);
-    }
-  }
-
-  return data;
-}
 
 async function getProgramWithEvent(programId: string, collegeId: string) {
   const supabase = createAdminClient();
@@ -657,6 +599,7 @@ export async function checkProgramRegistrationAction(
     const session = sessionResult.session;
 
     const event = await getEventWithCollege(eventId);
+    if (event.college_id !== session.collegeId) return { isRegistered: false };
     if (!event.registration_sheet_id) {
       // No sheet means no program registrations possible yet
       return { isRegistered: false };
@@ -1363,8 +1306,9 @@ export async function getStudentRegistrationsAction(
     const session = sessionResult.session;
 
     const event = await getEventWithCollege(eventId);
+    if (event.college_id !== session.collegeId) return { success: false, error: 'UNAUTHORIZED' };
     if (!event.registration_sheet_id) {
-      return { success: true, programs: [] };
+      return { success: false, error: 'REGISTRATION_SHEET_NOT_FOUND' };
     }
 
     const allRows = await getEventRegistrations(
@@ -1398,7 +1342,8 @@ export async function getStudentRegistrationsAction(
       const { data: progs } = await supabase
         .from('event_programs')
         .select('id, name, slug, min_team_size, max_team_size, is_active, registration_open_at, registration_close_at')
-        .eq('event_id', event.id);
+        .eq('event_id', event.id)
+        .eq('college_id', session.collegeId);
       dbPrograms = progs || [];
     }
 
@@ -1415,14 +1360,16 @@ export async function getStudentRegistrationsAction(
 
     const enrichedPrograms: StudentProgramRegistrationItem[] = uniquePrograms.map(p => {
       const dbProg = dbPrograms.find(dp => dp.id === p.programId || dp.slug === p.programName);
-      const openCheck = checkIsRegistrationOpen(event, dbProg);
+      const openCheck = dbProg
+        ? checkIsRegistrationOpen(event, dbProg)
+        : { isOpen: false, reason: 'Program configuration is unavailable. Team management is locked.' };
 
       // If team program, get all members of this team
       let teamMembers: TeamMemberDetails[] = [];
       if (p.teamId) {
         teamMembers = allRows
           .filter(
-            r => r.teamId.toUpperCase() === p.teamId.toUpperCase() && r.registrationStatus !== 'CANCELLED'
+            r => r.eventId === event.id && r.programId === p.programId && r.teamId.toUpperCase() === p.teamId.toUpperCase() && r.registrationStatus !== 'CANCELLED'
           )
           .map(m => ({
             registrationNumber: m.registrationNumber,
@@ -1509,11 +1456,13 @@ export async function updateTeamNameAction(
     const session = sessionResult.session;
 
     const event = await getEventWithCollege(eventId);
+    if (event.college_id !== session.collegeId) return { success: false, error: 'UNAUTHORIZED' };
     if (!event.registration_sheet_id) {
       return { success: false, error: 'Event registration data is temporarily unavailable.' };
     }
 
     const program = await getProgramWithEvent(programId, session.collegeId);
+    if (program.event_id !== event.id) return { success: false, error: 'PROGRAM_NOT_FOUND' };
 
     // Check if registration is open
     const openCheck = checkIsRegistrationOpen(event, program);
@@ -1529,7 +1478,7 @@ export async function updateTeamNameAction(
     // Check caller is Team Leader
     const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
     const teamRows = allRows.filter(
-      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+      r => r.eventId === event.id && r.programId === program.id && r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
     );
     const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
     if (!leaderRow) {
@@ -1587,11 +1536,13 @@ export async function updateTeamMemberAction(
     const session = sessionResult.session;
 
     const event = await getEventWithCollege(eventId);
+    if (event.college_id !== session.collegeId) return { success: false, error: 'UNAUTHORIZED' };
     if (!event.registration_sheet_id) {
       return { success: false, error: 'Event registration data is temporarily unavailable.' };
     }
 
     const program = await getProgramWithEvent(programId, session.collegeId);
+    if (program.event_id !== event.id) return { success: false, error: 'PROGRAM_NOT_FOUND' };
 
     // Check if registration is open
     const openCheck = checkIsRegistrationOpen(event, program);
@@ -1613,7 +1564,7 @@ export async function updateTeamMemberAction(
     // Check caller is Team Leader
     const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
     const teamRows = allRows.filter(
-      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+      r => r.eventId === event.id && r.programId === program.id && r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
     );
     const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
     if (!leaderRow) {
@@ -1699,11 +1650,13 @@ export async function removeTeamMemberAction(
     const session = sessionResult.session;
 
     const event = await getEventWithCollege(eventId);
+    if (event.college_id !== session.collegeId) return { success: false, error: 'UNAUTHORIZED' };
     if (!event.registration_sheet_id) {
       return { success: false, error: 'Event registration data is temporarily unavailable.' };
     }
 
     const program = await getProgramWithEvent(programId, session.collegeId);
+    if (program.event_id !== event.id) return { success: false, error: 'PROGRAM_NOT_FOUND' };
 
     // Check if registration is open
     const openCheck = checkIsRegistrationOpen(event, program);
@@ -1714,7 +1667,7 @@ export async function removeTeamMemberAction(
     // Check caller is Team Leader
     const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
     const teamRows = allRows.filter(
-      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+      r => r.eventId === event.id && r.programId === program.id && r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
     );
     const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
     if (!leaderRow) {
@@ -1823,7 +1776,7 @@ export async function addMemberToExistingTeamAction(
     // Check caller is Team Leader
     const allRows = await getEventRegistrations(session.collegeId, event.registration_sheet_id);
     const teamRows = allRows.filter(
-      r => r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
+      r => r.eventId === event.id && r.programId === program.id && r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED'
     );
     const leaderRow = teamRows.find(r => r.participantRole === 'TEAM LEADER');
     if (!leaderRow) {

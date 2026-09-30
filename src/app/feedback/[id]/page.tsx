@@ -2,9 +2,23 @@ import Link from 'next/link';
 import { getPublicFeedbackFormByIdAction } from '@/app/feedback/actions';
 import { PublicFeedbackCard } from '@/components/public/PublicFeedbackCard';
 import { School, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
+import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
+import type { Metadata } from 'next';
 
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const result = await getPublicFeedbackFormByIdAction(id);
+  const brand = getCampusFlowBrand({ code: result.form?.college?.code });
+  return {
+    title: brand.displayName,
+    description: `${brand.displayName} is a unified college platform for feedback, events, student registration, participation and campus activities.`,
+    openGraph: { title: brand.displayName },
+    twitter: { title: brand.displayName },
+  };
+}
 
 export default async function DirectFeedbackPage({
   params,
@@ -14,8 +28,8 @@ export default async function DirectFeedbackPage({
   const { id } = await params;
   const result = await getPublicFeedbackFormByIdAction(id);
   const collegeLogo = result.form?.college?.logo_url || null;
-  const collegeName = result.form?.college?.name || 'Feedback Management System';
-  const collegeCode = result.form?.college?.code || 'FMS';
+  const collegeName = result.form?.college?.name || 'College';
+  const brand = getCampusFlowBrand({ code: result.form?.college?.code });
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -52,7 +66,7 @@ export default async function DirectFeedbackPage({
             </div>
             <div className="min-w-0">
               <h1 className="text-xs sm:text-base font-bold tracking-tight text-bce-navy truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
-                {collegeName}
+                {brand.displayName}
               </h1>
               <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
                 Official Student Feedback Portal
@@ -147,7 +161,7 @@ export default async function DirectFeedbackPage({
       <footer className="bg-bce-navy text-slate-400 text-xs py-6 px-4 border-t border-bce-cobalt/30 mt-auto">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
           <div>
-            <span>{collegeName} {collegeCode !== 'FMS' ? `(${collegeCode})` : ''} • Official Student Feedback Portal</span>
+            <span>{collegeName} · {brand.displayName} · Official Student Feedback Portal</span>
             <div className="text-[11px] text-slate-400 mt-1">
               Designed & Developed by{' '}
               <a

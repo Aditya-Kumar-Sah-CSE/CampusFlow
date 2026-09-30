@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { TenantProvider } from '@/components/tenant/TenantProvider';
 import { CollegePwaInstallPrompt } from '@/components/pwa/CollegePwaInstallPrompt';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -46,23 +47,25 @@ export async function generateMetadata({
   try {
     const tenant = await resolveTenantOrNotFound(rawSlug);
 
-    const title = `${tenant.name} | Faculty Feedback Portal`;
-    const description = `Official Faculty Evaluation & Feedback Management System for ${tenant.name} (${tenant.shortName || tenant.code}). Submit anonymous institutional feedback.`;
-    const collegeCode = tenant.shortName || tenant.code || 'College';
+    const brand = getCampusFlowBrand(tenant);
+    const title = brand.displayName;
+    const description = getCampusFlowDescription(tenant);
 
     return {
       title: {
         default: title,
-        template: `%s | ${collegeCode}`,
+        template: `%s | ${brand.displayName}`,
       },
       description,
+      openGraph: { title, description },
+      twitter: { title, description },
       manifest: `/api/manifest/${tenant.slug}`,
       appleWebApp: {
         capable: true,
         statusBarStyle: 'black-translucent',
-        title: `${collegeCode} Feedback`,
+        title: brand.shortName,
       },
-      applicationName: `${collegeCode} Feedback`,
+      applicationName: brand.displayName,
       icons: {
         icon: [
           ...(tenant.logo ? [{ url: tenant.logo, sizes: 'any' }] : []),
@@ -77,7 +80,7 @@ export async function generateMetadata({
     };
   } catch {
     return {
-      title: 'College Feedback Portal',
+      title: 'CampusFlow',
     };
   }
 }

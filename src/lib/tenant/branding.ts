@@ -27,8 +27,8 @@ export interface CollegeBranding {
  * Safe generic fallback — never references any specific institution.
  */
 export const DEFAULT_BRANDING: CollegeBranding = {
-  name: 'Faculty Feedback Management System',
-  code: 'FMS',
+  name: 'CampusFlow',
+  code: '',
   slug: 'institution',
   primaryColor: '#0B192C',
   secondaryColor: '#1E3E62',

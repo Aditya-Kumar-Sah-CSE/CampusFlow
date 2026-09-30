@@ -127,7 +127,7 @@ export default async function PublicEventsDirectoryPage() {
 
       <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
         <div className="max-w-6xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} Feedback Management System (FMS). All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} CampusFlow. All rights reserved.</p>
         </div>
       </footer>
     </div>

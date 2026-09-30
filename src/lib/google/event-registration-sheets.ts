@@ -312,34 +312,24 @@ export async function findEventRegistrationSpreadsheetInDrive(
     if (!isConfigured) return null;
 
     return await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ drive }) => {
-      const targetTitle = `${eventTitle} — Event Registrations`;
-      const escapedTitle = targetTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
-      const res = await drive.files.list({
-        q: `name = '${escapedTitle}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
-        fields: 'files(id, name, modifiedTime)',
-        orderBy: 'modifiedTime desc',
-        pageSize: 10,
-      });
-
-      if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
-        return res.data.files[0].id;
-      }
-
-      // Fallback with standard hyphen in case em-dash was converted to ASCII hyphen
-      const altTitle = `${eventTitle} - Event Registrations`;
-      if (altTitle !== targetTitle) {
-        const escapedAlt = altTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const altRes = await drive.files.list({
-          q: `name = '${escapedAlt}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+      // Check the existing double-space name first, then legacy names. This
+      // prevents creating a second workbook when older records used another
+      // separator style.
+      const candidateTitles = [
+        `${eventTitle}  Event Registrations`,
+        `${eventTitle} — Event Registrations`,
+        `${eventTitle} - Event Registrations`,
+      ];
+      for (const title of [...new Set(candidateTitles)]) {
+        const escapedTitle = title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const result = await drive.files.list({
+          q: `name = '${escapedTitle}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
           fields: 'files(id, name, modifiedTime)',
           orderBy: 'modifiedTime desc',
           pageSize: 10,
         });
-
-        if (altRes.data.files && altRes.data.files.length > 0 && altRes.data.files[0].id) {
-          return altRes.data.files[0].id;
-        }
+        const spreadsheetId = result.data.files?.find(file => file.id)?.id;
+        if (spreadsheetId) return spreadsheetId;
       }
 
       return null;

@@ -65,7 +65,7 @@ export async function GET(
       margin: 36,
       info: {
         Title: `${event.title} - Complete Program Report`,
-        Author: 'FMS Event Management',
+        Author: 'CampusFlow Event Management',
         Subject: 'Event Programs & Registrations Report',
       },
     });

@@ -16,18 +16,20 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: 'Feedback Management System | Institutional Feedback Platform',
-    template: '%s | Feedback Management System',
+    default: 'CampusFlow',
+    template: '%s | CampusFlow',
   },
-  description: 'Multi-tenant Institutional Feedback Management System. Choose your institution to access its feedback portal.',
-  keywords: ['Feedback Management System', 'Institutional Feedback', 'Faculty Feedback', 'Student Evaluation', 'Engineering Colleges'],
+  description: 'Unified college platform for feedback, events, student registration, participation and campus activities.',
+  openGraph: { title: 'CampusFlow', description: 'Unified college platform for feedback, events, student registration, participation and campus activities.' },
+  twitter: { title: 'CampusFlow', description: 'Unified college platform for feedback, events, student registration, participation and campus activities.' },
+  keywords: ['CampusFlow', 'Institutional Feedback', 'Faculty Feedback', 'Student Evaluation', 'Engineering Colleges'],
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'FMS Feedback',
+    title: 'CampusFlow',
   },
-  applicationName: 'FMS Feedback',
+  applicationName: 'CampusFlow',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32' },

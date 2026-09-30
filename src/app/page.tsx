@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Select Your College | Feedback Management System',
+  title: 'CampusFlow | Select Your College',
   description: 'Choose your institution to access its institutional feedback portal.',
 };
 
@@ -43,7 +43,7 @@ export default async function HomePage() {
       <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-4 px-2.5 sm:px-4 sm:py-6 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
-            <p className="font-semibold text-slate-700">Feedback Management System</p>
+            <p className="font-semibold text-slate-700">CampusFlow</p>
             <p className="text-[11px] text-slate-500">Multi-tenant Institutional Feedback Platform</p>
             <p className="text-[11px] text-slate-500 mt-1">
               Designed & Developed by{' '}
@@ -86,7 +86,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <p className="text-[11px] text-slate-400">
-            &copy; {new Date().getFullYear()} Feedback Management System. All rights reserved.
+            &copy; {new Date().getFullYear()} CampusFlow. All rights reserved.
           </p>
         </div>
       </footer>

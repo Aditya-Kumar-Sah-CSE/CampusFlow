@@ -38,6 +38,20 @@ interface Props {
   onTeamUpdated: () => Promise<void> | void;
 }
 
+function formatTeamManagementError(error: string): string {
+  const messages: Record<string, string> = {
+    EVENT_NOT_FOUND: 'Event not found. Refresh the page and try again.',
+    REGISTRATION_SHEET_NOT_FOUND: 'The event registration sheet could not be found. Contact your college administrator.',
+    GOOGLE_CONNECTION_REQUIRED: 'The college Google registration service is not connected.',
+    TEAM_NOT_FOUND: 'This team could not be found in the event registration records.',
+    PROGRAM_NOT_FOUND: 'This program could not be found for the event.',
+    NOT_TEAM_LEADER: 'Only the verified team leader can manage this team.',
+    REGISTRATION_CLOSED: 'Registration is closed. The team is now read only.',
+    UNAUTHORIZED: 'Your event session is no longer valid. Sign in again.',
+  };
+  return messages[error] || error;
+}
+
 export function ManageTeamModal({
   isOpen,
   onClose,
@@ -131,6 +145,7 @@ export function ManageTeamModal({
     if (!isOpen || program.participantRole !== 'TEAM LEADER') return;
     getTeamInvitationsAction(eventId, program.programId, program.teamId).then(res => {
       if (res.success) { setInvitations(res.invitations || []); setCapacityReserved(res.capacityReserved || 0); }
+      else setErrorMsg(formatTeamManagementError(res.error || 'Could not load invitations.'));
     });
   }, [isOpen, eventId, program]);
 
@@ -149,7 +164,7 @@ export function ManageTeamModal({
 
   // Clear messages after 4 seconds
   const setFeedback = (error: string | null, success: string | null) => {
-    setErrorMsg(error);
+    setErrorMsg(error ? formatTeamManagementError(error) : null);
     setSuccessMsg(success);
     if (success) {
       setTimeout(() => setSuccessMsg(null), 4000);

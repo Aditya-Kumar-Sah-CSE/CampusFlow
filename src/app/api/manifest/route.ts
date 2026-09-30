@@ -1,7 +1,7 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant/resolver';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession } from '@/lib/auth/admin-auth';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
@@ -14,84 +14,31 @@ function getIconMimeType(url: string): string {
   return 'image/png';
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    // 1. Resolve slug from query params: ?college=... or ?tenant=...
-    let slug = url.searchParams.get('college') || url.searchParams.get('tenant') || null;
-
-    // 2. If not in query, check middleware forwarded header
-    if (!slug) {
-      slug = request.headers.get('x-tenant-slug');
-    }
-
-    // 3. If still not found, check active admin session
-    if (!slug) {
-      try {
-        const session = await getAdminSession();
-        if (session.isAuthenticated && session.activeCollege?.slug) {
-          slug = session.activeCollege.slug;
-        }
-      } catch {
-        // Outside auth context or not authenticated
-      }
-    }
-
-    // 4. If still not found, check active tenant cookie
-    if (!slug) {
-      const activeCollegeId = request.cookies.get('fms_active_tenant_id')?.value;
-      if (activeCollegeId) {
-        const supabase = createAdminClient();
-        if (supabase) {
-          const { data: college } = await supabase
-            .from('colleges')
-            .select('slug')
-            .eq('id', activeCollegeId)
-            .maybeSingle();
-          if (college?.slug) {
-            slug = college.slug;
-          }
-        }
-      }
-    }
-
-    // 4. If still not found, check Referer URL path (e.g. /bce-bgp/...)
-    if (!slug) {
-      const referer = request.headers.get('referer');
-      if (referer) {
-        try {
-          const refUrl = new URL(referer);
-          const firstSegment = refUrl.pathname.split('/').filter(Boolean)[0];
-          const reserved = ['admin', 'api', 'auth', 'offline', 'privacy-policy', 'terms-of-service'];
-          if (firstSegment && !reserved.includes(firstSegment.toLowerCase())) {
-            slug = firstSegment.toLowerCase();
-          }
-        } catch {
-          // Ignore invalid referer URL
-        }
-      }
+    // Tenant identity for this shared manifest comes only from the authenticated
+    // administrator session. Public tenant pages use /api/manifest/[slug].
+    let slug: string | null = null;
+    try {
+      const session = await getAdminSession();
+      if (session.isAuthenticated && session.activeCollege?.slug) slug = session.activeCollege.slug;
+    } catch {
+      // Public root manifest has no selected tenant.
     }
 
     // If a tenant was resolved, return tenant-specific manifest
     if (slug) {
       const tenant = await getTenantBySlug(slug);
       if (tenant) {
-        const collegeName = tenant.name;
         const shortName = tenant.shortName || tenant.code || 'College';
         const primaryColor = tenant.branding?.primaryColor || '#0B192C';
-
-        const formattedName = collegeName.toLowerCase().includes('feedback')
-          ? collegeName
-          : `${collegeName} Feedback`;
-        const formattedShortName = shortName.toLowerCase().includes('feedback')
-          ? shortName
-          : `${shortName} Feedback`;
+        const brand = getCampusFlowBrand(tenant);
 
         const manifest = {
           $schema: 'https://json.schemastore.org/web-manifest-combined.json',
-          name: formattedName,
-          short_name: formattedShortName,
-          description: `Official Faculty Evaluation & Feedback Management System for ${collegeName} (${shortName})`,
+          name: brand.displayName,
+          short_name: brand.shortName,
+          description: getCampusFlowDescription(tenant),
           id: `/${tenant.slug}/`,
           start_url: `/${tenant.slug}/`,
           scope: `/${tenant.slug}/`,
@@ -172,7 +119,7 @@ export async function GET(request: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'application/manifest+json; charset=utf-8',
-            'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+            'Cache-Control': 'private, no-store',
           },
         });
       }
@@ -181,10 +128,10 @@ export async function GET(request: NextRequest) {
     // Default Fallback: Platform Root Generic Manifest
     const defaultManifest = {
       $schema: 'https://json.schemastore.org/web-manifest-combined.json',
-      name: 'Feedback Management System',
-      short_name: 'FMS Portal',
-      description: 'Multi-Tenant Institutional Faculty Feedback & Evaluation Management System',
-      id: 'fms-feedback-portal',
+      name: 'CampusFlow',
+      short_name: 'CampusFlow',
+      description: getCampusFlowDescription(),
+      id: 'campusflow-platform',
       start_url: '/',
       scope: '/',
       display: 'standalone',
@@ -217,7 +164,7 @@ export async function GET(request: NextRequest) {
         {
           name: 'Submit Feedback',
           short_name: 'Feedback',
-          description: 'Discover and submit faculty feedback',
+            description: 'Discover and submit faculty feedback',
           url: '/feedback',
           icons: [
             {
@@ -230,7 +177,7 @@ export async function GET(request: NextRequest) {
         {
           name: 'Admin Console',
           short_name: 'Admin',
-          description: 'Login to Faculty Feedback Admin Portal',
+            description: 'Login to the CampusFlow admin portal',
           url: '/admin/login',
           icons: [
             {

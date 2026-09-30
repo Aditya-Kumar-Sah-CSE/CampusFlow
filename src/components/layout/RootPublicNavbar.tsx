@@ -15,8 +15,10 @@ import {
   Bell,
 } from 'lucide-react';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
+import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
-export function RootPublicNavbar({ eventId }: { eventId?: string } = {}) {
+export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; tenantCode?: string | null } = {}) {
+  const brand = getCampusFlowBrand({ code: tenantCode });
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const [unreadInvitations, setUnreadInvitations] = useState(0);
@@ -65,10 +67,10 @@ export function RootPublicNavbar({ eventId }: { eventId?: string } = {}) {
             </div>
             <div className="min-w-0 flex flex-col justify-center">
               <span className="block text-xs sm:text-base font-bold tracking-tight text-slate-900 truncate max-w-[190px] xs:max-w-[240px] sm:max-w-none group-hover:text-blue-700 transition-colors">
-                Feedback Management System
+                {brand.displayName}
               </span>
               <span className="block text-[10px] sm:text-xs text-slate-500 font-medium truncate max-w-[190px] xs:max-w-[240px] sm:max-w-none">
-                Institutional Feedback Platform
+                Unified College Platform
               </span>
             </div>
           </Link>
@@ -138,7 +140,7 @@ export function RootPublicNavbar({ eventId }: { eventId?: string } = {}) {
                   <School className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-bold text-xs text-slate-900 truncate">FMS Portal</p>
+                  <p className="font-bold text-xs text-slate-900 truncate">{brand.displayName}</p>
                   <p className="text-[10px] text-slate-500 truncate">Institutional System</p>
                 </div>
               </div>
@@ -220,7 +222,7 @@ export function RootPublicNavbar({ eventId }: { eventId?: string } = {}) {
 
             {/* Drawer Footer */}
             <div className="p-4 border-t border-slate-100 bg-slate-50/60 text-[10px] text-slate-400 text-center space-y-1">
-              <p className="font-semibold text-slate-600">Feedback Management System</p>
+              <p className="font-semibold text-slate-600">{brand.displayName}</p>
               <p>Designed &amp; Developed by Aditya Kumar Sah</p>
             </div>
           </aside>

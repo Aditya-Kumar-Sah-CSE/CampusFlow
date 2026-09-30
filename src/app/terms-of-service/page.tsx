@@ -7,8 +7,8 @@ export const dynamic = 'force-static';
 export const revalidate = 86400; // 24 hours
 
 export const metadata: Metadata = {
-  title: 'Terms of Service | Feedback Management System',
-  description: 'Terms of Service for Feedback Management System governing institutional access, administrator responsibilities, Google Workspace integrations, and platform usage.',
+  title: 'Terms of Service | CampusFlow',
+  description: 'Terms of Service for CampusFlow governing institutional access, administrator responsibilities, Google Workspace integrations, and platform usage.',
 };
 
 export default function TermsOfServicePage() {
@@ -43,7 +43,7 @@ export default function TermsOfServicePage() {
               1. Acceptance of Terms
             </h2>
             <p>
-              By accessing, browsing, or using the <strong>Feedback Management System</strong> (&quot;FMS&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) hosted at{' '}
+              By accessing, browsing, or using the <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) hosted at{' '}
               <a href="https://feedback-management-system-kappa.vercel.app" className="text-blue-600 underline font-medium">
                 https://feedback-management-system-kappa.vercel.app
               </a>, you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree with these Terms, you must not access or use the Platform.
@@ -59,7 +59,7 @@ export default function TermsOfServicePage() {
               2. Description of the Service
             </h2>
             <p>
-              Feedback Management System is a multi-tenant web-based SaaS platform designed for higher education institutions, engineering colleges, and academic departments to manage, automate, and analyze institutional feedback. Core features include:
+              CampusFlow is a multi-tenant web-based SaaS platform designed for higher education institutions, engineering colleges, and academic departments to manage, automate, and analyze institutional feedback. Core features include:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
               <li>Academic hierarchy management (branches, semesters, subjects, faculties, and teaching assignments).</li>
@@ -103,9 +103,9 @@ export default function TermsOfServicePage() {
               Institutions may optionally link an institutional Google Workspace account using Google OAuth 2.0 to enable automatic feedback form generation and response synchronization. By connecting a Google account, the institution agrees that:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
-              <li>The connecting administrator has full authority to authorize FMS to access the institution&apos;s Google Workspace services.</li>
-              <li>FMS will request access to Google Forms (to create forms and read responses), Google Sheets (to sync response spreadsheets), Google Drive (to manage FMS-specific files and folders via <code>drive.file</code>), and basic profile information.</li>
-              <li>FMS strictly adheres to the{' '}
+              <li>The connecting administrator has full authority to authorize CampusFlow to access the institution&apos;s Google Workspace services.</li>
+              <li>CampusFlow will request access to Google Forms (to create forms and read responses), Google Sheets (to sync response spreadsheets), Google Drive (to manage CampusFlow-specific files and folders via <code>drive.file</code>), and basic profile information.</li>
+              <li>CampusFlow strictly adheres to the{' '}
                 <a
                   href="https://developers.google.com/terms/api-services-user-data-policy"
                   target="_blank"
@@ -128,7 +128,7 @@ export default function TermsOfServicePage() {
               The institution retains all ownership rights, title, and interest in and to its institutional data, including faculty lists, course catalogs, survey questionnaires, student evaluation responses, and generated reports.
             </p>
             <p>
-              FMS claims no intellectual property ownership over institutional content. By uploading or generating data on the Platform, the institution grants FMS a limited, non-exclusive license strictly to host, process, store, and display the data as required to provide the Platform services.
+              CampusFlow claims no intellectual property ownership over institutional content. By uploading or generating data on the Platform, the institution grants CampusFlow a limited, non-exclusive license strictly to host, process, store, and display the data as required to provide the Platform services.
             </p>
           </section>
 
@@ -140,7 +140,7 @@ export default function TermsOfServicePage() {
             <p>You agree not to use the Platform to:</p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
               <li>Violate any applicable local, state, national, or international law.</li>
-              <li>Attempt to gain unauthorized access to any accounts, computer systems, or networks connected to FMS or another institution&apos;s tenant data.</li>
+              <li>Attempt to gain unauthorized access to any accounts, computer systems, or networks connected to CampusFlow or another institution&apos;s tenant data.</li>
               <li>Interfere with or disrupt the integrity or performance of the Platform or third-party APIs.</li>
               <li>Distribute malware, spam, phishing links, or fraudulent surveys.</li>
               <li>Submit fabricated, fraudulent, or counterfeit payment verification records.</li>
@@ -154,7 +154,7 @@ export default function TermsOfServicePage() {
               7. Subscription, Billing &amp; Plan Entitlements
             </h2>
             <p>
-              FMS offers institutional subscription tiers and trial periods for access to features such as advanced statistical analytics, extended response history, and automated syncing:
+              CampusFlow offers institutional subscription tiers and trial periods for access to features such as advanced statistical analytics, extended response history, and automated syncing:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
               <li>Subscription requests are submitted via manual UPI payment confirmation and reviewed by platform administrators.</li>
@@ -198,7 +198,7 @@ export default function TermsOfServicePage() {
               THE PLATFORM IS PROVIDED ON AN &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot; BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
             </p>
             <p>
-              TO THE FULLEST EXTENT PERMITTED BY LAW, FEEDBACK MANAGEMENT SYSTEM AND ITS OPERATORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR ACADEMIC RECORDS ARISING OUT OF OR IN CONNECTION WITH YOUR USE OR INABILITY TO USE THE PLATFORM.
+              TO THE FULLEST EXTENT PERMITTED BY LAW, CAMPUSFLOW AND ITS OPERATORS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR ACADEMIC RECORDS ARISING OUT OF OR IN CONNECTION WITH YOUR USE OR INABILITY TO USE THE PLATFORM.
             </p>
           </section>
 
@@ -221,7 +221,7 @@ export default function TermsOfServicePage() {
               For any questions, legal inquiries, or notices regarding these Terms of Service, please contact the administration team at:
             </p>
             <div className="p-4 bg-white rounded-xl border border-slate-200 text-xs sm:text-sm space-y-1">
-              <p className="font-semibold text-slate-900">Feedback Management System</p>
+              <p className="font-semibold text-slate-900">CampusFlow</p>
               <p className="text-slate-600">Institutional Administration Team</p>
               <p className="text-slate-600">
                 Email: <span className="font-mono text-slate-800">iambestadi@gmail.com</span>
@@ -241,7 +241,7 @@ export default function TermsOfServicePage() {
       <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-6 px-4 mt-auto">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
-            <p className="font-semibold text-slate-700">Feedback Management System</p>
+            <p className="font-semibold text-slate-700">CampusFlow</p>
             <p className="text-[11px] text-slate-500">Institutional Feedback Platform</p>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-500">
@@ -258,7 +258,7 @@ export default function TermsOfServicePage() {
             </Link>
           </div>
           <p className="text-[11px] text-slate-400">
-            &copy; {new Date().getFullYear()} Feedback Management System. All rights reserved.
+            &copy; {new Date().getFullYear()} CampusFlow. All rights reserved.
           </p>
         </div>
       </footer>

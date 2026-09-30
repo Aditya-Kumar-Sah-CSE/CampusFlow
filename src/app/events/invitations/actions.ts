@@ -15,21 +15,23 @@ async function verifiedLeader(eventId: string, programId: string, teamId: string
   if (!auth.isValid || !auth.session) throw new Error('Sign in to your event pass first.');
   const session = auth.session;
   const event = await getInvitationEvent(eventId);
-  if (event.college_id !== session.collegeId || !event.registration_sheet_id) throw new Error('Event registration data is unavailable.');
+  if (event.college_id !== session.collegeId) throw new Error('UNAUTHORIZED');
+  if (!event.registration_sheet_id) throw new Error('REGISTRATION_SHEET_NOT_FOUND');
   const program = await getInvitationProgram(programId, event.college_id);
-  if (program.event_id !== event.id || program.college_id !== event.college_id) throw new Error('Program is not part of this event.');
+  if (program.event_id !== event.id || program.college_id !== event.college_id) throw new Error('PROGRAM_NOT_FOUND');
   const rows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
   const teamRows = rows.filter(r => r.eventId === event.id && r.programId === program.id && r.teamId.toUpperCase() === teamId.trim().toUpperCase() && r.registrationStatus !== 'CANCELLED');
   const leader = teamRows.find(r => r.participantRole === 'TEAM LEADER');
-  if (!leader) throw new Error('Team not found for this program.');
+  if (!leader) throw new Error('TEAM_NOT_FOUND');
   const isLeader = leader.teamLeaderRegistrationNumber.toUpperCase() === session.registrationNumber.toUpperCase() || leader.registrationNumber.toUpperCase() === session.registrationNumber.toUpperCase();
-  if (!isLeader) throw new Error('Only this team’s verified Team Leader can manage invitations.');
+  if (!isLeader) throw new Error('NOT_TEAM_LEADER');
   return { session, event, program, rows, teamRows, leader };
 }
 
 async function findEligibleInvitee(eventId: string, programId: string, teamId: string, identifier: string) {
   const context = await verifiedLeader(eventId, programId, teamId);
   const { session, event, program, rows, teamRows, leader } = context;
+  if (!event.registration_sheet_id) throw new Error('REGISTRATION_SHEET_NOT_FOUND');
   const open = checkIsRegistrationOpen(event, program);
   if (!open.isOpen) throw new Error(open.reason || 'Team registration is closed.');
   const maxSize = program.max_team_size || 20;

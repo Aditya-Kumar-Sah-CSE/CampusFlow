@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant/resolver';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60; // 60s cache TTL
@@ -27,22 +28,15 @@ export async function GET(
       return NextResponse.json({ error: 'College not found' }, { status: 404 });
     }
 
-    const collegeName = tenant.name;
     const shortName = tenant.shortName || tenant.code || 'College';
     const primaryColor = tenant.branding?.primaryColor || '#0B192C';
-
-    const formattedName = collegeName.toLowerCase().includes('feedback')
-      ? collegeName
-      : `${collegeName} Feedback`;
-    const formattedShortName = shortName.toLowerCase().includes('feedback')
-      ? shortName
-      : `${shortName} Feedback`;
+    const brand = getCampusFlowBrand(tenant);
 
     const manifest = {
       $schema: 'https://json.schemastore.org/web-manifest-combined.json',
-      name: formattedName,
-      short_name: formattedShortName,
-      description: `Official Faculty Evaluation & Feedback Management System for ${collegeName} (${shortName})`,
+      name: brand.displayName,
+      short_name: brand.shortName,
+      description: getCampusFlowDescription(tenant),
       id: `/${tenant.slug}/`,
       start_url: `/${tenant.slug}/`,
       scope: `/${tenant.slug}/`,

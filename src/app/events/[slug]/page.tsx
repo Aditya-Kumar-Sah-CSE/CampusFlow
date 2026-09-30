@@ -9,9 +9,23 @@ import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { EventStudentIdentityCard } from '@/components/events/EventStudentIdentityCard';
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
 import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
+import type { Metadata } from 'next';
+import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 import { Calendar, MapPin, Clock, ArrowLeft, Ticket, ShieldCheck, UserCheck } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const event = await getPublicEventBySlugGlobal(slug);
+  const brand = getCampusFlowBrand({ code: event?.college?.code || event?.college?.short_name });
+  return {
+    title: event ? `${brand.displayName} | ${event.title}` : brand.displayName,
+    description: getCampusFlowDescription({ code: event?.college?.code || event?.college?.short_name }),
+    openGraph: { title: event ? `${brand.displayName} | ${event.title}` : brand.displayName },
+    twitter: { title: event ? `${brand.displayName} | ${event.title}` : brand.displayName },
+  };
+}
 
 interface Props {
   params: Promise<{
@@ -26,12 +40,13 @@ export default async function PublicEventPage({ params }: Props) {
   if (!event || event.status === 'DRAFT') {
     notFound();
   }
+  if (!event.college?.slug) notFound();
 
   const collegeId = event.college_id;
   const [programData, publicParticipants, tenant, session] = await Promise.all([
     getPublicEventPrograms(event.id, collegeId),
     getPublicEventParticipants(event.id, collegeId),
-    resolveTenantOrNotFound(event.college?.slug || 'bce-bgp'),
+    resolveTenantOrNotFound(event.college.slug),
     getCurrentEventSession(event.id),
   ]);
 
@@ -65,7 +80,7 @@ export default async function PublicEventPage({ params }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      <RootPublicNavbar eventId={event.id} />
+      <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code || event.college?.short_name} />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 sm:py-10 space-y-8">
         {/* Navigation Breadcrumb */}
