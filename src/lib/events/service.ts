@@ -285,25 +285,33 @@ export async function getEventRegistrations(params: {
       const { getEventRegistrations: getSheetEventRegistrations } = await import('@/lib/google/event-registration-sheets');
       const sheetRows = await getSheetEventRegistrations(params.collegeId, resolvedSheetId);
 
-      let registrations: EventRegistration[] = sheetRows.map((r, idx) => ({
-        id: r.registrationNumber || `reg-${idx}`,
-        event_id: event.id,
-        college_id: params.collegeId,
-        registration_number: r.registrationNumber,
-        student_name: r.participantName,
-        email: r.email,
-        mobile: r.mobile,
-        branch_id: null,
-        branch: r.branch ? { id: '', name: r.branch, code: r.branch } : null,
-        semester_id: null,
-        semester: r.semester ? { id: '', name: r.semester, semester_number: parseInt(r.semester) || 1 } : null,
-        transaction_id: r.paymentReference,
-        payment_status: (r.paymentStatus === 'PAID' ? 'VERIFIED' : r.paymentStatus as any) || 'NOT_REQUIRED',
-        payment_screenshot_url: null,
-        registration_status: (r.registrationStatus as any) || 'REGISTERED',
-        registered_at: r.registeredAt,
-        updated_at: r.registeredAt,
-      }));
+      const { batchResolveAcademicDisplayValues } = await import('@/lib/events/academic-resolver');
+      const academicMap = await batchResolveAcademicDisplayValues(params.collegeId, sheetRows);
+
+      let registrations: EventRegistration[] = sheetRows.map((r, idx) => {
+        const key = `${r.branch || ''}__${r.semester || ''}`;
+        const academic = academicMap.get(key) || { branch: r.branch || '', semester: r.semester || '' };
+        const semNum = academic.semester.match(/^(\d+)/)?.[1];
+        return {
+          id: r.registrationNumber || `reg-${idx}`,
+          event_id: event.id,
+          college_id: params.collegeId,
+          registration_number: r.registrationNumber,
+          student_name: r.participantName,
+          email: r.email,
+          mobile: r.mobile,
+          branch_id: null,
+          branch: academic.branch ? { id: '', name: academic.branch, code: academic.branch } : null,
+          semester_id: null,
+          semester: academic.semester ? { id: '', name: academic.semester, semester_number: semNum ? parseInt(semNum, 10) : 1 } : null,
+          transaction_id: r.paymentReference,
+          payment_status: (r.paymentStatus === 'PAID' ? 'VERIFIED' : r.paymentStatus as any) || 'NOT_REQUIRED',
+          payment_screenshot_url: null,
+          registration_status: (r.registrationStatus as any) || 'REGISTERED',
+          registered_at: r.registeredAt,
+          updated_at: r.registeredAt,
+        };
+      });
 
       // Search filter
       if (params.search && params.search.trim()) {
@@ -562,6 +570,17 @@ export async function registerStudentForEvent(
       event.title
     );
 
+    let finalBranch = input.branch_id || '';
+    let finalSemester = input.semester_id || '';
+    try {
+      const { resolveAcademicDisplayValues } = await import('@/lib/events/academic-resolver');
+      const academic = await resolveAcademicDisplayValues(input.college_id, finalBranch, finalSemester);
+      finalBranch = academic.branch;
+      finalSemester = academic.semester;
+    } catch {
+      // non-fatal
+    }
+
     const result = await appendEventRegistration(
       input.college_id,
       spreadsheetId,
@@ -572,8 +591,8 @@ export async function registerStudentForEvent(
         studentId: cleanRegNum,
         email: cleanEmail,
         mobile: cleanMobile,
-        branch: input.branch_id || '',
-        semester: input.semester_id || '',
+        branch: finalBranch,
+        semester: finalSemester,
         gender: '',
       }
     );

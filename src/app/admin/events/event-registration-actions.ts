@@ -33,6 +33,10 @@ import {
   destroyEventSession,
 } from '@/lib/events/event-session';
 import { isCollegeGoogleConfigured } from '@/lib/google/auth';
+import {
+  resolveAcademicDisplayValues,
+  batchResolveAcademicDisplayValues,
+} from '@/lib/events/academic-resolver';
 import type { SheetEventRegistrationInput, EventLoginInput } from '@/types/events';
 
 // ============================================================
@@ -365,6 +369,12 @@ export async function identifyStudentAction(input: {
       };
     }
 
+    const academic = await resolveAcademicDisplayValues(
+      event.college_id,
+      registration.branch,
+      registration.semester
+    );
+
     // Create session cookie
     await createEventSession({
       registrationNumber: registration.registrationNumber,
@@ -374,8 +384,8 @@ export async function identifyStudentAction(input: {
       eventId: event.id,
       collegeId: event.college_id,
       mobile: registration.mobile,
-      branch: registration.branch,
-      semester: registration.semester,
+      branch: academic.branch,
+      semester: academic.semester,
       gender: registration.gender,
     });
 
@@ -388,8 +398,8 @@ export async function identifyStudentAction(input: {
         email: registration.email,
         studentId: registration.studentId,
         mobile: registration.mobile,
-        branch: registration.branch,
-        semester: registration.semester,
+        branch: academic.branch,
+        semester: academic.semester,
         gender: registration.gender,
       },
     };
@@ -473,6 +483,12 @@ export async function verifyEventRegistrationAction(input: {
       };
     }
 
+    const academic = await resolveAcademicDisplayValues(
+      event.college_id,
+      registration.branch,
+      registration.semester
+    );
+
     // Create / refresh HTTP-only signed event session
     await createEventSession({
       registrationNumber: registration.registrationNumber,
@@ -482,8 +498,8 @@ export async function verifyEventRegistrationAction(input: {
       eventId: event.id,
       collegeId: event.college_id,
       mobile: registration.mobile,
-      branch: registration.branch,
-      semester: registration.semester,
+      branch: academic.branch,
+      semester: academic.semester,
       gender: registration.gender,
     });
 
@@ -495,8 +511,8 @@ export async function verifyEventRegistrationAction(input: {
         email: registration.email,
         studentId: registration.studentId,
         mobile: registration.mobile,
-        branch: registration.branch,
-        semester: registration.semester,
+        branch: academic.branch,
+        semester: academic.semester,
         gender: registration.gender,
       },
     };
@@ -541,6 +557,11 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
           event.registration_sheet_id
         );
         if (row) {
+          const academic = await resolveAcademicDisplayValues(
+            s.collegeId,
+            row.branch,
+            row.semester
+          );
           return {
             isValid: true,
             participant: {
@@ -549,8 +570,8 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
               email: row.email,
               studentId: row.studentId,
               mobile: row.mobile,
-              branch: row.branch,
-              semester: row.semester,
+              branch: academic.branch,
+              semester: academic.semester,
               gender: row.gender,
             },
           };
@@ -560,6 +581,12 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
       }
     }
 
+    const fallbackAcademic = await resolveAcademicDisplayValues(
+      s.collegeId,
+      s.branch,
+      s.semester
+    );
+
     return {
       isValid: true,
       participant: {
@@ -568,8 +595,8 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
         email: s.email,
         studentId: s.studentId,
         mobile: s.mobile || '',
-        branch: s.branch || '',
-        semester: s.semester || '',
+        branch: fallbackAcademic.branch,
+        semester: fallbackAcademic.semester,
         gender: s.gender || '',
       },
     };
@@ -706,6 +733,12 @@ export async function lookupTeamMemberAction(
       };
     }
 
+    const academic = await resolveAcademicDisplayValues(
+      sessionResult.session.collegeId,
+      reg.branch,
+      reg.semester
+    );
+
     return {
       success: true,
       member: {
@@ -713,8 +746,8 @@ export async function lookupTeamMemberAction(
         registrationNumber: reg.registrationNumber,
         studentId: reg.studentId,
         email: reg.email,
-        branch: reg.branch,
-        semester: reg.semester,
+        branch: academic.branch,
+        semester: academic.semester,
         gender: reg.gender,
       },
     };
@@ -831,6 +864,15 @@ export async function registerForProgramAction(
     } catch {
       // non-fatal
     }
+
+    // Resolve academic values to human-readable names for program sheet
+    const academic = await resolveAcademicDisplayValues(
+      session.collegeId,
+      finalBranch,
+      finalSemester
+    );
+    finalBranch = academic.branch;
+    finalSemester = academic.semester;
 
     // 6. Determine payment status
     const paymentRequired = (event.payment_required || program.registration_fee > 0) && program.registration_fee > 0;
@@ -1033,6 +1075,15 @@ export async function registerForTeamProgramAction(
     } catch {
       // non-fatal
     }
+
+    // Resolve leader academic values to human-readable names
+    const leaderAcademic = await resolveAcademicDisplayValues(
+      leader.collegeId,
+      leaderBranch,
+      leaderSemester
+    );
+    leaderBranch = leaderAcademic.branch;
+    leaderSemester = leaderAcademic.semester;
 
     // 6. Add Leader (Participant Role = TEAM LEADER)
     const leaderResult = await addTeamMember(leader.collegeId, spreadsheetId, program.slug, {
@@ -1370,19 +1421,24 @@ export async function getSafePublicParticipantsAction(
     }
 
     const rows = await getEventRegistrations(collegeId, event.registration_sheet_id);
+    const academicMap = await batchResolveAcademicDisplayValues(collegeId, rows);
 
-    // Only return safe fields — NEVER return email, mobile, payment details!
+    // Only return safe fields — NEVER return email, mobile, payment details or raw UUIDs!
     const safe = rows
       .filter(r => r.registrationStatus !== 'CANCELLED')
-      .map(r => ({
-        registrationNumber: r.registrationNumber,
-        participantName: r.participantName,
-        branch: r.branch,
-        semester: r.semester,
-        programName: r.programName || 'General Event Registration',
-        teamName: r.teamName,
-        participationType: r.participationType,
-      }));
+      .map(r => {
+        const key = `${r.branch || ''}__${r.semester || ''}`;
+        const academic = academicMap.get(key) || { branch: r.branch, semester: r.semester };
+        return {
+          registrationNumber: r.registrationNumber,
+          participantName: r.participantName,
+          branch: academic.branch,
+          semester: academic.semester,
+          programName: r.programName || 'General Event Registration',
+          teamName: r.teamName,
+          participationType: r.participationType,
+        };
+      });
 
     return { success: true, participants: safe };
   } catch {

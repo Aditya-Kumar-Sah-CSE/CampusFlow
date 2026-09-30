@@ -176,7 +176,7 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
                 )}
                 {participant.semester && (
                   <span className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60">
-                    Semester {participant.semester}
+                    {participant.semester}
                   </span>
                 )}
               </div>
