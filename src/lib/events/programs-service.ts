@@ -36,49 +36,106 @@ export async function getAdminEventPrograms(
   const programIds = (data || []).map((p: EventProgram) => p.id);
   if (programIds.length === 0) return data || [];
 
-  const { data: regCounts } = await db
-    .from('program_registrations')
-    .select('program_id, registration_type, registration_status')
-    .eq('event_id', eventId)
-    .eq('college_id', collegeId)
-    .in('program_id', programIds);
+  const regMap: Record<string, { total: number; teams: number; individual: number; members: number; participants: number }> = {};
+  for (const p of data || []) {
+    regMap[p.id] = { total: 0, teams: 0, individual: 0, members: 0, participants: 0 };
+  }
 
-  // Count members for team registrations
-  const { data: memberCounts } = await db
-    .from('program_registration_members')
-    .select('registration_id')
-    .eq('college_id', collegeId)
-    .in('program_id', programIds);
+  let hasSheetData = false;
+  try {
+    const { resolveEventRegistrationSpreadsheet, getEventRegistrations } = await import('@/lib/google/event-registration-sheets');
+    const sheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventId);
+    if (sheetId) {
+      const sheetRows = await getEventRegistrations(collegeId, sheetId);
+      if (Array.isArray(sheetRows) && sheetRows.length > 0) {
+        hasSheetData = true;
+        const validRows = sheetRows.filter(r => (r.programId || r.programName) && r.registrationStatus !== 'CANCELLED');
 
-  const regMap: Record<string, { total: number; teams: number; individual: number; members: number }> = {};
-  for (const r of regCounts || []) {
-    if (!regMap[r.program_id]) regMap[r.program_id] = { total: 0, teams: 0, individual: 0, members: 0 };
-    if (r.registration_status === 'REGISTERED') {
-      regMap[r.program_id].total++;
-      if (r.registration_type === 'TEAM') regMap[r.program_id].teams++;
-      else regMap[r.program_id].individual++;
+        for (const prog of data || []) {
+          const progRows = validRows.filter(r => {
+            const matchesId = r.programId && r.programId === prog.id;
+            const matchesName = r.programName && (
+              r.programName.toLowerCase() === prog.name.toLowerCase() ||
+              r.programName.toLowerCase() === prog.slug.toLowerCase()
+            );
+            return matchesId || matchesName;
+          });
+
+          const uniqueTeams = new Set<string>();
+          let individualCount = 0;
+          let teamMemberCount = 0;
+
+          for (const r of progRows) {
+            const isTeam = r.participationType === 'TEAM' || !!r.teamId;
+            if (isTeam) {
+              const teamKey = (r.teamId || r.teamName || 'TEAM').trim().toUpperCase();
+              uniqueTeams.add(teamKey);
+              teamMemberCount++;
+            } else {
+              individualCount++;
+            }
+          }
+
+          regMap[prog.id] = {
+            total: uniqueTeams.size + individualCount,
+            teams: uniqueTeams.size,
+            individual: individualCount,
+            members: teamMemberCount,
+            participants: individualCount + teamMemberCount,
+          };
+        }
+      }
     }
+  } catch (sheetErr) {
+    console.warn('[getAdminEventPrograms] Google Sheet enrichment warning:', sheetErr);
   }
 
-  // Count members per program by gathering registration IDs
-  const regToProgram: Record<string, string> = {};
+  if (!hasSheetData) {
+    const { data: regCounts } = await db
+      .from('program_registrations')
+      .select('program_id, registration_type, registration_status')
+      .eq('event_id', eventId)
+      .eq('college_id', collegeId)
+      .in('program_id', programIds);
 
-  // Re-fetch registrations with IDs for member mapping
-  const { data: regsWithIds } = await db
-    .from('program_registrations')
-    .select('id, program_id')
-    .eq('event_id', eventId)
-    .eq('college_id', collegeId)
-    .in('program_id', programIds);
+    const { data: memberCounts } = await db
+      .from('program_registration_members')
+      .select('registration_id')
+      .eq('college_id', collegeId)
+      .in('program_id', programIds);
 
-  for (const r of regsWithIds || []) {
-    regToProgram[r.id] = r.program_id;
-  }
+    for (const r of regCounts || []) {
+      if (!regMap[r.program_id]) regMap[r.program_id] = { total: 0, teams: 0, individual: 0, members: 0, participants: 0 };
+      if (r.registration_status !== 'CANCELLED' && r.registration_status !== 'REJECTED') {
+        regMap[r.program_id].total++;
+        if (r.registration_type === 'TEAM') regMap[r.program_id].teams++;
+        else regMap[r.program_id].individual++;
+      }
+    }
 
-  for (const m of memberCounts || []) {
-    const progId = regToProgram[m.registration_id];
-    if (progId && regMap[progId]) {
-      regMap[progId].members++;
+    const regToProgram: Record<string, string> = {};
+    const { data: regsWithIds } = await db
+      .from('program_registrations')
+      .select('id, program_id')
+      .eq('event_id', eventId)
+      .eq('college_id', collegeId)
+      .in('program_id', programIds);
+
+    for (const r of regsWithIds || []) {
+      regToProgram[r.id] = r.program_id;
+    }
+
+    for (const m of memberCounts || []) {
+      const progId = regToProgram[m.registration_id];
+      if (progId && regMap[progId]) {
+        regMap[progId].members++;
+      }
+    }
+
+    for (const prog of data || []) {
+      if (regMap[prog.id]) {
+        regMap[prog.id].participants = (regMap[prog.id].individual || 0) + (regMap[prog.id].members || 0);
+      }
     }
   }
 
@@ -87,7 +144,7 @@ export async function getAdminEventPrograms(
     registrations_count: regMap[p.id]?.total || 0,
     teams_count: regMap[p.id]?.teams || 0,
     individual_count: regMap[p.id]?.individual || 0,
-    participants_count: (regMap[p.id]?.individual || 0) + (regMap[p.id]?.members || 0),
+    participants_count: regMap[p.id]?.participants || 0,
   }));
 }
 
@@ -116,23 +173,77 @@ export async function getPublicEventPrograms(
     .eq('is_active', true)
     .order('display_order', { ascending: true });
 
-  // Enrich programs with registration counts for display
   const programIds = (programs || []).map((p: EventProgram) => p.id);
-  const regCounts: Record<string, { total: number; teams: number; individual: number; members: number }> = {};
+  const regCounts: Record<string, { total: number; teams: number; individual: number; members: number; participants: number }> = {};
+  for (const p of programs || []) {
+    regCounts[p.id] = { total: 0, teams: 0, individual: 0, members: 0, participants: 0 };
+  }
 
+  let hasSheetData = false;
   if (programIds.length > 0) {
-    const { data: regs } = await db
-      .from('program_registrations')
-      .select('program_id, registration_type, registration_status')
-      .eq('event_id', eventId)
-      .in('program_id', programIds)
-      .eq('registration_status', 'REGISTERED');
+    try {
+      const { resolveEventRegistrationSpreadsheet, getEventRegistrations } = await import('@/lib/google/event-registration-sheets');
+      const sheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventId);
+      if (sheetId) {
+        const sheetRows = await getEventRegistrations(collegeId, sheetId);
+        if (Array.isArray(sheetRows) && sheetRows.length > 0) {
+          hasSheetData = true;
+          const validRows = sheetRows.filter(r => (r.programId || r.programName) && r.registrationStatus !== 'CANCELLED');
 
-    for (const r of regs || []) {
-      if (!regCounts[r.program_id]) regCounts[r.program_id] = { total: 0, teams: 0, individual: 0, members: 0 };
-      regCounts[r.program_id].total++;
-      if (r.registration_type === 'TEAM') regCounts[r.program_id].teams++;
-      else regCounts[r.program_id].individual++;
+          for (const prog of programs || []) {
+            const progRows = validRows.filter(r => {
+              const matchesId = r.programId && r.programId === prog.id;
+              const matchesName = r.programName && (
+                r.programName.toLowerCase() === prog.name.toLowerCase() ||
+                r.programName.toLowerCase() === prog.slug.toLowerCase()
+              );
+              return matchesId || matchesName;
+            });
+
+            const uniqueTeams = new Set<string>();
+            let individualCount = 0;
+            let teamMemberCount = 0;
+
+            for (const r of progRows) {
+              const isTeam = r.participationType === 'TEAM' || !!r.teamId;
+              if (isTeam) {
+                const teamKey = (r.teamId || r.teamName || 'TEAM').trim().toUpperCase();
+                uniqueTeams.add(teamKey);
+                teamMemberCount++;
+              } else {
+                individualCount++;
+              }
+            }
+
+            regCounts[prog.id] = {
+              total: uniqueTeams.size + individualCount,
+              teams: uniqueTeams.size,
+              individual: individualCount,
+              members: teamMemberCount,
+              participants: individualCount + teamMemberCount,
+            };
+          }
+        }
+      }
+    } catch (sheetErr) {
+      console.warn('[getPublicEventPrograms] Google Sheet enrichment warning:', sheetErr);
+    }
+
+    if (!hasSheetData) {
+      const { data: regs } = await db
+        .from('program_registrations')
+        .select('program_id, registration_type, registration_status')
+        .eq('event_id', eventId)
+        .in('program_id', programIds)
+        .neq('registration_status', 'CANCELLED')
+        .neq('registration_status', 'REJECTED');
+
+      for (const r of regs || []) {
+        if (!regCounts[r.program_id]) regCounts[r.program_id] = { total: 0, teams: 0, individual: 0, members: 0, participants: 0 };
+        regCounts[r.program_id].total++;
+        if (r.registration_type === 'TEAM') regCounts[r.program_id].teams++;
+        else regCounts[r.program_id].individual++;
+      }
     }
   }
 
@@ -141,6 +252,7 @@ export async function getPublicEventPrograms(
     registrations_count: regCounts[p.id]?.total || 0,
     teams_count: regCounts[p.id]?.teams || 0,
     individual_count: regCounts[p.id]?.individual || 0,
+    participants_count: regCounts[p.id]?.participants || 0,
   }));
 
   const grouped = (categories || []).map((cat: EventCategory) => ({
@@ -397,38 +509,84 @@ export async function getEventProgramsStats(
     .eq('event_id', eventId)
     .eq('college_id', collegeId);
 
-  const { data: regs } = await db
-    .from('program_registrations')
-    .select('registration_type, payment_status, payment_amount, registration_status')
-    .eq('event_id', eventId)
-    .eq('college_id', collegeId)
-    .eq('registration_status', 'REGISTERED');
-
   let totalRegistrations = 0;
+  let totalParticipants = 0;
   let totalTeams = 0;
   let totalIndividual = 0;
   let totalPaid = 0;
   let totalPending = 0;
   let totalRevenue = 0;
+  let hasSheetData = false;
 
-  for (const r of regs || []) {
-    totalRegistrations++;
-    if (r.registration_type === 'TEAM') totalTeams++;
-    else totalIndividual++;
-    if (r.payment_status === 'VERIFIED') {
-      totalPaid++;
-      totalRevenue += Number(r.payment_amount || 0);
+  // 1. Google Sheets is authoritative source of truth for registrations
+  try {
+    const { resolveEventRegistrationSpreadsheet, getEventRegistrations } = await import('@/lib/google/event-registration-sheets');
+    const sheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventId);
+    if (sheetId) {
+      const sheetRows = await getEventRegistrations(collegeId, sheetId);
+      if (Array.isArray(sheetRows) && sheetRows.length > 0) {
+        hasSheetData = true;
+        // Filter out cancelled rows AND filter rows that belong to programs
+        const progRows = sheetRows.filter(r => (r.programId || r.programName) && r.registrationStatus !== 'CANCELLED');
+        const uniqueTeams = new Set<string>();
+
+        for (const r of progRows) {
+          const isPaid = r.paymentStatus === 'PAID' || r.paymentStatus === 'VERIFIED';
+          const isPending = r.paymentStatus === 'PENDING' || r.paymentStatus === 'SUBMITTED';
+          const amount = Number(r.paymentAmount || 0);
+
+          if (isPaid) {
+            totalPaid++;
+            totalRevenue += amount;
+          } else if (isPending) {
+            totalPending++;
+          }
+
+          const isTeam = r.participationType === 'TEAM' || !!r.teamId;
+          if (isTeam) {
+            const teamKey = `${(r.programId || r.programName).trim().toUpperCase()}__${(r.teamId || r.teamName || 'TEAM').trim().toUpperCase()}`;
+            uniqueTeams.add(teamKey);
+          } else {
+            totalIndividual++;
+          }
+        }
+
+        totalTeams = uniqueTeams.size;
+        totalRegistrations = totalTeams + totalIndividual;
+        totalParticipants = progRows.length;
+      }
     }
-    if (r.payment_status === 'PENDING' || r.payment_status === 'SUBMITTED') totalPending++;
+  } catch (sheetErr) {
+    console.warn('[getEventProgramsStats] Google Sheet stats warning:', sheetErr);
   }
 
-  // Count total participants (individual regs + team members)
-  const { count: memberCount } = await db
-    .from('program_registration_members')
-    .select('id', { count: 'exact', head: true })
-    .eq('college_id', collegeId);
+  if (!hasSheetData) {
+    const { data: regs } = await db
+      .from('program_registrations')
+      .select('registration_type, payment_status, payment_amount, registration_status')
+      .eq('event_id', eventId)
+      .eq('college_id', collegeId)
+      .neq('registration_status', 'CANCELLED')
+      .neq('registration_status', 'REJECTED');
 
-  const totalParticipants = totalIndividual + (memberCount || 0);
+    for (const r of regs || []) {
+      totalRegistrations++;
+      if (r.registration_type === 'TEAM') totalTeams++;
+      else totalIndividual++;
+      if (r.payment_status === 'VERIFIED' || r.payment_status === 'PAID') {
+        totalPaid++;
+        totalRevenue += Number(r.payment_amount || 0);
+      }
+      if (r.payment_status === 'PENDING' || r.payment_status === 'SUBMITTED') totalPending++;
+    }
+
+    const { count: memberCount } = await db
+      .from('program_registration_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('college_id', collegeId);
+
+    totalParticipants = totalIndividual + (memberCount || 0);
+  }
 
   return {
     totalPrograms: totalPrograms || 0,
