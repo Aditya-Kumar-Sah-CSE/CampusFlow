@@ -53,26 +53,56 @@ export async function getAdminProgramRegistrations(params: {
   const db = await getDb();
 
   // Check if event has registration_sheet_id (Google Sheets is source of truth)
-  const { data: program } = await db
+  // Schema-safe: handle missing registration_sheet_id column (42703)
+  let program: { id: string; name: string; slug: string; event_id: string; event?: unknown } | null = null;
+  let sheetId: string | null = null;
+
+  const { data: progWithSheet, error: progErr } = await db
     .from('event_programs')
     .select('id, name, slug, event_id, event:events(id, registration_sheet_id)')
     .eq('id', params.programId)
     .eq('college_id', params.collegeId)
     .maybeSingle();
 
-  const eventRef = program?.event as unknown as { id: string; registration_sheet_id: string | null } | null;
-  if (eventRef?.registration_sheet_id && program?.slug) {
+  if (progErr && progErr.code === '42703') {
+    const { data: progFallback } = await db
+      .from('event_programs')
+      .select('id, name, slug, event_id')
+      .eq('id', params.programId)
+      .eq('college_id', params.collegeId)
+      .maybeSingle();
+    if (progFallback) {
+      program = progFallback;
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        sheetId = await resolveEventRegistrationSpreadsheet(params.collegeId, progFallback.event_id);
+      } catch { /* non-fatal */ }
+    }
+  } else if (progWithSheet) {
+    program = progWithSheet;
+    const eventRef = progWithSheet.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+    sheetId = eventRef?.registration_sheet_id || null;
+    if (!sheetId && eventRef?.id) {
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        sheetId = await resolveEventRegistrationSpreadsheet(params.collegeId, eventRef.id);
+      } catch { /* non-fatal */ }
+    }
+  }
+
+  const eventRef = program?.event ? (program.event as unknown as { id: string }) : (program ? { id: program.event_id } : null);
+  if (sheetId && program?.slug) {
     try {
       const { getProgramRegistrations } = await import('@/lib/google/event-registration-sheets');
       const sheetRows = await getProgramRegistrations(
         params.collegeId,
-        eventRef.registration_sheet_id,
+        sheetId,
         program.slug
       );
 
       let registrations: ProgramRegistration[] = sheetRows.map((r, idx) => ({
         id: r.registrationNumber || `reg-${idx}`,
-        event_id: eventRef.id,
+        event_id: eventRef?.id || '',
         program_id: params.programId,
         category_id: '',
         college_id: params.collegeId,
@@ -207,17 +237,34 @@ export async function getAdminEventProgramRegistrations(
   const db = await getDb();
 
   // Check if event has registration_sheet_id
-  const { data: event } = await db
+  // Schema-safe: handle missing column (42703)
+  let eventSheetId: string | null = null;
+  const { data: event, error: evtErr } = await db
     .from('events')
     .select('id, registration_sheet_id')
     .eq('id', eventId)
     .eq('college_id', collegeId)
     .maybeSingle();
 
-  if (event?.registration_sheet_id) {
+  if (evtErr && evtErr.code === '42703') {
+    try {
+      const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+      eventSheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventId);
+    } catch { /* non-fatal */ }
+  } else {
+    eventSheetId = event?.registration_sheet_id || null;
+    if (!eventSheetId) {
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        eventSheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventId);
+      } catch { /* non-fatal */ }
+    }
+  }
+
+  if (eventSheetId) {
     try {
       const { getEventRegistrations } = await import('@/lib/google/event-registration-sheets');
-      const sheetRows = await getEventRegistrations(collegeId, event.registration_sheet_id);
+      const sheetRows = await getEventRegistrations(collegeId, eventSheetId);
 
       const progRows = sheetRows.filter(r => r.programId !== '' && r.registrationStatus !== 'CANCELLED');
       return progRows.map((r, idx) => ({
@@ -656,22 +703,51 @@ export async function getPublicProgramParticipants(
   const db = await getDb();
 
   // Check visibility setting & event registration sheet
-  const { data: program } = await db
+  // Schema-safe: handle missing registration_sheet_id column (42703)
+  let pubProgram: { show_public_participants: boolean; name: string; slug: string; event_id?: string; event?: unknown; category?: unknown } | null = null;
+  let pubSheetId: string | null = null;
+
+  const { data: pubProgWithSheet, error: pubProgErr } = await db
     .from('event_programs')
     .select('show_public_participants, name, slug, event:events(id, registration_sheet_id), category:event_categories(name)')
     .eq('id', programId)
     .eq('college_id', collegeId)
     .maybeSingle();
 
-  if (!program || !program.show_public_participants) return [];
+  if (pubProgErr && pubProgErr.code === '42703') {
+    const { data: pubProgFallback } = await db
+      .from('event_programs')
+      .select('show_public_participants, name, slug, event_id, category:event_categories(name)')
+      .eq('id', programId)
+      .eq('college_id', collegeId)
+      .maybeSingle();
+    if (pubProgFallback) {
+      pubProgram = pubProgFallback;
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        pubSheetId = await resolveEventRegistrationSpreadsheet(collegeId, pubProgFallback.event_id || '');
+      } catch { /* non-fatal */ }
+    }
+  } else if (pubProgWithSheet) {
+    pubProgram = pubProgWithSheet;
+    const evtRef = pubProgWithSheet.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+    pubSheetId = evtRef?.registration_sheet_id || null;
+    if (!pubSheetId && evtRef?.id) {
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        pubSheetId = await resolveEventRegistrationSpreadsheet(collegeId, evtRef.id);
+      } catch { /* non-fatal */ }
+    }
+  }
 
-  const categoryName = (program.category as unknown as { name: string } | null)?.name || '';
-  const eventRef = program.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+  if (!pubProgram || !pubProgram.show_public_participants) return [];
 
-  if (eventRef?.registration_sheet_id && program.slug) {
+  const categoryName = (pubProgram.category as unknown as { name: string } | null)?.name || '';
+
+  if (pubSheetId && pubProgram.slug) {
     try {
       const { getProgramRegistrations } = await import('@/lib/google/event-registration-sheets');
-      const sheetRows = await getProgramRegistrations(collegeId, eventRef.registration_sheet_id, program.slug);
+      const sheetRows = await getProgramRegistrations(collegeId, pubSheetId, pubProgram.slug);
 
       // Safe fields only — NEVER return email, mobile, payment info!
       return sheetRows.map((r) => ({
@@ -679,7 +755,7 @@ export async function getPublicProgramParticipants(
         participant_name: r.studentName,
         registration_type: (r.participationType === 'TEAM' ? 'TEAM' : 'INDIVIDUAL'),
         team_name: r.teamName || null,
-        program_name: program.name,
+        program_name: pubProgram.name,
         category_name: categoryName,
       }));
     } catch (sheetErr) {
@@ -721,7 +797,7 @@ export async function getPublicProgramParticipants(
       participant_name: r.participant_name,
       registration_type: r.registration_type,
       team_name: r.team_name,
-      program_name: program.name,
+      program_name: pubProgram.name,
       category_name: categoryName,
     };
 

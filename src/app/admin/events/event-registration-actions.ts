@@ -25,6 +25,7 @@ import {
   updateRegistration,
   updatePaymentStatus,
   getEventRegistrations,
+  resolveEventRegistrationSpreadsheet,
 } from '@/lib/google/event-registration-sheets';
 import {
   createEventSession,
@@ -42,13 +43,57 @@ async function getEventWithCollege(eventId: string) {
   const supabase = createAdminClient();
   if (!supabase) throw new Error('Database unavailable.');
 
+  // Attempt with registration_sheet_id column
   const { data, error } = await supabase
     .from('events')
     .select('id, college_id, title, slug, status, registration_enabled, registration_start, registration_end, payment_required, payment_amount, registration_sheet_id')
     .eq('id', eventId)
     .maybeSingle();
 
+  if (error && error.code === '42703') {
+    // Column registration_sheet_id does not exist yet — retry without it
+    console.warn('[getEventWithCollege] Column registration_sheet_id not found, retrying without it.');
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('events')
+      .select('id, college_id, title, slug, status, registration_enabled, registration_start, registration_end, payment_required, payment_amount')
+      .eq('id', eventId)
+      .maybeSingle();
+
+    if (fallbackError || !fallbackData) throw new Error('Event not found.');
+
+    // Auto-discover spreadsheet from Google Drive
+    let resolvedSheetId: string | null = null;
+    try {
+      resolvedSheetId = await resolveEventRegistrationSpreadsheet(
+        fallbackData.college_id,
+        fallbackData.id,
+        fallbackData.title
+      );
+    } catch (driveErr) {
+      console.warn('[getEventWithCollege] Drive auto-discovery non-fatal error:', driveErr);
+    }
+
+    return { ...fallbackData, registration_sheet_id: resolvedSheetId };
+  }
+
   if (error || !data) throw new Error('Event not found.');
+
+  // If registration_sheet_id is null, attempt auto-discovery
+  if (!data.registration_sheet_id) {
+    try {
+      const resolvedSheetId = await resolveEventRegistrationSpreadsheet(
+        data.college_id,
+        data.id,
+        data.title
+      );
+      if (resolvedSheetId) {
+        data.registration_sheet_id = resolvedSheetId;
+      }
+    } catch (driveErr) {
+      console.warn('[getEventWithCollege] Drive auto-discovery non-fatal error:', driveErr);
+    }
+  }
+
   return data;
 }
 
@@ -204,7 +249,7 @@ export async function loginToEventAction(
     }
 
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'No registrations exist for this event yet.' };
+      return { success: false, error: 'No registrations exist for this event yet. Please register for the event first.' };
     }
 
     // 3. Look up registration in Google Sheet
@@ -301,6 +346,8 @@ export async function identifyStudentAction(input: {
       };
     }
 
+    console.log(`[EventVerification] eventId=${event.id} eventSlug=${event.slug} registrationSheetId=${event.registration_sheet_id}`);
+
     const isEmail = cleanId.includes('@');
     const registration = await findEventRegistrationByCredentials(
       event.college_id,
@@ -391,8 +438,10 @@ export async function verifyEventRegistrationAction(input: {
     }
 
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'No registrations exist for this event yet.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
+
+    console.log(`[EventVerification] eventId=${event.id} eventSlug=${event.slug} registrationSheetId=${event.registration_sheet_id}`);
 
     let searchEmail = input.email?.trim();
     let searchReg = input.registrationNumber?.trim();
@@ -576,6 +625,7 @@ export async function checkProgramRegistrationAction(
 
     const event = await getEventWithCollege(eventId);
     if (!event.registration_sheet_id) {
+      // No sheet means no program registrations possible yet
       return { isRegistered: false };
     }
 
@@ -639,7 +689,7 @@ export async function lookupTeamMemberAction(
 
     const event = await getEventWithCollege(eventId);
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'Registration sheet not found for this event.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const reg = await lookupEventRegistrationByNumber(
@@ -706,7 +756,7 @@ export async function registerForProgramAction(
     // 2. Get event
     const event = await getEventWithCollege(eventId);
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'Event registration sheet not found.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     // 3. Get program from Supabase (config)
@@ -863,7 +913,7 @@ export async function registerForTeamProgramAction(
     // 2. Get event
     const event = await getEventWithCollege(eventId);
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'Event registration sheet not found.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     // 3. Get program from Supabase
@@ -1064,7 +1114,7 @@ export async function verifyProgramPaymentSheetAction(
     const collegeId = adminCollegeId || event.college_id;
 
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'No registration sheet for this event.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const result = await updatePaymentStatus(
@@ -1097,7 +1147,7 @@ export async function rejectProgramPaymentSheetAction(
     const collegeId = adminCollegeId || event.college_id;
 
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'No registration sheet for this event.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const result = await updatePaymentStatus(
@@ -1134,7 +1184,7 @@ export async function updateProgramRegStatusSheetAction(
     const collegeId = adminCollegeId || event.college_id;
 
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'No registration sheet.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const result = await updateRegistration(
@@ -1172,7 +1222,7 @@ export async function submitPaymentReferenceAction(
 
     const event = await getEventWithCollege(eventId);
     if (!event.registration_sheet_id) {
-      return { success: false, error: 'Registration sheet not found.' };
+      return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const updated = await updatePaymentStatus(
@@ -1316,7 +1366,7 @@ export async function getSafePublicParticipantsAction(
   try {
     const event = await getEventWithCollege(eventId);
     if (!event.registration_sheet_id) {
-      return { success: true, participants: [] };
+      return { success: true, participants: [] /* no sheet resolved */ };
     }
 
     const rows = await getEventRegistrations(collegeId, event.registration_sheet_id);

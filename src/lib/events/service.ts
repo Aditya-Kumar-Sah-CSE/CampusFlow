@@ -271,10 +271,19 @@ export async function getEventRegistrations(params: {
   }
 
   // GOOGLE SHEETS IS SOURCE OF TRUTH FOR REGISTRATION DATA
-  if (event.registration_sheet_id) {
+  // Auto-discover spreadsheet if registration_sheet_id is null/missing
+  let resolvedSheetId: string | null = event.registration_sheet_id || null;
+  if (!resolvedSheetId) {
+    try {
+      const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+      resolvedSheetId = await resolveEventRegistrationSpreadsheet(params.collegeId, event.id, event.title);
+    } catch { /* non-fatal */ }
+  }
+
+  if (resolvedSheetId) {
     try {
       const { getEventRegistrations: getSheetEventRegistrations } = await import('@/lib/google/event-registration-sheets');
-      const sheetRows = await getSheetEventRegistrations(params.collegeId, event.registration_sheet_id);
+      const sheetRows = await getSheetEventRegistrations(params.collegeId, resolvedSheetId);
 
       let registrations: EventRegistration[] = sheetRows.map((r, idx) => ({
         id: r.registrationNumber || `reg-${idx}`,

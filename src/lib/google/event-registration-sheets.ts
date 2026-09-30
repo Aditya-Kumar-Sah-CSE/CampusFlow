@@ -296,43 +296,69 @@ export function generateTeamId(programSlug: string, existingTeamIds: Set<string>
 // ============================================================
 
 /**
- * Get or create the event registration spreadsheet.
- * Each event gets ONE spreadsheet with Sheet 1 = EVENT_REGISTRATIONS.
- * Saves registration_sheet_id in Supabase events table.
+ * Auto-discover existing Event Registration spreadsheet in the college's Google Drive.
+ * Searches for exact title: `${eventTitle} — Event Registrations`
+ * Prefers Google Sheets MIME type, ignores trashed files, and orders by modifiedTime desc.
+ * Returns the spreadsheet ID if found, or null if no matching spreadsheet exists.
  */
-export async function getOrCreateEventRegistrationSpreadsheet(
+export async function findEventRegistrationSpreadsheetInDrive(
+  collegeId: string,
+  eventTitle: string
+): Promise<string | null> {
+  if (!collegeId || !eventTitle) return null;
+
+  try {
+    const isConfigured = await isCollegeGoogleConfigured(collegeId);
+    if (!isConfigured) return null;
+
+    return await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ drive }) => {
+      const targetTitle = `${eventTitle} — Event Registrations`;
+      const escapedTitle = targetTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
+      const res = await drive.files.list({
+        q: `name = '${escapedTitle}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+        fields: 'files(id, name, modifiedTime)',
+        orderBy: 'modifiedTime desc',
+        pageSize: 10,
+      });
+
+      if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
+        return res.data.files[0].id;
+      }
+
+      // Fallback with standard hyphen in case em-dash was converted to ASCII hyphen
+      const altTitle = `${eventTitle} - Event Registrations`;
+      if (altTitle !== targetTitle) {
+        const escapedAlt = altTitle.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const altRes = await drive.files.list({
+          q: `name = '${escapedAlt}' and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+          fields: 'files(id, name, modifiedTime)',
+          orderBy: 'modifiedTime desc',
+          pageSize: 10,
+        });
+
+        if (altRes.data.files && altRes.data.files.length > 0 && altRes.data.files[0].id) {
+          return altRes.data.files[0].id;
+        }
+      }
+
+      return null;
+    });
+  } catch (err) {
+    console.warn(`[EventRegSheets] findEventRegistrationSpreadsheetInDrive error for event "${eventTitle}":`, err);
+    return null;
+  }
+}
+
+/**
+ * Creates a brand new event registration spreadsheet in Google Drive.
+ * Internal helper: Callers should always use resolveEventRegistrationSpreadsheet to prevent duplicates.
+ */
+async function createNewEventRegistrationSpreadsheetInternal(
   collegeId: string,
   eventId: string,
   eventTitle: string
 ): Promise<string> {
-  await assertCollegeGoogleConnected(collegeId);
-
-  const supabase = createAdminClient();
-  if (!supabase) throw new Error('Database unavailable.');
-
-  // 1. Check existing sheet ID in Supabase
-  const { data: event } = await supabase
-    .from('events')
-    .select('registration_sheet_id, slug')
-    .eq('id', eventId)
-    .eq('college_id', collegeId)
-    .maybeSingle();
-
-  if (event?.registration_sheet_id) {
-    try {
-      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
-        await sheets.spreadsheets.get({
-          spreadsheetId: event.registration_sheet_id,
-          fields: 'spreadsheetId',
-        });
-      });
-      return event.registration_sheet_id;
-    } catch {
-      console.warn(`[EventRegSheets] Existing sheet ${event.registration_sheet_id} inaccessible, recreating.`);
-    }
-  }
-
-  // 2. Create spreadsheet in Google Drive
   const spreadsheetId = await executeWithCollegeGoogleOAuthRetry(
     collegeId,
     async ({ sheets }) => {
@@ -414,14 +440,142 @@ export async function getOrCreateEventRegistrationSpreadsheet(
     }
   );
 
-  // 3. Persist registration_sheet_id in Supabase
-  await supabase
-    .from('events')
-    .update({ registration_sheet_id: spreadsheetId })
-    .eq('id', eventId)
-    .eq('college_id', collegeId);
+  // Attempt non-fatal persistence in Supabase
+  const supabase = createAdminClient();
+  if (supabase && eventId) {
+    try {
+      await supabase
+        .from('events')
+        .update({ registration_sheet_id: spreadsheetId })
+        .eq('id', eventId)
+        .eq('college_id', collegeId);
+    } catch {
+      // Non-fatal if column doesn't exist
+    }
+  }
 
   return spreadsheetId;
+}
+
+/**
+ * Centralized resolver for event registration spreadsheets.
+ * 1. Checks Supabase cached registration_sheet_id (schema-safe against missing column 42703).
+ * 2. If cached, verifies the spreadsheet exists and is accessible.
+ * 3. If null/missing/inaccessible, searches Google Drive for `${eventTitle} — Event Registrations`.
+ * 4. If found in Drive, attempts to non-fatally cache in Supabase.
+ * 5. If not found and options.createIfMissing is true, creates exactly one new spreadsheet.
+ * 6. Never duplicates an existing spreadsheet in Google Drive.
+ */
+export async function resolveEventRegistrationSpreadsheet(
+  collegeId: string,
+  eventId: string,
+  eventTitle?: string,
+  options?: { createIfMissing?: boolean }
+): Promise<string | null> {
+  await assertCollegeGoogleConnected(collegeId);
+
+  const supabase = createAdminClient();
+  let cachedSheetId: string | null = null;
+  let resolvedTitle: string = eventTitle || '';
+
+  // 1. Try reading registration_sheet_id from Supabase events table
+  if (supabase && eventId) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(eventId.trim());
+    let query = supabase.from('events').select('id, title, registration_sheet_id');
+    if (isUuid) {
+      query = query.eq('id', eventId.trim());
+    } else {
+      query = query.eq('slug', eventId.trim());
+    }
+    if (collegeId) {
+      query = query.eq('college_id', collegeId);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (!error && data) {
+      cachedSheetId = data.registration_sheet_id || null;
+      resolvedTitle = resolvedTitle || data.title;
+    } else if (error && error.code === '42703') {
+      // Column registration_sheet_id does not exist in schema yet
+      let fallbackQuery = supabase.from('events').select('id, title');
+      if (isUuid) {
+        fallbackQuery = fallbackQuery.eq('id', eventId.trim());
+      } else {
+        fallbackQuery = fallbackQuery.eq('slug', eventId.trim());
+      }
+      if (collegeId) {
+        fallbackQuery = fallbackQuery.eq('college_id', collegeId);
+      }
+      const { data: fallbackData } = await fallbackQuery.maybeSingle();
+      if (fallbackData) {
+        resolvedTitle = resolvedTitle || fallbackData.title;
+      }
+    }
+  }
+
+  // 2. Validate cached spreadsheet ID if present
+  if (cachedSheetId) {
+    try {
+      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+        await sheets.spreadsheets.get({
+          spreadsheetId: cachedSheetId!,
+          fields: 'spreadsheetId',
+        });
+      });
+      return cachedSheetId;
+    } catch {
+      console.warn(`[EventRegSheets] Cached sheet ${cachedSheetId} inaccessible, falling back to Drive discovery.`);
+      cachedSheetId = null;
+    }
+  }
+
+  // 3. Search Google Drive by title if title is available
+  if (resolvedTitle) {
+    const driveSheetId = await findEventRegistrationSpreadsheetInDrive(collegeId, resolvedTitle);
+    if (driveSheetId) {
+      // Attempt non-fatal cache update in Supabase
+      if (supabase && eventId) {
+        void (async () => {
+          try {
+            const { error: updateErr } = await supabase
+              .from('events')
+              .update({ registration_sheet_id: driveSheetId })
+              .eq('id', eventId);
+            if (updateErr && updateErr.code !== '42703') {
+              console.warn(`[EventRegSheets] Non-fatal cache update notice:`, updateErr.message);
+            }
+          } catch {
+            // Ignore non-fatal update error
+          }
+        })();
+      }
+      return driveSheetId;
+    }
+  }
+
+  // 4. Create spreadsheet only if explicitly requested
+  if (options?.createIfMissing && resolvedTitle) {
+    return await createNewEventRegistrationSpreadsheetInternal(collegeId, eventId, resolvedTitle);
+  }
+
+  return null;
+}
+
+/**
+ * Get or create the event registration spreadsheet.
+ * Strictly avoids creating duplicates by resolving existing sheets in Supabase and Google Drive first.
+ */
+export async function getOrCreateEventRegistrationSpreadsheet(
+  collegeId: string,
+  eventId: string,
+  eventTitle: string
+): Promise<string> {
+  const sheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventId, eventTitle, { createIfMissing: true });
+  if (!sheetId) {
+    throw new Error('Failed to resolve or create event registration spreadsheet.');
+  }
+  return sheetId;
 }
 
 /**
@@ -703,16 +857,7 @@ export async function findEventRegistrationByCredentials(
 
   let spreadsheetId = providedSpreadsheetId;
   if (!spreadsheetId) {
-    const supabase = createAdminClient();
-    if (supabase) {
-      const { data: event } = await supabase
-        .from('events')
-        .select('registration_sheet_id')
-        .eq('id', eventId)
-        .eq('college_id', collegeId)
-        .maybeSingle();
-      spreadsheetId = event?.registration_sheet_id || undefined;
-    }
+    spreadsheetId = (await resolveEventRegistrationSpreadsheet(collegeId, eventId)) || undefined;
   }
 
   if (!spreadsheetId) return null;

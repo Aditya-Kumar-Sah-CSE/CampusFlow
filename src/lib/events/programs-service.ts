@@ -453,18 +453,50 @@ export async function getProgramStats(
   const db = await getDb();
 
   // Check if event has registration_sheet_id (Google Sheets is source of truth)
-  const { data: programData } = await db
+  // Schema-safe: handle missing registration_sheet_id column (42703)
+  let programData: { id: string; slug: string; max_participants: number | null; max_teams: number | null; event_id?: string; event?: unknown } | null = null;
+  let sheetId: string | null = null;
+
+  const { data: pdWithSheet, error: pdErr } = await db
     .from('event_programs')
     .select('id, slug, max_participants, max_teams, event:events(id, registration_sheet_id)')
     .eq('id', programId)
     .eq('college_id', collegeId)
     .maybeSingle();
 
-  const eventRef = programData?.event as unknown as { id: string; registration_sheet_id: string | null } | null;
-  if (eventRef?.registration_sheet_id && programData?.slug) {
+  if (pdErr && pdErr.code === '42703') {
+    // Column registration_sheet_id doesn't exist yet — query without it
+    const { data: pdFallback } = await db
+      .from('event_programs')
+      .select('id, slug, max_participants, max_teams, event_id')
+      .eq('id', programId)
+      .eq('college_id', collegeId)
+      .maybeSingle();
+    if (pdFallback) {
+      programData = pdFallback;
+      // Resolve sheet via Drive auto-discovery
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        sheetId = await resolveEventRegistrationSpreadsheet(collegeId, pdFallback.event_id || '');
+      } catch { /* non-fatal */ }
+    }
+  } else if (pdWithSheet) {
+    programData = pdWithSheet;
+    const eventRef = pdWithSheet.event as unknown as { id: string; registration_sheet_id: string | null } | null;
+    sheetId = eventRef?.registration_sheet_id || null;
+    // If sheetId is null, attempt Drive auto-discovery
+    if (!sheetId && eventRef?.id) {
+      try {
+        const { resolveEventRegistrationSpreadsheet } = await import('@/lib/google/event-registration-sheets');
+        sheetId = await resolveEventRegistrationSpreadsheet(collegeId, eventRef.id);
+      } catch { /* non-fatal */ }
+    }
+  }
+
+  if (sheetId && programData?.slug) {
     try {
       const { getProgramStats: getSheetStats } = await import('@/lib/google/event-registration-sheets');
-      const sheetStats = await getSheetStats(collegeId, eventRef.registration_sheet_id, programData.slug);
+      const sheetStats = await getSheetStats(collegeId, sheetId, programData.slug);
 
       return {
         totalRegistrations: sheetStats.totalRegistrations,
