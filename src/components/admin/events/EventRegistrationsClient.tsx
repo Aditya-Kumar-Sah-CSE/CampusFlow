@@ -178,7 +178,7 @@ export function EventRegistrationsClient({
               ({event.active_registrations_count || 0} Registered)
             </span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5" suppressHydrationWarning>
             Venue: {event.venue} &bull; Starts: {new Date(event.start_at).toLocaleDateString('en-IN')}
           </p>
         </div>
@@ -254,7 +254,7 @@ export function EventRegistrationsClient({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-3">
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-3" suppressHydrationWarning>
         {/* Search */}
         <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -263,6 +263,7 @@ export function EventRegistrationsClient({
             placeholder="Search student, reg number, email, mobile, UTR..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            suppressHydrationWarning
             className="w-full pl-9 pr-3.5 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt"
           />
         </div>
@@ -271,6 +272,7 @@ export function EventRegistrationsClient({
         <select
           value={branchFilter}
           onChange={(e) => setBranchFilter(e.target.value)}
+          suppressHydrationWarning
           className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
         >
           <option value="ALL">All Branches</option>
@@ -285,6 +287,7 @@ export function EventRegistrationsClient({
         <select
           value={semesterFilter}
           onChange={(e) => setSemesterFilter(e.target.value)}
+          suppressHydrationWarning
           className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
         >
           <option value="ALL">All Semesters</option>
@@ -300,6 +303,7 @@ export function EventRegistrationsClient({
           <select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value as any)}
+            suppressHydrationWarning
             className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
           >
             <option value="ALL">All Payments</option>
@@ -313,6 +317,7 @@ export function EventRegistrationsClient({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
+          suppressHydrationWarning
           className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
         >
           <option value="ALL">All Reg Status</option>
@@ -378,7 +383,7 @@ export function EventRegistrationsClient({
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-center text-slate-500">{regDate}</td>
+                      <td className="py-2.5 px-3 text-center text-slate-500" suppressHydrationWarning>{regDate}</td>
 
                       {/* Payment Status (if paid) */}
                       {isPaid && (
@@ -416,12 +421,13 @@ export function EventRegistrationsClient({
                       </td>
 
                       {/* Actions */}
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="inline-flex items-center gap-1 justify-end">
+                      <td className="py-2.5 px-3 text-right" suppressHydrationWarning>
+                        <div className="inline-flex items-center gap-1 justify-end" suppressHydrationWarning>
                           {/* View details */}
                           <button
                             type="button"
                             onClick={() => setSelectedReg(reg)}
+                            suppressHydrationWarning
                             className="p-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded"
                             title="View Registration Details"
                           >
@@ -435,6 +441,7 @@ export function EventRegistrationsClient({
                                 type="button"
                                 disabled={isLoading}
                                 onClick={() => setConfirmAction({ type: 'VERIFY', reg })}
+                                suppressHydrationWarning
                                 className="px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded text-[11px] font-bold transition-colors disabled:opacity-50"
                                 title="Verify Payment"
                               >
@@ -445,6 +452,7 @@ export function EventRegistrationsClient({
                                 type="button"
                                 disabled={isLoading}
                                 onClick={() => setConfirmAction({ type: 'REJECT', reg })}
+                                suppressHydrationWarning
                                 className="px-1.5 py-0.5 bg-red-50 text-red-700 hover:bg-red-100 rounded text-[11px] font-bold transition-colors disabled:opacity-50"
                                 title="Reject Payment"
                               >
@@ -459,6 +467,7 @@ export function EventRegistrationsClient({
                               type="button"
                               disabled={isLoading}
                               onClick={() => handleStatusChange(reg.id, 'CANCELLED')}
+                              suppressHydrationWarning
                               className="px-1.5 py-0.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded text-[10px] transition-colors"
                               title="Cancel Registration"
                             >
@@ -469,6 +478,7 @@ export function EventRegistrationsClient({
                               type="button"
                               disabled={isLoading}
                               onClick={() => handleStatusChange(reg.id, 'REGISTERED')}
+                              suppressHydrationWarning
                               className="px-1.5 py-0.5 text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 rounded text-[10px] transition-colors font-semibold"
                               title="Restore Registration"
                             >
@@ -575,6 +585,7 @@ export function EventRegistrationsClient({
                     type="button"
                     disabled={actionLoadingId === selectedReg.id}
                     onClick={() => setConfirmAction({ type: 'VERIFY', reg: selectedReg })}
+                    suppressHydrationWarning
                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -584,6 +595,7 @@ export function EventRegistrationsClient({
                     type="button"
                     disabled={actionLoadingId === selectedReg.id}
                     onClick={() => setConfirmAction({ type: 'REJECT', reg: selectedReg })}
+                    suppressHydrationWarning
                     className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -597,6 +609,7 @@ export function EventRegistrationsClient({
               <button
                 type="button"
                 onClick={() => setSelectedReg(null)}
+                suppressHydrationWarning
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
               >
                 Close
@@ -677,6 +690,7 @@ export function EventRegistrationsClient({
                 type="button"
                 disabled={actionLoadingId !== null}
                 onClick={() => setConfirmAction(null)}
+                suppressHydrationWarning
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors disabled:opacity-50"
               >
                 Cancel
@@ -690,6 +704,7 @@ export function EventRegistrationsClient({
                     await handleVerifyPayment(confirmAction.reg.id);
                     setConfirmAction(null);
                   }}
+                  suppressHydrationWarning
                   className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {actionLoadingId === confirmAction.reg.id ? (
@@ -712,6 +727,7 @@ export function EventRegistrationsClient({
                     await handleRejectPayment(confirmAction.reg.id);
                     setConfirmAction(null);
                   }}
+                  suppressHydrationWarning
                   className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {actionLoadingId === confirmAction.reg.id ? (
