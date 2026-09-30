@@ -220,7 +220,7 @@ export function OverviewTab({
             <span>Quick Administration</span>
           </h3>
           <p className="text-xs text-slate-500">
-            Frequently performed Phase 1 foundation tasks.
+            Frequently performed foundation tasks.
           </p>
 
           <div className="space-y-2.5 pt-1">

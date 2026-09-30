@@ -231,9 +231,6 @@ export function AdminMobileNav({
                 <BarChart3 className="w-4 h-4 text-amber-400" />
                 <span>Results &amp; Analytics Hub</span>
               </div>
-              <span className="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400 text-slate-950">
-                Phase 4
-              </span>
             </Link>
 
             <Link

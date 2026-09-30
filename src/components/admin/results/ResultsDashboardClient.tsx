@@ -185,7 +185,7 @@ export function ResultsDashboardClient({
                   Faculty Feedback Results & Analytics
                 </h1>
                 <p className="text-xs text-slate-500">
-                  Institutional Quality Assurance & Objective Evaluation Metrics (Phase 4)
+                  Institutional Quality Assurance & Objective Evaluation Metrics
                 </p>
               </div>
             </div>

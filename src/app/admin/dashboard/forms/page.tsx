@@ -265,9 +265,6 @@ export default async function FeedbackFormsPage({
               <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-bce-cobalt" />
               Google Feedback Forms Management
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-bce-cobalt border border-blue-200">
-              Phase 2 Active
-            </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Create standard 8-parameter {session.activeCollege?.name ? `${session.activeCollege.name} ` : ''}Google Feedback Forms, manage connected response Google Sheets, and oversee form lifecycles.

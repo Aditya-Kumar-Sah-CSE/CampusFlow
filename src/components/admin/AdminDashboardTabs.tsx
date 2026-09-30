@@ -499,9 +499,6 @@ export function AdminDashboardTabs({
               <BarChart3 className="w-4 h-4 text-bce-cobalt group-hover:scale-110 transition-transform duration-200 shrink-0" />
             )}
             <span>{isNavigatingToResults ? 'Opening Hub...' : 'Results & Analytics Hub'}</span>
-            <span className="text-[10px] font-extrabold uppercase bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full shadow-2xs group-hover:bg-amber-500 transition-colors">
-              Phase 4
-            </span>
           </Link>
         ) : (
           <Link
