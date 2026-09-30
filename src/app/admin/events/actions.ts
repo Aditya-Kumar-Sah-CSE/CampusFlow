@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import type { EventStatus, EventRegistrationStatus, EventFormData } from '@/types/events';
+import { normalizeEventSlug, isValidEventSlug } from '@/lib/events/slug';
 
 async function getAdminDb() {
   return createAdminClient() || await createClient();
@@ -74,11 +75,18 @@ export async function createEventAction(
 
     // Validation
     const cleanTitle = data.title.trim();
-    const cleanSlug = data.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+    const cleanSlug = normalizeEventSlug(data.slug);
     const cleanVenue = data.venue.trim();
 
     if (!cleanTitle || !cleanSlug || !cleanVenue) {
       return { success: false, error: 'Title, slug, and venue are required.' };
+    }
+
+    if (!isValidEventSlug(cleanSlug)) {
+      return {
+        success: false,
+        error: 'Event URL slug must be lowercase alphanumeric with hyphens (e.g. "techfest-2026").',
+      };
     }
 
     if (new Date(data.end_at) < new Date(data.start_at)) {
@@ -214,7 +222,16 @@ export async function updateEventAction(
     }
 
     if (data.slug !== undefined) {
-      const cleanSlug = data.slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+      const cleanSlug = normalizeEventSlug(data.slug);
+      if (!cleanSlug) {
+        return { success: false, error: 'Event URL slug cannot be empty.' };
+      }
+      if (!isValidEventSlug(cleanSlug)) {
+        return {
+          success: false,
+          error: 'Event URL slug must be lowercase alphanumeric with hyphens (e.g. "techfest-2026").',
+        };
+      }
       if (cleanSlug !== existing.slug) {
         const { data: collision } = await db
           .from('events')
@@ -225,7 +242,7 @@ export async function updateEventAction(
           .maybeSingle();
 
         if (collision) {
-          return { success: false, error: 'URL slug is already in use by another event.' };
+          return { success: false, error: 'URL slug is already in use by another event in this institution.' };
         }
         updates.slug = cleanSlug;
       }
@@ -253,6 +270,19 @@ export async function updateEventAction(
     );
 
     revalidatePath('/admin/dashboard');
+    revalidatePath(`/admin/dashboard/events/${eventId}`);
+    revalidatePath(`/admin/dashboard/events/${eventId}/edit`);
+    revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
+    if (existing.slug) {
+      revalidatePath(`/admin/dashboard/events/${existing.slug}`);
+      revalidatePath(`/admin/dashboard/events/${existing.slug}/edit`);
+      revalidatePath(`/admin/dashboard/events/${existing.slug}/registrations`);
+    }
+    if (updates.slug && updates.slug !== existing.slug) {
+      revalidatePath(`/admin/dashboard/events/${updates.slug}`);
+      revalidatePath(`/admin/dashboard/events/${updates.slug}/edit`);
+      revalidatePath(`/admin/dashboard/events/${updates.slug}/registrations`);
+    }
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to update event.' };

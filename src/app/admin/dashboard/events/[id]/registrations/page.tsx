@@ -28,7 +28,7 @@ export default async function EventRegistrationsPage({
   }
 
   const [regData, academic] = await Promise.all([
-    getEventRegistrations({ eventId: id, collegeId }),
+    getEventRegistrations({ eventId: event.id, collegeId }),
     getCachedAcademicMasters(collegeId),
   ]);
 

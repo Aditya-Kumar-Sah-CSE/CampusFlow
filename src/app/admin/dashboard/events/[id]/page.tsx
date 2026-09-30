@@ -8,7 +8,7 @@ interface Props {
   }>;
 }
 
-export default async function EditEventPage({ params }: Props) {
+export default async function AdminEventDetailsPage({ params }: Props) {
   const { id } = await params;
   return <EventEditView idOrSlug={id} />;
 }

@@ -54,7 +54,7 @@ export async function GET(
     const registrationStatus = (searchParams.get('registrationStatus') as any) || 'ALL';
 
     const { registrations, stats } = await getEventRegistrations({
-      eventId,
+      eventId: event.id,
       collegeId,
       search,
       branchId,

@@ -8,6 +8,7 @@ import type {
   EventRegistrationStatus,
   PublicEventRegistrationInput,
 } from '@/types/events';
+import { isUuid, normalizeEventSlug } from '@/lib/events/slug';
 
 async function getDb() {
   return createAdminClient() || await createClient();
@@ -57,20 +58,64 @@ export async function getAdminEvents(collegeId: string): Promise<CollegeEvent[]>
 }
 
 /**
- * Fetch single event by ID for an admin (guarantees collegeId scoping)
+ * Fetch single event by ID or SLUG for an admin (guarantees collegeId scoping).
+ * Safely handles both UUID and slug identifiers without Postgres type errors.
  */
 export async function getAdminEventById(
-  eventId: string,
+  idOrSlug: string,
   collegeId: string
 ): Promise<CollegeEvent | null> {
+  if (!idOrSlug || !collegeId) return null;
   const db = await getDb();
 
-  const { data, error } = await db
-    .from('events')
-    .select('*')
-    .eq('id', eventId)
-    .eq('college_id', collegeId)
-    .maybeSingle();
+  let clean = idOrSlug.trim();
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {
+    // Malformed URI sequence fallback
+  }
+
+  const isIdentifierUuid = isUuid(clean);
+
+  let data: any = null;
+  let error: any = null;
+
+  if (isIdentifierUuid) {
+    // Primary query by UUID
+    const res = await db
+      .from('events')
+      .select('*')
+      .eq('id', clean)
+      .eq('college_id', collegeId)
+      .maybeSingle();
+
+    data = res.data;
+    error = res.error;
+
+    // Fallback: in rare case an event slug equals this string
+    if (!data && !error) {
+      const fallbackRes = await db
+        .from('events')
+        .select('*')
+        .eq('slug', clean.toLowerCase())
+        .eq('college_id', collegeId)
+        .maybeSingle();
+      data = fallbackRes.data;
+      error = fallbackRes.error;
+    }
+  } else {
+    // Query strictly by slug within the tenant college
+    const normalized = normalizeEventSlug(clean);
+    const res = await db
+      .from('events')
+      .select('*')
+      .eq('slug', normalized)
+      .eq('college_id', collegeId)
+      .maybeSingle();
+
+    data = res.data;
+    error = res.error;
+  }
 
   if (error || !data) {
     if (error) console.error('[GET_ADMIN_EVENT_BY_ID_ERROR]', error);
@@ -80,7 +125,7 @@ export async function getAdminEventById(
   const { count: activeCount } = await db
     .from('event_registrations')
     .select('id', { count: 'exact', head: true })
-    .eq('event_id', eventId)
+    .eq('event_id', data.id)
     .eq('registration_status', 'REGISTERED');
 
   return {
@@ -88,6 +133,11 @@ export async function getAdminEventById(
     active_registrations_count: activeCount || 0,
   };
 }
+
+/**
+ * Re-export alias for getAdminEventById to make slug/id dual resolution explicit.
+ */
+export const getAdminEventByIdOrSlug = getAdminEventById;
 
 /**
  * Fetch published events for public tenant portal
@@ -111,20 +161,36 @@ export async function getPublicTenantEvents(collegeId: string): Promise<CollegeE
 }
 
 /**
- * Fetch single published event by slug for public tenant portal
+ * Fetch single published event by slug for public tenant portal.
+ * Multi-tenant safe: strictly scoped by (college_id, slug).
  */
 export async function getPublicEventBySlug(
   collegeId: string,
-  slug: string
+  slugOrId: string
 ): Promise<CollegeEvent | null> {
+  if (!collegeId || !slugOrId) return null;
   const db = await getDb();
 
-  const { data, error } = await db
+  const clean = normalizeEventSlug(slugOrId);
+
+  let { data, error } = await db
     .from('events')
     .select('*')
     .eq('college_id', collegeId)
-    .eq('slug', slug)
+    .eq('slug', clean)
     .maybeSingle();
+
+  // If not found by slug and slugOrId looks like a UUID, fallback to lookup by UUID
+  if (!data && isUuid(slugOrId)) {
+    const res = await db
+      .from('events')
+      .select('*')
+      .eq('college_id', collegeId)
+      .eq('id', slugOrId.trim())
+      .maybeSingle();
+    data = res.data;
+    error = res.error;
+  }
 
   if (error || !data) {
     return null;
@@ -157,7 +223,7 @@ export async function getEventRegistrations(params: {
 }): Promise<{ registrations: EventRegistration[]; stats: EventStats }> {
   const db = await getDb();
 
-  // First verify event belongs to this college
+  // First verify event belongs to this college (resolves either UUID or slug)
   const event = await getAdminEventById(params.eventId, params.collegeId);
   if (!event) {
     return {
@@ -173,7 +239,7 @@ export async function getEventRegistrations(params: {
     };
   }
 
-  // Build query with joins
+  // Build query with joins - ALWAYS use canonical UUID (event.id)
   let query = db
     .from('event_registrations')
     .select(`
@@ -181,7 +247,7 @@ export async function getEventRegistrations(params: {
       branch:branches(id, name, code),
       semester:semesters(id, name, semester_number)
     `)
-    .eq('event_id', params.eventId)
+    .eq('event_id', event.id)
     .eq('college_id', params.collegeId)
     .order('registered_at', { ascending: false });
 
@@ -237,7 +303,7 @@ export async function getEventRegistrations(params: {
   const { data: allRegs } = await db
     .from('event_registrations')
     .select('payment_status, registration_status')
-    .eq('event_id', params.eventId)
+    .eq('event_id', event.id)
     .eq('college_id', params.collegeId);
 
   let totalEnrolled = 0;
