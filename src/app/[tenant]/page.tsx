@@ -6,9 +6,9 @@ import { getPublicTenantEvents } from '@/lib/events/service';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { PublicEventCard } from '@/components/events/PublicEventCard';
-import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
-import { School, UserCheck, ArrowRight, ExternalLink, Ticket, Calendar, FileText } from 'lucide-react';
+import { School, UserCheck, ArrowRight, ExternalLink, Ticket, Calendar } from 'lucide-react';
+import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import type { Branch, AcademicYear, Semester } from '@/types/database';
 import type { CollegeEvent } from '@/types/events';
 
@@ -82,65 +82,8 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
         </div>
       </div>
 
-      {/* Main Header with Tenant Branding */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 flex justify-between items-center gap-2">
-          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-white flex items-center justify-center font-bold text-lg sm:text-xl shadow-md border border-slate-200 shrink-0 overflow-hidden p-1">
-              {tenant.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={tenant.logo}
-                  alt={`${tenant.name} Logo`}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-blue-900 rounded-lg flex items-center justify-center text-amber-400">
-                  <School className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
-                </div>
-              )}
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-xl font-bold tracking-tight text-slate-900 truncate sm:whitespace-normal">
-                {tenant.name}
-              </h1>
-              <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate sm:whitespace-normal">
-                Faculty Feedback & Evaluation Portal ({tenant.shortName})
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <CollegeInstallButton tenant={tenant} />
-            {tenant.showFeedbacks && (
-              <Link
-                href={`/${tenant.slug}/feedback`}
-                className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
-              >
-                <FileText className="w-3.5 h-3.5 text-blue-600" />
-                <span>Browse All Forms</span>
-              </Link>
-            )}
-            {tenant.showEvents && (
-              <Link
-                href={`/${tenant.slug}/events`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/80 rounded-lg transition-colors"
-              >
-                <Ticket className="w-3.5 h-3.5 text-blue-600" />
-                <span>Events</span>
-              </Link>
-            )}
-            <Link
-              href={`/${tenant.slug}/admin/login`}
-              className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 text-xs sm:text-sm font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all shrink-0 active:scale-98"
-            >
-              <UserCheck className="w-4 h-4 text-blue-600 shrink-0" />
-              <span className="hidden sm:inline">Faculty / Admin Login</span>
-              <span className="sm:hidden font-semibold">Admin</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Main Responsive Header with Tenant Branding & Mobile Drawer */}
+      <PublicTenantNavbar tenant={tenant} currentPage="home" />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-10 space-y-10 sm:space-y-14">

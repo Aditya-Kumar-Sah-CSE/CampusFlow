@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getAllActiveColleges } from '@/lib/tenant/resolver';
 import { CollegeGrid } from '@/components/public/CollegeGrid';
-import { School, ArrowRight } from 'lucide-react';
+import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -18,35 +18,8 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      {/* 1. Top Header (64-72px height, minimal) */}
-      <header className="h-16 sm:h-[72px] bg-white border-b border-slate-200 sticky top-0 z-30 flex items-center shrink-0">
-        <div className="max-w-7xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-          {/* Left: Platform Identity */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold shadow-sm border border-slate-800 shrink-0">
-              <School className="w-5 h-5 text-blue-400" />
-            </div>
-            <div className="min-w-0">
-              <span className="block text-sm sm:text-base font-bold tracking-tight text-slate-900 truncate">
-                Feedback Management System
-              </span>
-              <span className="block text-[11px] sm:text-xs text-slate-500 font-medium truncate">
-                Institutional Feedback Platform
-              </span>
-            </div>
-          </div>
-
-          {/* Right: Super Admin Login Only */}
-          <Link
-            href="/admin/login"
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg shadow-sm transition-all shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-          >
-            <span className="hidden sm:inline">Super Admin </span>
-            <span>Login</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-          </Link>
-        </div>
-      </header>
+      {/* 1. Responsive Navbar */}
+      <RootPublicNavbar />
 
       {/* 2. Main Content (Centered, generous whitespace, college selector) */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-16">

@@ -4,9 +4,9 @@ import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
-import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
-import { School, ArrowLeft, ShieldCheck, GraduationCap } from 'lucide-react';
+import { GraduationCap, ArrowLeft } from 'lucide-react';
+import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
 export const dynamic = 'force-dynamic';
@@ -56,44 +56,8 @@ export default async function TenantFeedbackPortalPage({ params, searchParams }:
         </div>
       </div>
 
-      {/* Header with Tenant Branding */}
-      <header className="bg-white border-b border-slate-200 shadow-xs sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 flex justify-between items-center gap-2">
-          <Link href={`/${tenant.slug}`} className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center font-bold text-base sm:text-lg shadow-md border border-slate-200 shrink-0 overflow-hidden p-1">
-              {tenant.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={tenant.logo}
-                  alt={`${tenant.name} Logo`}
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-slate-900 to-blue-900 rounded-lg flex items-center justify-center text-amber-400">
-                  <School className="w-5 h-5 text-amber-400" />
-                </div>
-              )}
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-lg font-bold tracking-tight text-slate-900 truncate">
-                {tenant.name}
-              </h1>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">
-                Student Feedback & Faculty Evaluation Portal ({tenant.shortName})
-              </p>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <CollegeInstallButton tenant={tenant} />
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span className="hidden sm:inline">100% Anonymous • No Login Required</span>
-              <span className="sm:hidden text-[11px]">100% Anonymous</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Main Responsive Header with Tenant Branding & Mobile Drawer */}
+      <PublicTenantNavbar tenant={tenant} currentPage="feedback" />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">

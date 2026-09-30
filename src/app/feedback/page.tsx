@@ -86,10 +86,10 @@ export default async function FeedbackPortalPage() {
       </div>
 
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 shadow-xs sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 flex justify-between items-center gap-2">
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-2.5 sm:px-6 lg:px-8 h-14 sm:h-16 flex justify-between items-center gap-2">
           <Link href="/" className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center font-bold text-base sm:text-lg shadow-md border border-slate-200 shrink-0 overflow-hidden p-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center font-bold text-base sm:text-lg shadow-xs border border-slate-200 shrink-0 overflow-hidden p-1">
               {collegeLogo ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -104,19 +104,19 @@ export default async function FeedbackPortalPage() {
               )}
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm sm:text-lg font-bold tracking-tight text-bce-navy truncate">
+              <h1 className="text-xs sm:text-base font-bold tracking-tight text-bce-navy truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
                 {collegeName}
               </h1>
-              <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">
-                Student Feedback & Faculty Evaluation Portal
+              <p className="text-[10px] sm:text-xs text-slate-500 font-medium truncate max-w-[170px] xs:max-w-[220px] sm:max-w-none">
+                Student Feedback Portal
               </p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2.5 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 px-2 sm:px-3 py-1.5 rounded-full border border-emerald-200 shrink-0">
             <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span className="hidden sm:inline">100% Anonymous • No Login Required</span>
-            <span className="sm:hidden text-[11px]">100% Anonymous</span>
+            <span className="hidden sm:inline">100% Anonymous</span>
+            <span className="sm:hidden text-[11px]">Anonymous</span>
           </div>
         </div>
       </header>

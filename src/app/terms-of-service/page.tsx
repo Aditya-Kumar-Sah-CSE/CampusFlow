@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { School, ArrowLeft, FileText } from 'lucide-react';
+import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
+import { FileText } from 'lucide-react';
 
 export const dynamic = 'force-static';
 export const revalidate = 86400; // 24 hours
@@ -16,31 +17,7 @@ export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       {/* Top Header */}
-      <header className="h-16 sm:h-[72px] bg-white border-b border-slate-200 sticky top-0 z-30 flex items-center shrink-0">
-        <div className="max-w-5xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3 min-w-0 group">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold shadow-sm border border-slate-800 shrink-0 group-hover:bg-slate-800 transition-colors">
-              <School className="w-5 h-5 text-blue-400" />
-            </div>
-            <div className="min-w-0">
-              <span className="block text-sm sm:text-base font-bold tracking-tight text-slate-900 truncate">
-                Feedback Management System
-              </span>
-              <span className="block text-[11px] sm:text-xs text-slate-500 font-medium truncate">
-                Institutional Feedback Platform
-              </span>
-            </div>
-          </Link>
-
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg shadow-xs transition-all shrink-0"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 text-slate-500" />
-            <span>Back to Home</span>
-          </Link>
-        </div>
-      </header>
+      <RootPublicNavbar />
 
       {/* Main Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-14">

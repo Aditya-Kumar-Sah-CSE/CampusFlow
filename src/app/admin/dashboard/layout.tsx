@@ -177,7 +177,7 @@ export default async function AdminDashboardLayout({
             <Link
               href={activeCollege ? `/${activeCollege.slug}` : '/'}
               target="_blank"
-              className="inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-800 hover:text-white border border-slate-700 transition-colors shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-800 hover:text-white border border-slate-700 transition-colors shrink-0"
               title="View Public Portal"
             >
               <Globe className="w-3.5 h-3.5 text-amber-400" />

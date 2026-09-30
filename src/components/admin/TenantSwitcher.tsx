@@ -27,10 +27,10 @@ export function TenantSwitcher({
     const singleCollege = colleges.find((c) => c.collegeId === activeCollegeId) || colleges[0];
     if (!singleCollege) return null;
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-200 text-xs">
+      <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-200 text-xs">
         <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-        <span className="font-semibold text-white truncate">{singleCollege.name}</span>
-        <span className="text-[10px] text-slate-400 font-mono">({singleCollege.code})</span>
+        <span className="font-semibold text-white truncate max-w-[65px] xs:max-w-[120px] sm:max-w-none">{singleCollege.name}</span>
+        <span className="text-[10px] text-slate-400 font-mono hidden xs:inline">({singleCollege.code})</span>
       </div>
     );
   }
