@@ -24,7 +24,11 @@ export async function getAdminEventPrograms(
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('[GET_ADMIN_EVENT_PROGRAMS_ERROR]', error.message);
+    if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+      console.warn('[GET_ADMIN_EVENT_PROGRAMS_INFO] Migration pending: Table "public.event_programs" does not exist in Supabase yet. Please execute migration 20260930000003_event_programs_and_categories.sql in the Supabase SQL Editor.');
+    } else {
+      console.error('[GET_ADMIN_EVENT_PROGRAMS_ERROR]', error.message);
+    }
     return [];
   }
 
@@ -274,6 +278,12 @@ export async function createProgram(
     if (error.code === '23505') {
       return { success: false, error: 'A program with this slug already exists for this event.' };
     }
+    if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+      return {
+        success: false,
+        error: 'Database table "event_programs" is not created yet. Please execute migration 20260930000003_event_programs_and_categories.sql in your Supabase SQL Editor.',
+      };
+    }
     console.error('[CREATE_PROGRAM_ERROR]', error);
     return { success: false, error: error.message };
   }
@@ -514,3 +524,20 @@ export async function getProgramStats(
     maxTeams: program?.max_teams ?? null,
   };
 }
+
+/**
+ * Check if the program tables are ready in the Supabase schema cache
+ */
+export async function checkProgramsSchemaReady(): Promise<boolean> {
+  try {
+    const db = await getDb();
+    const { error } = await db.from('event_programs').select('id').limit(1);
+    if (error && (error.code === 'PGRST205' || error.message?.includes('schema cache'))) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+

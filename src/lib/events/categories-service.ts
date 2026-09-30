@@ -24,7 +24,11 @@ export async function getAdminEventCategories(
     .order('created_at', { ascending: true });
 
   if (error) {
-    console.error('[GET_ADMIN_EVENT_CATEGORIES_ERROR]', error.message);
+    if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+      console.warn('[GET_ADMIN_EVENT_CATEGORIES_INFO] Migration pending: Table "public.event_categories" does not exist in Supabase yet. Please execute migration 20260930000003_event_programs_and_categories.sql in the Supabase SQL Editor.');
+    } else {
+      console.error('[GET_ADMIN_EVENT_CATEGORIES_ERROR]', error.message);
+    }
     return [];
   }
 
@@ -118,6 +122,12 @@ export async function createCategory(
   if (error) {
     if (error.code === '23505') {
       return { success: false, error: 'A category with this name already exists for this event.' };
+    }
+    if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+      return {
+        success: false,
+        error: 'Database table "event_categories" is not created yet. Please execute migration 20260930000003_event_programs_and_categories.sql in your Supabase SQL Editor.',
+      };
     }
     console.error('[CREATE_CATEGORY_ERROR]', error);
     return { success: false, error: error.message };

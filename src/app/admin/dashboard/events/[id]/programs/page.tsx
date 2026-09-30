@@ -2,7 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { getAdminEventById } from '@/lib/events/service';
 import { getAdminEventCategories } from '@/lib/events/categories-service';
-import { getAdminEventPrograms, getEventProgramsStats } from '@/lib/events/programs-service';
+import { getAdminEventPrograms, getEventProgramsStats, checkProgramsSchemaReady } from '@/lib/events/programs-service';
 import { ProgramDashboard } from '@/components/admin/events/programs/ProgramDashboard';
 
 export const dynamic = 'force-dynamic';
@@ -24,10 +24,11 @@ export default async function EventProgramsPage({ params }: Props) {
   const event = await getAdminEventById(id, collegeId);
   if (!event) notFound();
 
-  const [categories, programs, stats] = await Promise.all([
+  const [categories, programs, stats, isSchemaReady] = await Promise.all([
     getAdminEventCategories(event.id, collegeId),
     getAdminEventPrograms(event.id, collegeId),
     getEventProgramsStats(event.id, collegeId),
+    checkProgramsSchemaReady(),
   ]);
 
   return (
@@ -38,6 +39,7 @@ export default async function EventProgramsPage({ params }: Props) {
         programs={programs}
         stats={stats}
         activeCollegeId={collegeId}
+        isSchemaReady={isSchemaReady}
       />
     </div>
   );

@@ -39,9 +39,17 @@ interface Props {
   programs: EventProgram[];
   stats: EventProgramsStats;
   activeCollegeId: string;
+  isSchemaReady?: boolean;
 }
 
-export function ProgramDashboard({ event, categories: initialCats, programs: initialProgs, stats, activeCollegeId }: Props) {
+export function ProgramDashboard({
+  event,
+  categories: initialCats,
+  programs: initialProgs,
+  stats,
+  activeCollegeId,
+  isSchemaReady = true,
+}: Props) {
   const [categories, setCategories] = useState(initialCats);
   const [programs, setPrograms] = useState(initialProgs);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -260,6 +268,24 @@ export function ProgramDashboard({ event, categories: initialCats, programs: ini
           feedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'
         }`}>
           {feedback.message}
+        </div>
+      )}
+
+      {/* Database Schema Migration Warning */}
+      {!isSchemaReady && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 space-y-2">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs sm:text-sm">
+              <p className="font-semibold text-amber-950">Database Setup Required</p>
+              <p className="mt-0.5 text-amber-800 leading-relaxed">
+                The program-wise event registration database tables (<code>event_categories</code>, <code>event_programs</code>, <code>program_registrations</code>) have not yet been created in your Supabase project.
+              </p>
+              <p className="mt-1 text-amber-700">
+                Please run migration <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono text-[11px]">20260930000003_event_programs_and_categories.sql</code> in your Supabase SQL Editor to enable creating categories and programs.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
