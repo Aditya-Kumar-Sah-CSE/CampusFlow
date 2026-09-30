@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { OverviewTab, type DashboardCounts } from './tabs/OverviewTab';
 import { AdminMobileNav } from './AdminMobileNav';
 import { GoogleConnectionCard } from './GoogleConnectionCard';
+import { LandingPageSettingsCard } from './LandingPageSettingsCard';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -796,6 +797,16 @@ export function AdminDashboardTabs({
                 </div>
               </div>
             </div>
+
+            {/* Public Landing Page Display Management for Super Admin */}
+            {isSuperAdmin && activeCollegeId && activeCollegeSlug && (
+              <LandingPageSettingsCard
+                collegeId={activeCollegeId}
+                collegeName={activeCollegeName || 'Active Institution'}
+                collegeSlug={activeCollegeSlug}
+                isSuperAdmin={isSuperAdmin}
+              />
+            )}
 
             {/* Platform Information */}
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">

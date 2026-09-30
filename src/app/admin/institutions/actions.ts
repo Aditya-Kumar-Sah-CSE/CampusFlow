@@ -7,10 +7,12 @@ import { getAdminSession } from '@/lib/auth/admin-auth';
 import {
   createCollegeSchema,
   updateCollegeSchema,
+  updateLandingTogglesSchema,
   type CreateCollegeInput,
   type UpdateCollegeInput,
 } from '@/lib/validation';
 import type { College } from '@/types/tenant';
+import { getCollegeLandingSettings, saveCollegeLandingSettings } from '@/lib/tenant/landing-settings';
 
 async function getAdminDb() {
   return createAdminClient() || await createClient();
@@ -64,7 +66,18 @@ export async function getInstitutionsAction(): Promise<{
     return { success: false, error: error?.message || 'Failed to fetch colleges.' };
   }
 
-  return { success: true, colleges: data as College[] };
+  const collegesWithSettings = await Promise.all(
+    (data as College[]).map(async (c) => {
+      const settings = await getCollegeLandingSettings(c.id);
+      return {
+        ...c,
+        show_feedbacks: settings.showFeedbacks,
+        show_events: settings.showEvents,
+      };
+    })
+  );
+
+  return { success: true, colleges: collegesWithSettings };
 }
 
 // ====================================================================
@@ -163,6 +176,18 @@ export async function createInstitutionAction(input: CreateCollegeInput): Promis
     { code: newCollege.code, slug: newCollege.slug }
   );
 
+  // Persist landing settings (defaults or provided)
+  const landingToggles = {
+    showFeedbacks: data.showFeedbacks !== undefined ? data.showFeedbacks : true,
+    showEvents: data.showEvents !== undefined ? data.showEvents : true,
+  };
+  await saveCollegeLandingSettings(
+    newCollege.id,
+    landingToggles,
+    { userId: session.userId, email: session.email },
+    newCollege.slug
+  );
+
   // 6. Invalidate caches
   try {
     revalidatePath('/');
@@ -176,7 +201,14 @@ export async function createInstitutionAction(input: CreateCollegeInput): Promis
     console.warn('Revalidation warning:', err);
   }
 
-  return { success: true, college: newCollege as College };
+  return {
+    success: true,
+    college: {
+      ...newCollege,
+      show_feedbacks: landingToggles.showFeedbacks,
+      show_events: landingToggles.showEvents,
+    } as College,
+  };
 }
 
 // ====================================================================
@@ -272,6 +304,23 @@ export async function updateInstitutionAction(input: UpdateCollegeInput): Promis
     return { success: false, error: updateErr?.message || 'Failed to update college.' };
   }
 
+  // Persist landing settings if provided
+  let currentLandingSettings = await getCollegeLandingSettings(collegeId);
+  if (data.showFeedbacks !== undefined || data.showEvents !== undefined) {
+    const res = await saveCollegeLandingSettings(
+      collegeId,
+      {
+        showFeedbacks: data.showFeedbacks,
+        showEvents: data.showEvents,
+      },
+      { userId: session.userId, email: session.email },
+      updated.slug
+    );
+    if (res.settings) {
+      currentLandingSettings = res.settings;
+    }
+  }
+
   // 5. Audit log
   await logCollegeAudit(
     supabase,
@@ -297,7 +346,14 @@ export async function updateInstitutionAction(input: UpdateCollegeInput): Promis
     console.warn('Revalidation warning:', err);
   }
 
-  return { success: true, college: updated as College };
+  return {
+    success: true,
+    college: {
+      ...updated,
+      show_feedbacks: currentLandingSettings.showFeedbacks,
+      show_events: currentLandingSettings.showEvents,
+    } as College,
+  };
 }
 
 // ====================================================================
@@ -367,4 +423,46 @@ export async function toggleInstitutionStatusAction(
   }
 
   return { success: true, isActive };
+}
+
+// ====================================================================
+// 5. UPDATE LANDING PAGE TOGGLES (Super Admin Only)
+// ====================================================================
+
+export async function updateLandingTogglesAction(
+  collegeId: string,
+  toggles: { showFeedbacks?: boolean; showEvents?: boolean }
+): Promise<{
+  success: boolean;
+  settings?: { showFeedbacks: boolean; showEvents: boolean };
+  error?: string;
+}> {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isPlatformSuperAdmin) {
+    return { success: false, error: 'Forbidden: Super Admin access required.' };
+  }
+
+  const validation = updateLandingTogglesSchema.safeParse({ collegeId, ...toggles });
+  if (!validation.success) {
+    return {
+      success: false,
+      error: validation.error.issues[0]?.message || 'Invalid toggle parameters.',
+    };
+  }
+
+  const supabase = await getAdminDb();
+  const { data: college } = await supabase
+    .from('colleges')
+    .select('slug')
+    .eq('id', collegeId)
+    .maybeSingle();
+
+  const res = await saveCollegeLandingSettings(
+    collegeId,
+    toggles,
+    { userId: session.userId, email: session.email },
+    college?.slug
+  );
+
+  return res;
 }

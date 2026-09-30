@@ -19,6 +19,8 @@ export interface College {
   affiliated_university?: string | null;
   established_year?: number | null;
   is_active: boolean;
+  show_feedbacks?: boolean;
+  show_events?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -41,6 +43,8 @@ export interface TenantContext {
   address?: string | null;
   branding: TenantBranding;
   isActive: boolean;
+  showFeedbacks: boolean;
+  showEvents: boolean;
   college: College;
 }
 

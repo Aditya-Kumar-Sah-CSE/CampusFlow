@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { College, TenantContext, TenantResolverOptions } from '@/types/tenant';
 
+import { getCollegeLandingSettings, type LandingPageSettings } from '@/lib/tenant/landing-settings';
+
 /**
  * Normalizes and validates slug format.
  * Allowed characters: lowercase alphanumeric and hyphens (1-50 chars).
@@ -21,7 +23,10 @@ export function normalizeSlug(rawSlug: string): string | null {
  * Transforms a database College record into a typed TenantContext.
  * Guaranteed not to expose sensitive administrative or secret credentials.
  */
-export function createTenantContext(college: College): TenantContext {
+export function createTenantContext(college: College, settings?: LandingPageSettings): TenantContext {
+  const showFeedbacks = settings ? settings.showFeedbacks : (college.show_feedbacks !== false);
+  const showEvents = settings ? settings.showEvents : (college.show_events !== false);
+
   return {
     collegeId: college.id,
     slug: college.slug,
@@ -38,6 +43,8 @@ export function createTenantContext(college: College): TenantContext {
       logoUrl: college.logo_url || null,
     },
     isActive: college.is_active,
+    showFeedbacks,
+    showEvents,
     college: {
       id: college.id,
       name: college.name,
@@ -50,6 +57,8 @@ export function createTenantContext(college: College): TenantContext {
       accent_color: college.accent_color,
       address: college.address,
       is_active: college.is_active,
+      show_feedbacks: showFeedbacks,
+      show_events: showEvents,
       created_at: college.created_at,
       updated_at: college.updated_at,
     },
@@ -61,28 +70,36 @@ export function createTenantContext(college: College): TenantContext {
  * Tagged for on-demand invalidation when college settings change.
  * Uses public anon client (never service-role credentials) respecting RLS.
  */
-const getCachedCollegeBySlug = (slug: string) =>
-  unstable_cache(
-    async (): Promise<College | null> => {
-      const supabase = await createClient();
-      const { data, error } = await supabase
-        .from('colleges')
-        .select('id, name, code, slug, website_url, logo_url, primary_color, secondary_color, accent_color, address, is_active, created_at, updated_at')
-        .eq('slug', slug)
-        .maybeSingle();
+const fetchCollegeBySlugDirect = async (slug: string): Promise<College | null> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('colleges')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
 
-      if (error || !data) {
-        return null;
+  if (error || !data) {
+    return null;
+  }
+
+  return data as College;
+};
+
+const getCachedCollegeBySlug = async (slug: string): Promise<College | null> => {
+  try {
+    return await unstable_cache(
+      () => fetchCollegeBySlugDirect(slug),
+      ['tenant_college_slug', slug],
+      {
+        revalidate: 60, // 60s cache TTL
+        tags: ['colleges', `tenant_${slug}`],
       }
-
-      return data as College;
-    },
-    ['tenant_college_slug', slug],
-    {
-      revalidate: 60, // 60s cache TTL
-      tags: ['colleges', `tenant_${slug}`],
-    }
-  )();
+    )();
+  } catch {
+    // If unstable_cache is not available in current execution context (e.g. scripts or testing)
+    return fetchCollegeBySlugDirect(slug);
+  }
+};
 
 /**
  * Resolves a tenant by slug.
@@ -113,7 +130,8 @@ export const getTenantBySlug = cache(
       return null;
     }
 
-    return createTenantContext(college);
+    const landingSettings = await getCollegeLandingSettings(college.id);
+    return createTenantContext(college, landingSettings);
   }
 );
 
@@ -157,7 +175,7 @@ export const getAllActiveColleges = cache(async (): Promise<TenantContext[]> => 
       const supabase = await createClient();
       const { data, error } = await supabase
         .from('colleges')
-        .select('id, name, code, slug, website_url, logo_url, primary_color, secondary_color, accent_color, address, is_active, created_at, updated_at')
+        .select('*')
         .eq('is_active', true)
         .order('name', { ascending: true });
 
@@ -169,5 +187,11 @@ export const getAllActiveColleges = cache(async (): Promise<TenantContext[]> => 
   );
 
   const colleges = await fetchAll();
-  return colleges.map(createTenantContext);
+  return Promise.all(
+    colleges.map(async (c) => {
+      const landingSettings = await getCollegeLandingSettings(c.id);
+      return createTenantContext(c, landingSettings);
+    })
+  );
 });
+

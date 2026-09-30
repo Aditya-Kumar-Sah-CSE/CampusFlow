@@ -225,6 +225,8 @@ export const createCollegeSchema = z.object({
   affiliatedUniversity: z.string().trim().max(255, 'Affiliated university cannot exceed 255 characters').optional().or(z.literal('')).nullable(),
   establishedYear: z.number().int().min(1800, 'Established year must be 1800 or later').max(2100, 'Established year is too far in future').optional().nullable(),
   isActive: z.boolean().default(true),
+  showFeedbacks: z.boolean().default(true),
+  showEvents: z.boolean().default(true),
 });
 
 export type CreateCollegeInput = z.infer<typeof createCollegeSchema>;
@@ -243,7 +245,17 @@ export const updateCollegeSchema = z.object({
   affiliatedUniversity: z.string().trim().max(255, 'Affiliated university cannot exceed 255 characters').optional().or(z.literal('')).nullable(),
   establishedYear: z.number().int().min(1800, 'Established year must be 1800 or later').max(2100, 'Established year is too far in future').optional().nullable(),
   isActive: z.boolean(),
+  showFeedbacks: z.boolean().optional(),
+  showEvents: z.boolean().optional(),
 });
 
 export type UpdateCollegeInput = z.infer<typeof updateCollegeSchema>;
+
+export const updateLandingTogglesSchema = z.object({
+  collegeId: z.string().uuid('College ID must be a valid UUID'),
+  showFeedbacks: z.boolean().optional(),
+  showEvents: z.boolean().optional(),
+});
+
+export type UpdateLandingTogglesInput = z.infer<typeof updateLandingTogglesSchema>;
 

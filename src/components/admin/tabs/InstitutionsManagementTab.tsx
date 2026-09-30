@@ -21,6 +21,7 @@ import {
   createInstitutionAction,
   updateInstitutionAction,
   toggleInstitutionStatusAction,
+  updateLandingTogglesAction,
 } from '@/app/admin/institutions/actions';
 import type { College } from '@/types/tenant';
 import type { CreateCollegeInput, UpdateCollegeInput } from '@/lib/validation';
@@ -30,6 +31,7 @@ export function InstitutionsManagementTab() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -51,6 +53,8 @@ export function InstitutionsManagementTab() {
     affiliatedUniversity: '',
     establishedYear: null,
     isActive: true,
+    showFeedbacks: true,
+    showEvents: true,
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
@@ -108,6 +112,8 @@ export function InstitutionsManagementTab() {
       affiliatedUniversity: '',
       establishedYear: null,
       isActive: true,
+      showFeedbacks: true,
+      showEvents: true,
     });
     setFormError(null);
     setIsSlugManuallyEdited(false);
@@ -130,9 +136,60 @@ export function InstitutionsManagementTab() {
       affiliatedUniversity: college.affiliated_university || '',
       establishedYear: college.established_year || null,
       isActive: college.is_active,
+      showFeedbacks: college.show_feedbacks !== false,
+      showEvents: college.show_events !== false,
     });
     setFormError(null);
     setIsSlugManuallyEdited(true);
+  };
+
+  // Handle direct toggle for Landing Page Feedbacks / Events
+  const handleToggleLandingModule = async (college: College, module: 'feedbacks' | 'events') => {
+    const key = `${college.id}-${module}`;
+    setTogglingId(key);
+
+    const isCurrentOn = module === 'feedbacks' ? college.show_feedbacks !== false : college.show_events !== false;
+    const nextValue = !isCurrentOn;
+
+    // Optimistic UI update
+    setColleges((prev) =>
+      prev.map((c) =>
+        c.id === college.id
+          ? {
+              ...c,
+              show_feedbacks: module === 'feedbacks' ? nextValue : c.show_feedbacks,
+              show_events: module === 'events' ? nextValue : c.show_events,
+            }
+          : c
+      )
+    );
+
+    const res = await updateLandingTogglesAction(college.id, {
+      [module === 'feedbacks' ? 'showFeedbacks' : 'showEvents']: nextValue,
+    });
+
+    setTogglingId(null);
+
+    if (res.success) {
+      showToast(
+        `Landing Page ${module === 'feedbacks' ? 'Feedbacks' : 'Events'} set to ${nextValue ? 'ON' : 'OFF'} for ${college.code || college.name}`,
+        'success'
+      );
+    } else {
+      // Revert on error
+      setColleges((prev) =>
+        prev.map((c) =>
+          c.id === college.id
+            ? {
+                ...c,
+                show_feedbacks: module === 'feedbacks' ? isCurrentOn : c.show_feedbacks,
+                show_events: module === 'events' ? isCurrentOn : c.show_events,
+              }
+            : c
+        )
+      );
+      showToast(res.error || 'Failed to update toggle.', 'error');
+    }
   };
 
   // Submit Create form
@@ -338,6 +395,7 @@ export function InstitutionsManagementTab() {
                   <th className="py-3 px-4">Public Slug / Portal</th>
                   <th className="py-3 px-4">Location / Info</th>
                   <th className="py-3 px-4 text-center">Status</th>
+                  <th className="py-3 px-4 text-center">Landing Modules</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -429,6 +487,41 @@ export function InstitutionsManagementTab() {
                           />
                           {col.is_active ? 'Active' : 'Inactive'}
                         </span>
+                      </td>
+
+                      {/* Landing Page Modules (Feedbacks & Events Independent Toggles) */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 p-1 bg-slate-50 border border-slate-200/90 rounded-xl shadow-2xs">
+                          {/* Feedbacks Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLandingModule(col, 'feedbacks')}
+                            disabled={togglingId === `${col.id}-feedbacks`}
+                            title={`Click to turn Feedbacks ${col.show_feedbacks !== false ? 'OFF' : 'ON'} on the public landing page`}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95 ${
+                              col.show_feedbacks !== false
+                                ? 'bg-blue-600 text-white shadow-2xs hover:bg-blue-700'
+                                : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                            }`}
+                          >
+                            <span>Forms: {col.show_feedbacks !== false ? 'ON' : 'OFF'}</span>
+                          </button>
+
+                          {/* Events Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleLandingModule(col, 'events')}
+                            disabled={togglingId === `${col.id}-events`}
+                            title={`Click to turn Events ${col.show_events !== false ? 'OFF' : 'ON'} on the public landing page`}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95 ${
+                              col.show_events !== false
+                                ? 'bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700'
+                                : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                            }`}
+                          >
+                            <span>Events: {col.show_events !== false ? 'ON' : 'OFF'}</span>
+                          </button>
+                        </div>
                       </td>
 
                       {/* Actions */}
@@ -670,6 +763,41 @@ export function InstitutionsManagementTab() {
                 </div>
               </div>
 
+              {/* Public Landing Page Display Modules */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">Public Landing Page Modules</h4>
+                  <p className="text-[11px] text-slate-500">Control what sections appear on the institution&apos;s public landing page.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showFeedbacks !== false}
+                      onChange={(e) => setFormData({ ...formData, showFeedbacks: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Feedbacks Module</span>
+                      <span className="text-[11px] text-slate-500 block leading-tight">Display discovery flow &amp; forms on landing page</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showEvents !== false}
+                      onChange={(e) => setFormData({ ...formData, showEvents: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Events Module</span>
+                      <span className="text-[11px] text-slate-500 block leading-tight">Display upcoming events &amp; registrations on landing page</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Status Toggle */}
               <div className="pt-2">
                 <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
@@ -888,6 +1016,41 @@ export function InstitutionsManagementTab() {
                     onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                </div>
+              </div>
+
+              {/* Public Landing Page Display Modules */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">Public Landing Page Modules</h4>
+                  <p className="text-[11px] text-slate-500">Control what sections appear on the institution&apos;s public landing page.</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showFeedbacks !== false}
+                      onChange={(e) => setFormData({ ...formData, showFeedbacks: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Feedbacks Module</span>
+                      <span className="text-[11px] text-slate-500 block leading-tight">Display discovery flow &amp; forms on landing page</span>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showEvents !== false}
+                      onChange={(e) => setFormData({ ...formData, showEvents: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500 mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block">Events Module</span>
+                      <span className="text-[11px] text-slate-500 block leading-tight">Display upcoming events &amp; registrations on landing page</span>
+                    </div>
+                  </label>
                 </div>
               </div>
 
