@@ -89,6 +89,30 @@ export function ProgramDashboard({
     return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   };
 
+  const formatForInput = (isoString?: string | null) => {
+    if (!isoString) return '';
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return '';
+      return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+    } catch {
+      return '';
+    }
+  };
+
+  const formatToISO = (localDatetimeStr?: string) => {
+    if (!localDatetimeStr || !localDatetimeStr.trim()) return undefined;
+    try {
+      const d = new Date(localDatetimeStr);
+      if (isNaN(d.getTime())) return undefined;
+      return d.toISOString();
+    } catch {
+      return undefined;
+    }
+  };
+
   // CATEGORY HANDLERS
   const handleCreateCategory = async () => {
     if (!catName.trim()) return;
@@ -152,8 +176,8 @@ export function ProgramDashboard({
       max_team_size: progMaxTeam ? Number(progMaxTeam) : null,
       max_participants: progMaxParticipants ? Number(progMaxParticipants) : null,
       max_teams: progMaxTeams ? Number(progMaxTeams) : null,
-      registration_open_at: progRegOpen || undefined,
-      registration_close_at: progRegClose || undefined,
+      registration_open_at: formatToISO(progRegOpen),
+      registration_close_at: formatToISO(progRegClose),
       show_public_participants: progShowParticipants,
     }, activeCollegeId);
     if (res.success) {
@@ -207,8 +231,8 @@ export function ProgramDashboard({
     setProgMaxTeam(prog.max_team_size ? String(prog.max_team_size) : '');
     setProgMaxParticipants(prog.max_participants ? String(prog.max_participants) : '');
     setProgMaxTeams(prog.max_teams ? String(prog.max_teams) : '');
-    setProgRegOpen(prog.registration_open_at ? new Date(prog.registration_open_at).toISOString().slice(0, 16) : '');
-    setProgRegClose(prog.registration_close_at ? new Date(prog.registration_close_at).toISOString().slice(0, 16) : '');
+    setProgRegOpen(formatForInput(prog.registration_open_at));
+    setProgRegClose(formatForInput(prog.registration_close_at));
     setProgShowParticipants(Boolean(prog.show_public_participants));
 
     // Scroll up smoothly to the form
@@ -230,8 +254,8 @@ export function ProgramDashboard({
       max_team_size: (progType === 'TEAM' || progType === 'BOTH') && progMaxTeam ? Number(progMaxTeam) : null,
       max_participants: progMaxParticipants ? Number(progMaxParticipants) : null,
       max_teams: progMaxTeams ? Number(progMaxTeams) : null,
-      registration_open_at: progRegOpen || undefined,
-      registration_close_at: progRegClose || undefined,
+      registration_open_at: formatToISO(progRegOpen),
+      registration_close_at: formatToISO(progRegClose),
       show_public_participants: progShowParticipants,
     };
 
