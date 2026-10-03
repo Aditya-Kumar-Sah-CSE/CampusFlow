@@ -203,7 +203,7 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
             {tenant.name} ({tenant.shortName})
           </p>
           <p>
-            CampusFlow · Confidential & Anonymous Institutional Feedback
+            CampusFlow · Campus Management Platform
           </p>
           <p className="text-[11px] text-slate-500">PWA Installations: {pwaInstallCount}</p>
           <p className="text-[11px] text-slate-500">

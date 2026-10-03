@@ -128,10 +128,10 @@ export function PwaInstallPrompt() {
             </div>
             <div>
               <h3 className="text-xs font-bold text-white tracking-tight">
-                Install Feedback App
+                Install CampusFlow
               </h3>
               <p className="text-[11px] text-slate-300 leading-tight">
-                Access evaluations anytime right from your home screen.
+                Campus management platform for feedback, events, and registrations right from your home screen.
               </p>
             </div>
           </div>
@@ -170,7 +170,7 @@ export function PwaInstallPrompt() {
               className="flex-1 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md active:scale-98 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{isIos ? 'How to Install (iOS)' : 'Install App'}</span>
+              <span>{isIos ? 'How to Install (iOS)' : 'Install CampusFlow'}</span>
             </button>
             <button
               onClick={handleDismiss}

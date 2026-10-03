@@ -8,7 +8,7 @@ export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'CampusFlow | Platform Admin Login',
-  description: 'Multi-tenant administrator sign-in portal for institutional feedback evaluations.',
+  description: 'Multi-tenant administrator sign-in portal for CampusFlow campus management, institutional feedback, and events.',
 };
 
 export default function AdminLoginPage() {

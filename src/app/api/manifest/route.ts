@@ -86,6 +86,19 @@ export async function GET() {
           ],
           shortcuts: [
             {
+              name: 'Campus Events',
+              short_name: 'Events',
+              description: `Explore campus events and registrations for ${shortName}`,
+              url: `/${tenant.slug}/events`,
+              icons: [
+                {
+                  src: `/api/tenant/${tenant.slug}/icon?size=192`,
+                  sizes: '192x192',
+                  type: 'image/png',
+                },
+              ],
+            },
+            {
               name: 'Submit Feedback',
               short_name: 'Feedback',
               description: `Submit faculty feedback for ${shortName}`,
@@ -161,6 +174,19 @@ export async function GET() {
         },
       ],
       shortcuts: [
+        {
+          name: 'Campus Events',
+          short_name: 'Events',
+          description: 'Explore campus events, programs, and registrations',
+          url: '/events',
+          icons: [
+            {
+              src: '/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+          ],
+        },
         {
           name: 'Submit Feedback',
           short_name: 'Feedback',

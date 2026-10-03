@@ -8,7 +8,7 @@ export const revalidate = 86400; // 24 hours
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | CampusFlow',
-  description: 'Privacy Policy for CampusFlow detailing data collection, processing, multi-tenant isolation, and Google Workspace API usage.',
+  description: 'Privacy Policy for CampusFlow detailing data collection, processing, multi-tenant isolation, event registrations, academic feedback, and Google Workspace API usage.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -43,13 +43,13 @@ export default function PrivacyPolicyPage() {
               1. Introduction
             </h2>
             <p>
-              This Privacy Policy explains how <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) collects, processes, stores, and protects information when administrators, faculty members, institutional staff, and students access and use our multi-tenant institutional feedback platform available at{' '}
+              This Privacy Policy explains how <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) collects, processes, stores, and protects information when administrators, faculty members, institutional staff, students, event organizers, participants, and visitors access and use our campus management platform available at{' '}
               <a href="https://143campusflow.vercel.app" className="text-blue-600 underline font-medium">
                 https://143campusflow.vercel.app
               </a>.
             </p>
             <p>
-              CampusFlow is designed as an administrative and analytical platform for educational institutions to create, distribute, and analyze institutional feedback and academic surveys. We are committed to transparency and processing only the minimum data required to deliver these services.
+              CampusFlow is a campus management platform designed for educational institutions to manage academic feedback, events, programs, registrations, participants, teams, and related institutional operations. We are committed to transparency and processing only the minimum data required to deliver these services.
             </p>
           </section>
 
@@ -124,7 +124,22 @@ export default function PrivacyPolicyPage() {
 
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  E. Audit Logs & System Activity
+                  E. Event &amp; Program Registration Records
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 mt-1">
+                  When institutions host events, hackathons, or workshops and participants or teams register:
+                </p>
+                <ul className="list-disc list-inside text-xs sm:text-sm text-slate-600 mt-1 space-y-1">
+                  <li>Participant profile and contact data (full name, email address, phone number, college registration or roll number, department/branch, and semester)</li>
+                  <li>Event registration records, registration status (confirmed, pending, checked-in, waitlisted), and attendance check-in timestamps</li>
+                  <li>Team registration details: team name, team leader contact information, member rosters, join request records, and invite codes</li>
+                  <li>Custom registration form responses, program-specific questionnaire submissions, and payment references where applicable</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                  F. Audit Logs &amp; System Activity
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mt-1">
                   For platform integrity and accountability, administrative actions are recorded in <code>audit_logs</code>:
@@ -139,7 +154,7 @@ export default function PrivacyPolicyPage() {
 
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  F. Billing & Payment Information
+                  G. Billing &amp; Payment Information
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 mt-1">
                   When institutions purchase or renew access:
@@ -222,10 +237,13 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>The information we collect is used strictly for the following operational purposes:</p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
-              <li>Authenticating administrators and enforcing multi-tenant role permissions.</li>
+              <li>Authenticating administrators, faculty, and participants, and enforcing multi-tenant role permissions.</li>
               <li>Generating, publishing, and distributing institutional feedback questionnaires.</li>
               <li>Calculating statistical faculty ratings, attendance correlations, and department-level analytics.</li>
               <li>Syncing feedback responses between Google Forms/Sheets and the institutional database.</li>
+              <li>Publishing and administering institutional events, hackathons, seminars, workshops, and student programs.</li>
+              <li>Processing individual and team event registrations, managing team invitations and join requests, and maintaining participant rosters.</li>
+              <li>Facilitating event coordination, attendee check-in verification, and registration reporting.</li>
               <li>Maintaining a tamper-evident audit trail of administrative modifications.</li>
               <li>Verifying subscription entitlements and processing manual institutional payment requests.</li>
             </ul>
@@ -234,10 +252,10 @@ export default function PrivacyPolicyPage() {
           {/* Section 5 */}
           <section className="space-y-3">
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-              5. Multi-Tenant Data Isolation & Storage
+              5. Multi-Tenant Data Isolation &amp; Storage
             </h2>
             <p>
-              CampusFlow operates as a multi-tenant platform. Data belonging to different institutions is strictly segregated at the database layer using PostgreSQL Row Level Security (RLS) policies scoped by <code>college_id</code>.
+              CampusFlow operates as a multi-tenant platform. Data belonging to different institutions—including feedback responses, event details, participant registrations, and team records—is strictly segregated at the database layer using PostgreSQL Row Level Security (RLS) policies scoped by <code>college_id</code>.
             </p>
             <p>
               Administrators and users of Institution A cannot access, query, or view data belonging to Institution B. Google OAuth connections and credentials are saved per-institution (<code>college_google_connections</code>) and are never shared across tenants.
@@ -321,10 +339,10 @@ export default function PrivacyPolicyPage() {
           {/* Section 10 */}
           <section className="space-y-3">
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
-              10. User & Administrator Rights
+              10. User &amp; Administrator Rights
             </h2>
             <p>
-              Institutional administrators and respondents may request information about data held by their institution. Because CampusFlow processes data under the direction of educational institutions, requests regarding academic records, survey questions, or faculty data should be directed to the respective institution&apos;s administrative office.
+              Institutional administrators, faculty members, students, and event participants may request information about data held by their institution. Because CampusFlow processes data under the direction of educational institutions, requests regarding academic records, survey questions, faculty data, or event registrations should be directed to the respective institution&apos;s administrative office.
             </p>
           </section>
 
@@ -368,7 +386,7 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <p className="font-semibold text-slate-700">CampusFlow</p>
-            <p className="text-[11px] text-slate-500">Institutional Feedback Platform</p>
+            <p className="text-[11px] text-slate-500">Campus Management Platform</p>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-500">
             <Link href="/privacy-policy" className="font-bold text-slate-900">

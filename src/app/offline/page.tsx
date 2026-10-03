@@ -24,7 +24,7 @@ export default function OfflinePage() {
             You&apos;re Offline
           </h1>
           <p className="text-sm text-slate-400 leading-relaxed">
-            Reconnect to continue accessing live feedback forms, academic structures, and account data.
+            Reconnect to continue accessing live feedback forms, events, registrations, and campus services.
           </p>
         </div>
 
@@ -32,7 +32,7 @@ export default function OfflinePage() {
         <div className="p-3.5 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs text-slate-400 text-left space-y-1">
           <p className="font-semibold text-slate-300">Notice:</p>
           <p>
-            Student evaluations and Google Forms submissions require real-time network connectivity to guarantee tamper-proof audit trails.
+            Evaluations, event registrations, and live portal submissions require real-time network connectivity to guarantee tamper-proof audit trails.
           </p>
         </div>
 

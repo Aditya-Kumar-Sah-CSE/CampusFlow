@@ -59,7 +59,7 @@ export default function AdminPendingPage() {
           Admin Access Pending
         </h2>
         <p className="mt-1 text-xs text-slate-400">
-          Institutional Feedback Platform • Administrator Portal
+          Campus Management Platform • Administrator Portal
         </p>
       </div>
 

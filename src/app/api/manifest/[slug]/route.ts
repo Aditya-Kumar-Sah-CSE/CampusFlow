@@ -97,6 +97,19 @@ export async function GET(
           ],
         },
         {
+          name: 'Campus Events',
+          short_name: 'Events',
+          description: `Browse events and programs for ${shortName}`,
+          url: `/${tenant.slug}/events`,
+          icons: [
+            {
+              src: `/api/tenant/${tenant.slug}/icon?size=192`,
+              sizes: '192x192',
+              type: 'image/png',
+            },
+          ],
+        },
+        {
           name: 'Faculty / Admin Login',
           short_name: 'Admin',
           description: `Login to ${shortName} Faculty & Admin Portal`,

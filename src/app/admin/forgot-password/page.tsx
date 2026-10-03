@@ -67,7 +67,7 @@ export default function AdminForgotPasswordPage() {
           Reset Admin Password
         </h2>
         <p className="mt-1 sm:mt-1.5 text-xs text-slate-400 font-medium">
-          Institutional Feedback Platform • Password Recovery
+          Campus Management Platform • Password Recovery
         </p>
       </div>
 

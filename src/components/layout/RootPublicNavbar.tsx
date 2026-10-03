@@ -70,7 +70,7 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
                 {brand.displayName}
               </span>
               <span className="block text-[10px] sm:text-xs text-slate-500 font-medium truncate max-w-[190px] xs:max-w-[240px] sm:max-w-none">
-                Unified College Platform
+                Campus Management Platform
               </span>
             </div>
           </Link>

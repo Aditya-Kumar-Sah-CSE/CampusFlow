@@ -23,11 +23,11 @@ export function getCampusFlowBrand(tenant?: CampusFlowTenantIdentity | null): Ca
 }
 
 export const CAMPUSFLOW_DESCRIPTION =
-  'Unified college platform for feedback, events, student registration, participation and campus activities.';
+  'CampusFlow — Campus Management Platform for institutional feedback, events, programs, and registrations.';
 
 export function getCampusFlowDescription(tenant?: CampusFlowTenantIdentity | null): string {
   const brand = getCampusFlowBrand(tenant);
   return brand.tenantCode
-    ? `${brand.displayName} is a unified college platform for feedback, events, student registration, participation and campus activities.`
+    ? `${brand.displayName} — Campus Management Platform for institutional feedback, events, programs, and registrations.`
     : CAMPUSFLOW_DESCRIPTION;
 }

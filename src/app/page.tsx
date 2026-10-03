@@ -9,7 +9,7 @@ export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'CampusFlow | Select Your College',
-  description: 'Choose your institution to access its institutional feedback portal.',
+  description: 'Choose your institution to access institutional feedback, events, and campus management services.',
 };
 
 export default async function HomePage() {
@@ -31,7 +31,7 @@ export default async function HomePage() {
             Select Your College
           </h1>
           <p className="mt-2.5 text-sm sm:text-base text-slate-600">
-            Choose your institution to access its feedback portal.
+            Choose your institution to access institutional feedback, events, and campus management portals.
           </p>
         </div>
 
@@ -44,7 +44,7 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <p className="font-semibold text-slate-700">CampusFlow</p>
-            <p className="text-[11px] text-slate-500">Multi-tenant Institutional Feedback Platform</p>
+            <p className="text-[11px] text-slate-500">Campus Management Platform</p>
             <p className="text-[11px] text-slate-500 mt-1">
               Designed & Developed by{' '}
               <a

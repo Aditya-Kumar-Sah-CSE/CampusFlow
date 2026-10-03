@@ -8,7 +8,7 @@ export const revalidate = 86400; // 24 hours
 
 export const metadata: Metadata = {
   title: 'Terms of Service | CampusFlow',
-  description: 'Terms of Service for CampusFlow governing institutional access, administrator responsibilities, Google Workspace integrations, and platform usage.',
+  description: 'Terms of Service for CampusFlow governing institutional access, administrator responsibilities, academic feedback, events, programs, registrations, Google Workspace integrations, and platform usage.',
 };
 
 export default function TermsOfServicePage() {
@@ -43,13 +43,13 @@ export default function TermsOfServicePage() {
               1. Acceptance of Terms
             </h2>
             <p>
-              By accessing, browsing, or using the <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) hosted at{' '}
+              By accessing, browsing, or using <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) hosted at{' '}
               <a href="https://143campusflow.vercel.app" className="text-blue-600 underline font-medium">
                 https://143campusflow.vercel.app
               </a>, you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree with these Terms, you must not access or use the Platform.
             </p>
             <p>
-              These Terms apply to all users of the Platform, including institutional administrators, faculty members, staff, students, and visitors.
+              These Terms apply to all users of the Platform, including institutional administrators, event organizers, faculty members, staff, students, event participants, team members, and visitors.
             </p>
           </section>
 
@@ -59,14 +59,18 @@ export default function TermsOfServicePage() {
               2. Description of the Service
             </h2>
             <p>
-              CampusFlow is a multi-tenant web-based SaaS platform designed for higher education institutions, engineering colleges, and academic departments to manage, automate, and analyze institutional feedback. Core features include:
+              CampusFlow is a campus management platform for institutions to manage academic feedback, events, programs, registrations, participants, teams, and related institutional operations. Core capabilities include:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-xs sm:text-sm text-slate-600 pl-2">
               <li>Academic hierarchy management (branches, semesters, subjects, faculties, and teaching assignments).</li>
-              <li>Feedback form creation, scheduling, and distribution.</li>
-              <li>Google Workspace automation (Google Forms, Google Sheets, and Google Drive folder synchronization).</li>
-              <li>Statistical response aggregation, faculty performance metrics, and department reports.</li>
-              <li>Multi-tenant role-based access control and audit logging.</li>
+              <li>Institutional feedback creation, scheduling, and distribution.</li>
+              <li>Faculty performance metrics, statistical response aggregation, feedback analytics, and institutional/departmental reporting.</li>
+              <li>Event and program management (creation, status tracking, guidelines, schedules, and publishing).</li>
+              <li>Public and institutional event publishing, individual and team registrations, and participant record management.</li>
+              <li>Team and member management, including team creation, join requests, invite codes, and roster administration.</li>
+              <li>Participant registration records, check-in tracking, PDF report generation, and data export.</li>
+              <li>Google Workspace integrations (Google Forms, Google Sheets, and Google Drive folder synchronization) where supported and configured.</li>
+              <li>Multi-tenant role-based access control, institutional branding, audit logging, and tenant data isolation.</li>
             </ul>
           </section>
 
@@ -125,7 +129,7 @@ export default function TermsOfServicePage() {
               5. Institutional Data &amp; Content Ownership
             </h2>
             <p>
-              The institution retains all ownership rights, title, and interest in and to its institutional data, including faculty lists, course catalogs, survey questionnaires, student evaluation responses, and generated reports.
+              The institution retains all ownership rights, title, and interest in and to its institutional data, including faculty lists, course catalogs, survey questionnaires, student evaluation responses, event programs, participant registrations, team rosters, and generated reports.
             </p>
             <p>
               CampusFlow claims no intellectual property ownership over institutional content. By uploading or generating data on the Platform, the institution grants CampusFlow a limited, non-exclusive license strictly to host, process, store, and display the data as required to provide the Platform services.
@@ -242,7 +246,7 @@ export default function TermsOfServicePage() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <p className="font-semibold text-slate-700">CampusFlow</p>
-            <p className="text-[11px] text-slate-500">Institutional Feedback Platform</p>
+            <p className="text-[11px] text-slate-500">Campus Management Platform</p>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-500">
             <Link href="/privacy-policy" className="hover:text-slate-900 transition-colors">

@@ -330,7 +330,7 @@ export default function AdminSignupPage() {
           Request Admin Access
         </h2>
         <p className="mt-1 sm:mt-1.5 text-xs text-slate-400 font-medium">
-          Institutional Feedback Platform • Administrator Portal
+          Campus Management Platform • Administrator Portal
         </p>
       </div>
 
