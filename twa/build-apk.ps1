@@ -27,10 +27,22 @@ Write-Host "==========================================================" -Foregro
 # 1. Check Prerequisites
 Write-Host "`n[1/6] Checking Environment Prerequisites..." -ForegroundColor Yellow
 
+# Ensure JAVA_HOME and tools are in PATH
+if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin"))) {
+  $javaBin = (Join-Path $env:JAVA_HOME "bin").TrimEnd('\')
+  if ($env:PATH -notlike "*$javaBin*") {
+    $env:PATH = "$javaBin;$env:PATH"
+  }
+}
+
 # Java check
 try {
-  $javaVer = java -version 2>&1 | Out-String
-  Write-Host "  [OK] Java detected: $($javaVer.Split([Environment]::NewLine)[0])" -ForegroundColor Green
+  $javaOut = cmd.exe /c "java -version 2>&1"
+  if ($LASTEXITCODE -eq 0 -and $javaOut.Count -gt 0) {
+    Write-Host "  [OK] Java detected: $($javaOut[0])" -ForegroundColor Green
+  } else {
+    throw "Java command returned code $LASTEXITCODE"
+  }
 } catch {
   Write-Error "Java JDK 17+ is required but not found in PATH. Please install OpenJDK 17 and configure JAVA_HOME."
   exit 1
@@ -101,8 +113,25 @@ if ($sha256Match.Success) {
 Write-Host "`n[5/6] Building Android APK & AAB..." -ForegroundColor Yellow
 Push-Location $PSScriptRoot
 try {
+  # Set environment passwords for non-interactive Bubblewrap signing
+  $env:BUBBLEWRAP_KEYSTORE_PASSWORD = $pw
+  $env:BUBBLEWRAP_KEY_PASSWORD = $pw
+  if (-not $env:GRADLE_USER_HOME) { $env:GRADLE_USER_HOME = "D:\gradle-cache" }
+  if (-not $env:ANDROID_HOME) { $env:ANDROID_HOME = "D:\AndroidSDK" }
+  if (-not $env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT = "D:\AndroidSDK" }
+
   bubblewrap build --skipPwaValidation
-  Write-Host "  [OK] Bubblewrap build finished successfully." -ForegroundColor Green
+  Write-Host "  [OK] Bubblewrap release build finished successfully." -ForegroundColor Green
+
+  # Build debug APK for direct testing / sideloading
+  $debugOutput = Join-Path $PSScriptRoot "app\build\outputs\apk\debug\app-debug.apk"
+  $debugDest = Join-Path $PSScriptRoot "app-debug.apk"
+  Write-Host "  Building debug APK via Gradle wrapper..." -ForegroundColor Yellow
+  & .\gradlew.bat assembleDebug
+  if (Test-Path $debugOutput) {
+    Copy-Item -Path $debugOutput -Destination $debugDest -Force
+    Write-Host "  [OK] Debug APK generated: $debugDest" -ForegroundColor Green
+  }
 } catch {
   Write-Warning "Bubblewrap build encountered an issue: $_"
   Write-Host "Run manually in '$PSScriptRoot' using: bubblewrap build" -ForegroundColor Cyan
@@ -118,13 +147,20 @@ $artifacts = @(
   @{ Name = "CampusFlow-release.aab"; Path = Join-Path $PSScriptRoot "app-release-bundle.aab" }
 )
 
+$allExist = $true
 foreach ($art in $artifacts) {
   if (Test-Path $art.Path) {
-    $sizeMB = [math]::round((Get-Item $art.Path).Length / 1MB, 2)
-    Write-Host "  [EXISTS] $($art.Name) ($sizeMB MB) -> $($art.Path)" -ForegroundColor Green
+    $item = Get-Item $art.Path
+    $sizeMB = [math]::round($item.Length / 1MB, 2)
+    Write-Host "  [EXISTS] $($art.Name) ($sizeMB MB, $($item.Length) bytes) -> $($art.Path)" -ForegroundColor Green
   } else {
-    Write-Host "  [PENDING] $($art.Name) will be output at: $($art.Path)" -ForegroundColor Gray
+    Write-Host "  [MISSING] $($art.Name) was not generated at: $($art.Path)" -ForegroundColor Red
+    $allExist = $false
   }
+}
+
+if (-not $allExist) {
+  Write-Error "One or more target artifacts were not generated."
 }
 
 Write-Host "`nProcess complete." -ForegroundColor Cyan
