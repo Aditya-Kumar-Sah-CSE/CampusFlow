@@ -301,9 +301,14 @@ export async function updateEventStatusAction(
     const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
     const db = await getAdminDb();
 
+    const validStatuses: EventStatus[] = ['DRAFT', 'PUBLISHED', 'CLOSED', 'CANCELLED'];
+    if (!validStatuses.includes(newStatus)) {
+      return { success: false, error: 'Invalid event status.' };
+    }
+
     const { data: existing, error: findError } = await db
       .from('events')
-      .select('id, title, status')
+      .select('id, title, slug, status')
       .eq('id', eventId)
       .eq('college_id', collegeId)
       .single();
@@ -336,6 +341,15 @@ export async function updateEventStatusAction(
     );
 
     revalidatePath('/admin/dashboard');
+    revalidatePath('/events');
+    revalidatePath(`/admin/dashboard/events/${eventId}`);
+    revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
+    if (existing.slug) {
+      revalidatePath(`/events/${existing.slug}`);
+      revalidatePath(`/admin/dashboard/events/${existing.slug}`);
+      revalidatePath(`/admin/dashboard/events/${existing.slug}/registrations`);
+    }
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to change event status.' };

@@ -15,6 +15,9 @@ import {
   ToggleLeft,
   ToggleRight,
   AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  X,
   FolderPlus,
   ArrowLeft,
   UsersRound,
@@ -54,6 +57,7 @@ export function ProgramDashboard({
   const [showProgramForm, setShowProgramForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
   const [editingProgram, setEditingProgram] = useState<EventProgram | null>(null);
+  const [toggleConfirmProgram, setToggleConfirmProgram] = useState<EventProgram | null>(null);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -203,9 +207,11 @@ export function ProgramDashboard({
 
   const handleToggleProgram = async (prog: EventProgram) => {
     setLoading(true);
-    const res = await updateProgramAction(prog.id, { is_active: !prog.is_active }, activeCollegeId);
+    const nextStatus = !prog.is_active;
+    const res = await updateProgramAction(prog.id, { is_active: nextStatus }, activeCollegeId);
     if (res.success) {
-      setPrograms((prev) => prev.map((p) => p.id === prog.id ? { ...p, is_active: !p.is_active } : p));
+      setPrograms((prev) => prev.map((p) => p.id === prog.id ? { ...p, is_active: nextStatus } : p));
+      showFeedbackMsg('success', `Program "${prog.name}" ${nextStatus ? 'activated' : 'deactivated'} successfully.`);
     } else {
       showFeedbackMsg('error', res.error || 'Failed to toggle program.');
     }
@@ -704,16 +710,9 @@ export function ProgramDashboard({
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => startEditingProgram(prog)}
-                        className="p-1 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
-                        title="Edit program"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleToggleProgram(prog)}
-                        className="shrink-0"
-                        title={prog.is_active ? 'Deactivate' : 'Activate'}
+                        onClick={() => setToggleConfirmProgram(prog)}
+                        className="shrink-0 transition-opacity hover:opacity-80 cursor-pointer"
+                        title={prog.is_active ? 'Deactivate program' : 'Activate program'}
                       >
                         {prog.is_active ? (
                           <ToggleRight className="w-5 h-5 text-emerald-500" />
@@ -812,6 +811,86 @@ export function ProgramDashboard({
           )}
         </div>
       ))}
+
+      {/* Confirmation Modal for Program Activate / Deactivate */}
+      {toggleConfirmProgram && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                    toggleConfirmProgram.is_active
+                      ? 'bg-amber-50 text-amber-600'
+                      : 'bg-emerald-50 text-emerald-600'
+                  }`}
+                >
+                  {toggleConfirmProgram.is_active ? (
+                    <AlertTriangle className="w-5 h-5" />
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    {toggleConfirmProgram.is_active ? 'Deactivate Program?' : 'Activate Program?'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    {toggleConfirmProgram.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setToggleConfirmProgram(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              {toggleConfirmProgram.is_active ? (
+                <span>
+                  Are you sure you want to deactivate <strong>{toggleConfirmProgram.name}</strong>? Students will no longer be able to register for this program while it is inactive.
+                </span>
+              ) : (
+                <span>
+                  Are you sure you want to activate <strong>{toggleConfirmProgram.name}</strong>? Students will be able to view and register for this program according to its schedule.
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setToggleConfirmProgram(null)}
+                className="px-3.5 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const target = toggleConfirmProgram;
+                  setToggleConfirmProgram(null);
+                  await handleToggleProgram(target);
+                }}
+                disabled={loading}
+                className={`px-4 py-2 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-xs inline-flex items-center gap-1.5 ${
+                  toggleConfirmProgram.is_active
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {toggleConfirmProgram.is_active ? 'Yes, Deactivate' : 'Yes, Activate'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import type {
   PublicEventRegistrationInput,
 } from '@/types/events';
 import { isUuid, normalizeEventSlug } from '@/lib/events/slug';
+import { computeCanonicalStatsFromRows, getCanonicalEventStats } from '@/lib/events/canonical-stats';
 
 async function getDb() {
   return createAdminClient() || await createClient();
@@ -31,30 +32,9 @@ export async function getAdminEvents(collegeId: string): Promise<CollegeEvent[]>
     return [];
   }
 
-  // Get active registration counts per event
-  const { data: regCounts, error: regError } = await db
-    .from('event_registrations')
-    .select('event_id, registration_status')
-    .eq('college_id', collegeId);
-
-  const countMap: Record<string, { total: number; active: number }> = {};
-  if (!regError && regCounts) {
-    for (const r of regCounts) {
-      if (!countMap[r.event_id]) {
-        countMap[r.event_id] = { total: 0, active: 0 };
-      }
-      countMap[r.event_id].total++;
-      if (r.registration_status === 'REGISTERED') {
-        countMap[r.event_id].active++;
-      }
-    }
-  }
-
-  return (events || []).map((ev: any) => ({
-    ...ev,
-    registrations_count: countMap[ev.id]?.total || 0,
-    active_registrations_count: countMap[ev.id]?.active || 0,
-  }));
+  // Google Sheets is the source of truth for registrations.
+  // We do not query the deprecated Supabase event_registrations table.
+  return events || [];
 }
 
 /**
@@ -122,16 +102,15 @@ export async function getAdminEventById(
     return null;
   }
 
-  const { count: activeCount } = await db
-    .from('event_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', data.id)
-    .eq('registration_status', 'REGISTERED');
-
-  return {
-    ...data,
-    active_registrations_count: activeCount || 0,
-  };
+  try {
+    const stats = await getCanonicalEventStats(collegeId, data.id, data);
+    return {
+      ...data,
+      active_registrations_count: stats.available ? stats.totalEnrolled : undefined,
+    };
+  } catch {
+    return data;
+  }
 }
 
 /**
@@ -196,17 +175,15 @@ export async function getPublicEventBySlug(
     return null;
   }
 
-  // Fetch active registration count for capacity display
-  const { count: activeCount } = await db
-    .from('event_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('event_id', data.id)
-    .eq('registration_status', 'REGISTERED');
-
-  return {
-    ...data,
-    active_registrations_count: activeCount || 0,
-  };
+  try {
+    const stats = await getCanonicalEventStats(collegeId, data.id, data);
+    return {
+      ...data,
+      active_registrations_count: stats.available ? stats.totalEnrolled : undefined,
+    };
+  } catch {
+    return data;
+  }
 }
 
 /**
@@ -333,34 +310,17 @@ export async function getEventRegistrations(params: {
         registrations = registrations.filter((r) => r.registration_status === params.registrationStatus);
       }
 
-      // Compute stats directly from Google Sheets
-      let totalEnrolled = 0;
-      let paymentPending = 0;
-      let paymentVerified = 0;
-      let paymentRejected = 0;
-
-      for (const r of sheetRows) {
-        if (r.registrationStatus !== 'CANCELLED') {
-          totalEnrolled++;
-          if (r.paymentStatus === 'PENDING' || r.paymentStatus === 'SUBMITTED') paymentPending++;
-          if (r.paymentStatus === 'VERIFIED' || r.paymentStatus === 'PAID') paymentVerified++;
-          if (r.paymentStatus === 'REJECTED') paymentRejected++;
-        }
-      }
-
-      const availableSeats =
-        event.max_capacity !== null
-          ? Math.max(0, event.max_capacity - totalEnrolled)
-          : null;
+      // Compute stats directly from Google Sheets using canonical logic
+      const canonical = computeCanonicalStatsFromRows(sheetRows, event.max_capacity);
 
       return {
         registrations,
         stats: {
-          totalEnrolled,
-          paymentPending,
-          paymentVerified,
-          paymentRejected,
-          availableSeats,
+          totalEnrolled: canonical.totalEnrolled,
+          paymentPending: canonical.paymentPending,
+          paymentVerified: canonical.paymentVerified,
+          paymentRejected: canonical.paymentRejected,
+          availableSeats: canonical.availableSeats,
           maxCapacity: event.max_capacity,
         },
       };

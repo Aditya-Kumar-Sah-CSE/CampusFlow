@@ -175,7 +175,7 @@ export function EventRegistrationsClient({
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-1 flex flex-wrap items-center gap-2">
             <span className="break-words">{event.title}</span>
             <span className="text-xs font-normal text-slate-500">
-              ({event.active_registrations_count || 0} Registered)
+              ({stats.totalEnrolled} Registered)
             </span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5" suppressHydrationWarning>

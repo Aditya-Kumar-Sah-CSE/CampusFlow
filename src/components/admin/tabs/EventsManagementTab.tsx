@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Calendar,
   Plus,
   Users,
   MapPin,
-  CheckCircle,
-  XCircle,
   Loader2,
-  Trash2,
   Edit,
   Trophy,
+  ChevronDown,
+  AlertCircle,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import type { CollegeEvent, EventStatus } from '@/types/events';
-import { updateEventStatusAction, deleteEventAction } from '@/app/admin/events/actions';
+import type { CanonicalEventStats } from '@/lib/events/canonical-stats';
+import { updateEventStatusAction } from '@/app/admin/events/actions';
 
 interface Props {
   activeCollegeId?: string | null;
@@ -28,7 +30,33 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const fetchEvents = async () => {
+  // Canonical Google Sheets stats per event
+  const [statsMap, setStatsMap] = useState<Record<string, CanonicalEventStats>>({});
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Confirmation modal for CLOSED and CANCELLED states
+  const [confirmModal, setConfirmModal] = useState<{
+    eventId: string;
+    eventTitle: string;
+    targetStatus: 'CLOSED' | 'CANCELLED';
+  } | null>(null);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      const res = await fetch('/api/admin/events/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setStatsMap(data.stats || {});
+      }
+    } catch (err) {
+      console.error('Failed to load event registration stats', err);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/admin/events');
@@ -41,13 +69,14 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!initialEvents) {
       fetchEvents();
     }
-  }, [activeCollegeId, initialEvents]);
+    fetchStats();
+  }, [activeCollegeId, initialEvents, fetchEvents, fetchStats]);
 
   const handleStatusChange = async (eventId: string, newStatus: EventStatus) => {
     try {
@@ -69,46 +98,35 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
     }
   };
 
-  const handleDelete = async (eventId: string, title: string, currentStatus?: EventStatus) => {
-    const isCancelled = currentStatus === 'CANCELLED';
-    const confirmPrompt = isCancelled
-      ? `Event "${title}" is marked as CANCELLED.\n\nDo you want to PERMANENTLY DELETE this event and all associated records? This action cannot be undone.`
-      : `Are you sure you want to delete/cancel the event "${title}"?`;
+  const onStatusSelect = (event: CollegeEvent, targetStatus: EventStatus) => {
+    if (targetStatus === event.status) return;
 
-    if (!confirm(confirmPrompt)) {
-      return;
-    }
-
-    try {
-      setUpdatingId(eventId);
-      setFeedbackMsg(null);
-      const res = await deleteEventAction(eventId, activeCollegeId || undefined, isCancelled);
-      if (res.success) {
-        if (res.actionTaken === 'CANCELLED') {
-          setEvents((prev) =>
-            prev.map((e) => (e.id === eventId ? { ...e, status: 'CANCELLED' } : e))
-          );
-          setFeedbackMsg({
-            type: 'success',
-            text: 'Event has active registrations, so it was marked as CANCELLED. Click delete again to permanently remove it.',
-          });
-        } else {
-          setEvents((prev) => prev.filter((e) => e.id !== eventId));
-          setFeedbackMsg({ type: 'success', text: `Event "${title}" permanently deleted.` });
-        }
-      } else {
-        setFeedbackMsg({ type: 'error', text: res.error || 'Failed to delete event.' });
-      }
-    } catch (err: any) {
-      setFeedbackMsg({ type: 'error', text: err.message || 'Error deleting event.' });
-    } finally {
-      setUpdatingId(null);
+    if (targetStatus === 'CLOSED' || targetStatus === 'CANCELLED') {
+      setConfirmModal({
+        eventId: event.id,
+        eventTitle: event.title,
+        targetStatus,
+      });
+    } else {
+      // DRAFT or PUBLISHED can change without confirmation
+      handleStatusChange(event.id, targetStatus);
     }
   };
 
+  const handleConfirmStatusChange = async () => {
+    if (!confirmModal) return;
+    const { eventId, targetStatus } = confirmModal;
+    setConfirmModal(null);
+    await handleStatusChange(eventId, targetStatus);
+  };
+
   const publishedCount = events.filter((e) => e.status === 'PUBLISHED').length;
-  const totalRegistrations = events.reduce((sum, e) => sum + (e.active_registrations_count || 0), 0);
   const paidCount = events.filter((e) => e.payment_required).length;
+
+  // Real aggregate registrations from canonical Google Sheets
+  const totalRegistrations = Object.values(statsMap).reduce((sum, s) => {
+    return s.available ? sum + (s.totalRegistrations || 0) : sum;
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -144,7 +162,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
           <span>{feedbackMsg.text}</span>
           <button
             onClick={() => setFeedbackMsg(null)}
-            className="text-xs underline ml-2 opacity-70 hover:opacity-100"
+            className="text-xs underline ml-2 opacity-70 hover:opacity-100 cursor-pointer"
           >
             Dismiss
           </button>
@@ -163,7 +181,11 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
         </div>
         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
           <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Registrations</p>
-          <p className="text-xl sm:text-2xl font-bold text-bce-cobalt mt-1">{totalRegistrations}</p>
+          {statsLoading && Object.keys(statsMap).length === 0 ? (
+            <div className="w-16 h-7 bg-slate-200 animate-pulse rounded-md mt-1" />
+          ) : (
+            <p className="text-xl sm:text-2xl font-bold text-bce-cobalt mt-1">{totalRegistrations}</p>
+          )}
         </div>
         <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
           <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Paid Events</p>
@@ -204,6 +226,9 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
           <div className="divide-y divide-slate-100">
             {events.map((event) => {
               const isUpdating = updatingId === event.id;
+              const eventStats = statsMap[event.id];
+              const isStatsLoading = statsLoading && !eventStats;
+
               const startDate = new Date(event.start_at).toLocaleDateString('en-IN', {
                 month: 'short',
                 day: 'numeric',
@@ -220,6 +245,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                       <h4 className="text-sm sm:text-base font-bold text-slate-900 break-words">
                         {event.title}
                       </h4>
+
                       {/* Status Badge */}
                       <span
                         className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
@@ -256,11 +282,30 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="break-words">{event.venue}</span>
                       </span>
-                      <span className="flex items-center gap-1 font-medium text-slate-700">
-                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        {event.active_registrations_count || 0}
-                        {event.max_capacity ? ` / ${event.max_capacity} Seats` : ' Enrolled'}
-                      </span>
+
+                      {/* Enrolled Count (Real Google Sheets participants count) */}
+                      {isStatsLoading ? (
+                        <span className="flex items-center gap-1.5 text-xs text-slate-400">
+                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="inline-block w-16 h-3.5 bg-slate-200 animate-pulse rounded-md" />
+                        </span>
+                      ) : eventStats && !eventStats.available ? (
+                        <span
+                          className="flex items-center gap-1 text-xs text-amber-600 font-medium"
+                          title={eventStats.error || 'Google Sheets data unavailable'}
+                        >
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span>Registration data unavailable</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 font-medium text-slate-700">
+                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>
+                            {eventStats ? eventStats.totalEnrolled : 0}
+                            {event.max_capacity ? ` / ${event.max_capacity} Seats` : ' Enrolled'}
+                          </span>
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -275,13 +320,31 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                       <span>Manage Programs</span>
                     </Link>
 
-                    <Link
-                      href={`/admin/dashboard/events/${event.id}/registrations`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
-                    >
-                      <Users className="w-3.5 h-3.5 text-bce-cobalt" />
-                      <span>Registrations ({event.active_registrations_count || 0})</span>
-                    </Link>
+                    {/* Registrations Button (Dynamic real count from Google Sheets) */}
+                    {isStatsLoading ? (
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded-lg border border-slate-200">
+                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="inline-block w-20 h-3.5 bg-slate-200 animate-pulse rounded-md" />
+                      </div>
+                    ) : eventStats && !eventStats.available ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-400 text-xs font-semibold rounded-lg border border-slate-200 opacity-60 cursor-not-allowed"
+                        title="Registration data unavailable from Google Sheets"
+                      >
+                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Registrations (Unavailable)</span>
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/admin/dashboard/events/${event.id}/registrations`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+                      >
+                        <Users className="w-3.5 h-3.5 text-bce-cobalt" />
+                        <span>Registrations ({eventStats ? eventStats.totalRegistrations : 0})</span>
+                      </Link>
+                    )}
 
                     <Link
                       href={`/admin/dashboard/events/${event.id}/edit`}
@@ -291,52 +354,29 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                       <span>Edit</span>
                     </Link>
 
-                    {/* Status Toggle Actions */}
-                    {event.status === 'DRAFT' && (
-                      <button
-                        onClick={() => handleStatusChange(event.id, 'PUBLISHED')}
+                    {/* Unified Status Dropdown */}
+                    <div className="relative inline-flex items-center">
+                      <select
+                        id={`event-status-${event.id}`}
+                        aria-label={`Status for ${event.title}`}
+                        value={event.status}
                         disabled={isUpdating}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold rounded-lg transition-colors border border-emerald-200 cursor-pointer disabled:opacity-50"
+                        onChange={(e) => onStatusSelect(event, e.target.value as EventStatus)}
+                        className="appearance-none text-xs font-semibold rounded-lg pl-3 pr-8 py-1.5 bg-white border border-slate-300 text-slate-800 hover:border-slate-400 focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs transition-colors"
                       >
-                        {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        <span>Publish</span>
-                      </button>
-                    )}
-
-                    {event.status === 'PUBLISHED' && (
-                      <button
-                        onClick={() => handleStatusChange(event.id, 'CLOSED')}
-                        disabled={isUpdating}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs font-medium rounded-lg transition-colors border border-slate-200 cursor-pointer disabled:opacity-50"
-                      >
-                        {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                        <span>Close</span>
-                      </button>
-                    )}
-
-                    {event.status === 'CLOSED' && (
-                      <button
-                        onClick={() => handleStatusChange(event.id, 'PUBLISHED')}
-                        disabled={isUpdating}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold rounded-lg transition-colors border border-emerald-200 cursor-pointer disabled:opacity-50"
-                      >
-                        {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                        <span>Re-Open</span>
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleDelete(event.id, event.title, event.status)}
-                      disabled={isUpdating}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        event.status === 'CANCELLED'
-                          ? 'text-red-600 hover:bg-red-100 bg-red-50 border border-red-200'
-                          : 'text-slate-400 hover:text-red-600 hover:bg-red-50'
-                      }`}
-                      title={event.status === 'CANCELLED' ? 'Permanently delete cancelled event' : 'Delete or cancel event'}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                        <option value="DRAFT">DRAFT (Hidden from public)</option>
+                        <option value="PUBLISHED">PUBLISHED (Visible to students)</option>
+                        <option value="CLOSED">CLOSED (Registration stopped)</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-500">
+                        {isUpdating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-bce-cobalt" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -344,6 +384,83 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal for CLOSED or CANCELLED status changes */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                    confirmModal.targetStatus === 'CANCELLED'
+                      ? 'bg-red-50 text-red-600'
+                      : 'bg-amber-50 text-amber-600'
+                  }`}
+                >
+                  {confirmModal.targetStatus === 'CANCELLED' ? (
+                    <AlertTriangle className="w-5 h-5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    {confirmModal.targetStatus === 'CANCELLED'
+                      ? 'Cancel this event?'
+                      : 'Close this event?'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    {confirmModal.eventTitle}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-600 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+              {confirmModal.targetStatus === 'CANCELLED' ? (
+                <span>
+                  Students will no longer be able to register. Existing registrations, teams, payments, and event records will be preserved.
+                </span>
+              ) : (
+                <span>
+                  New registrations will stop, but existing registrations and program records will remain intact.
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-3.5 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Keep Current Status
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmStatusChange}
+                className={`px-4 py-2 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-2xs ${
+                  confirmModal.targetStatus === 'CANCELLED'
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-slate-800 hover:bg-slate-900'
+                }`}
+              >
+                {confirmModal.targetStatus === 'CANCELLED'
+                  ? 'Confirm & Cancel Event'
+                  : 'Confirm & Close Event'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
