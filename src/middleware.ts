@@ -4,12 +4,15 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Explicit fast bypass for SEO metadata and root assets
+  // Explicit fast bypass for SEO metadata, PWA root assets, and Digital Asset Links
   if (
     pathname === '/sitemap.xml' ||
     pathname === '/robots.txt' ||
     pathname === '/favicon.ico' ||
-    pathname === '/sw.js'
+    pathname === '/sw.js' ||
+    pathname === '/manifest.webmanifest' ||
+    pathname === '/.well-known/assetlinks.json' ||
+    pathname.startsWith('/.well-known/')
   ) {
     return NextResponse.next();
   }
@@ -22,12 +25,14 @@ export async function middleware(request: NextRequest) {
 
   // Known non-tenant reserved prefixes
   const reservedPrefixes = [
+    '.well-known',
     'admin',
     'api',
     'auth',
     'events',
     'offline',
     'favicon.ico',
+    'manifest.webmanifest',
     'sitemap.xml',
     'robots.txt',
     'privacy-policy',
@@ -119,8 +124,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico, sitemap.xml, robots.txt, sw.js, manifest.webmanifest
-     * - Static asset extensions (.svg, .png, .jpg, .jpeg, .gif, .webp, .ico, .html, .txt)
+     * - .well-known/assetlinks.json
+     * - Static asset extensions (.svg, .png, .jpg, .jpeg, .gif, .webp, .ico, .html, .txt, .json)
      */
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|sw.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|html|txt)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|sw.js|manifest.webmanifest|\\.well-known/.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|html|txt|json)$).*)',
   ],
 };

@@ -221,6 +221,11 @@ export function ProgramRegistrationClient({
     const cleanEmail = loginEmail.trim().toLowerCase();
     const cleanReg = loginRegNum.trim().toUpperCase();
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLoginError('You are offline. Student verification requires an active internet connection.');
+      return;
+    }
+
     if (!cleanEmail && !cleanReg) {
       setLoginError('Please enter your Email Address or Event Registration Number.');
       return;
@@ -377,6 +382,11 @@ export function ProgramRegistrationClient({
   const handleSubmitRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setErrorMsg('You are offline. Program registration requires an active internet connection.');
+      return;
+    }
 
     if (!participant) {
       setErrorMsg('Event registration verification is required before joining this program.');

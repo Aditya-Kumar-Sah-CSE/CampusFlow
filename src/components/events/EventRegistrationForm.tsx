@@ -136,6 +136,11 @@ export function EventRegistrationForm({
     e.preventDefault();
     setErrorMsg(null);
 
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setErrorMsg('You are offline. Event registration requires an active internet connection. Please reconnect and try again.');
+      return;
+    }
+
     if (!fullName.trim() || !studentId.trim() || !email.trim() || !mobile.trim()) {
       setErrorMsg('Please complete all required fields.');
       return;
@@ -171,6 +176,11 @@ export function EventRegistrationForm({
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLookupError(null);
+
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setLookupError('You are offline. Looking up existing registrations requires an active internet connection.');
+      return;
+    }
 
     const cleanInput = lookupInput.trim();
     if (!cleanInput) {

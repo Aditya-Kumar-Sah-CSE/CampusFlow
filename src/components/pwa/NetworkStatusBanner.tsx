@@ -49,7 +49,7 @@ export function NetworkStatusBanner() {
           <div className="flex items-center gap-2 text-xs">
             <WifiOff className="w-4 h-4 text-red-400 shrink-0 animate-pulse" />
             <span className="font-semibold text-red-200">
-              You are offline. Live feedback requires internet.
+              You are offline. Feedback, registrations, and payments require an internet connection.
             </span>
           </div>
           <button

@@ -1,0 +1,60 @@
+{
+  "packageId": "com.campusflow.app",
+  "host": "143campusflow.vercel.app",
+  "name": "CampusFlow",
+  "launcherName": "CampusFlow",
+  "description": "CampusFlow — Campus Management Platform for institutional feedback, events, programs, and registrations.",
+  "themeColor": "#0B192C",
+  "themeColorDark": "#0B192C",
+  "navigationColor": "#0B192C",
+  "navigationColorDark": "#0B192C",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#0B192C",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://143campusflow.vercel.app/icon-512.png",
+  "maskableIconUrl": "https://143campusflow.vercel.app/icon-maskable.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./campusflow-release.keystore",
+    "alias": "campusflow"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "shortcuts": [
+    {
+      "name": "Campus Events",
+      "shortName": "Events",
+      "url": "https://143campusflow.vercel.app/events",
+      "icon": "https://143campusflow.vercel.app/icon-192.png"
+    },
+    {
+      "name": "Submit Feedback",
+      "shortName": "Feedback",
+      "url": "https://143campusflow.vercel.app/feedback",
+      "icon": "https://143campusflow.vercel.app/icon-192.png"
+    },
+    {
+      "name": "Admin Console",
+      "shortName": "Admin",
+      "url": "https://143campusflow.vercel.app/admin/login",
+      "icon": "https://143campusflow.vercel.app/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://143campusflow.vercel.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  }
+}

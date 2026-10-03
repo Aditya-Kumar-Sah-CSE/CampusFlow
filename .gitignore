@@ -35,3 +35,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Android / TWA signing keys & build artifacts
+*.keystore
+*.jks
+*.apk
+*.aab
+/twa/*.keystore
+/twa/*.apk
+/twa/*.aab
+/twa/app-debug.apk
+/twa/app-release-signed.apk
+/twa/app-release-bundle.aab
