@@ -56,8 +56,8 @@ export default async function TenantEventRegisterPage({ params }: Props) {
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       <PublicTenantNavbar tenant={tenant} currentPage="event-detail" />
 
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 sm:py-12 space-y-6">
-        <div className="flex items-center justify-between">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-3 sm:px-6 py-6 sm:py-10 space-y-4 sm:space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <Link
             href={`/${tenant.slug}/events/${event.slug}`}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"

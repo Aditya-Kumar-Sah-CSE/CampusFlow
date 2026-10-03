@@ -113,10 +113,10 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
-            <Calendar className="w-6 h-6 text-bce-cobalt" />
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2 sm:gap-2.5">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-bce-cobalt shrink-0" />
             <span>College Events &amp; Registration</span>
           </h2>
           <p className="text-xs text-slate-500 mt-1">
@@ -126,7 +126,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
 
         <Link
           href="/admin/dashboard/events/create"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Create New Event</span>
@@ -152,29 +152,29 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Events</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{events.length}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Events</p>
+          <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{events.length}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Active Published</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{publishedCount}</p>
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Active Published</p>
+          <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">{publishedCount}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Registrations</p>
-          <p className="text-2xl font-bold text-bce-cobalt mt-1">{totalRegistrations}</p>
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Registrations</p>
+          <p className="text-xl sm:text-2xl font-bold text-bce-cobalt mt-1">{totalRegistrations}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Paid Events</p>
-          <p className="text-2xl font-bold text-amber-600 mt-1">{paidCount}</p>
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Paid Events</p>
+          <p className="text-xl sm:text-2xl font-bold text-amber-600 mt-1">{paidCount}</p>
         </div>
       </div>
 
       {/* Events List */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900">Events Directory</h3>
+        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-xs sm:text-sm font-bold text-slate-900">Events Directory</h3>
           <span className="text-xs text-slate-500">{events.length} event{events.length === 1 ? '' : 's'}</span>
         </div>
 
@@ -184,7 +184,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
             <p className="text-xs">Loading institutional events...</p>
           </div>
         ) : events.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
+          <div className="p-8 sm:p-12 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
               <Calendar className="w-6 h-6" />
             </div>
@@ -217,7 +217,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                 >
                   <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-base font-bold text-slate-900 truncate">
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 break-words">
                         {event.title}
                       </h4>
                       {/* Status Badge */}
@@ -249,15 +249,15 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         {startDate}
                       </span>
                       <span className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {event.venue}
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="break-words">{event.venue}</span>
                       </span>
                       <span className="flex items-center gap-1 font-medium text-slate-700">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
+                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         {event.active_registrations_count || 0}
                         {event.max_capacity ? ` / ${event.max_capacity} Seats` : ' Enrolled'}
                       </span>
@@ -265,7 +265,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                   </div>
 
                   {/* Actions bar */}
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
                     <Link
                       href={`/admin/dashboard/events/${event.id}/programs`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"

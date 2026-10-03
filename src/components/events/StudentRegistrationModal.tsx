@@ -133,12 +133,12 @@ export function StudentRegistrationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl border border-slate-200/90 space-y-5 my-8">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl sm:rounded-3xl w-[calc(100vw-16px)] sm:w-full max-w-lg max-h-[calc(100vh-24px)] overflow-y-auto p-4 sm:p-7 shadow-2xl border border-slate-200/90 space-y-4 sm:space-y-5 my-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-900">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2">
+          <div className="min-w-0">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">
               {step === 3 ? 'Registration Confirmed' : `Register: ${event.title}`}
             </h3>
             {step < 3 && (
@@ -149,22 +149,22 @@ export function StudentRegistrationModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
+          <div className="p-3 sm:p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-            <span>{errorMsg}</span>
+            <span className="break-words">{errorMsg}</span>
           </div>
         )}
 
         {/* STEP 1: Student Information */}
         {step === 1 && (
-          <form onSubmit={handleStep1Submit} className="space-y-4">
+          <form onSubmit={handleStep1Submit} className="space-y-3.5 sm:space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-700">Full Name *</label>
               <input
@@ -249,22 +249,22 @@ export function StudentRegistrationModal({
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-3">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50 text-center"
               >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {submitting && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
                 <span>{isPaid ? 'Proceed to Payment' : 'Confirm Registration'}</span>
-                {isPaid && <ArrowRight className="w-3.5 h-3.5" />}
+                {isPaid && <ArrowRight className="w-3.5 h-3.5 shrink-0" />}
               </button>
             </div>
           </form>
@@ -272,30 +272,30 @@ export function StudentRegistrationModal({
 
         {/* STEP 2: Payment Details (For Paid Events Only) */}
         {step === 2 && isPaid && (
-          <form onSubmit={executeRegistration} className="space-y-4">
-            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/90 space-y-3">
+          <form onSubmit={executeRegistration} className="space-y-3.5 sm:space-y-4">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/80 border border-amber-200/90 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-900 uppercase">Registration Fee:</span>
                 <span className="text-xl font-extrabold text-amber-950">₹{event.payment_amount}</span>
               </div>
 
               {event.payment_instructions && (
-                <p className="text-xs text-amber-900/90 leading-relaxed border-t border-amber-200/60 pt-2">
+                <p className="text-xs text-amber-900/90 leading-relaxed border-t border-amber-200/60 pt-2 break-words">
                   {event.payment_instructions}
                 </p>
               )}
 
               {/* UPI ID display */}
               {event.payment_upi_id && (
-                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-amber-200 text-xs">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-amber-200 text-xs">
+                  <div className="min-w-0">
                     <span className="text-[10px] text-slate-400 block font-semibold">UPI ID:</span>
-                    <span className="font-mono font-bold text-slate-900">{event.payment_upi_id}</span>
+                    <span className="font-mono font-bold text-slate-900 break-all">{event.payment_upi_id}</span>
                   </div>
                   <button
                     type="button"
                     onClick={handleCopyUpi}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-bce-cobalt hover:bg-blue-50 rounded-lg transition-colors"
+                    className="inline-flex items-center justify-center gap-1 px-2.5 py-1 text-xs font-semibold text-bce-cobalt hover:bg-blue-50 rounded-lg transition-colors self-start sm:self-auto"
                   >
                     <Copy className="w-3 h-3" />
                     <span>{copiedUpi ? 'Copied!' : 'Copy'}</span>
@@ -311,7 +311,7 @@ export function StudentRegistrationModal({
                   <img
                     src={event.payment_qr_url}
                     alt="Payment QR"
-                    className="w-36 h-36 mx-auto object-contain bg-white p-2 rounded-xl border border-amber-200 shadow-2xs"
+                    className="w-32 h-32 sm:w-36 sm:h-36 mx-auto object-contain bg-white p-2 rounded-xl border border-amber-200 shadow-2xs"
                   />
                 </div>
               )}
@@ -336,7 +336,7 @@ export function StudentRegistrationModal({
             {/* Optional screenshot */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700">Payment Screenshot (Optional)</label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
@@ -351,7 +351,7 @@ export function StudentRegistrationModal({
                   <Upload className="w-3.5 h-3.5 text-slate-400" />
                   <span>Choose Image</span>
                 </label>
-                {proofFile && <span className="text-xs text-slate-500 truncate">{proofFile.name}</span>}
+                {proofFile && <span className="text-xs text-slate-500 truncate max-w-[200px]">{proofFile.name}</span>}
               </div>
               {proofPreview && (
                 <div className="mt-1.5 p-1 border border-slate-200 rounded-lg inline-block bg-slate-50">
@@ -361,11 +361,11 @@ export function StudentRegistrationModal({
               )}
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back</span>
@@ -374,9 +374,9 @@ export function StudentRegistrationModal({
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50 text-center"
               >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {submitting && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
                 <span>Submit Registration</span>
               </button>
             </div>
@@ -386,12 +386,12 @@ export function StudentRegistrationModal({
         {/* STEP 3: Success Screen */}
         {step === 3 && (
           <div className="py-4 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-              <CheckCircle className="w-8 h-8" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shrink-0">
+              <CheckCircle className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
 
             <div className="space-y-1">
-              <h4 className="text-lg font-bold text-slate-900">Registration Successful!</h4>
+              <h4 className="text-base sm:text-lg font-bold text-slate-900">Registration Successful!</h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 {isPaid
                   ? 'Your registration has been submitted. Payment status is PENDING and will be manually verified by the college coordinators.'
@@ -400,11 +400,11 @@ export function StudentRegistrationModal({
             </div>
 
             {registrationId && (
-              <div className="p-4 bg-slate-900 rounded-2xl text-white inline-block text-center max-w-xs mx-auto shadow-inner space-y-1">
+              <div className="p-3.5 sm:p-4 bg-slate-900 rounded-2xl text-white inline-block text-center max-w-xs mx-auto shadow-inner space-y-1 min-w-0 w-full">
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                   Event Registration Number
                 </span>
-                <p className="font-mono text-base font-black text-amber-400 select-all">
+                <p className="font-mono text-base font-black text-amber-400 select-all break-all">
                   {registrationId}
                 </p>
                 <p className="text-[10px] text-slate-400">Save this number to join individual or team programs.</p>
@@ -419,14 +419,14 @@ export function StudentRegistrationModal({
                   const el = document.getElementById('programs-section');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs text-center"
               >
                 Join Event Programs &rarr;
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors text-center"
               >
                 Close
               </button>

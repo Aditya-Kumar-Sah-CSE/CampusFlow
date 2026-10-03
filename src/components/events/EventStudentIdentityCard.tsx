@@ -129,16 +129,16 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
   // ============================================================
   if (participant) {
     return (
-      <div className="bg-gradient-to-br from-emerald-900/90 via-slate-900 to-slate-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-emerald-500/30 relative overflow-hidden animate-in fade-in duration-300">
+      <div className="bg-gradient-to-br from-emerald-900/90 via-slate-900 to-slate-950 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 text-white shadow-xl border border-emerald-500/30 relative overflow-hidden animate-in fade-in duration-300">
         {/* Decorative backdrop light */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 space-y-5">
+        <div className="relative z-10 space-y-4 sm:space-y-5">
           {/* Header Row */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3 sm:pb-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Event Registration Verified</span>
               </span>
               <span className="text-[11px] text-slate-400">Google Sheet: EVENT_REGISTRATIONS</span>
@@ -146,7 +146,7 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
 
             <button
               onClick={handleSwitchStudent}
-              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start sm:self-auto"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Switch Student</span>
@@ -154,16 +154,19 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
           </div>
 
           {/* Student Info Card */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-            <div className="sm:col-span-8 space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-stretch sm:items-center">
+            <div className="sm:col-span-7 md:col-span-8 space-y-2 min-w-0">
               <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 <span>Identified Student</span>
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white">
+              <h3 className="text-lg sm:text-2xl font-black text-white break-words">
                 {participant.fullName}
               </h3>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
+              <p className="text-xs text-slate-300 break-all">
+                {participant.email}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-300 pt-1">
                 {participant.studentId && (
                   <span className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 font-mono">
                     Roll: {participant.studentId}
@@ -186,11 +189,11 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
             </div>
 
             {/* Registration Number Badge */}
-            <div className="sm:col-span-4 bg-slate-900/90 rounded-2xl p-4 border border-slate-800 text-center space-y-2 shadow-inner">
+            <div className="sm:col-span-5 md:col-span-4 bg-slate-900/90 rounded-2xl p-3 sm:p-4 border border-slate-800 text-center space-y-2 shadow-inner w-full min-w-0">
               <div className="text-[10px] uppercase font-bold tracking-widest text-slate-400">
                 Event Registration #
               </div>
-              <div className="text-xl sm:text-2xl font-mono font-black text-amber-400 tracking-wider">
+              <div className="text-lg sm:text-2xl font-mono font-black text-amber-400 tracking-wider break-all">
                 {participant.registrationNumber}
               </div>
               <button
@@ -204,21 +207,21 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
           </div>
 
           {/* Action CTAs */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
             <button
               onClick={scrollToPrograms}
-              className="w-full sm:w-auto px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
-              <Ticket className="w-4 h-4" />
+              <Ticket className="w-4 h-4 shrink-0" />
               <span>Choose Program to Join</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 shrink-0" />
             </button>
 
             <Link
               href={myRegistrationsPath}
-              className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm border border-slate-700 transition-colors flex items-center justify-center gap-2 text-center"
+              className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm border border-slate-700 transition-colors flex items-center justify-center gap-2 text-center"
             >
-              <UserCheck className="w-4 h-4 text-blue-400" />
+              <UserCheck className="w-4 h-4 text-blue-400 shrink-0" />
               <span>View My Registrations</span>
             </Link>
           </div>
@@ -231,14 +234,14 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
   // VIEW 2: UNIDENTIFIED -> PROMPT IDENTIFY OR REGISTER
   // ============================================================
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-        <div className="space-y-1">
+    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4 sm:pb-5">
+        <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
               <UserCheck className="w-4 h-4" />
             </div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 break-words">
               Student Event Identification
             </h2>
           </div>
@@ -251,7 +254,7 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
         {event.registration_enabled && event.status === 'PUBLISHED' && (
           <Link
             href={registerEventPath}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0 text-center"
           >
             <Ticket className="w-3.5 h-3.5" />
             <span>New Student? Register Event</span>
@@ -261,15 +264,15 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
 
       {/* Error / Not Found Alert */}
       {errorMsg && (
-        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-3">
+        <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-3">
           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-2 flex-1">
-            <p className="font-semibold">{errorMsg}</p>
+          <div className="space-y-2 flex-1 min-w-0">
+            <p className="font-semibold break-words">{errorMsg}</p>
             {notFoundQuery && (
-              <div className="pt-1 flex flex-wrap items-center gap-2">
+              <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-2">
                 <Link
                   href={registerEventPath}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors"
+                  className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors w-full sm:w-auto"
                 >
                   <span>Register for Event Now</span>
                   <ArrowRight className="w-3 h-3" />
@@ -289,7 +292,7 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
           Already registered for {event.title}? Identify your registration:
         </label>
         <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -303,16 +306,16 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
           <button
             type="submit"
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed shrink-0"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed shrink-0"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 <span>Searching Google Sheet...</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>Check Registration</span>
               </>
             )}

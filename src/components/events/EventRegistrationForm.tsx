@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   Search,
   LogOut,
-  Sparkles,
 } from 'lucide-react';
 import {
   registerForEventAction,
@@ -222,17 +221,17 @@ export function EventRegistrationForm({
   // ============================================================
   if (alreadyRegisteredParticipant) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-10 max-w-xl mx-auto space-y-6 text-center animate-in fade-in duration-300">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-          <ShieldCheck className="w-9 h-9" />
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xl p-4 sm:p-8 md:p-10 w-full max-w-xl mx-auto space-y-5 sm:space-y-6 text-center animate-in fade-in duration-300">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shrink-0">
+          <ShieldCheck className="w-8 h-8 sm:w-9 sm:h-9" />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
             <CheckCircle className="w-3.5 h-3.5" />
             <span>Already Registered</span>
           </span>
-          <h2 className="text-2xl font-extrabold text-slate-900">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 break-words">
             Welcome back, {alreadyRegisteredParticipant.fullName}!
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
@@ -241,11 +240,11 @@ export function EventRegistrationForm({
         </div>
 
         {/* Big Registration Number Card */}
-        <div className="bg-slate-900 rounded-2xl p-5 text-white space-y-2 shadow-inner">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+        <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-2 shadow-inner min-w-0">
+          <div className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
             Your Event Registration Number
           </div>
-          <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider">
+          <div className="text-xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider break-all">
             {alreadyRegisteredParticipant.registrationNumber}
           </div>
           <p className="text-[11px] text-slate-400">
@@ -263,18 +262,18 @@ export function EventRegistrationForm({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2 flex flex-col sm:flex-row gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <Link
             href={`${eventDetailPath}#programs`}
-            className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 text-center"
           >
-            <Ticket className="w-4 h-4" />
+            <Ticket className="w-4 h-4 shrink-0" />
             <span>Choose Program to Join</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 shrink-0" />
           </Link>
           <Link
             href={myRegistrationsPath}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition-colors flex items-center justify-center"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center text-center"
           >
             <span>View My Registrations</span>
           </Link>
@@ -298,13 +297,13 @@ export function EventRegistrationForm({
   // ============================================================
   if (successRegNumber) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xl p-6 sm:p-10 max-w-xl mx-auto space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-          <CheckCircle className="w-9 h-9" />
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xl p-4 sm:p-8 md:p-10 w-full max-w-xl mx-auto space-y-5 sm:space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shrink-0">
+          <CheckCircle className="w-8 h-8 sm:w-9 sm:h-9" />
         </div>
 
-        <div className="space-y-2">
-          <h2 className="text-2xl font-extrabold text-slate-900">
+        <div className="space-y-2 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 break-words">
             Registration Confirmed!
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
@@ -313,11 +312,11 @@ export function EventRegistrationForm({
         </div>
 
         {/* Big Registration Number Card */}
-        <div className="bg-slate-900 rounded-2xl p-5 text-white space-y-2 shadow-inner">
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
+        <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-2 shadow-inner min-w-0">
+          <div className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
             Your Event Registration Number
           </div>
-          <div className="text-2xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider">
+          <div className="text-xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider break-all">
             {successRegNumber}
           </div>
           <p className="text-[11px] text-slate-400">
@@ -335,18 +334,18 @@ export function EventRegistrationForm({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-4 flex flex-col sm:flex-row gap-3">
+        <div className="pt-4 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <Link
             href={`${eventDetailPath}#programs`}
-            className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 text-center"
           >
-            <Ticket className="w-4 h-4" />
+            <Ticket className="w-4 h-4 shrink-0" />
             <span>Choose Program to Join</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 shrink-0" />
           </Link>
           <Link
             href={myRegistrationsPath}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition-colors flex items-center justify-center"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center text-center"
           >
             <span>View My Registrations</span>
           </Link>
@@ -359,13 +358,13 @@ export function EventRegistrationForm({
   // VIEW 3: REGISTRATION / LOOKUP FORM VIEW
   // ============================================================
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-xl mx-auto space-y-6">
+    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 md:p-8 w-full max-w-xl mx-auto space-y-5 sm:space-y-6">
       {/* Tab Switcher */}
-      <div className="flex rounded-2xl bg-slate-100 p-1">
+      <div className="grid grid-cols-2 rounded-xl sm:rounded-2xl bg-slate-100 p-1 gap-1">
         <button
           type="button"
           onClick={() => { setActiveTab('register'); setErrorMsg(null); }}
-          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+          className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all text-center ${
             activeTab === 'register'
               ? 'bg-white text-slate-900 shadow-xs'
               : 'text-slate-500 hover:text-slate-900'
@@ -376,13 +375,13 @@ export function EventRegistrationForm({
         <button
           type="button"
           onClick={() => { setActiveTab('lookup'); setLookupError(null); }}
-          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+          className={`py-2 px-1 text-[11px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition-all text-center ${
             activeTab === 'lookup'
               ? 'bg-white text-slate-900 shadow-xs'
               : 'text-slate-500 hover:text-slate-900'
           }`}
         >
-          Already Registered? Check Status
+          Check Status
         </button>
       </div>
 

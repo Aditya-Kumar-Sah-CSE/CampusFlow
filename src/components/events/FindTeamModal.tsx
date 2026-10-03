@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  X, Search, Users, User, Crown, Loader2, AlertCircle, CheckCircle,
+  X, Search, Users, Crown, Loader2, AlertCircle, CheckCircle,
   Send, ChevronRight, Clock, XCircle, RefreshCw, ArrowLeft,
 } from 'lucide-react';
 import {
@@ -26,7 +26,7 @@ interface FindTeamModalProps {
 }
 
 export function FindTeamModal({
-  isOpen, onClose, eventId, programId, programName, userRegistrationNumber, initialView, onTeamJoined,
+  isOpen, onClose, eventId, programId, programName, userRegistrationNumber: _userRegistrationNumber, initialView, onTeamJoined: _onTeamJoined,
 }: FindTeamModalProps) {
   const [view, setView] = useState<'search' | 'requests'>(initialView || (programId ? 'search' : 'requests'));
   const [query, setQuery] = useState('');
@@ -127,21 +127,21 @@ export function FindTeamModal({
   const pendingRequest = myRequests.find(r => r.status === 'PENDING');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full sm:max-w-lg max-h-[90vh] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative z-10 w-[calc(100vw-16px)] sm:w-full sm:max-w-lg max-h-[calc(100vh-16px)] bg-white rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden my-auto">
         {/* Header */}
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-50 to-indigo-50 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-sm">
-              <Users className="w-4.5 h-4.5" />
+        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-50 to-indigo-50 shrink-0 gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+              <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </div>
-            <div>
-              <h2 className="text-sm font-extrabold text-slate-900">{programName ? 'Find a Team' : 'My Team Requests'}</h2>
-              {programName && <p className="text-[10px] text-slate-500">{programName}</p>}
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-sm font-extrabold text-slate-900 truncate">{programName ? 'Find a Team' : 'My Team Requests'}</h2>
+              {programName && <p className="text-[10px] text-slate-500 truncate">{programName}</p>}
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer">
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer shrink-0">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -184,20 +184,20 @@ export function FindTeamModal({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-3.5 sm:px-5 py-3.5 sm:py-4 space-y-3.5 sm:space-y-4">
           {view === 'search' ? (
             <>
               {/* Pending warning */}
               {pendingRequest && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
                   <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <span>You have a pending request for <strong>{pendingRequest.teamName}</strong>. Cancel it before requesting another team.</span>
+                  <span className="break-words">You have a pending request for <strong>{pendingRequest.teamName}</strong>. Cancel it before requesting another team.</span>
                 </div>
               )}
 
               {/* Search bar */}
-              <form onSubmit={(e) => { e.preventDefault(); doSearch(); }} className="flex gap-2">
-                <div className="flex-1 relative">
+              <form onSubmit={(e) => { e.preventDefault(); doSearch(); }} className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1 relative min-w-0">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
@@ -210,9 +210,10 @@ export function FindTeamModal({
                 <button
                   type="submit"
                   disabled={searchLoading}
-                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold text-xs shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
                 >
                   {searchLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  <span className="sm:hidden">Search</span>
                 </button>
               </form>
 

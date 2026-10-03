@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Users,
-  UserCheck,
   UserPlus,
   Edit3,
   Trash2,
@@ -16,8 +15,6 @@ import {
   Crown,
   Search,
   Check,
-  Clock,
-  Sparkles,
 } from 'lucide-react';
 import type { StudentProgramRegistrationItem, TeamMemberDetails } from '@/app/admin/events/event-registration-actions';
 import type { Branch, Semester } from '@/types/database';
@@ -66,7 +63,7 @@ export function ManageTeamModal({
   onClose,
   eventId,
   program,
-  userRegistrationNumber,
+  userRegistrationNumber: _userRegistrationNumber,
   onTeamUpdated,
 }: Props) {
   // State
@@ -427,12 +424,12 @@ export function ManageTeamModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="relative w-[calc(100vw-16px)] sm:w-full max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[calc(100vh-16px)] flex flex-col animate-in fade-in zoom-in-95 duration-150">
         {/* Header */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-start justify-between gap-4 shrink-0">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-start justify-between gap-3 sm:gap-4 shrink-0">
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <span className="text-[10px] font-bold uppercase tracking-widest bg-white/10 px-2.5 py-0.5 rounded-full border border-white/15 text-indigo-200">
                 {program.programName}
               </span>
@@ -450,11 +447,11 @@ export function ManageTeamModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              <h2 className="text-lg sm:text-2xl font-black tracking-tight text-white break-words">
                 Team: {program.teamName}
               </h2>
             </div>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-300 break-all">
               Team Identifier: <span className="font-mono text-amber-300 font-bold">{program.teamId}</span>
             </p>
           </div>
@@ -469,30 +466,30 @@ export function ManageTeamModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 space-y-5 overflow-y-auto flex-1">
+        <div className="p-3.5 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1">
           {/* Feedback Banners */}
           {errorMsg && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5 animate-in fade-in">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5 animate-in fade-in">
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <span className="font-medium">{errorMsg}</span>
+              <span className="font-medium break-words">{errorMsg}</span>
             </div>
           )}
 
           {successMsg && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5 animate-in fade-in">
+            <div className="p-3 sm:p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2.5 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-              <span className="font-medium">{successMsg}</span>
+              <span className="font-medium break-words">{successMsg}</span>
             </div>
           )}
 
           {/* Registration Window Notice */}
           {!isRegistrationOpen && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-1">
+            <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs space-y-1">
               <div className="flex items-center gap-2 font-bold text-amber-900">
-                <Lock className="w-4 h-4 text-amber-700" />
+                <Lock className="w-4 h-4 text-amber-700 shrink-0" />
                 <span>Team Editing Locked</span>
               </div>
-              <p>
+              <p className="break-words">
                 {program.registrationClosedReason ||
                   'Registration for this event or program has ended. Team members can no longer be edited or changed.'}
               </p>
@@ -500,7 +497,7 @@ export function ManageTeamModal({
           )}
 
           {/* Team Name Editor */}
-          <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
+          <div className="bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 p-3.5 sm:p-4 space-y-2">
             <div className="flex items-center justify-between text-xs font-semibold text-slate-700">
               <span>Team Name</span>
               {canEdit && !editingTeamName && (
@@ -515,7 +512,7 @@ export function ManageTeamModal({
             </div>
 
             {editingTeamName ? (
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
                 <input
                   type="text"
                   value={teamName}
@@ -524,39 +521,41 @@ export function ManageTeamModal({
                   placeholder="Enter new team name"
                   autoFocus
                 />
-                <button
-                  onClick={handleSaveTeamName}
-                  disabled={savingTeamName}
-                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
-                >
-                  {savingTeamName ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Save className="w-3.5 h-3.5" />
-                  )}
-                  <span>Save</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setTeamName(program.teamName);
-                    setEditingTeamName(false);
-                  }}
-                  disabled={savingTeamName}
-                  className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold text-xs transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveTeamName}
+                    disabled={savingTeamName}
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                  >
+                    {savingTeamName ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    <span>Save</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTeamName(program.teamName);
+                      setEditingTeamName(false);
+                    }}
+                    disabled={savingTeamName}
+                    className="flex-1 sm:flex-none px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold text-xs transition-colors cursor-pointer text-center"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="text-sm font-bold text-slate-900">{program.teamName}</div>
+              <div className="text-sm font-bold text-slate-900 break-words">{program.teamName}</div>
             )}
           </div>
 
           {/* Team Capacity Tracker */}
-          <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2">
-            <div className="flex items-center justify-between text-xs">
+          <div className="bg-slate-50 rounded-xl sm:rounded-2xl border border-slate-200 p-3.5 sm:p-4 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
               <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-indigo-600" />
+                <Users className="w-4 h-4 text-indigo-600 shrink-0" />
                 <span>Team Roster ({currentCount} / {maxTeam} Members)</span>
               </span>
               <span className="text-[11px] text-slate-500">
@@ -586,7 +585,7 @@ export function ManageTeamModal({
 
           {/* Members List */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Current Members ({members.length})
               </h3>
@@ -612,7 +611,7 @@ export function ManageTeamModal({
                 return (
                   <div
                     key={m.registrationNumber}
-                    className={`rounded-2xl border p-4 transition-all ${
+                    className={`rounded-2xl border p-3.5 sm:p-4 transition-all ${
                       isMemberLeader
                         ? 'bg-amber-50/50 border-amber-200 shadow-xs'
                         : 'bg-white border-slate-200 shadow-xs'
@@ -621,12 +620,12 @@ export function ManageTeamModal({
                     {isEditing ? (
                       /* Inline Edit Form */
                       <div className="space-y-3">
-                        <div className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center justify-between">
+                        <div className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-2 flex items-center justify-between gap-2">
                           <span>Edit Member Information</span>
-                          <span className="font-mono text-slate-400 text-[10px]">{m.registrationNumber}</span>
+                          <span className="font-mono text-slate-400 text-[10px] break-all">{m.registrationNumber}</span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs">
                           <div className="space-y-1">
                             <label className="font-semibold text-slate-600">Full Name *</label>
                             <input
@@ -711,41 +710,62 @@ export function ManageTeamModal({
                         </div>
                       </div>
                     ) : (
-                      /* Display Member Card */
-                      <div className="space-y-2">
+                      /* Display Member Card - Stacking cleanly on mobile */
+                      <div className="space-y-2.5">
                         <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-0.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-slate-900 text-sm">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              <span className="font-bold text-slate-900 text-sm sm:text-base break-words">
                                 {m.fullName}
                               </span>
                               {isMemberLeader ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                  <Crown className="w-3 h-3 text-amber-600" />
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                                  <Crown className="w-3 h-3 text-amber-600 shrink-0" />
                                   <span>Team Leader</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
                                   <span>Member</span>
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-slate-500 font-mono">
-                              Roll No: <span className="font-bold text-slate-700">{m.studentId}</span>
-                              {m.branch ? ` • ${m.branch}` : ''}
-                              {m.semester ? ` (${m.semester})` : ''}
+
+                            <div className="text-xs text-slate-600 font-mono flex flex-wrap items-center gap-1">
+                              <span>Roll: <strong className="text-slate-800">{m.studentId}</strong></span>
+                              {m.registrationNumber && (
+                                <span className="text-[11px] text-slate-500 font-mono break-all">• Reg: {m.registrationNumber}</span>
+                              )}
                             </div>
+
+                            <div className="text-xs text-slate-500 break-all">
+                              {m.email}
+                            </div>
+
+                            {(m.branch || m.semester) && (
+                              <div className="text-xs text-slate-600 pt-0.5 flex flex-wrap items-center gap-1.5">
+                                {m.branch && (
+                                  <span className="bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                                    {m.branch}
+                                  </span>
+                                )}
+                                {m.semester && (
+                                  <span className="bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
+                                    {m.semester}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {/* Leader Actions */}
                           {canEdit && (
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div className="flex items-center gap-1 shrink-0 pt-0.5">
                               <button
                                 onClick={() => handleStartEditMember(m)}
                                 className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
                                 title="Edit member details"
                               >
-                                <Edit3 className="w-3.5 h-3.5" />
+                                <Edit3 className="w-4 h-4" />
                               </button>
 
                               {!isMemberLeader && (
@@ -763,23 +783,17 @@ export function ManageTeamModal({
                                       : `Cannot remove: Minimum team size is ${minTeam}`
                                   }
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               )}
                             </div>
                           )}
                         </div>
 
-                        {/* Extra details */}
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
-                          <span className="truncate max-w-[200px]">{m.email}</span>
-                          <span className="font-mono text-slate-400 text-[10px]">{m.registrationNumber}</span>
-                        </div>
-
                         {/* Removal Confirmation Dialog */}
                         {isConfirmingRemove && (
                           <div className="mt-2 p-3 rounded-xl bg-red-50 border border-red-200 text-xs space-y-2 animate-in fade-in">
-                            <p className="font-semibold text-red-800">
+                            <p className="font-semibold text-red-800 break-words">
                               Remove {m.fullName} from this team?
                             </p>
                             <p className="text-red-600 text-[11px]">
@@ -795,9 +809,9 @@ export function ManageTeamModal({
                               <button
                                 onClick={() => handleRemoveMember(m.registrationNumber)}
                                 disabled={isCurrentRemoving}
-                                className="px-3 py-1 rounded-lg bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 flex items-center gap-1 shadow-xs"
+                                className="px-3 py-1 rounded-lg bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 flex items-center gap-1 shadow-xs cursor-pointer"
                               >
-                                {isCurrentRemoving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                                {isCurrentRemoving ? <Loader2 className="w-3 h-3 animate-spin shrink-0" /> : <Trash2 className="w-3 h-3 shrink-0" />}
                                 <span>Confirm Remove</span>
                               </button>
                             </div>
@@ -812,7 +826,7 @@ export function ManageTeamModal({
           </div>
 
           {isLeader && (
-            <section className="space-y-3 rounded-2xl border border-violet-200 bg-violet-50/50 p-4">
+            <section className="space-y-3 rounded-2xl border border-violet-200 bg-violet-50/50 p-3.5 sm:p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-violet-950">Invitations</h3>
                 <span className="text-xs font-semibold text-violet-800">Team capacity reserved: {capacityReserved} / {maxTeam}</span>
@@ -831,7 +845,7 @@ export function ManageTeamModal({
                 </form>
               )}
               <div className="space-y-2">
-                {invitations.map(inv => <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs"><div><strong>{inv.invitedName || 'Student'}</strong><div className="text-slate-500">{inv.invitedRegistrationNumber}</div></div><div className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 font-bold">{inv.status}</span>{inv.status === 'PENDING' && canEdit && <button disabled={cancellingInvite === inv.id} onClick={async () => { setCancellingInvite(inv.id); const res = await cancelTeamInvitationAction(eventId, program.programId, program.teamId, inv.id); setCancellingInvite(null); if (res.success) { setInvitations(prev => prev.map(x => x.id === inv.id ? { ...x, status: 'CANCELLED' } : x)); setCapacityReserved(n => Math.max(0, n - 1)); } else setFeedback(res.error || 'Could not cancel invitation.', null); }} className="font-bold text-red-600">Cancel</button>}</div></div>)}
+                {invitations.map(inv => <div key={inv.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-100 bg-white px-3 py-2 text-xs"><div><strong>{inv.invitedName || 'Student'}</strong><div className="text-slate-500 break-all">{inv.invitedRegistrationNumber}</div></div><div className="flex items-center gap-2"><span className="rounded-full bg-slate-100 px-2 py-1 font-bold">{inv.status}</span>{inv.status === 'PENDING' && canEdit && <button disabled={cancellingInvite === inv.id} onClick={async () => { setCancellingInvite(inv.id); const res = await cancelTeamInvitationAction(eventId, program.programId, program.teamId, inv.id); setCancellingInvite(null); if (res.success) { setInvitations(prev => prev.map(x => x.id === inv.id ? { ...x, status: 'CANCELLED' } : x)); setCapacityReserved(n => Math.max(0, n - 1)); } else setFeedback(res.error || 'Could not cancel invitation.', null); }} className="font-bold text-red-600">Cancel</button>}</div></div>)}
                 {!invitations.length && <p className="text-xs text-slate-500">No invitations yet.</p>}
               </div>
             </section>
@@ -839,7 +853,7 @@ export function ManageTeamModal({
 
           {/* Join Requests Section (for team leader) */}
           {isLeader && (
-            <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+            <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-3.5 sm:p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
@@ -869,16 +883,16 @@ export function ManageTeamModal({
                     const isPending = req.status === 'PENDING';
                     const isProcessing = processingJoinReqId === req.id;
                     return (
-                      <div key={req.id} className={`rounded-xl border bg-white px-4 py-3 space-y-2 ${isPending ? 'border-amber-200' : 'border-slate-100'}`}>
+                      <div key={req.id} className={`rounded-xl border bg-white px-3.5 sm:px-4 py-3 space-y-2 ${isPending ? 'border-amber-200' : 'border-slate-100'}`}>
                         <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-xs font-bold text-slate-900">{req.requesterName}</p>
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 break-words">{req.requesterName}</p>
                             <p className="text-[10px] text-slate-500">
                               {req.requesterStudentId && <span>Roll: {req.requesterStudentId}</span>}
                               {req.requesterBranch && <span> • {req.requesterBranch}</span>}
                               {req.requesterSemester && <span> • Sem {req.requesterSemester}</span>}
                             </p>
-                            <p className="text-[10px] font-mono text-slate-500">Event Reg: {req.requesterRegistrationNumber}</p>
+                            <p className="text-[10px] font-mono text-slate-500 break-all">Event Reg: {req.requesterRegistrationNumber}</p>
                             <p className="text-[10px] text-slate-400">
                               Requested {new Date(req.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </p>
@@ -911,7 +925,7 @@ export function ManageTeamModal({
                               }}
                               className="flex-1 py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
                             >
-                              {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                              {isProcessing ? <Loader2 className="w-3 h-3 animate-spin shrink-0" /> : <CheckCircle2 className="w-3 h-3 shrink-0" />}
                               <span>Accept</span>
                             </button>
                             <button
@@ -930,7 +944,7 @@ export function ManageTeamModal({
                               }}
                               className="flex-1 py-1.5 px-3 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-[11px] flex items-center justify-center gap-1 transition-colors cursor-pointer"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-3 h-3 shrink-0" />
                               <span>Reject</span>
                             </button>
                           </div>
@@ -957,7 +971,7 @@ export function ManageTeamModal({
 
           {/* Add Team Member Section */}
           {canAddMore && showAddForm && (
-            <div className="bg-indigo-50/60 rounded-2xl border border-indigo-200 p-5 space-y-4 animate-in fade-in">
+            <div className="bg-indigo-50/60 rounded-2xl border border-indigo-200 p-4 sm:p-5 space-y-4 animate-in fade-in">
               <div className="flex items-center justify-between border-b border-indigo-100 pb-2">
                 <div className="flex items-center gap-2">
                   <UserPlus className="w-4 h-4 text-indigo-700" />
@@ -1015,43 +1029,43 @@ export function ManageTeamModal({
                     Enter the student&apos;s Event Registration Number (e.g. from their Event Pass):
                   </p>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <input
                       type="text"
                       placeholder="e.g. UMANG27-E005"
                       value={searchRegNum}
                       onChange={(e) => setSearchRegNum(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSearchPass()}
-                      className="flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 uppercase font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
+                      className="w-full sm:flex-1 px-3.5 py-2 text-xs rounded-xl border border-slate-300 uppercase font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 bg-white"
                     />
                     <button
                       type="button"
                       onClick={handleSearchPass}
                       disabled={searching || !searchRegNum.trim()}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer text-center"
                     >
-                      {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                      {searching ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Search className="w-3.5 h-3.5 shrink-0" />}
                       <span>Verify Pass</span>
                     </button>
                   </div>
 
                   {/* Verified Member Preview */}
                   {verifiedMember && (
-                    <div className="p-4 rounded-xl bg-white border border-emerald-200 space-y-3 animate-in fade-in">
+                    <div className="p-3.5 sm:p-4 rounded-xl bg-white border border-emerald-200 space-y-3 animate-in fade-in">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                           <span>Verified Event Pass</span>
                         </span>
-                        <span className="font-mono text-xs font-bold text-slate-600">
+                        <span className="font-mono text-xs font-bold text-slate-600 break-all">
                           {verifiedMember.registrationNumber}
                         </span>
                       </div>
 
                       <div className="text-xs space-y-1 text-slate-700">
-                        <div className="font-bold text-sm text-slate-900">{verifiedMember.fullName}</div>
+                        <div className="font-bold text-sm text-slate-900 break-words">{verifiedMember.fullName}</div>
                         <div>Roll No: <span className="font-mono font-semibold">{verifiedMember.studentId}</span></div>
-                        <div>Email: {verifiedMember.email}</div>
+                        <div className="break-all">Email: {verifiedMember.email}</div>
                         {verifiedMember.branch && (
                           <div className="text-slate-500">{verifiedMember.branch} ({verifiedMember.semester || 'Semester N/A'})</div>
                         )}
@@ -1061,9 +1075,9 @@ export function ManageTeamModal({
                         type="button"
                         onClick={handleAddVerifiedMember}
                         disabled={addingMember}
-                        className="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                        className="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer text-center"
                       >
-                        {addingMember ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                        {addingMember ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <UserPlus className="w-3.5 h-3.5 shrink-0" />}
                         <span>Add {verifiedMember.fullName} to Team</span>
                       </button>
                     </div>
@@ -1074,7 +1088,7 @@ export function ManageTeamModal({
               {/* Mode 2: Direct Entry */}
               {addMode === 'manual' && (
                 <form onSubmit={handleAddManualMember} className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 text-xs">
                     <div className="space-y-1">
                       <label className="font-semibold text-slate-700">Full Name *</label>
                       <input
@@ -1227,9 +1241,9 @@ export function ManageTeamModal({
                   <button
                     type="submit"
                     disabled={addingMember}
-                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer text-center"
                   >
-                    {addingMember ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+                    {addingMember ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <UserPlus className="w-3.5 h-3.5 shrink-0" />}
                     <span>Add Member to Team</span>
                   </button>
                 </form>
@@ -1239,11 +1253,11 @@ export function ManageTeamModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 shrink-0">
-          <span>
+        <div className="p-3.5 sm:p-5 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500 shrink-0">
+          <span className="text-center sm:text-left">
             {canEdit ? (
-              <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> All edits are saved directly to official event records.
+              <span className="text-emerald-700 font-semibold flex items-center justify-center sm:justify-start gap-1">
+                <Check className="w-3.5 h-3.5 shrink-0" /> All edits are saved directly to official event records.
               </span>
             ) : (
               <span className="text-slate-500">View-only mode.</span>
@@ -1253,7 +1267,7 @@ export function ManageTeamModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition-colors cursor-pointer text-center"
           >
             Done
           </button>

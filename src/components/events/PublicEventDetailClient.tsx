@@ -88,10 +88,10 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
       </div>
 
       {/* Main Event Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-6 sm:p-8 space-y-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-xs p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
         {/* Badges Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {event.payment_required ? (
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
                 ₹{event.payment_amount} Registration Fee
@@ -136,39 +136,39 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
         </div>
 
         {/* Title */}
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 leading-tight">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 leading-tight break-words">
           {event.title}
         </h1>
 
         {/* Key Logistics Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 bg-slate-50/80 rounded-2xl border border-slate-200/80 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5 bg-slate-50/80 rounded-xl sm:rounded-2xl border border-slate-200/80 text-xs">
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-slate-400 uppercase flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-bce-cobalt" />
+              <Calendar className="w-3.5 h-3.5 text-bce-cobalt shrink-0" />
               <span>Date</span>
             </span>
-            <p className="font-bold text-slate-900">{eventDateFormatted}</p>
+            <p className="font-bold text-slate-900 break-words">{eventDateFormatted}</p>
           </div>
 
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-slate-400 uppercase flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-bce-cobalt" />
+              <Clock className="w-3.5 h-3.5 text-bce-cobalt shrink-0" />
               <span>Time</span>
             </span>
-            <p className="font-bold text-slate-900">{eventTimeFormatted}</p>
+            <p className="font-bold text-slate-900 break-words">{eventTimeFormatted}</p>
           </div>
 
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-slate-400 uppercase flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-bce-cobalt" />
+              <MapPin className="w-3.5 h-3.5 text-bce-cobalt shrink-0" />
               <span>Venue</span>
             </span>
-            <p className="font-bold text-slate-900">{event.venue}</p>
+            <p className="font-bold text-slate-900 break-words">{event.venue}</p>
           </div>
 
           <div className="space-y-1">
             <span className="text-[11px] font-semibold text-slate-400 uppercase flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-bce-cobalt" />
+              <Users className="w-3.5 h-3.5 text-bce-cobalt shrink-0" />
               <span>Seats Available</span>
             </span>
             <p className="font-bold text-slate-900">
@@ -179,16 +179,16 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
 
         {/* Description */}
         {event.description && (
-          <div className="space-y-2 border-t border-slate-100 pt-5">
+          <div className="space-y-2 border-t border-slate-100 pt-4 sm:pt-5">
             <h3 className="text-sm font-bold text-slate-900">About the Event</h3>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line break-words">
               {event.description}
             </p>
           </div>
         )}
 
         {/* Registration Deadline Notice */}
-        <div className="border-t border-slate-100 pt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="border-t border-slate-100 pt-4 sm:pt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="text-xs text-slate-500">
             Registration Deadline: <span className="font-semibold text-slate-800">{deadlineFormatted}</span>
           </div>
@@ -198,7 +198,7 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
               <button
                 type="button"
                 onClick={() => setIsRegisterOpen(true)}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 bg-bce-cobalt hover:bg-slate-800 text-white text-sm font-bold rounded-2xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer text-center"
               >
                 <Ticket className="w-4 h-4" />
                 <span>Register for Event</span>
@@ -207,7 +207,7 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
               <button
                 type="button"
                 disabled
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-200 text-slate-500 text-xs sm:text-sm font-semibold rounded-2xl cursor-not-allowed"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 text-xs sm:text-sm font-semibold rounded-xl sm:rounded-2xl cursor-not-allowed text-center"
               >
                 <Lock className="w-4 h-4" />
                 <span>Registration Unavailable</span>

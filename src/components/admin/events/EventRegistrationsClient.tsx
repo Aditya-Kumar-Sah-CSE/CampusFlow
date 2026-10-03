@@ -161,7 +161,7 @@ export function EventRegistrationsClient({
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <Link
@@ -172,8 +172,8 @@ export function EventRegistrationsClient({
               <span>Events</span>
             </Link>
           </div>
-          <h2 className="text-xl font-bold text-slate-900 mt-1 flex items-center gap-2">
-            <span>{event.title}</span>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-1 flex flex-wrap items-center gap-2">
+            <span className="break-words">{event.title}</span>
             <span className="text-xs font-normal text-slate-500">
               ({event.active_registrations_count || 0} Registered)
             </span>
@@ -184,12 +184,12 @@ export function EventRegistrationsClient({
         </div>
 
         {/* Export & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <a
             href={`/api/admin/events/${event.id}/pdf${queryString}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-bce-cobalt hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all shadow-2xs"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-bce-cobalt hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-all shadow-2xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Download Enrollment PDF</span>
@@ -198,7 +198,7 @@ export function EventRegistrationsClient({
           <a
             href={`/api/admin/events/${event.id}/csv${queryString}`}
             download
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all border border-slate-200"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-all border border-slate-200"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
             <span>Export CSV</span>
@@ -222,41 +222,41 @@ export function EventRegistrationsClient({
       )}
 
       {/* Statistics Cards */}
-      <div className={`grid gap-3 ${isPaid ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3'}`}>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase">Total Enrolled</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalEnrolled}</p>
+      <div className={`grid gap-2.5 sm:gap-3 ${isPaid ? 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-5' : 'grid-cols-2 sm:grid-cols-3'}`}>
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase">Total Enrolled</p>
+          <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{stats.totalEnrolled}</p>
         </div>
 
         {isPaid && (
           <>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <p className="text-[11px] font-semibold text-amber-600 uppercase">Payment Pending</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">{stats.paymentPending}</p>
+            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-amber-600 uppercase">Payment Pending</p>
+              <p className="text-xl sm:text-2xl font-bold text-amber-600 mt-1">{stats.paymentPending}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <p className="text-[11px] font-semibold text-emerald-600 uppercase">Payment Verified</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">{stats.paymentVerified}</p>
+            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 uppercase">Payment Verified</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">{stats.paymentVerified}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-              <p className="text-[11px] font-semibold text-red-600 uppercase">Payment Rejected</p>
-              <p className="text-2xl font-bold text-red-600 mt-1">{stats.paymentRejected}</p>
+            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+              <p className="text-[10px] sm:text-[11px] font-semibold text-red-600 uppercase">Payment Rejected</p>
+              <p className="text-xl sm:text-2xl font-bold text-red-600 mt-1">{stats.paymentRejected}</p>
             </div>
           </>
         )}
 
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase">Available Seats</p>
-          <p className="text-2xl font-bold text-slate-700 mt-1">
+        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase">Available Seats</p>
+          <p className="text-xl sm:text-2xl font-bold text-slate-700 mt-1">
             {stats.availableSeats !== null ? stats.availableSeats : 'Unlimited'}
           </p>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center gap-3" suppressHydrationWarning>
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3" suppressHydrationWarning>
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 w-full min-w-0">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <input
             type="text"
@@ -268,68 +268,70 @@ export function EventRegistrationsClient({
           />
         </div>
 
-        {/* Branch Filter */}
-        <select
-          value={branchFilter}
-          onChange={(e) => setBranchFilter(e.target.value)}
-          suppressHydrationWarning
-          className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
-        >
-          <option value="ALL">All Branches</option>
-          {branches.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.code} ({b.name})
-            </option>
-          ))}
-        </select>
-
-        {/* Semester Filter */}
-        <select
-          value={semesterFilter}
-          onChange={(e) => setSemesterFilter(e.target.value)}
-          suppressHydrationWarning
-          className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
-        >
-          <option value="ALL">All Semesters</option>
-          {semesters.map((s) => (
-            <option key={s.id} value={s.id}>
-              Semester {s.semester_number}
-            </option>
-          ))}
-        </select>
-
-        {/* Payment Status Filter (if paid) */}
-        {isPaid && (
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Branch Filter */}
           <select
-            value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value as any)}
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
             suppressHydrationWarning
-            className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
+            className="flex-1 sm:flex-none text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
           >
-            <option value="ALL">All Payments</option>
-            <option value="PENDING">Pending Verification</option>
-            <option value="VERIFIED">Verified</option>
-            <option value="REJECTED">Rejected</option>
+            <option value="ALL">All Branches</option>
+            {branches.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.code} ({b.name})
+              </option>
+            ))}
           </select>
-        )}
 
-        {/* Registration Status Filter */}
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
-          suppressHydrationWarning
-          className="text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
-        >
-          <option value="ALL">All Reg Status</option>
-          <option value="REGISTERED">Active Registered</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
+          {/* Semester Filter */}
+          <select
+            value={semesterFilter}
+            onChange={(e) => setSemesterFilter(e.target.value)}
+            suppressHydrationWarning
+            className="flex-1 sm:flex-none text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
+          >
+            <option value="ALL">All Semesters</option>
+            {semesters.map((s) => (
+              <option key={s.id} value={s.id}>
+                Semester {s.semester_number}
+              </option>
+            ))}
+          </select>
+
+          {/* Payment Status Filter (if paid) */}
+          {isPaid && (
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value as any)}
+              suppressHydrationWarning
+              className="flex-1 sm:flex-none text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
+            >
+              <option value="ALL">All Payments</option>
+              <option value="PENDING">Pending Verification</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          )}
+
+          {/* Registration Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            suppressHydrationWarning
+            className="flex-1 sm:flex-none text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
+          >
+            <option value="ALL">All Reg Status</option>
+            <option value="REGISTERED">Active Registered</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
       </div>
 
       {/* Registrations Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[760px]">
             <thead className="bg-slate-50 border-b border-slate-100 text-slate-600 font-bold uppercase text-[10px]">
               <tr>
                 <th className="py-3 px-3 text-center">S.No</th>
@@ -498,42 +500,42 @@ export function EventRegistrationsClient({
 
       {/* Details Modal */}
       {selectedReg && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-slate-200">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl w-[calc(100vw-16px)] sm:w-full max-w-lg max-h-[calc(100vh-24px)] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-xl border border-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-bold text-slate-900">Registration Details</h3>
               <button
                 onClick={() => setSelectedReg(null)}
-                className="text-slate-400 hover:text-slate-700 text-sm font-bold"
+                className="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <span className="text-slate-400">Student Name:</span>
-                  <p className="font-bold text-slate-900 text-sm">{selectedReg.student_name}</p>
+                  <p className="font-bold text-slate-900 text-sm break-words">{selectedReg.student_name}</p>
                 </div>
                 <div>
                   <span className="text-slate-400">Registration No:</span>
-                  <p className="font-mono font-bold text-slate-900 text-sm">{selectedReg.registration_number}</p>
+                  <p className="font-mono font-bold text-slate-900 text-sm break-all">{selectedReg.registration_number}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <span className="text-slate-400">Email:</span>
-                  <p className="text-slate-800">{selectedReg.email}</p>
+                  <p className="text-slate-800 break-all">{selectedReg.email}</p>
                 </div>
                 <div>
                   <span className="text-slate-400">Mobile:</span>
-                  <p className="text-slate-800">{selectedReg.mobile}</p>
+                  <p className="text-slate-800 break-all">{selectedReg.mobile}</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <span className="text-slate-400">Branch:</span>
                   <p className="text-slate-800 font-semibold">{selectedReg.branch?.name || selectedReg.branch?.code || '-'}</p>
@@ -554,7 +556,7 @@ export function EventRegistrationsClient({
                   </div>
                   <div>
                     <span className="text-slate-400">Transaction ID / UTR:</span>
-                    <p className="font-mono font-bold text-slate-900 mt-0.5">
+                    <p className="font-mono font-bold text-slate-900 mt-0.5 break-all">
                       {selectedReg.transaction_id || 'Not provided'}
                     </p>
                   </div>
@@ -578,7 +580,7 @@ export function EventRegistrationsClient({
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
               {isPaid && selectedReg.payment_status === 'PENDING' ? (
                 <div className="flex items-center gap-2">
                   <button
@@ -586,7 +588,7 @@ export function EventRegistrationsClient({
                     disabled={actionLoadingId === selectedReg.id}
                     onClick={() => setConfirmAction({ type: 'VERIFY', reg: selectedReg })}
                     suppressHydrationWarning
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center justify-center gap-1 shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Verify</span>
@@ -596,7 +598,7 @@ export function EventRegistrationsClient({
                     disabled={actionLoadingId === selectedReg.id}
                     onClick={() => setConfirmAction({ type: 'REJECT', reg: selectedReg })}
                     suppressHydrationWarning
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center gap-1 shadow-xs disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors inline-flex items-center justify-center gap-1 shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
                     <span>Reject</span>
@@ -610,7 +612,7 @@ export function EventRegistrationsClient({
                 type="button"
                 onClick={() => setSelectedReg(null)}
                 suppressHydrationWarning
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+                className="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
               >
                 Close
               </button>
@@ -624,11 +626,11 @@ export function EventRegistrationsClient({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150"
           onClick={() => !actionLoadingId && setConfirmAction(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+            className="bg-white rounded-2xl w-[calc(100vw-16px)] sm:w-full max-w-md max-h-[calc(100vh-24px)] overflow-y-auto p-4 sm:p-6 space-y-4 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
             {confirmAction.type === 'VERIFY' ? (

@@ -200,9 +200,9 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       )}
 
       {/* Basic Event Information */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-bce-cobalt" />
+          <Calendar className="w-4 h-4 text-bce-cobalt shrink-0" />
           <span>Basic Event Information</span>
         </h3>
 
@@ -257,9 +257,9 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       </div>
 
       {/* Dates & Schedule */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-bce-cobalt" />
+          <Clock className="w-4 h-4 text-bce-cobalt shrink-0" />
           <span>Dates &amp; Schedule</span>
         </h3>
 
@@ -311,13 +311,13 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       </div>
 
       {/* Capacity & Lifecycle Status */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Users className="w-4 h-4 text-bce-cobalt" />
+          <Users className="w-4 h-4 text-bce-cobalt shrink-0" />
           <span>Capacity &amp; Availability</span>
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-700">
               Maximum Capacity <span className="text-slate-400 font-normal">(Leave empty for unlimited)</span>
@@ -347,7 +347,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
           </div>
 
           <div className="space-y-1 flex flex-col justify-end">
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer pt-4">
+            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer pt-2 sm:pt-4">
               <input
                 type="checkbox"
                 checked={registrationEnabled}
@@ -361,19 +361,19 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       </div>
 
       {/* Payment Configuration */}
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
-        <div className="flex items-center justify-between">
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 sm:space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-bce-cobalt" />
+            <DollarSign className="w-4 h-4 text-bce-cobalt shrink-0" />
             <span>Registration Fee &amp; Payment Options</span>
           </h3>
 
           {/* Free vs Paid Toggle */}
-          <div className="inline-flex p-1 bg-slate-100 rounded-xl">
+          <div className="inline-flex p-1 bg-slate-100 rounded-xl self-start sm:self-auto">
             <button
               type="button"
               onClick={() => setPaymentRequired(false)}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 !paymentRequired
                   ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -384,7 +384,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
             <button
               type="button"
               onClick={() => setPaymentRequired(true)}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                 paymentRequired
                   ? 'bg-amber-400 text-slate-950 font-bold shadow-2xs'
                   : 'text-slate-500 hover:text-slate-900'
@@ -430,10 +430,10 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                  <QrCode className="w-3.5 h-3.5 text-slate-500" />
+                  <QrCode className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span>Upload Payment QR Code Image</span>
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
@@ -448,7 +448,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                     <Upload className="w-3.5 h-3.5 text-slate-500" />
                     <span>Choose QR Image</span>
                   </label>
-                  {qrFile && <span className="text-xs text-slate-500 truncate">{qrFile.name}</span>}
+                  {qrFile && <span className="text-xs text-slate-500 truncate max-w-[200px]">{qrFile.name}</span>}
                 </div>
                 {qrPreview && (
                   <div className="mt-2 p-2 border border-slate-200 rounded-xl inline-block bg-slate-50">
@@ -482,10 +482,10 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       </div>
 
       {/* Submit Buttons */}
-      <div className="flex items-center justify-end gap-3 pt-2">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-2">
         <Link
           href="/admin/dashboard?tab=events"
-          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+          className="w-full sm:w-auto text-center px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
         >
           Cancel
         </Link>
@@ -493,7 +493,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
         >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           <span>{isEdit ? 'Save Changes' : 'Create Event'}</span>

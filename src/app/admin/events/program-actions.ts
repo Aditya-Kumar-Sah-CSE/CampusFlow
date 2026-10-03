@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getAdminSession } from '@/lib/auth/admin-auth';
-import type { CategoryFormData, ProgramFormData, ProgramRegistrationStatus, ProgramPaymentStatus } from '@/types/programs';
+import type { CategoryFormData, ProgramFormData, ProgramRegistrationStatus } from '@/types/programs';
 import {
   createCategory,
   updateCategory,

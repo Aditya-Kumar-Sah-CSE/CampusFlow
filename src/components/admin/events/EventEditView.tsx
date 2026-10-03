@@ -31,7 +31,7 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
     session.colleges.find((c) => c.collegeId === collegeId)?.slug;
 
   return (
-    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-6">
+    <div className="py-4 sm:py-6 px-3 sm:px-6 lg:px-8 max-w-5xl mx-auto space-y-4 sm:space-y-6">
       {/* Header and Quick Navigation */}
       <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -44,9 +44,9 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
               <span>Back to Events</span>
             </Link>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2.5 flex-wrap">
-            <span>Edit Event: {event.title}</span>
-            <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+            <span className="break-words">Edit Event: {event.title}</span>
+            <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 break-all">
               /{event.slug}
             </span>
           </h1>
@@ -55,7 +55,7 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Link
             href={`/admin/dashboard/events/${event.id}/programs`}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"

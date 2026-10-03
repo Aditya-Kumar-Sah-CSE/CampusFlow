@@ -49,7 +49,7 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       <RootPublicNavbar eventId={event.id} tenantCode={event.college?.code} />
 
-      <main className="max-w-4xl mx-auto px-4 py-8 sm:py-12 flex-1 w-full space-y-6">
+      <main className="max-w-4xl mx-auto px-3 sm:px-6 py-6 sm:py-10 flex-1 w-full space-y-4 sm:space-y-6">
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between">
           <Link
@@ -62,9 +62,9 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
         </div>
 
         {/* Program Hero Card */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
                 {(program.category as unknown as { name: string })?.name || 'Competition'}
               </span>
@@ -73,7 +73,7 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 break-words">
               {program.name}
             </h1>
 
@@ -85,25 +85,25 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
           </div>
 
           {/* Key Program Specifications */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100">
-            <div className="bg-slate-50 rounded-2xl p-4 space-y-1 border border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-slate-100">
+            <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 space-y-1 border border-slate-100">
               <div className="text-[11px] text-slate-500 font-medium">Participation Type</div>
               <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 {program.participation_type === 'TEAM' ? (
                   <>
-                    <Users className="w-4 h-4 text-purple-600" />
+                    <Users className="w-4 h-4 text-purple-600 shrink-0" />
                     <span>Team ({program.min_team_size || 1}–{program.max_team_size || 'N/A'} members)</span>
                   </>
                 ) : (
                   <>
-                    <User className="w-4 h-4 text-blue-600" />
+                    <User className="w-4 h-4 text-blue-600 shrink-0" />
                     <span>Individual Entry</span>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 space-y-1 border border-slate-100">
+            <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 space-y-1 border border-slate-100">
               <div className="text-[11px] text-slate-500 font-medium">Program Fee</div>
               <div className="text-sm font-bold text-slate-900 flex items-center gap-1">
                 {isPaid ? (
@@ -114,7 +114,7 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
               </div>
             </div>
 
-            <div className="bg-slate-50 rounded-2xl p-4 space-y-1 border border-slate-100">
+            <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 space-y-1 border border-slate-100">
               <div className="text-[11px] text-slate-500 font-medium">Registration Status</div>
               <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                 {canRegister ? (
@@ -134,7 +134,7 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
           {program.rules && (
             <div className="pt-4 border-t border-slate-100 space-y-2">
               <h2 className="text-sm font-bold text-slate-900">Program Rules &amp; Guidelines</h2>
-              <div className="p-4 rounded-2xl bg-amber-50/50 border border-amber-100 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+              <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-50/50 border border-amber-100 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
                 {program.rules}
               </div>
             </div>
@@ -144,23 +144,23 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
           {isPaid && (
             <div className="pt-4 border-t border-slate-100 space-y-3">
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-blue-600" />
+                <QrCode className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>Payment Information</span>
               </h2>
 
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
-                <div className="flex items-center justify-between">
+              <div className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs text-slate-700">
+                <div className="flex flex-wrap items-center justify-between gap-1">
                   <span className="text-slate-500">Participation Fee:</span>
                   <span className="font-bold text-slate-900">₹{program.registration_fee}</span>
                 </div>
                 {event.payment_upi_id && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
                     <span className="text-slate-500">College UPI ID:</span>
-                    <span className="font-mono font-bold text-blue-700">{event.payment_upi_id}</span>
+                    <span className="font-mono font-bold text-blue-700 break-all">{event.payment_upi_id}</span>
                   </div>
                 )}
                 {event.payment_instructions && (
-                  <div className="pt-1 text-slate-600">
+                  <div className="pt-1 text-slate-600 leading-relaxed">
                     {event.payment_instructions}
                   </div>
                 )}

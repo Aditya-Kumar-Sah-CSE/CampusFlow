@@ -63,9 +63,9 @@ export default async function PublicProgramPage({ params }: Props) {
 
       <PublicTenantNavbar tenant={tenant} currentPage="event-detail" />
 
-      <main className="max-w-3xl mx-auto px-4 py-6 sm:py-10 flex-1 w-full space-y-6">
+      <main className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-8 flex-1 w-full space-y-4 sm:space-y-6">
         {/* Program Info Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-4">
           <div>
             <Link
               href={`/${tenant.slug}/events/${event.slug}`}
@@ -74,24 +74,24 @@ export default async function PublicProgramPage({ params }: Props) {
               <ArrowLeft className="w-3 h-3" /> {event.title}
             </Link>
             <div className="flex items-center gap-2 mb-1">
-              <Trophy className="w-5 h-5 text-amber-500" />
+              <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
               {program.category && (
                 <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
                   {(program.category as unknown as { name: string })?.name}
                 </span>
               )}
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">{program.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 break-words">{program.name}</h1>
           </div>
 
           {/* Meta */}
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">
-              {program.participation_type === 'TEAM' ? <Users className="w-3.5 h-3.5 text-purple-500" /> : program.participation_type === 'BOTH' ? <Users className="w-3.5 h-3.5 text-amber-500" /> : <User className="w-3.5 h-3.5 text-blue-500" />}
+              {program.participation_type === 'TEAM' ? <Users className="w-3.5 h-3.5 text-purple-500 shrink-0" /> : program.participation_type === 'BOTH' ? <Users className="w-3.5 h-3.5 text-amber-500 shrink-0" /> : <User className="w-3.5 h-3.5 text-blue-500 shrink-0" />}
               {getParticipationLabel(program.participation_type)}
             </span>
             <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-200">
-              <IndianRupee className="w-3 h-3" />
+              <IndianRupee className="w-3 h-3 shrink-0" />
               {program.registration_fee > 0 ? program.registration_fee : 'Free'}
             </span>
             {(program.participation_type === 'TEAM' || program.participation_type === 'BOTH') && program.min_team_size && program.max_team_size && (

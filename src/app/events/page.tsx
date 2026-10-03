@@ -26,24 +26,24 @@ export default async function PublicEventsDirectoryPage() {
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       <RootPublicNavbar />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-3 sm:px-6 py-6 sm:py-12 space-y-6 sm:space-y-8">
         {/* Hero Header */}
-        <div className="text-center max-w-2xl mx-auto space-y-3">
+        <div className="text-center max-w-2xl mx-auto space-y-2 sm:space-y-3 px-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200/60">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <Sparkles className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             <span>Campus Activities &amp; Fests</span>
           </div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight break-words">
             College Events &amp; Competitions
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600">
+          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
             Discover workshops, sports tournaments, technical hackathons, and cultural fests across participating colleges. Register online with instant verification.
           </p>
         </div>
 
         {/* Events Grid */}
         {events.length === 0 ? (
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center max-w-md mx-auto space-y-3 shadow-xs">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-6 sm:p-12 text-center max-w-md mx-auto space-y-3 shadow-xs">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
               <Calendar className="w-6 h-6" />
             </div>
@@ -53,7 +53,7 @@ export default async function PublicEventsDirectoryPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {events.map((event) => {
               const startDate = new Date(event.start_at).toLocaleDateString('en-IN', {
                 month: 'short',
@@ -64,55 +64,55 @@ export default async function PublicEventsDirectoryPage() {
               return (
                 <div
                   key={event.id}
-                  className="bg-white rounded-2xl border border-slate-200 hover:border-blue-400 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden group"
+                  className="bg-white rounded-2xl border border-slate-200 hover:border-blue-400 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden group min-w-0"
                 >
-                  <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                  <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                    <div className="space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+                        <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100 truncate max-w-[180px]">
                           {event.college?.code || event.college?.name || 'Campus Event'}
                         </span>
                         {event.payment_required ? (
-                          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                          <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 shrink-0">
                             ₹{event.payment_amount}
                           </span>
                         ) : (
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
                             Free Entry
                           </span>
                         )}
                       </div>
 
-                      <h2 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                      <h2 className="text-base sm:text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors break-words line-clamp-2">
                         {event.title}
                       </h2>
 
                       {event.description && (
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed break-words">
                           {event.description}
                         </p>
                       )}
                     </div>
 
                     <div className="space-y-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{startDate}</span>
+                        <span className="truncate">{startDate}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span className="truncate">{event.venue}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/80 px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+                  <div className="bg-slate-50/80 px-4 py-3 sm:px-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
-                      <Ticket className="w-3.5 h-3.5 text-blue-500" /> Programs &amp; Details
+                      <Ticket className="w-3.5 h-3.5 text-blue-500 shrink-0" /> Programs &amp; Details
                     </span>
                     <Link
                       href={`/events/${event.slug}`}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors ml-auto sm:ml-0"
                     >
                       <span>View Event</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -125,7 +125,7 @@ export default async function PublicEventsDirectoryPage() {
         )}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
+      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-8 sm:mt-12">
         <div className="max-w-6xl mx-auto px-4">
           <p>&copy; {new Date().getFullYear()} CampusFlow. All rights reserved.</p>
         </div>

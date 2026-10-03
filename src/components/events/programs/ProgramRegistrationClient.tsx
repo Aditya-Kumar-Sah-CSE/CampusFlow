@@ -496,13 +496,13 @@ export function ProgramRegistrationClient({
   // ============================================================
   if (successResult) {
     return (
-      <div className="bg-white rounded-3xl border border-emerald-200/90 shadow-xl p-6 sm:p-10 max-w-xl mx-auto space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
-          <CheckCircle2 className="w-9 h-9" />
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-emerald-200/90 shadow-xl p-4 sm:p-8 md:p-10 max-w-xl w-full mx-auto space-y-5 sm:space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shrink-0">
+          <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9" />
         </div>
 
-        <div className="space-y-1.5">
-          <h2 className="text-2xl font-extrabold text-slate-900">
+        <div className="space-y-1.5 min-w-0">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 break-words">
             Registration Successful!
           </h2>
           <p className="text-xs sm:text-sm text-slate-600">
@@ -511,22 +511,22 @@ export function ProgramRegistrationClient({
         </div>
 
         {/* Credentials Card */}
-        <div className="bg-slate-900 rounded-2xl p-5 text-white space-y-3 shadow-inner">
-          <div className="space-y-1">
+        <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-3 shadow-inner min-w-0">
+          <div className="space-y-1 min-w-0">
             <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
               Program Registration Number
             </div>
-            <div className="text-xl sm:text-2xl font-mono font-black text-amber-400">
+            <div className="text-xl sm:text-2xl font-mono font-black text-amber-400 break-all">
               {successResult.registrationNumber}
             </div>
           </div>
 
           {successResult.teamId && (
-            <div className="pt-2 border-t border-slate-800 space-y-1">
+            <div className="pt-2 border-t border-slate-800 space-y-1 min-w-0">
               <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
                 Team Identifier
               </div>
-              <div className="text-base font-mono font-bold text-emerald-400">
+              <div className="text-base font-mono font-bold text-emerald-400 break-all">
                 {successResult.teamId}
               </div>
             </div>
@@ -544,17 +544,17 @@ export function ProgramRegistrationClient({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-4 flex flex-col sm:flex-row gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <Link
             href={myRegistrationsPath}
-            className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 text-center"
           >
             <span>View My Registrations</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
             href={basePath}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm transition-colors flex items-center justify-center"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center text-center"
           >
             <span>Back to Event</span>
           </Link>
@@ -568,25 +568,25 @@ export function ProgramRegistrationClient({
   // ============================================================
   if (participant && existingReg) {
     return (
-      <div className="bg-white rounded-3xl border border-blue-200 shadow-md p-6 sm:p-8 max-w-xl mx-auto space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2 text-emerald-700 text-xs font-bold">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>Event Registration Verified</span>
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-blue-200 shadow-md p-4 sm:p-6 md:p-8 max-w-xl w-full mx-auto space-y-5">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 gap-2">
+          <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold min-w-0 truncate">
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="truncate">Event Registration Verified</span>
           </div>
           <button
             onClick={handleChangeStudent}
-            className="text-xs text-slate-500 hover:text-blue-600 font-medium underline"
+            className="text-xs text-slate-500 hover:text-blue-600 font-medium underline shrink-0 cursor-pointer"
           >
             Switch Student
           </button>
         </div>
 
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-50 text-blue-600 mx-auto flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 break-words">
             You are already registered for this program.
           </h2>
           <p className="text-xs text-slate-500">
@@ -595,39 +595,39 @@ export function ProgramRegistrationClient({
         </div>
 
         {/* Existing Registration Details */}
-        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-3">
-          <div className="flex items-center justify-between text-xs">
+        <div className="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 space-y-2.5 sm:space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
             <span className="text-slate-500 font-medium">Program Registration No:</span>
-            <span className="font-mono font-bold text-slate-900 text-sm">{existingReg.registrationNumber}</span>
+            <span className="font-mono font-bold text-slate-900 text-xs sm:text-sm break-all">{existingReg.registrationNumber}</span>
           </div>
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
             <span className="text-slate-500 font-medium">Participant Name:</span>
-            <span className="font-semibold text-slate-900">{participant.fullName}</span>
+            <span className="font-semibold text-slate-900 break-words">{participant.fullName}</span>
           </div>
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
             <span className="text-slate-500 font-medium">Event Registration No:</span>
-            <span className="font-mono text-slate-700">{participant.registrationNumber}</span>
+            <span className="font-mono text-slate-700 break-all">{participant.registrationNumber}</span>
           </div>
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
             <span className="text-slate-500 font-medium">Participation Type:</span>
             <span className="font-semibold text-slate-800">{existingReg.participationType}</span>
           </div>
           {existingReg.teamName && (
-            <div className="flex items-center justify-between text-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
               <span className="text-slate-500 font-medium">Team:</span>
               <span className="font-semibold text-purple-700 flex items-center gap-1.5">
-                <span>{existingReg.teamName}</span>
+                <span className="break-words">{existingReg.teamName}</span>
                 {existingReg.participantRole && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 font-bold">
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 font-bold shrink-0">
                     {existingReg.participantRole === 'TEAM LEADER' ? 'Leader' : 'Member'}
                   </span>
                 )}
               </span>
             </div>
           )}
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
             <span className="text-slate-500 font-medium">Payment Status:</span>
-            <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 self-start sm:self-auto">
               {existingReg.paymentStatus}
             </span>
           </div>
@@ -637,7 +637,7 @@ export function ProgramRegistrationClient({
           <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="space-y-0.5 text-center sm:text-left">
               <div className="font-bold text-purple-900 flex items-center justify-center sm:justify-start gap-1">
-                <Users className="w-3.5 h-3.5 text-purple-700" />
+                <Users className="w-3.5 h-3.5 text-purple-700 shrink-0" />
                 <span>Team Leader Controls</span>
               </div>
               <p className="text-purple-700 text-[11px]">
@@ -646,7 +646,7 @@ export function ProgramRegistrationClient({
             </div>
             <Link
               href={`${myRegistrationsPath}?manageTeam=${existingReg.teamId || ''}`}
-              className="px-3.5 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors shrink-0"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition-colors shrink-0 text-center"
             >
               <Users className="w-3.5 h-3.5" />
               <span>Manage Team</span>
@@ -654,17 +654,17 @@ export function ProgramRegistrationClient({
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-2">
           <Link
             href={myRegistrationsPath}
-            className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-1.5 text-center"
           >
             <span>View All My Registrations</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
           <Link
             href={basePath}
-            className="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center"
+            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center text-center"
           >
             <span>Back to Event</span>
           </Link>
@@ -678,12 +678,12 @@ export function ProgramRegistrationClient({
   // ============================================================
   if (!participant) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-lg mx-auto space-y-6">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 md:p-8 max-w-lg w-full mx-auto space-y-5 sm:space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center shrink-0">
             <Ticket className="w-6 h-6" />
           </div>
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 break-words">
             Already registered for this event?
           </h2>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
@@ -694,11 +694,11 @@ export function ProgramRegistrationClient({
         {loginError && (
           <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-            <span className="leading-relaxed">{loginError}</span>
+            <span className="leading-relaxed break-words">{loginError}</span>
           </div>
         )}
 
-        <form onSubmit={handleVerify} className="space-y-4">
+        <form onSubmit={handleVerify} className="space-y-3.5 sm:space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">
               Email Address
@@ -732,23 +732,23 @@ export function ProgramRegistrationClient({
           <button
             type="submit"
             disabled={loginLoading}
-            className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
           >
             {loginLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 <span>Verifying Event Registration...</span>
               </>
             ) : (
               <>
-                <ShieldCheck className="w-4 h-4" />
+                <ShieldCheck className="w-4 h-4 shrink-0" />
                 <span>Verify Event Registration</span>
               </>
             )}
           </button>
         </form>
 
-        <div className="pt-4 border-t border-slate-100 text-center space-y-2">
+        <div className="pt-3 border-t border-slate-100 text-center space-y-2">
           <p className="text-xs text-slate-500">Haven&apos;t registered for {event.title} yet?</p>
           <Link
             href={registerEventPath}
@@ -766,7 +766,7 @@ export function ProgramRegistrationClient({
   // VIEW D: VERIFIED -> PROGRAM REGISTRATION ENTRY
   // ============================================================
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-2xl mx-auto space-y-6">
+    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 md:p-8 max-w-2xl w-full mx-auto space-y-5 sm:space-y-6">
       {checkingDuplicate && (
         <div className="flex items-center justify-center gap-2 p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-700 font-medium animate-pulse">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
@@ -976,7 +976,7 @@ export function ProgramRegistrationClient({
               {members.map((member, idx) => (
                 <div
                   key={member.id}
-                  className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative group"
+                  className="p-3 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 relative group"
                 >
                   <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                     <span className="flex items-center gap-2">
@@ -998,7 +998,7 @@ export function ProgramRegistrationClient({
                   </div>
 
                   {/* Mode Selector Tabs */}
-                  <div className="flex items-center gap-2 text-[11px] pb-1 border-b border-slate-200/80">
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[11px] pb-1 border-b border-slate-200/80">
                     <button
                       type="button"
                       onClick={() =>
@@ -1008,7 +1008,7 @@ export function ProgramRegistrationClient({
                           )
                         )
                       }
-                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer transition-colors ${
+                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer transition-colors text-xs ${
                         member.mode === 'verified'
                           ? 'bg-purple-100 text-purple-800'
                           : 'text-slate-500 hover:text-slate-800'
@@ -1025,7 +1025,7 @@ export function ProgramRegistrationClient({
                           )
                         )
                       }
-                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer transition-colors ${
+                      className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer transition-colors text-xs ${
                         member.mode === 'manual'
                           ? 'bg-purple-100 text-purple-800'
                           : 'text-slate-500 hover:text-slate-800'
@@ -1038,7 +1038,7 @@ export function ProgramRegistrationClient({
                   {/* MODE A: Event Registration Lookup */}
                   {member.mode === 'verified' && (
                     <div className="space-y-2">
-                      <div className="flex gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"
                           placeholder="e.g. UMANG27-E002"
@@ -1056,13 +1056,13 @@ export function ProgramRegistrationClient({
                               )
                             )
                           }
-                          className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                          className="flex-1 w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                         />
                         <button
                           type="button"
                           disabled={member.verifying || !member.eventRegNumber.trim()}
                           onClick={() => handleLookupMember(member.id, member.eventRegNumber)}
-                          className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                          className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white font-bold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
                         >
                           {member.verifying ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1089,14 +1089,14 @@ export function ProgramRegistrationClient({
                           <div className="font-bold text-slate-900 text-sm">
                             {member.fullName}
                           </div>
-                          <div className="text-slate-600 font-medium text-[11px]">
-                            <span className="font-mono text-purple-700 font-bold">{member.eventRegNumber}</span>
+                          <div className="text-slate-600 font-medium text-[11px] break-words">
+                            <span className="font-mono text-purple-700 font-bold break-all">{member.eventRegNumber}</span>
                             {(member.branch || member.semester) && (
                               <span> • {member.branch}{member.branch && member.semester ? ' • ' : ''}{member.semester}</span>
                             )}
                           </div>
                           {member.studentId && (
-                            <div className="text-[10px] text-slate-500">
+                            <div className="text-[10px] text-slate-500 break-all">
                               Roll / ID: {member.studentId}
                             </div>
                           )}
@@ -1115,7 +1115,7 @@ export function ProgramRegistrationClient({
                           placeholder="Full Name *"
                           value={member.fullName}
                           onChange={(e) => handleUpdateManualMember(member.id, 'fullName', e.target.value)}
-                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                         />
                         <input
                           type="text"
@@ -1123,7 +1123,7 @@ export function ProgramRegistrationClient({
                           placeholder="Roll / Student ID *"
                           value={member.studentId}
                           onChange={(e) => handleUpdateManualMember(member.id, 'studentId', e.target.value.toUpperCase())}
-                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs uppercase focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs uppercase focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                         />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1133,14 +1133,14 @@ export function ProgramRegistrationClient({
                           placeholder="Email Address *"
                           value={member.email}
                           onChange={(e) => handleUpdateManualMember(member.id, 'email', e.target.value)}
-                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                         />
                         <input
                           type="tel"
                           placeholder="Mobile Number"
                           value={member.mobile}
                           onChange={(e) => handleUpdateManualMember(member.id, 'mobile', e.target.value)}
-                          className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                         />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1281,10 +1281,10 @@ export function ProgramRegistrationClient({
 
         {/* PAYMENT SECTION (IF APPLICABLE) */}
         {isPaid && (
-          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                <QrCode className="w-4 h-4 text-amber-700" />
+                <QrCode className="w-4 h-4 text-amber-700 shrink-0" />
                 <span>Payment Required: ₹{program.registration_fee}</span>
               </span>
               <span className="text-[11px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-md">
@@ -1293,16 +1293,16 @@ export function ProgramRegistrationClient({
             </div>
 
             {event.payment_upi_id && (
-              <div className="text-xs text-slate-700 flex items-center justify-between bg-white/80 p-2.5 rounded-xl border border-amber-200">
-                <span className="text-slate-500">Pay to UPI:</span>
-                <span className="font-mono font-bold text-slate-900">{event.payment_upi_id}</span>
+              <div className="text-xs text-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2 bg-white/80 p-2.5 rounded-xl border border-amber-200">
+                <span className="text-slate-500 shrink-0">Pay to UPI:</span>
+                <span className="font-mono font-bold text-slate-900 break-all">{event.payment_upi_id}</span>
               </div>
             )}
 
             {event.payment_qr_url && (
               <div className="flex flex-col items-center p-2 bg-white rounded-xl border border-amber-200">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={event.payment_qr_url} alt="Payment QR" className="w-36 h-36 object-contain rounded-lg" />
+                <img src={event.payment_qr_url} alt="Payment QR" className="w-32 h-32 sm:w-36 sm:h-36 object-contain rounded-lg" />
                 <span className="text-[10px] text-slate-500 mt-1">Scan QR to pay</span>
               </div>
             )}
@@ -1326,7 +1326,7 @@ export function ProgramRegistrationClient({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+          className="w-full py-3 sm:py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
         >
           {submitting ? (
             <>

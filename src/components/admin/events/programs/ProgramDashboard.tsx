@@ -9,7 +9,6 @@ import {
   Trophy,
   Download,
   FileSpreadsheet,
-  ChevronRight,
   Edit3,
   Trash2,
   Loader2,
@@ -18,7 +17,6 @@ import {
   AlertCircle,
   FolderPlus,
   ArrowLeft,
-  UserPlus,
   UsersRound,
   IndianRupee,
 } from 'lucide-react';
@@ -56,7 +54,6 @@ export function ProgramDashboard({
   const [showProgramForm, setShowProgramForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState<EventCategory | null>(null);
   const [editingProgram, setEditingProgram] = useState<EventProgram | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -344,20 +341,20 @@ export function ProgramDashboard({
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Event
           </Link>
-          <h1 className="text-xl font-bold text-slate-900">Programs — {event.title}</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 break-words">Programs — {event.title}</h1>
           <p className="text-xs text-slate-500 mt-0.5">Manage categories, programs, registrations, and exports</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => { setShowCategoryForm(true); setEditingCategory(null); setCatName(''); setCatDesc(''); }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg border border-slate-200 transition-colors"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg border border-slate-200 transition-colors cursor-pointer"
           >
             <FolderPlus className="w-3.5 h-3.5" /> Add Category
           </button>
           <button
             onClick={() => { setShowProgramForm(true); resetProgramForm(); }}
             disabled={categories.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> Add Program
           </button>
@@ -392,7 +389,7 @@ export function ProgramDashboard({
       )}
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
         {[
           { label: 'Categories', value: stats.totalCategories, icon: FolderPlus, color: 'text-slate-600' },
           { label: 'Programs', value: stats.totalPrograms, icon: Trophy, color: 'text-blue-600' },
@@ -406,18 +403,18 @@ export function ProgramDashboard({
               <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{s.label}</span>
             </div>
-            <p className="text-lg font-bold text-slate-900">{s.value}</p>
+            <p className="text-base sm:text-lg font-bold text-slate-900 break-words">{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Event-wide Export */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <a
           href={`/api/admin/events/${event.id}/programs/pdf`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors"
         >
           <Download className="w-3.5 h-3.5" /> Complete Event PDF
         </a>
@@ -425,7 +422,7 @@ export function ProgramDashboard({
           href={`/api/admin/events/${event.id}/programs/csv`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition-colors"
         >
           <FileSpreadsheet className="w-3.5 h-3.5" /> Complete Event CSV
         </a>
@@ -766,46 +763,48 @@ export function ProgramDashboard({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-1.5 pt-1 border-t border-slate-100">
+                  <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
                     <Link
                       href={`/admin/dashboard/events/${event.id}/programs/${prog.id}`}
-                      className="flex-1 text-center text-[10px] font-semibold px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                      className="w-full sm:flex-1 text-center text-[10px] font-semibold px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
                     >
                       View Registrations
                     </Link>
-                    <button
-                      onClick={() => startEditingProgram(prog)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-lg border border-slate-200 hover:border-blue-200 transition-colors"
-                      title="Edit program details"
-                    >
-                      <Edit3 className="w-3 h-3 text-slate-500" />
-                      <span>Edit</span>
-                    </button>
-                    <a
-                      href={`/api/admin/events/${event.id}/programs/${prog.id}/pdf`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
-                      title="Download PDF"
-                    >
-                      <Download className="w-3 h-3" />
-                    </a>
-                    <a
-                      href={`/api/admin/events/${event.id}/programs/${prog.id}/csv`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors"
-                      title="Download CSV"
-                    >
-                      <FileSpreadsheet className="w-3 h-3" />
-                    </a>
-                    <button
-                      onClick={() => handleDeleteProgram(prog.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
-                      title="Delete program"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-1">
+                      <button
+                        onClick={() => startEditingProgram(prog)}
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-2.5 py-1.5 text-[10px] font-semibold bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-700 rounded-lg border border-slate-200 hover:border-blue-200 transition-colors"
+                        title="Edit program details"
+                      >
+                        <Edit3 className="w-3 h-3 text-slate-500" />
+                        <span>Edit</span>
+                      </button>
+                      <a
+                        href={`/api/admin/events/${event.id}/programs/${prog.id}/pdf`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors"
+                        title="Download PDF"
+                      >
+                        <Download className="w-3 h-3" />
+                      </a>
+                      <a
+                        href={`/api/admin/events/${event.id}/programs/${prog.id}/csv`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors"
+                        title="Download CSV"
+                      >
+                        <FileSpreadsheet className="w-3 h-3" />
+                      </a>
+                      <button
+                        onClick={() => handleDeleteProgram(prog.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+                        title="Delete program"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

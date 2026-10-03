@@ -132,7 +132,7 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Programs
           </Link>
-          <h1 className="text-lg font-bold text-slate-900">{program.name} — Registrations</h1>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 break-words">{program.name} — Registrations</h1>
           <p className="text-xs text-slate-500">
             {program.participation_type === 'TEAM' ? 'Team' : program.participation_type === 'BOTH' ? 'Individual / Team' : 'Individual'}
             {isPaid ? ` • ₹${program.registration_fee}` : ' • Free'}
@@ -143,7 +143,7 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
             href={`/api/admin/events/${event.id}/programs/${program.id}/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors shadow-xs"
             title="Download Complete Participants Report (Consolidated)"
           >
             <Download className="w-3.5 h-3.5" /> All Participants PDF
@@ -152,7 +152,7 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
             href={`/api/admin/events/${event.id}/programs/${program.id}/teams/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors shadow-xs"
             title="Download All Teams Roster"
           >
             <Users className="w-3.5 h-3.5" /> All Teams PDF
@@ -161,7 +161,7 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
             href={`/api/admin/events/${event.id}/programs/${program.id}/individuals/pdf`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg border border-sky-200 transition-colors shadow-sm"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg border border-sky-200 transition-colors shadow-xs"
             title="Download Individual Participants Only"
           >
             <User className="w-3.5 h-3.5" /> Individuals PDF
@@ -170,7 +170,7 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
             href={`/api/admin/events/${event.id}/programs/${program.id}/csv`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition-colors shadow-sm"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg border border-emerald-200 transition-colors shadow-xs"
             title="Export CSV"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" /> CSV
@@ -179,22 +179,22 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
         <div className="bg-white rounded-xl border border-slate-200 p-3">
           <p className="text-[10px] font-semibold text-slate-500 uppercase">Registrations</p>
-          <p className="text-lg font-bold text-slate-900">{stats.totalRegistrations}</p>
+          <p className="text-base sm:text-lg font-bold text-slate-900">{stats.totalRegistrations}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-3">
           <p className="text-[10px] font-semibold text-slate-500 uppercase">Participants</p>
-          <p className="text-lg font-bold text-slate-900">{stats.totalParticipants}</p>
+          <p className="text-base sm:text-lg font-bold text-slate-900">{stats.totalParticipants}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-3">
           <p className="text-[10px] font-semibold text-slate-500 uppercase">Teams</p>
-          <p className="text-lg font-bold text-slate-900">{stats.totalTeams}</p>
+          <p className="text-base sm:text-lg font-bold text-slate-900">{stats.totalTeams}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-3">
           <p className="text-[10px] font-semibold text-slate-500 uppercase">Revenue</p>
-          <p className="text-lg font-bold text-green-700">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
+          <p className="text-base sm:text-lg font-bold text-green-700">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
         </div>
       </div>
 
@@ -209,7 +209,7 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
 
       {/* Confirmation Modal */}
       {confirmAction && (
-        <div className="bg-white rounded-xl border-2 border-amber-300 p-4 flex items-center justify-between gap-4">
+        <div className="bg-white rounded-xl border-2 border-amber-300 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <p className="text-xs font-semibold text-slate-700">
             {confirmAction.type === 'VERIFY' ? '✅ Confirm payment verification?' : '❌ Confirm payment rejection?'}
           </p>
@@ -217,11 +217,11 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
             <button
               onClick={() => confirmAction.type === 'VERIFY' ? handleVerify(confirmAction.regId) : handleReject(confirmAction.regId)}
               disabled={actionLoadingId === confirmAction.regId}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg text-white ${confirmAction.type === 'VERIFY' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+              className={`flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold rounded-lg text-white ${confirmAction.type === 'VERIFY' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
             >
               {actionLoadingId === confirmAction.regId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm'}
             </button>
-            <button onClick={() => setConfirmAction(null)} className="px-3 py-1.5 text-xs font-semibold bg-slate-100 rounded-lg">
+            <button onClick={() => setConfirmAction(null)} className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold bg-slate-100 rounded-lg">
               Cancel
             </button>
           </div>
@@ -229,8 +229,8 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 items-center">
-        <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center">
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
             type="text"
@@ -240,35 +240,37 @@ export function ProgramRegistrationsClient({ event, program, registrations: init
             className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-        {isPaid && (
-          <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value as ProgramPaymentStatus | 'ALL')} className="text-xs border border-slate-300 rounded-lg px-2 py-2">
-            <option value="ALL">All Payments</option>
-            <option value="PENDING">Pending</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="VERIFIED">Verified</option>
+        <div className="flex flex-wrap items-center gap-2">
+          {isPaid && (
+            <select value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value as ProgramPaymentStatus | 'ALL')} className="flex-1 sm:flex-none text-xs border border-slate-300 rounded-lg px-2.5 py-2 bg-white">
+              <option value="ALL">All Payments</option>
+              <option value="PENDING">Pending</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="VERIFIED">Verified</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          )}
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as ProgramRegistrationStatus | 'ALL')} className="flex-1 sm:flex-none text-xs border border-slate-300 rounded-lg px-2.5 py-2 bg-white">
+            <option value="ALL">All Status</option>
+            <option value="REGISTERED">Registered</option>
+            <option value="CANCELLED">Cancelled</option>
             <option value="REJECTED">Rejected</option>
           </select>
-        )}
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as ProgramRegistrationStatus | 'ALL')} className="text-xs border border-slate-300 rounded-lg px-2 py-2">
-          <option value="ALL">All Status</option>
-          <option value="REGISTERED">Registered</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="REJECTED">Rejected</option>
-        </select>
-        {(program.participation_type === 'BOTH') && (
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'INDIVIDUAL' | 'TEAM' | 'ALL')} className="text-xs border border-slate-300 rounded-lg px-2 py-2">
-            <option value="ALL">All Types</option>
-            <option value="INDIVIDUAL">Individual</option>
-            <option value="TEAM">Team</option>
-          </select>
-        )}
-        <span className="text-xs text-slate-500">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+          {(program.participation_type === 'BOTH') && (
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as 'INDIVIDUAL' | 'TEAM' | 'ALL')} className="flex-1 sm:flex-none text-xs border border-slate-300 rounded-lg px-2.5 py-2 bg-white">
+              <option value="ALL">All Types</option>
+              <option value="INDIVIDUAL">Individual</option>
+              <option value="TEAM">Team</option>
+            </select>
+          )}
+          <span className="text-xs text-slate-500">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+        </div>
       </div>
 
       {/* Registrations Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs min-w-[720px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="text-left px-3 py-2.5 font-semibold text-slate-600">Reg #</th>

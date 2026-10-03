@@ -4,7 +4,7 @@ import { getAdminSession } from '@/lib/auth/admin-auth';
 import { getAdminEventById } from '@/lib/events/service';
 import { getAdminProgramById, getProgramStats } from '@/lib/events/programs-service';
 import { getAdminProgramRegistrations } from '@/lib/events/program-registrations-service';
-import { ArrowLeft, Download, Users, UserCheck, IndianRupee, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Download, Users, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +36,9 @@ export default async function AdminProgramRegistrationsPage({ params }: Props) {
   const isPaid = event.payment_required && program.registration_fee > 0;
 
   return (
-    <div className="py-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
+    <div className="py-4 sm:py-6 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <Link
             href={`/admin/dashboard/events/${event.id}/registrations`}
@@ -47,7 +47,7 @@ export default async function AdminProgramRegistrationsPage({ params }: Props) {
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Event Registrations
           </Link>
-          <h1 className="text-lg font-bold text-slate-900">{program.name} — Registrations</h1>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 break-words">{program.name} — Registrations</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             {event.title} • {program.participation_type} • {isPaid ? `₹${program.registration_fee}` : 'Free'}
           </p>
@@ -57,7 +57,7 @@ export default async function AdminProgramRegistrationsPage({ params }: Props) {
           href={`/api/admin/events/${event.id}/programs/${program.id}/pdf`}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 text-white text-xs font-semibold rounded-lg hover:bg-slate-800 transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
           Download PDF
@@ -65,23 +65,23 @@ export default async function AdminProgramRegistrationsPage({ params }: Props) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="bg-white border border-slate-200 rounded-lg p-3.5 sm:p-4 space-y-1">
           <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Total Registrations</p>
-          <p className="text-xl font-bold text-slate-900">{stats.totalRegistrations}</p>
+          <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.totalRegistrations}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-1">
+        <div className="bg-white border border-slate-200 rounded-lg p-3.5 sm:p-4 space-y-1">
           <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Participants</p>
-          <p className="text-xl font-bold text-slate-900">{stats.totalParticipants}</p>
+          <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.totalParticipants}</p>
         </div>
-        <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-1">
+        <div className="bg-white border border-slate-200 rounded-lg p-3.5 sm:p-4 space-y-1">
           <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Teams</p>
-          <p className="text-xl font-bold text-slate-900">{stats.totalTeams}</p>
+          <p className="text-lg sm:text-xl font-bold text-slate-900">{stats.totalTeams}</p>
         </div>
         {isPaid && (
-          <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-1">
+          <div className="bg-white border border-slate-200 rounded-lg p-3.5 sm:p-4 space-y-1">
             <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wide">Revenue</p>
-            <p className="text-xl font-bold text-emerald-700">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
+            <p className="text-lg sm:text-xl font-bold text-emerald-700">₹{stats.totalRevenue.toLocaleString('en-IN')}</p>
           </div>
         )}
       </div>
@@ -89,7 +89,7 @@ export default async function AdminProgramRegistrationsPage({ params }: Props) {
       {/* Registrations Table */}
       <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs min-w-[700px]">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-3 py-2.5 text-left font-semibold text-slate-600">#</th>
