@@ -44,8 +44,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               This Privacy Policy explains how <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) collects, processes, stores, and protects information when administrators, faculty members, institutional staff, and students access and use our multi-tenant institutional feedback platform available at{' '}
-              <a href="https://feedback-management-system-kappa.vercel.app" className="text-blue-600 underline font-medium">
-                https://feedback-management-system-kappa.vercel.app
+              <a href="https://143campusflow.vercel.app" className="text-blue-600 underline font-medium">
+                https://143campusflow.vercel.app
               </a>.
             </p>
             <p>
@@ -354,8 +354,8 @@ export default function PrivacyPolicyPage() {
               </p>
               <p className="text-slate-600">
                 Website:{' '}
-                <a href="https://feedback-management-system-kappa.vercel.app" className="text-blue-600 underline">
-                  https://feedback-management-system-kappa.vercel.app
+                <a href="https://143campusflow.vercel.app" className="text-blue-600 underline">
+                  https://143campusflow.vercel.app
                 </a>
               </p>
             </div>

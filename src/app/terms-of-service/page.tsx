@@ -44,8 +44,8 @@ export default function TermsOfServicePage() {
             </h2>
             <p>
               By accessing, browsing, or using the <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) hosted at{' '}
-              <a href="https://feedback-management-system-kappa.vercel.app" className="text-blue-600 underline font-medium">
-                https://feedback-management-system-kappa.vercel.app
+              <a href="https://143campusflow.vercel.app" className="text-blue-600 underline font-medium">
+                https://143campusflow.vercel.app
               </a>, you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree with these Terms, you must not access or use the Platform.
             </p>
             <p>
@@ -228,8 +228,8 @@ export default function TermsOfServicePage() {
               </p>
               <p className="text-slate-600">
                 Platform:{' '}
-                <a href="https://feedback-management-system-kappa.vercel.app" className="text-blue-600 underline">
-                  https://feedback-management-system-kappa.vercel.app
+                <a href="https://143campusflow.vercel.app" className="text-blue-600 underline">
+                  https://143campusflow.vercel.app
                 </a>
               </p>
             </div>

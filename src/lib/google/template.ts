@@ -78,7 +78,7 @@ export interface FormFieldDefinition {
   options?: string[];
 }
 
-export const CANONICAL_PUBLIC_PORTAL_URL = 'https://feedback-management-system-kappa.vercel.app';
+export const CANONICAL_PUBLIC_PORTAL_URL = 'https://143campusflow.vercel.app';
 
 export const PUBLIC_FEEDBACK_PORTAL_URL =
   process.env.NEXT_PUBLIC_APP_URL || CANONICAL_PUBLIC_PORTAL_URL;
