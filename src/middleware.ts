@@ -4,6 +4,16 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Explicit fast bypass for SEO metadata and root assets
+  if (
+    pathname === '/sitemap.xml' ||
+    pathname === '/robots.txt' ||
+    pathname === '/favicon.ico' ||
+    pathname === '/sw.js'
+  ) {
+    return NextResponse.next();
+  }
+
   const requestHeaders = new Headers(request.headers);
 
   // Extract potential tenant slug from first segment (e.g. /bce-bgp -> "bce-bgp")
@@ -18,6 +28,8 @@ export async function middleware(request: NextRequest) {
     'events',
     'offline',
     'favicon.ico',
+    'sitemap.xml',
+    'robots.txt',
     'privacy-policy',
     'terms-of-service',
     'google63a0b427ff26a6fc.html',
