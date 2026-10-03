@@ -10,6 +10,7 @@
 #>
 
 param(
+  [string]$AppUrl = $(if ($env:NEXT_PUBLIC_APP_URL) { $env:NEXT_PUBLIC_APP_URL } else { "https://143campusflow.vercel.app" }),
   [switch]$DebugOnly,
   [string]$KeyPassword,
   [string]$StorePassword
@@ -19,7 +20,7 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "   CampusFlow Android Trusted Web Activity (TWA) Builder   " -ForegroundColor Cyan
-Write-Host "   Domain: https://143campusflow.vercel.app                " -ForegroundColor Cyan
+Write-Host "   Domain: $AppUrl                                         " -ForegroundColor Cyan
 Write-Host "   Package: com.campusflow.app                             " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 

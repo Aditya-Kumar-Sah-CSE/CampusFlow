@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { FileText } from 'lucide-react';
+import { APP_URL } from '@/lib/config/app';
 
 export const dynamic = 'force-static';
 export const revalidate = 86400; // 24 hours
@@ -44,8 +45,8 @@ export default function TermsOfServicePage() {
             </h2>
             <p>
               By accessing, browsing, or using <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) hosted at{' '}
-              <a href="https://143campusflow.vercel.app" className="text-blue-600 underline font-medium">
-                https://143campusflow.vercel.app
+              <a href={APP_URL} className="text-blue-600 underline font-medium">
+                {APP_URL}
               </a>, you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree with these Terms, you must not access or use the Platform.
             </p>
             <p>
@@ -232,8 +233,8 @@ export default function TermsOfServicePage() {
               </p>
               <p className="text-slate-600">
                 Platform:{' '}
-                <a href="https://143campusflow.vercel.app" className="text-blue-600 underline">
-                  https://143campusflow.vercel.app
+                <a href={APP_URL} className="text-blue-600 underline">
+                  {APP_URL}
                 </a>
               </p>
             </div>

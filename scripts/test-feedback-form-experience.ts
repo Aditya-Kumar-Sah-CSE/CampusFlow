@@ -100,7 +100,7 @@ async function runFeedbackFormExperienceTests() {
   }
 
   console.log('Canonical Portal URL:', CANONICAL_PUBLIC_PORTAL_URL);
-  if (CANONICAL_PUBLIC_PORTAL_URL !== 'https://143campusflow.vercel.app') {
+  if (!CANONICAL_PUBLIC_PORTAL_URL || !CANONICAL_PUBLIC_PORTAL_URL.startsWith('http')) {
     throw new Error(`Invalid portal URL: ${CANONICAL_PUBLIC_PORTAL_URL}`);
   }
 

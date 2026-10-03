@@ -78,7 +78,9 @@ export interface FormFieldDefinition {
   options?: string[];
 }
 
-export const CANONICAL_PUBLIC_PORTAL_URL = 'https://143campusflow.vercel.app';
+import { APP_URL, appUrl } from '@/lib/config/app';
+
+export const CANONICAL_PUBLIC_PORTAL_URL = APP_URL;
 
 export const PUBLIC_FEEDBACK_PORTAL_URL =
   process.env.NEXT_PUBLIC_APP_URL || CANONICAL_PUBLIC_PORTAL_URL;
@@ -90,8 +92,8 @@ export const DR_ABHINAV_KUMAR_PROFILE_URL = 'https://www.bcebhagalpur.ac.in/facu
  * Returns dynamic tenant-aware portal link (e.g. https://.../bce-bgp or https://.../gec-gaya)
  */
 export function getTenantPortalUrl(tenantSlug?: string): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || CANONICAL_PUBLIC_PORTAL_URL).replace(/\/$/, '');
-  return tenantSlug ? `${base}/${tenantSlug}` : base;
+  return tenantSlug ? appUrl(tenantSlug) : APP_URL;
+
 }
 
 /**

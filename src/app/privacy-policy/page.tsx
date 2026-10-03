@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { Shield, CheckCircle2 } from 'lucide-react';
+import { APP_URL } from '@/lib/config/app';
 
 export const dynamic = 'force-static';
 export const revalidate = 86400; // 24 hours
@@ -44,8 +45,8 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>
               This Privacy Policy explains how <strong>CampusFlow</strong> (&quot;CampusFlow&quot;, &quot;we&quot;, &quot;our&quot;, or &quot;the Platform&quot;) collects, processes, stores, and protects information when administrators, faculty members, institutional staff, students, event organizers, participants, and visitors access and use our campus management platform available at{' '}
-              <a href="https://143campusflow.vercel.app" className="text-blue-600 underline font-medium">
-                https://143campusflow.vercel.app
+              <a href={APP_URL} className="text-blue-600 underline font-medium">
+                {APP_URL}
               </a>.
             </p>
             <p>
@@ -372,8 +373,8 @@ export default function PrivacyPolicyPage() {
               </p>
               <p className="text-slate-600">
                 Website:{' '}
-                <a href="https://143campusflow.vercel.app" className="text-blue-600 underline">
-                  https://143campusflow.vercel.app
+                <a href={APP_URL} className="text-blue-600 underline">
+                  {APP_URL}
                 </a>
               </p>
             </div>

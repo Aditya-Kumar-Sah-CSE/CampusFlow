@@ -5,6 +5,7 @@ import { GlobalInteractionEffects } from '@/components/ui/GlobalInteractionEffec
 import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
 import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
 import { NetworkStatusBanner } from '@/components/pwa/NetworkStatusBanner';
+import { APP_URL } from '@/lib/config/app';
 
 export const viewport: Viewport = {
   themeColor: '#0B192C',
@@ -15,7 +16,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app'),
+  metadataBase: new URL(APP_URL),
   title: {
     default: 'CampusFlow',
     template: '%s | CampusFlow',

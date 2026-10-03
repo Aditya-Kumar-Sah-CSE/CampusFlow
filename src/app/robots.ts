@@ -1,14 +1,11 @@
 import type { MetadataRoute } from 'next';
+import { appUrl } from '@/lib/config/app';
 
 /**
  * Next.js Metadata API robots generator.
  * Produces /robots.txt with allow/disallow rules for crawlers.
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = (
-    process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app'
-  ).replace(/\/$/, '');
-
   return {
     rules: [
       {
@@ -24,6 +21,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: appUrl('/sitemap.xml'),
   };
 }

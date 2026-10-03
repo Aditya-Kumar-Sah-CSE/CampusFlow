@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { appUrl, APP_URL } from '@/lib/config/app';
 
 /**
  * Next.js Metadata API sitemap generator.
@@ -14,31 +15,27 @@ import type { MetadataRoute } from 'next';
  *  - /offline (PWA fallback)
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (
-    process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app'
-  ).replace(/\/$/, '');
-
   return [
     {
-      url: baseUrl,
+      url: APP_URL,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/events`,
+      url: appUrl('/events'),
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/privacy-policy`,
+      url: appUrl('/privacy-policy'),
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,
     },
     {
-      url: `${baseUrl}/terms-of-service`,
+      url: appUrl('/terms-of-service'),
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.3,

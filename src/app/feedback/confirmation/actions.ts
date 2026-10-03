@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateResponseToken, verifyResponseToken } from '@/lib/feedback/response-token';
 import { sendStudentSubmissionConfirmationEmail } from '@/lib/email/service';
+import { appUrl } from '@/lib/config/app';
 
 export interface VerifiedConfirmationData {
   isValid: boolean;
@@ -62,8 +63,7 @@ export async function getConfirmationByTokenAction(
   }
 
   const form: any = rec.form;
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app').replace(/\/$/, '');
-  const downloadUrl = `${baseUrl}/api/feedback/response/download?token=${encodeURIComponent(token)}`;
+  const downloadUrl = appUrl(`/api/feedback/response/download?token=${encodeURIComponent(token)}`);
 
   return {
     isValid: true,
@@ -144,8 +144,7 @@ export async function verifyStudentSubmissionAction(params: {
     email: rec.student_email,
   });
 
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app').replace(/\/$/, '');
-  const downloadUrl = `${baseUrl}/api/feedback/response/download?token=${encodeURIComponent(token)}`;
+  const downloadUrl = appUrl(`/api/feedback/response/download?token=${encodeURIComponent(token)}`);
 
   return {
     success: true,

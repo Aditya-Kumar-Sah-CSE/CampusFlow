@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { generateResponseToken } from '@/lib/feedback/response-token';
 import { sendStudentSubmissionConfirmationEmail } from '@/lib/email/service';
+import { APP_URL } from '@/lib/config/app';
 
 export interface SyncResult {
   success: boolean;
@@ -341,7 +342,7 @@ export async function syncFormResponsesToSheet(params: {
         const semesterName = formRecord.semester?.name || 'Semester';
         const academicYearName = formRecord.academic_year?.name || 'Academic Session';
         const formTitle = formRecord.title || 'Faculty Feedback Form';
-        const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app').replace(/\/$/, '');
+        const baseUrl = APP_URL;
 
           // Consolidate response items to track from Forms API + Sheet Rows
           interface TrackingMetadata {
