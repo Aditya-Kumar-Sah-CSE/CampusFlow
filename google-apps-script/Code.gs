@@ -26,7 +26,7 @@ var CANONICAL_DEFAULT_CONFIRMATION_MESSAGE = [
   'Need to access more academic feedback forms?',
   '',
   'Visit:',
-  'https://feedback-management-system-kappa.vercel.app/',
+  'https://143campusflow.vercel.app/',
   '',
   'Developer: Aditya Kumar Sah',
   '',

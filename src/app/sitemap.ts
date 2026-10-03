@@ -14,8 +14,9 @@ import type { MetadataRoute } from 'next';
  *  - /offline (PWA fallback)
  */
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app';
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app'
+  ).replace(/\/$/, '');
 
   return [
     {

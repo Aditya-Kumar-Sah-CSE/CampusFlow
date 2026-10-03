@@ -62,7 +62,7 @@ export async function getConfirmationByTokenAction(
   }
 
   const form: any = rec.form;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app';
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app').replace(/\/$/, '');
   const downloadUrl = `${baseUrl}/api/feedback/response/download?token=${encodeURIComponent(token)}`;
 
   return {
@@ -144,7 +144,7 @@ export async function verifyStudentSubmissionAction(params: {
     email: rec.student_email,
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app';
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://143campusflow.vercel.app').replace(/\/$/, '');
   const downloadUrl = `${baseUrl}/api/feedback/response/download?token=${encodeURIComponent(token)}`;
 
   return {
