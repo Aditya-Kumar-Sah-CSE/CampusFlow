@@ -847,7 +847,7 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
 
   const doc = new PDFDocument({
     size: 'A4',
-    layout: 'landscape',
+    layout: 'portrait',
     margin: 36,
     info: {
       Title: `All Teams — ${program.name}`,
@@ -858,9 +858,9 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
 
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
-  const pageWidth = doc.page.width; // 841.89 pt
-  const pageHeight = doc.page.height; // 595.28 pt
-  const contentWidth = pageWidth - margin * 2;
+  const pageWidth = doc.page.width; // 595.28 pt
+  const pageHeight = doc.page.height; // 841.89 pt
+  const contentWidth = pageWidth - margin * 2; // 523.28 pt
 
   let y = renderOfficialHeader(doc, {
     college,
@@ -887,30 +887,21 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
   summaryItems.forEach((item, idx) => {
     const boxX = margin + idx * sBoxW;
     doc.rect(boxX, y, sBoxW - 4, summaryBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
-    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 8, y + 5);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_COLORS.primary).text(item.val, boxX + 8, y + 16);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 6, y + 4, { width: sBoxW - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.val, boxX + 6, y + 15, { width: sBoxW - 12, ellipsis: true });
   });
 
   y += summaryBoxH + 12;
 
-  // Table Columns Definition
+  // Table Columns Definition (A4 Portrait - 523 pt total)
   const cols = [
     { label: '#', w: 22, align: 'center' as const },
-    { label: 'Team ID', w: 82, align: 'left' as const },
-    { label: 'Team Name', w: 90, align: 'left' as const },
-    { label: 'Team Leader', w: 100, align: 'left' as const },
-    { label: 'Leader Roll / Reg', w: 90, align: 'left' as const },
-    { label: 'Leader Mobile', w: 75, align: 'left' as const },
-    { label: 'Leader Email', w: 125, align: 'left' as const },
-    { label: 'Branch / Sem', w: 80, align: 'left' as const },
-    { label: 'Members', w: 46, align: 'center' as const },
-    { label: 'Status', w: 60, align: 'center' as const },
+    { label: 'Team ID & Status', w: 90, align: 'left' as const },
+    { label: 'Team Name & Size', w: 110, align: 'left' as const },
+    { label: 'Team Leader & ID', w: 120, align: 'left' as const },
+    { label: 'Branch & Sem', w: 91, align: 'left' as const },
+    { label: 'Leader Contact', w: 90, align: 'left' as const },
   ];
-
-  // Adjust total column width to exactly match contentWidth
-  const totalColW = cols.reduce((s, c) => s + c.w, 0);
-  const scale = contentWidth / totalColW;
-  cols.forEach(c => { c.w = Math.floor(c.w * scale); });
 
   const renderTableHeader = (currentY: number) => {
     doc.rect(margin, currentY, contentWidth, 20).fill(PDF_COLORS.primary);
@@ -930,10 +921,10 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
       .text('No team registrations found for this program.', margin, y + 15, { width: contentWidth, align: 'center' });
   } else {
     y = renderTableHeader(y);
-    const rowH = 18;
+    const rowH = 28;
 
     teams.forEach((t, idx) => {
-      if (y + rowH > pageHeight - margin - 35) {
+      if (y + rowH > pageHeight - margin - 45) {
         doc.addPage();
         y = margin;
         y = renderTableHeader(y);
@@ -944,56 +935,38 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
       doc.moveTo(margin, y + rowH).lineTo(margin + contentWidth, y + rowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
       let colX = margin;
-      doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateDark);
 
       // 1. #
-      doc.text(String(idx + 1), colX + 2, y + 5, { width: cols[0].w - 4, align: 'center' });
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark);
+      doc.text(String(idx + 1), colX + 2, y + 9, { width: cols[0].w - 4, align: 'center' });
       colX += cols[0].w;
 
-      // 2. Team ID
-      doc.font('Helvetica-Bold').text(t.teamId, colX + 4, y + 5, { width: cols[1].w - 8, align: 'left', ellipsis: true });
-      doc.font('Helvetica');
+      // 2. Team ID & Status
+      const statusColor = t.status === 'CONFIRMED' || t.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary).text(t.teamId, colX + 4, y + 4, { width: cols[1].w - 8, ellipsis: true });
+      doc.font('Helvetica-Bold').fontSize(6.8).fillColor(statusColor).text(t.status, colX + 4, y + 15, { width: cols[1].w - 8, ellipsis: true });
       colX += cols[1].w;
 
-      // 3. Team Name
-      doc.font('Helvetica-Bold').text(t.teamName, colX + 4, y + 5, { width: cols[2].w - 8, align: 'left', ellipsis: true });
-      doc.font('Helvetica');
+      // 3. Team Name & Size
+      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize} Members` : `${t.teamSize} Members`;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.primary).text(t.teamName, colX + 4, y + 4, { width: cols[2].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(sizeStr, colX + 4, y + 15, { width: cols[2].w - 8, ellipsis: true });
       colX += cols[2].w;
 
-      // 4. Team Leader
-      const leaderName = t.leader?.name || '—';
-      doc.text(leaderName, colX + 4, y + 5, { width: cols[3].w - 8, align: 'left', ellipsis: true });
+      // 4. Team Leader & ID
+      const rollReg = t.leader ? (t.leader.studentId ? `ID: ${t.leader.studentId}` : (t.leader.eventRegNumber || '—')) : '—';
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(t.leader?.name || '—', colX + 4, y + 4, { width: cols[3].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(rollReg, colX + 4, y + 15, { width: cols[3].w - 8, ellipsis: true });
       colX += cols[3].w;
 
-      // 5. Leader Roll / Reg No.
-      const rollOrReg = t.leader ? `${t.leader.studentId || ''} (${t.leader.eventRegNumber})` : '—';
-      doc.text(rollOrReg, colX + 4, y + 5, { width: cols[4].w - 8, align: 'left', ellipsis: true });
+      // 5. Branch & Sem
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(t.leader?.branch || '—', colX + 4, y + 4, { width: cols[4].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(t.leader?.semester || '—', colX + 4, y + 15, { width: cols[4].w - 8, ellipsis: true });
       colX += cols[4].w;
 
-      // 6. Leader Mobile
-      const leaderMobile = t.leader?.mobile || '—';
-      doc.text(leaderMobile, colX + 4, y + 5, { width: cols[5].w - 8, align: 'left', ellipsis: true });
-      colX += cols[5].w;
-
-      // 7. Leader Email
-      const leaderEmail = t.leader?.email || '—';
-      doc.text(leaderEmail, colX + 4, y + 5, { width: cols[6].w - 8, align: 'left', ellipsis: true, lineBreak: false });
-      colX += cols[6].w;
-
-      // 8. Branch / Sem
-      const bSem = t.leader ? `${t.leader.branch || '-'}${t.leader.semester ? ` (${t.leader.semester.replace(/Semester/i, 'Sem').trim()})` : ''}` : '—';
-      doc.text(bSem, colX + 4, y + 5, { width: cols[7].w - 8, align: 'left', ellipsis: true });
-      colX += cols[7].w;
-
-      // 9. Members
-      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize}` : String(t.teamSize);
-      doc.font('Helvetica-Bold').text(sizeStr, colX + 2, y + 5, { width: cols[8].w - 4, align: 'center' });
-      doc.font('Helvetica');
-      colX += cols[8].w;
-
-      // 10. Status
-      const statusColor = t.status === 'CONFIRMED' || t.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(statusColor).text(t.status, colX + 2, y + 5, { width: cols[9].w - 4, align: 'center', ellipsis: true });
+      // 6. Leader Contact
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(t.leader?.mobile || '—', colX + 4, y + 4, { width: cols[5].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(t.leader?.email || '—', colX + 4, y + 15, { width: cols[5].w - 8, ellipsis: true, lineBreak: false });
 
       y += rowH;
     });
@@ -1117,37 +1090,29 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
 
   y += 18;
 
-  // Members Table Columns
+  // Members Table Columns (A4 Portrait - 523 pt total)
   const mCols = [
-    { label: '#', w: 18, align: 'center' as const },
+    { label: '#', w: 22, align: 'center' as const },
     { label: 'Role', w: 70, align: 'center' as const },
-    { label: 'Name', w: 85, align: 'left' as const },
-    { label: 'Event Reg No.', w: 72, align: 'left' as const },
-    { label: 'Student ID', w: 46, align: 'left' as const },
-    { label: 'Email', w: 106, align: 'left' as const },
-    { label: 'Mobile', w: 60, align: 'left' as const },
-    { label: 'Branch', w: 36, align: 'left' as const },
-    { label: 'Sem', w: 30, align: 'center' as const },
+    { label: 'Member Name & ID', w: 125, align: 'left' as const },
+    { label: 'Branch & Semester', w: 110, align: 'left' as const },
+    { label: 'Contact Details', w: 116, align: 'left' as const },
+    { label: 'Status', w: 80, align: 'center' as const },
   ];
-
-  // Scale table to fit portrait contentWidth
-  const totalMColW = mCols.reduce((s, c) => s + c.w, 0);
-  const mScale = contentWidth / totalMColW;
-  mCols.forEach(c => { c.w = Math.floor(c.w * mScale); });
 
   const renderMemberHeader = (currentY: number) => {
     doc.rect(margin, currentY, contentWidth, 16).fill(PDF_COLORS.secondary);
     let colX = margin;
-    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(PDF_COLORS.white);
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(PDF_COLORS.white);
     for (const c of mCols) {
-      doc.text(c.label, colX + 2, currentY + 5, { width: c.w - 4, align: c.align });
+      doc.text(c.label, colX + 3, currentY + 5, { width: c.w - 6, align: c.align });
       colX += c.w;
     }
     return currentY + 16;
   };
 
   y = renderMemberHeader(y);
-  const mRowH = 18;
+  const mRowH = 26;
 
   team.members.forEach((m, idx) => {
     if (y + mRowH > pageHeight - margin - 80) {
@@ -1162,49 +1127,37 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
     doc.moveTo(margin, y + mRowH).lineTo(margin + contentWidth, y + mRowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
     let colX = margin;
-    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateDark);
 
     // 1. #
-    doc.text(String(idx + 1), colX + 2, y + 5, { width: mCols[0].w - 4, align: 'center' });
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark);
+    doc.text(String(idx + 1), colX + 2, y + 8, { width: mCols[0].w - 4, align: 'center' });
     colX += mCols[0].w;
 
     // 2. Role badge
-    if (isLeader) {
-      doc.font('Helvetica-Bold').fillColor(PDF_COLORS.leaderText).text('TEAM LEADER', colX + 2, y + 5, { width: mCols[1].w - 4, align: 'center' });
-    } else {
-      doc.font('Helvetica').fillColor(PDF_COLORS.memberText).text('TEAM MEMBER', colX + 2, y + 5, { width: mCols[1].w - 4, align: 'center' });
-    }
-    doc.font('Helvetica').fillColor(PDF_COLORS.slateDark);
+    doc.rect(colX + 4, y + 5, mCols[1].w - 8, 16).fill(isLeader ? PDF_COLORS.leaderBg : PDF_COLORS.memberBg);
+    doc.font('Helvetica-Bold').fontSize(6.5).fillColor(isLeader ? PDF_COLORS.leaderText : PDF_COLORS.memberText)
+      .text(isLeader ? 'LEADER' : 'MEMBER', colX + 4, y + 9, { width: mCols[1].w - 8, align: 'center' });
     colX += mCols[1].w;
 
-    // 3. Name
-    doc.font('Helvetica-Bold').text(m.name, colX + 3, y + 5, { width: mCols[2].w - 6, align: 'left', ellipsis: true });
-    doc.font('Helvetica');
+    // 3. Name & ID
+    const idReg = [m.studentId ? `ID: ${m.studentId}` : null, m.eventRegNumber ? `Reg: ${m.eventRegNumber}` : null].filter(Boolean).join(' | ') || '—';
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(m.name, colX + 4, y + 4, { width: mCols[2].w - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(idReg, colX + 4, y + 15, { width: mCols[2].w - 8, ellipsis: true });
     colX += mCols[2].w;
 
-    // 4. Event Reg No.
-    doc.text(m.eventRegNumber, colX + 2, y + 5, { width: mCols[3].w - 4, align: 'left', ellipsis: true });
+    // 4. Branch & Semester
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(m.branch || '—', colX + 4, y + 4, { width: mCols[3].w - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(m.semester || '—', colX + 4, y + 15, { width: mCols[3].w - 8, ellipsis: true });
     colX += mCols[3].w;
 
-    // 5. Student ID / Roll
-    doc.text(m.studentId, colX + 2, y + 5, { width: mCols[4].w - 4, align: 'left', ellipsis: true });
+    // 5. Contact Details
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(m.mobile || '—', colX + 4, y + 4, { width: mCols[4].w - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(m.email || '—', colX + 4, y + 15, { width: mCols[4].w - 8, ellipsis: true, lineBreak: false });
     colX += mCols[4].w;
 
-    // 6. Email
-    doc.text(m.email, colX + 2, y + 5, { width: mCols[5].w - 4, align: 'left', ellipsis: true, lineBreak: false });
-    colX += mCols[5].w;
-
-    // 7. Mobile
-    doc.text(m.mobile, colX + 2, y + 5, { width: mCols[6].w - 4, align: 'left', ellipsis: true });
-    colX += mCols[6].w;
-
-    // 8. Branch
-    doc.text(m.branch, colX + 2, y + 5, { width: mCols[7].w - 4, align: 'left', ellipsis: true });
-    colX += mCols[7].w;
-
-    // 9. Semester
-    const shortSem = m.semester.replace(/Semester/i, 'Sem').trim();
-    doc.text(shortSem, colX + 1, y + 5, { width: mCols[8].w - 2, align: 'center' });
+    // 6. Status
+    const mStatusColor = m.registrationStatus === 'CONFIRMED' || m.registrationStatus === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(mStatusColor).text(m.registrationStatus || team.status, colX + 2, y + 8, { width: mCols[5].w - 4, align: 'center' });
 
     y += mRowH;
   });
@@ -1260,7 +1213,7 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
 
   const doc = new PDFDocument({
     size: 'A4',
-    layout: 'landscape',
+    layout: 'portrait',
     margin: 36,
     info: {
       Title: `Individual Participants — ${program.name}`,
@@ -1271,9 +1224,9 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
 
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const contentWidth = pageWidth - margin * 2;
+  const pageWidth = doc.page.width; // 595.28 pt
+  const pageHeight = doc.page.height; // 841.89 pt
+  const contentWidth = pageWidth - margin * 2; // 523.28 pt
 
   let y = renderOfficialHeader(doc, {
     college,
@@ -1296,8 +1249,8 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
   summaryItems.forEach((item, idx) => {
     const boxX = margin + idx * sBoxW;
     doc.rect(boxX, y, sBoxW - 4, summaryBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
-    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 8, y + 5);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_COLORS.primary).text(item.val, boxX + 8, y + 16);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 6, y + 4, { width: sBoxW - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.val, boxX + 6, y + 15, { width: sBoxW - 12, ellipsis: true });
   });
 
   y += summaryBoxH + 12;
@@ -1308,41 +1261,32 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
     doc.font('Helvetica-Bold').fontSize(9.5).fillColor(PDF_COLORS.slateMuted)
       .text('No individual participants registered for this program.', margin, y + 18, { width: contentWidth, align: 'center' });
   } else {
-    // Columns
+    // Columns (A4 Portrait - 523 pt total)
     const cols = [
-      { label: '#', w: 25, align: 'center' as const },
-      { label: 'Event Reg No.', w: 85, align: 'left' as const },
-      { label: 'Prog Reg No.', w: 90, align: 'left' as const },
-      { label: 'Student Name', w: 115, align: 'left' as const },
-      { label: 'Student ID / Roll', w: 75, align: 'left' as const },
-      { label: 'Email', w: 130, align: 'left' as const },
-      { label: 'Mobile', w: 70, align: 'left' as const },
-      { label: 'Branch', w: 55, align: 'left' as const },
-      { label: 'Semester', w: 45, align: 'center' as const },
-      { label: 'Payment', w: 45, align: 'center' as const },
-      { label: 'Status', w: 40, align: 'center' as const },
+      { label: '#', w: 22, align: 'center' as const },
+      { label: 'Registration Numbers', w: 88, align: 'left' as const },
+      { label: 'Participant & ID', w: 125, align: 'left' as const },
+      { label: 'Branch & Semester', w: 105, align: 'left' as const },
+      { label: 'Contact Details', w: 100, align: 'left' as const },
+      { label: 'Payment & Status', w: 83, align: 'center' as const },
     ];
 
-    const totalColW = cols.reduce((s, c) => s + c.w, 0);
-    const scale = contentWidth / totalColW;
-    cols.forEach(c => { c.w = Math.floor(c.w * scale); });
-
     const renderTableHeader = (currentY: number) => {
-      doc.rect(margin, currentY, contentWidth, 18).fill(PDF_COLORS.primary);
+      doc.rect(margin, currentY, contentWidth, 20).fill(PDF_COLORS.primary);
       let colX = margin;
-      doc.font('Helvetica-Bold').fontSize(7).fillColor(PDF_COLORS.white);
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.white);
       for (const c of cols) {
-        doc.text(c.label, colX + 3, currentY + 5, { width: c.w - 6, align: c.align });
+        doc.text(c.label, colX + 4, currentY + 6, { width: c.w - 8, align: c.align });
         colX += c.w;
       }
-      return currentY + 18;
+      return currentY + 20;
     };
 
     y = renderTableHeader(y);
-    const rowH = 17;
+    const rowH = 28;
 
     individuals.forEach((ind, idx) => {
-      if (y + rowH > pageHeight - margin - 35) {
+      if (y + rowH > pageHeight - margin - 45) {
         doc.addPage();
         y = margin;
         y = renderTableHeader(y);
@@ -1353,55 +1297,37 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
       doc.moveTo(margin, y + rowH).lineTo(margin + contentWidth, y + rowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
       let colX = margin;
-      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateDark);
 
       // 1. #
-      doc.text(String(idx + 1), colX + 2, y + 5, { width: cols[0].w - 4, align: 'center' });
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark);
+      doc.text(String(idx + 1), colX + 2, y + 9, { width: cols[0].w - 4, align: 'center' });
       colX += cols[0].w;
 
-      // 2. Event Reg No.
-      doc.font('Helvetica-Bold').text(ind.eventRegNumber, colX + 3, y + 5, { width: cols[1].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 2. Reg Numbers (Event Reg & Prog Reg)
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary).text(ind.eventRegNumber || '—', colX + 4, y + 4, { width: cols[1].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(ind.programRegNumber || '—', colX + 4, y + 15, { width: cols[1].w - 8, ellipsis: true });
       colX += cols[1].w;
 
-      // 3. Prog Reg No.
-      doc.text(ind.programRegNumber, colX + 3, y + 5, { width: cols[2].w - 6, ellipsis: true });
+      // 3. Participant & ID
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(ind.name, colX + 4, y + 4, { width: cols[2].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(ind.studentId ? `ID: ${ind.studentId}` : '—', colX + 4, y + 15, { width: cols[2].w - 8, ellipsis: true });
       colX += cols[2].w;
 
-      // 4. Student Name
-      doc.font('Helvetica-Bold').text(ind.name, colX + 3, y + 5, { width: cols[3].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 4. Branch & Semester
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(ind.branch || '—', colX + 4, y + 4, { width: cols[3].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(ind.semester || '—', colX + 4, y + 15, { width: cols[3].w - 8, ellipsis: true });
       colX += cols[3].w;
 
-      // 5. Student ID
-      doc.text(ind.studentId, colX + 3, y + 5, { width: cols[4].w - 6, ellipsis: true });
+      // 5. Contact Details
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(ind.mobile || '—', colX + 4, y + 4, { width: cols[4].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(ind.email || '—', colX + 4, y + 15, { width: cols[4].w - 8, ellipsis: true, lineBreak: false });
       colX += cols[4].w;
 
-      // 6. Email
-      doc.text(ind.email, colX + 3, y + 5, { width: cols[5].w - 6, ellipsis: true });
-      colX += cols[5].w;
-
-      // 7. Mobile
-      doc.text(ind.mobile, colX + 3, y + 5, { width: cols[6].w - 6, ellipsis: true });
-      colX += cols[6].w;
-
-      // 8. Branch
-      doc.text(ind.branch, colX + 3, y + 5, { width: cols[7].w - 6, ellipsis: true });
-      colX += cols[7].w;
-
-      // 9. Semester
-      doc.text(ind.semester, colX + 2, y + 5, { width: cols[8].w - 4, align: 'center', ellipsis: true });
-      colX += cols[8].w;
-
-      // 10. Payment
-      const pColor = ind.paymentStatus === 'VERIFIED' || ind.paymentStatus === 'PAID' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(pColor).text(ind.paymentStatus, colX + 2, y + 5, { width: cols[9].w - 4, align: 'center', ellipsis: true });
-      doc.font('Helvetica').fillColor(PDF_COLORS.slateDark);
-      colX += cols[9].w;
-
-      // 11. Status
+      // 6. Payment & Status
+      const pColor = ind.paymentStatus === 'VERIFIED' || ind.paymentStatus === 'PAID' ? PDF_COLORS.success : (ind.paymentStatus === 'NOT_REQUIRED' ? PDF_COLORS.slateMuted : PDF_COLORS.warning);
       const sColor = ind.registrationStatus === 'CONFIRMED' || ind.registrationStatus === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.danger;
-      doc.font('Helvetica-Bold').fillColor(sColor).text(ind.registrationStatus, colX + 2, y + 5, { width: cols[10].w - 4, align: 'center', ellipsis: true });
+      doc.font('Helvetica-Bold').fontSize(7).fillColor(pColor).text(ind.paymentStatus || 'FREE', colX + 2, y + 4, { width: cols[5].w - 4, align: 'center', ellipsis: true });
+      doc.font('Helvetica-Bold').fontSize(6.8).fillColor(sColor).text(ind.registrationStatus || 'CONFIRMED', colX + 2, y + 15, { width: cols[5].w - 4, align: 'center', ellipsis: true });
 
       y += rowH;
     });
@@ -1423,7 +1349,7 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
 
   const doc = new PDFDocument({
     size: 'A4',
-    layout: 'landscape',
+    layout: 'portrait',
     margin: 36,
     info: {
       Title: `Complete Participant Report — ${program.name}`,
@@ -1434,9 +1360,9 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
 
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const contentWidth = pageWidth - margin * 2;
+  const pageWidth = doc.page.width; // 595.28 pt
+  const pageHeight = doc.page.height; // 841.89 pt
+  const contentWidth = pageWidth - margin * 2; // 523.28 pt
 
   let y = renderOfficialHeader(doc, {
     college,
@@ -1463,8 +1389,8 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
   summaryItems.forEach((item, idx) => {
     const boxX = margin + idx * sBoxW;
     doc.rect(boxX, y, sBoxW - 4, summaryBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
-    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 8, y + 5);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_COLORS.primary).text(item.val, boxX + 8, y + 16);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 6, y + 4, { width: sBoxW - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.val, boxX + 6, y + 15, { width: sBoxW - 12, ellipsis: true });
   });
 
   y += summaryBoxH + 14;
@@ -1493,21 +1419,15 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       .text('No team registrations recorded for this program.', margin, y + 8, { width: contentWidth, align: 'center' });
     y += 30;
   } else {
-    // Teams Table
+    // Teams Table (A4 Portrait - 523 pt total)
     const tCols = [
       { label: '#', w: 22, align: 'center' as const },
-      { label: 'Team ID', w: 82, align: 'left' as const },
-      { label: 'Team Name', w: 90, align: 'left' as const },
-      { label: 'Team Leader', w: 100, align: 'left' as const },
-      { label: 'Leader Roll / Reg', w: 90, align: 'left' as const },
-      { label: 'Leader Mobile', w: 75, align: 'left' as const },
-      { label: 'Leader Email', w: 125, align: 'left' as const },
-      { label: 'Branch / Sem', w: 80, align: 'left' as const },
-      { label: 'Size', w: 46, align: 'center' as const },
-      { label: 'Status', w: 60, align: 'center' as const },
+      { label: 'Team ID & Status', w: 90, align: 'left' as const },
+      { label: 'Team Name & Size', w: 110, align: 'left' as const },
+      { label: 'Team Leader & ID', w: 120, align: 'left' as const },
+      { label: 'Branch & Sem', w: 91, align: 'left' as const },
+      { label: 'Leader Contact', w: 90, align: 'left' as const },
     ];
-    const tScale = contentWidth / tCols.reduce((s, c) => s + c.w, 0);
-    tCols.forEach(c => { c.w = Math.floor(c.w * tScale); });
 
     const renderTHeader = (curY: number) => {
       doc.rect(margin, curY, contentWidth, 16).fill(PDF_COLORS.primary);
@@ -1521,10 +1441,10 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
     };
 
     y = renderTHeader(y);
-    const rowH = 16;
+    const rowH = 26;
 
     teams.forEach((t, idx) => {
-      if (y + rowH > pageHeight - margin - 35) {
+      if (y + rowH > pageHeight - margin - 45) {
         doc.addPage();
         y = margin;
         y = renderTHeader(y);
@@ -1534,44 +1454,38 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       doc.moveTo(margin, y + rowH).lineTo(margin + contentWidth, y + rowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
       let colX = margin;
-      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateDark);
 
-      doc.text(String(idx + 1), colX + 2, y + 5, { width: tCols[0].w - 4, align: 'center' });
+      // 1. #
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark);
+      doc.text(String(idx + 1), colX + 2, y + 8, { width: tCols[0].w - 4, align: 'center' });
       colX += tCols[0].w;
 
-      doc.font('Helvetica-Bold').text(t.teamId, colX + 3, y + 5, { width: tCols[1].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 2. Team ID & Status
+      const statusColor = t.status === 'CONFIRMED' || t.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary).text(t.teamId, colX + 4, y + 4, { width: tCols[1].w - 8, ellipsis: true });
+      doc.font('Helvetica-Bold').fontSize(6.8).fillColor(statusColor).text(t.status, colX + 4, y + 14, { width: tCols[1].w - 8, ellipsis: true });
       colX += tCols[1].w;
 
-      doc.font('Helvetica-Bold').text(t.teamName, colX + 3, y + 5, { width: tCols[2].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 3. Team Name & Size
+      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize} Members` : `${t.teamSize} Members`;
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.primary).text(t.teamName, colX + 4, y + 4, { width: tCols[2].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(sizeStr, colX + 4, y + 14, { width: tCols[2].w - 8, ellipsis: true });
       colX += tCols[2].w;
 
-      doc.text(t.leader?.name || '—', colX + 3, y + 5, { width: tCols[3].w - 6, ellipsis: true });
+      // 4. Team Leader & ID
+      const rollReg = t.leader ? (t.leader.studentId ? `ID: ${t.leader.studentId}` : (t.leader.eventRegNumber || '—')) : '—';
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(t.leader?.name || '—', colX + 4, y + 4, { width: tCols[3].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(rollReg, colX + 4, y + 14, { width: tCols[3].w - 8, ellipsis: true });
       colX += tCols[3].w;
 
-      const rollReg = t.leader ? `${t.leader.studentId || ''} (${t.leader.eventRegNumber})` : '—';
-      doc.text(rollReg, colX + 3, y + 5, { width: tCols[4].w - 6, ellipsis: true });
+      // 5. Branch & Sem
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(t.leader?.branch || '—', colX + 4, y + 4, { width: tCols[4].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(t.leader?.semester || '—', colX + 4, y + 14, { width: tCols[4].w - 8, ellipsis: true });
       colX += tCols[4].w;
 
-      const leaderMobile = t.leader?.mobile || '—';
-      doc.text(leaderMobile, colX + 3, y + 5, { width: tCols[5].w - 6, ellipsis: true });
-      colX += tCols[5].w;
-
-      doc.text(t.leader?.email || '—', colX + 3, y + 5, { width: tCols[6].w - 6, ellipsis: true, lineBreak: false });
-      colX += tCols[6].w;
-
-      const bSem = t.leader ? `${t.leader.branch || '-'}${t.leader.semester ? ` (${t.leader.semester.replace(/Semester/i, 'Sem').trim()})` : ''}` : '—';
-      doc.text(bSem, colX + 3, y + 5, { width: tCols[7].w - 6, ellipsis: true });
-      colX += tCols[7].w;
-
-      const sizeStr = t.maxTeamSize ? `${t.teamSize}/${t.maxTeamSize}` : String(t.teamSize);
-      doc.font('Helvetica-Bold').text(sizeStr, colX + 2, y + 5, { width: tCols[8].w - 4, align: 'center' });
-      doc.font('Helvetica');
-      colX += tCols[8].w;
-
-      const statusColor = t.status === 'CONFIRMED' || t.status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(statusColor).text(t.status, colX + 2, y + 5, { width: tCols[9].w - 4, align: 'center' });
+      // 6. Leader Contact
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(t.leader?.mobile || '—', colX + 4, y + 4, { width: tCols[5].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(t.leader?.email || '—', colX + 4, y + 14, { width: tCols[5].w - 8, ellipsis: true, lineBreak: false });
 
       y += rowH;
     });
@@ -1591,21 +1505,14 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       .text('No team members found.', margin, y + 8, { width: contentWidth, align: 'center' });
     y += 30;
   } else {
+    // Team Members Table (A4 Portrait - 523 pt total)
     const tmCols = [
       { label: '#', w: 22, align: 'center' as const },
-      { label: 'Team Name', w: 90, align: 'left' as const },
-      { label: 'Role', w: 65, align: 'center' as const },
-      { label: 'Member Name', w: 105, align: 'left' as const },
-      { label: 'Event Reg No.', w: 75, align: 'left' as const },
-      { label: 'Student ID', w: 60, align: 'left' as const },
-      { label: 'Email', w: 120, align: 'left' as const },
-      { label: 'Mobile', w: 65, align: 'left' as const },
-      { label: 'Branch', w: 50, align: 'left' as const },
-      { label: 'Semester', w: 45, align: 'center' as const },
-      { label: 'Status', w: 45, align: 'center' as const },
+      { label: 'Team & Role', w: 105, align: 'left' as const },
+      { label: 'Member Name & ID', w: 135, align: 'left' as const },
+      { label: 'Branch & Contact', w: 181, align: 'left' as const },
+      { label: 'Status', w: 80, align: 'center' as const },
     ];
-    const tmScale = contentWidth / tmCols.reduce((s, c) => s + c.w, 0);
-    tmCols.forEach(c => { c.w = Math.floor(c.w * tmScale); });
 
     const renderTMHeader = (curY: number) => {
       doc.rect(margin, curY, contentWidth, 16).fill(PDF_COLORS.primary);
@@ -1619,10 +1526,10 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
     };
 
     y = renderTMHeader(y);
-    const rowH = 16;
+    const rowH = 26;
 
     allTeamMembers.forEach((m, idx) => {
-      if (y + rowH > pageHeight - margin - 35) {
+      if (y + rowH > pageHeight - margin - 45) {
         doc.addPage();
         y = margin;
         y = renderTMHeader(y);
@@ -1634,58 +1541,34 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       doc.moveTo(margin, y + rowH).lineTo(margin + contentWidth, y + rowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
       let colX = margin;
-      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateDark);
 
       // 1. #
-      doc.text(String(idx + 1), colX + 2, y + 5, { width: tmCols[0].w - 4, align: 'center' });
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark);
+      doc.text(String(idx + 1), colX + 2, y + 8, { width: tmCols[0].w - 4, align: 'center' });
       colX += tmCols[0].w;
 
-      // 2. Team Name
-      doc.font('Helvetica-Bold').text(m.teamName || 'Team', colX + 3, y + 5, { width: tmCols[1].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 2. Team Name & Role
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary).text(m.teamName || 'Team', colX + 4, y + 4, { width: tmCols[1].w - 8, ellipsis: true });
+      doc.font('Helvetica-Bold').fontSize(6.5).fillColor(isLeader ? PDF_COLORS.leaderText : PDF_COLORS.memberText)
+        .text(isLeader ? 'LEADER' : 'MEMBER', colX + 4, y + 14, { width: tmCols[1].w - 8, ellipsis: true });
       colX += tmCols[1].w;
 
-      // 3. Role
-      if (isLeader) {
-        doc.font('Helvetica-Bold').fillColor(PDF_COLORS.leaderText).text('LEADER', colX + 2, y + 5, { width: tmCols[2].w - 4, align: 'center' });
-      } else {
-        doc.font('Helvetica').fillColor(PDF_COLORS.memberText).text('MEMBER', colX + 2, y + 5, { width: tmCols[2].w - 4, align: 'center' });
-      }
-      doc.font('Helvetica').fillColor(PDF_COLORS.slateDark);
+      // 3. Member Name & ID
+      const idReg = [m.studentId ? `ID: ${m.studentId}` : null, m.eventRegNumber ? `Reg: ${m.eventRegNumber}` : null].filter(Boolean).join(' | ') || '—';
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(m.name, colX + 4, y + 4, { width: tmCols[2].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(idReg, colX + 4, y + 14, { width: tmCols[2].w - 8, ellipsis: true });
       colX += tmCols[2].w;
 
-      // 4. Member Name
-      doc.font('Helvetica-Bold').text(m.name, colX + 3, y + 5, { width: tmCols[3].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 4. Branch & Contact
+      const branchSemStr = `${m.branch || '—'}${m.semester ? ` (${m.semester.replace(/Semester/i, 'Sem').trim()})` : ''}`;
+      doc.font('Helvetica').fontSize(7.2).fillColor(PDF_COLORS.slateDark).text(branchSemStr, colX + 4, y + 4, { width: tmCols[3].w - 8, ellipsis: true });
+      const contactStr = [m.mobile, m.email].filter(Boolean).join('  •  ') || '—';
+      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(contactStr, colX + 4, y + 14, { width: tmCols[3].w - 8, ellipsis: true, lineBreak: false });
       colX += tmCols[3].w;
 
-      // 5. Event Reg No.
-      doc.text(m.eventRegNumber, colX + 3, y + 5, { width: tmCols[4].w - 6, ellipsis: true });
-      colX += tmCols[4].w;
-
-      // 6. Student ID
-      doc.text(m.studentId, colX + 3, y + 5, { width: tmCols[5].w - 6, ellipsis: true });
-      colX += tmCols[5].w;
-
-      // 7. Email
-      doc.text(m.email, colX + 3, y + 5, { width: tmCols[6].w - 6, ellipsis: true });
-      colX += tmCols[6].w;
-
-      // 8. Mobile
-      doc.text(m.mobile, colX + 3, y + 5, { width: tmCols[7].w - 6, ellipsis: true });
-      colX += tmCols[7].w;
-
-      // 9. Branch
-      doc.text(m.branch, colX + 3, y + 5, { width: tmCols[8].w - 6, ellipsis: true });
-      colX += tmCols[8].w;
-
-      // 10. Semester
-      doc.text(m.semester, colX + 2, y + 5, { width: tmCols[9].w - 4, align: 'center' });
-      colX += tmCols[9].w;
-
-      // 11. Status
+      // 5. Status
       const statusColor = m.registrationStatus === 'CONFIRMED' || m.registrationStatus === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(statusColor).text(m.registrationStatus, colX + 2, y + 5, { width: tmCols[10].w - 4, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(statusColor).text(m.registrationStatus, colX + 2, y + 8, { width: tmCols[4].w - 4, align: 'center' });
 
       y += rowH;
     });
@@ -1704,20 +1587,14 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       .text('No individual participants registered for this program.', margin, y + 8, { width: contentWidth, align: 'center' });
     y += 30;
   } else {
+    // Individual Table (A4 Portrait - 523 pt total)
     const iCols = [
       { label: '#', w: 22, align: 'center' as const },
-      { label: 'Event Reg No.', w: 80, align: 'left' as const },
-      { label: 'Prog Reg No.', w: 85, align: 'left' as const },
-      { label: 'Name', w: 110, align: 'left' as const },
-      { label: 'Student ID', w: 65, align: 'left' as const },
-      { label: 'Email', w: 125, align: 'left' as const },
-      { label: 'Mobile', w: 65, align: 'left' as const },
-      { label: 'Branch', w: 55, align: 'left' as const },
-      { label: 'Semester', w: 45, align: 'center' as const },
-      { label: 'Status', w: 50, align: 'center' as const },
+      { label: 'Reg Numbers', w: 105, align: 'left' as const },
+      { label: 'Participant & ID', w: 135, align: 'left' as const },
+      { label: 'Branch & Contact', w: 181, align: 'left' as const },
+      { label: 'Status', w: 80, align: 'center' as const },
     ];
-    const iScale = contentWidth / iCols.reduce((s, c) => s + c.w, 0);
-    iCols.forEach(c => { c.w = Math.floor(c.w * iScale); });
 
     const renderIHeader = (curY: number) => {
       doc.rect(margin, curY, contentWidth, 16).fill(PDF_COLORS.primary);
@@ -1731,10 +1608,10 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
     };
 
     y = renderIHeader(y);
-    const rowH = 16;
+    const rowH = 26;
 
     individuals.forEach((ind, idx) => {
-      if (y + rowH > pageHeight - margin - 35) {
+      if (y + rowH > pageHeight - margin - 45) {
         doc.addPage();
         y = margin;
         y = renderIHeader(y);
@@ -1744,39 +1621,32 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
       doc.moveTo(margin, y + rowH).lineTo(margin + contentWidth, y + rowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
       let colX = margin;
-      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateDark);
 
-      doc.text(String(idx + 1), colX + 2, y + 5, { width: iCols[0].w - 4, align: 'center' });
+      // 1. #
+      doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark);
+      doc.text(String(idx + 1), colX + 2, y + 8, { width: iCols[0].w - 4, align: 'center' });
       colX += iCols[0].w;
 
-      doc.font('Helvetica-Bold').text(ind.eventRegNumber, colX + 3, y + 5, { width: iCols[1].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 2. Reg Numbers
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary).text(ind.eventRegNumber || '—', colX + 4, y + 4, { width: iCols[1].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(ind.programRegNumber || '—', colX + 4, y + 14, { width: iCols[1].w - 8, ellipsis: true });
       colX += iCols[1].w;
 
-      doc.text(ind.programRegNumber, colX + 3, y + 5, { width: iCols[2].w - 6, ellipsis: true });
+      // 3. Participant & ID
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark).text(ind.name, colX + 4, y + 4, { width: iCols[2].w - 8, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted).text(ind.studentId ? `ID: ${ind.studentId}` : '—', colX + 4, y + 14, { width: iCols[2].w - 8, ellipsis: true });
       colX += iCols[2].w;
 
-      doc.font('Helvetica-Bold').text(ind.name, colX + 3, y + 5, { width: iCols[3].w - 6, ellipsis: true });
-      doc.font('Helvetica');
+      // 4. Branch & Contact
+      const bSemStr = `${ind.branch || '—'}${ind.semester ? ` (${ind.semester.replace(/Semester/i, 'Sem').trim()})` : ''}`;
+      doc.font('Helvetica').fontSize(7.2).fillColor(PDF_COLORS.slateDark).text(bSemStr, colX + 4, y + 4, { width: iCols[3].w - 8, ellipsis: true });
+      const contactStr = [ind.mobile, ind.email].filter(Boolean).join('  •  ') || '—';
+      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(contactStr, colX + 4, y + 14, { width: iCols[3].w - 8, ellipsis: true, lineBreak: false });
       colX += iCols[3].w;
 
-      doc.text(ind.studentId, colX + 3, y + 5, { width: iCols[4].w - 6, ellipsis: true });
-      colX += iCols[4].w;
-
-      doc.text(ind.email, colX + 3, y + 5, { width: iCols[5].w - 6, ellipsis: true });
-      colX += iCols[5].w;
-
-      doc.text(ind.mobile, colX + 3, y + 5, { width: iCols[6].w - 6, ellipsis: true });
-      colX += iCols[6].w;
-
-      doc.text(ind.branch, colX + 3, y + 5, { width: iCols[7].w - 6, ellipsis: true });
-      colX += iCols[7].w;
-
-      doc.text(ind.semester, colX + 2, y + 5, { width: iCols[8].w - 4, align: 'center' });
-      colX += iCols[8].w;
-
+      // 5. Status
       const statusColor = ind.registrationStatus === 'CONFIRMED' || ind.registrationStatus === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-      doc.font('Helvetica-Bold').fillColor(statusColor).text(ind.registrationStatus, colX + 2, y + 5, { width: iCols[9].w - 4, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(statusColor).text(ind.registrationStatus, colX + 2, y + 8, { width: iCols[4].w - 4, align: 'center' });
 
       y += rowH;
     });
@@ -1794,8 +1664,8 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
 
   doc.rect(margin, y, contentWidth, 26).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
   const finalSummaryText = `Total Teams: ${stats.totalTeams}   |   Team Members: ${stats.totalTeamParticipants}   |   Individual Participants: ${stats.totalIndividualParticipants}   |   TOTAL PARTICIPANTS: ${stats.totalParticipants}`;
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.primary)
-    .text(finalSummaryText, margin + 12, y + 8, { width: contentWidth - 24, align: 'center' });
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.primary)
+    .text(finalSummaryText, margin + 8, y + 8, { width: contentWidth - 16, align: 'center' });
 
   y = renderOfficialSignatureBlock(doc, y + 26);
   renderOfficialFooter(doc, college.name);
@@ -1813,7 +1683,7 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
 
   const doc = new PDFDocument({
     size: 'A4',
-    layout: 'landscape',
+    layout: 'portrait',
     margin: 36,
     info: {
       Title: `${event.title} - Complete Event Programs Report`,
@@ -1824,9 +1694,9 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
 
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const contentWidth = pageWidth - margin * 2;
+  const pageWidth = doc.page.width; // 595.28 pt
+  const pageHeight = doc.page.height; // 841.89 pt
+  const contentWidth = pageWidth - margin * 2; // 523.28 pt
 
   let y = renderOfficialHeader(doc, {
     college,
@@ -1836,8 +1706,7 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
     logoBuffer,
   });
 
-  // Overall Event Summary
-  const sBoxH = 34;
+  // Overall Event Summary in 2 Clean Rows (Tailored for Portrait A4)
   const sumItems = [
     { l: 'CATEGORIES', v: String(stats.totalCategories) },
     { l: 'PROGRAMS', v: String(stats.totalPrograms) },
@@ -1848,15 +1717,30 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
     { l: 'TOTAL REVENUE', v: `INR ${stats.totalRevenue.toLocaleString('en-IN')}` },
   ];
 
-  const boxW = Math.floor(contentWidth / sumItems.length);
-  sumItems.forEach((item, idx) => {
-    const bX = margin + idx * boxW;
-    doc.rect(bX, y, boxW - 4, sBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
-    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.l, bX + 6, y + 5);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.v, bX + 6, y + 16);
+  const sBoxH = 30;
+  // Row 1: 4 cards
+  const row1Items = sumItems.slice(0, 4);
+  const b1W = Math.floor(contentWidth / 4);
+  row1Items.forEach((item, idx) => {
+    const bX = margin + idx * b1W;
+    doc.rect(bX, y, b1W - 4, sBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.l, bX + 6, y + 4, { width: b1W - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.v, bX + 6, y + 14, { width: b1W - 12, ellipsis: true });
   });
 
-  y += sBoxH + 16;
+  y += sBoxH + 4;
+
+  // Row 2: 3 cards
+  const row2Items = sumItems.slice(4);
+  const b2W = Math.floor(contentWidth / 3);
+  row2Items.forEach((item, idx) => {
+    const bX = margin + idx * b2W;
+    doc.rect(bX, y, b2W - 4, sBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.l, bX + 6, y + 4, { width: b2W - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.v, bX + 6, y + 14, { width: b2W - 12, ellipsis: true });
+  });
+
+  y += sBoxH + 14;
 
   // Process Category by Category
   for (const cat of categories) {
@@ -1871,10 +1755,10 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
 
     // Clean text category banner (NO broken emoji characters!)
     doc.rect(margin, y, contentWidth, 20).fill('#E0F2FE').stroke(PDF_COLORS.border);
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(PDF_COLORS.secondary)
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(PDF_COLORS.secondary)
       .text(`CATEGORY: ${cat.name.toUpperCase()}`, margin + 10, y + 5);
 
-    y += 26;
+    y += 24;
 
     for (const prog of catPrograms) {
       if (y > pageHeight - margin - 80) {
@@ -1889,9 +1773,9 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
       // Program Header Bar
       doc.rect(margin, y, contentWidth, 16).fill(PDF_COLORS.secondary);
       doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.white)
-        .text(prog.name.toUpperCase(), margin + 8, y + 4, { width: contentWidth * 0.45, ellipsis: true });
-      doc.font('Helvetica').fontSize(7).fillColor('#CBD5E1')
-        .text(metaText, margin + contentWidth * 0.45, y + 4, { width: contentWidth * 0.55 - 8, align: 'right' });
+        .text(prog.name.toUpperCase(), margin + 8, y + 4, { width: contentWidth * 0.42, ellipsis: true });
+      doc.font('Helvetica').fontSize(6.8).fillColor('#CBD5E1')
+        .text(metaText, margin + contentWidth * 0.42, y + 4, { width: contentWidth * 0.58 - 8, align: 'right', ellipsis: true });
 
       y += 18;
 
@@ -1899,42 +1783,36 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
 
       if (pParticipants.length === 0) {
         doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateMuted)
-          .text('No participants registered for this program.', margin + 8, y + 2);
-        y += 16;
+          .text('No participants registered for this program.', margin + 8, y + 4);
+        y += 18;
         continue;
       }
 
-      // Compact table for participants
+      // Compact table for participants (A4 Portrait - 523 pt total)
       const miniCols = [
         { l: '#', w: 22, a: 'center' as const },
-        { l: 'Event Reg No.', w: 75, a: 'left' as const },
-        { l: 'Prog Reg No.', w: 75, a: 'left' as const },
-        { l: 'Type / Team', w: 90, a: 'left' as const },
-        { l: 'Role', w: 60, a: 'center' as const },
-        { l: 'Name', w: 105, a: 'left' as const },
-        { l: 'Student ID', w: 60, a: 'left' as const },
-        { l: 'Email', w: 125, a: 'left' as const },
-        { l: 'Status', w: 45, a: 'center' as const },
+        { l: 'Reg No. & Type', w: 110, a: 'left' as const },
+        { l: 'Participant & Role', w: 135, a: 'left' as const },
+        { l: 'Email & Contact', w: 176, a: 'left' as const },
+        { l: 'Status', w: 80, a: 'center' as const },
       ];
-      const miniScale = contentWidth / miniCols.reduce((s, c) => s + c.w, 0);
-      miniCols.forEach(c => { c.w = Math.floor(c.w * miniScale); });
 
       const renderMiniHeader = (curY: number) => {
-        doc.rect(margin, curY, contentWidth, 13).fill('#E2E8F0');
+        doc.rect(margin, curY, contentWidth, 14).fill('#E2E8F0');
         let colX = margin;
-        doc.font('Helvetica-Bold').fontSize(6).fillColor(PDF_COLORS.slateDark);
+        doc.font('Helvetica-Bold').fontSize(6.5).fillColor(PDF_COLORS.slateDark);
         for (const c of miniCols) {
-          doc.text(c.l, colX + 2, curY + 3, { width: c.w - 4, align: c.a });
+          doc.text(c.l, colX + 3, curY + 3.5, { width: c.w - 6, align: c.a });
           colX += c.w;
         }
-        return curY + 13;
+        return curY + 14;
       };
 
       y = renderMiniHeader(y);
-      const miniRowH = 13;
+      const miniRowH = 24;
 
       pParticipants.forEach((part, pIdx) => {
-        if (y + miniRowH > pageHeight - margin - 35) {
+        if (y + miniRowH > pageHeight - margin - 45) {
           doc.addPage();
           y = margin;
           y = renderMiniHeader(y);
@@ -1942,54 +1820,36 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
 
         const isEven = pIdx % 2 === 0;
         doc.rect(margin, y, contentWidth, miniRowH).fill(isEven ? PDF_COLORS.white : PDF_COLORS.bgLight);
+        doc.moveTo(margin, y + miniRowH).lineTo(margin + contentWidth, y + miniRowH).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
         let colX = margin;
-        doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateDark);
 
-        // #
-        doc.text(String(pIdx + 1), colX + 2, y + 3, { width: miniCols[0].w - 4, align: 'center' });
+        // 1. #
+        doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateDark);
+        doc.text(String(pIdx + 1), colX + 2, y + 7, { width: miniCols[0].w - 4, align: 'center' });
         colX += miniCols[0].w;
 
-        // Event Reg No
-        doc.font('Helvetica-Bold').text(part.eventRegNumber, colX + 2, y + 3, { width: miniCols[1].w - 4, ellipsis: true });
-        doc.font('Helvetica');
+        // 2. Reg No. & Type
+        const regNo = part.eventRegNumber || part.programRegNumber || '—';
+        const typeTeamStr = part.teamName ? `TEAM: ${part.teamName}` : (part.role === 'INDIVIDUAL' ? 'INDIVIDUAL' : (part.role || 'INDIVIDUAL'));
+        doc.font('Helvetica-Bold').fontSize(7.2).fillColor(PDF_COLORS.primary).text(regNo, colX + 3, y + 3.5, { width: miniCols[1].w - 6, ellipsis: true });
+        doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(typeTeamStr, colX + 3, y + 13, { width: miniCols[1].w - 6, ellipsis: true });
         colX += miniCols[1].w;
 
-        // Prog Reg No
-        doc.text(part.programRegNumber, colX + 2, y + 3, { width: miniCols[2].w - 4, ellipsis: true });
+        // 3. Participant & Role
+        doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateDark).text(part.name, colX + 3, y + 3.5, { width: miniCols[2].w - 6, ellipsis: true });
+        const roleOrId = [part.role, part.studentId ? `ID: ${part.studentId}` : null].filter(Boolean).join(' | ') || '—';
+        doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(roleOrId, colX + 3, y + 13, { width: miniCols[2].w - 6, ellipsis: true });
         colX += miniCols[2].w;
 
-        // Type / Team
-        const typeTeamStr = part.teamName ? `TEAM: ${part.teamName}` : 'INDIVIDUAL';
-        doc.text(typeTeamStr, colX + 2, y + 3, { width: miniCols[3].w - 4, ellipsis: true });
+        // 4. Email & Contact
+        doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateDark).text(part.email || '—', colX + 3, y + 3.5, { width: miniCols[3].w - 6, ellipsis: true, lineBreak: false });
+        doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(part.mobile || '—', colX + 3, y + 13, { width: miniCols[3].w - 6, ellipsis: true });
         colX += miniCols[3].w;
 
-        // Role
-        const isLeader = part.role === 'TEAM LEADER';
-        if (isLeader) {
-          doc.font('Helvetica-Bold').fillColor(PDF_COLORS.leaderText).text('LEADER', colX + 2, y + 3, { width: miniCols[4].w - 4, align: 'center' });
-        } else {
-          doc.text(part.role === 'TEAM MEMBER' ? 'MEMBER' : 'INDIVIDUAL', colX + 2, y + 3, { width: miniCols[4].w - 4, align: 'center' });
-        }
-        doc.font('Helvetica').fillColor(PDF_COLORS.slateDark);
-        colX += miniCols[4].w;
-
-        // Name
-        doc.font('Helvetica-Bold').text(part.name, colX + 2, y + 3, { width: miniCols[5].w - 4, ellipsis: true });
-        doc.font('Helvetica');
-        colX += miniCols[5].w;
-
-        // Student ID
-        doc.text(part.studentId, colX + 2, y + 3, { width: miniCols[6].w - 4, ellipsis: true });
-        colX += miniCols[6].w;
-
-        // Email
-        doc.text(part.email, colX + 2, y + 3, { width: miniCols[7].w - 4, ellipsis: true });
-        colX += miniCols[7].w;
-
-        // Status
+        // 5. Status
         const sColor = part.registrationStatus === 'CONFIRMED' || part.registrationStatus === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.warning;
-        doc.font('Helvetica-Bold').fillColor(sColor).text(part.registrationStatus, colX + 2, y + 3, { width: miniCols[8].w - 4, align: 'center' });
+        doc.font('Helvetica-Bold').fontSize(7.2).fillColor(sColor).text(part.registrationStatus || 'CONFIRMED', colX + 2, y + 7, { width: miniCols[4].w - 4, align: 'center' });
 
         y += miniRowH;
       });
@@ -2022,7 +1882,7 @@ export async function generateEventEnrollmentPDF(params: {
 
   const doc = new PDFDocument({
     size: 'A4',
-    layout: 'landscape',
+    layout: 'portrait',
     margin: 36,
     info: {
       Title: `${event.title} - Official Enrollment Roster`,
@@ -2033,9 +1893,9 @@ export async function generateEventEnrollmentPDF(params: {
 
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const contentWidth = pageWidth - margin * 2;
+  const pageWidth = doc.page.width; // 595.28 pt
+  const pageHeight = doc.page.height; // 841.89 pt
+  const contentWidth = pageWidth - margin * 2; // 523.28 pt
 
   const collegeMeta: CollegeMetadata = collegeDetails || {
     id: event.college_id,
@@ -2057,7 +1917,7 @@ export async function generateEventEnrollmentPDF(params: {
   });
 
   // Summary Metrics Bar
-  const summaryBoxH = 34;
+  const summaryBoxH = 32;
   const summaryItems = [
     { label: 'TOTAL ENROLLED', val: String(stats.totalEnrolled) },
     { label: 'CONFIRMED REGISTRATIONS', val: String(stats.paymentVerified || stats.totalEnrolled) },
@@ -2071,30 +1931,21 @@ export async function generateEventEnrollmentPDF(params: {
   summaryItems.forEach((item, idx) => {
     const boxX = margin + idx * sBoxW;
     doc.rect(boxX, y, sBoxW - 4, summaryBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
-    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 8, y + 5);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_COLORS.primary).text(item.val, boxX + 8, y + 16);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 6, y + 4, { width: sBoxW - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.val, boxX + 6, y + 14, { width: sBoxW - 12, ellipsis: true });
   });
 
-  y += summaryBoxH + 12;
+  y += summaryBoxH + 10;
 
-  // Table Columns
+  // Table Columns (Tailored for A4 Portrait with zero overlapping)
   const columns = [
-    { header: 'S.No', width: 34, align: 'center' as const },
-    { header: 'Reg. Number', width: 95, align: 'left' as const },
-    { header: 'Student Name', width: 130, align: 'left' as const },
-    { header: 'Email', width: 140, align: 'left' as const },
-    { header: 'Mobile', width: 85, align: 'center' as const },
-    { header: 'Branch', width: 85, align: 'left' as const },
-    { header: 'Sem', width: 40, align: 'center' as const },
+    { header: '#', width: 25, align: 'center' as const },
+    { header: 'Reg Number', width: 85, align: 'left' as const },
+    { header: 'Student Name & Roll', width: 125, align: 'left' as const },
+    { header: 'Branch & Sem', width: 105, align: 'left' as const },
+    { header: 'Contact & Email', width: 100, align: 'left' as const },
+    { header: 'Status', width: 83, align: 'center' as const },
   ];
-
-  if (isPaid) {
-    columns.push({ header: 'Payment Status', width: 80, align: 'center' as const });
-  }
-  columns.push({ header: 'Registration Status', width: 80, align: 'center' as const });
-
-  const scale = contentWidth / columns.reduce((s, c) => s + c.width, 0);
-  columns.forEach(c => { c.width = Math.floor(c.width * scale); });
 
   const renderTableHeader = (currentY: number) => {
     doc.rect(margin, currentY, contentWidth, 20).fill(PDF_COLORS.primary);
@@ -2111,12 +1962,12 @@ export async function generateEventEnrollmentPDF(params: {
   };
 
   y = renderTableHeader(y);
-  const rowHeight = 18;
+  const rowHeight = 28;
   let rowIdx = 0;
 
   for (const reg of registrations) {
     rowIdx++;
-    if (y + rowHeight > pageHeight - margin - 35) {
+    if (y + rowHeight > pageHeight - margin - 45) {
       doc.addPage();
       y = margin;
       y = renderTableHeader(y);
@@ -2127,60 +1978,61 @@ export async function generateEventEnrollmentPDF(params: {
     doc.moveTo(margin, y + rowHeight).lineTo(margin + contentWidth, y + rowHeight).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
     let colX = margin;
-    doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateDark);
 
     // 1. S.No
-    doc.text(String(rowIdx), colX + 2, y + 5, { width: columns[0].width - 4, align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateMuted)
+      .text(String(rowIdx), colX, y + 9, { width: columns[0].width, align: 'center' });
     colX += columns[0].width;
 
     // 2. Reg. Number
-    doc.font('Helvetica-Bold').text(reg.registration_number, colX + 4, y + 5, { width: columns[1].width - 8, align: 'left', ellipsis: true });
-    doc.font('Helvetica');
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(PDF_COLORS.primary)
+      .text(reg.registration_number || '-', colX + 4, y + 9, { width: columns[1].width - 8, ellipsis: true });
     colX += columns[1].width;
 
-    // 3. Student Name
-    doc.font('Helvetica-Bold').text(reg.student_name, colX + 4, y + 5, { width: columns[2].width - 8, align: 'left', ellipsis: true });
-    doc.font('Helvetica');
+    // 3. Student Name & Roll
+    const rollDisplay = (reg as any).roll_number || (reg as any).student_id || reg.registration_number || '-';
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark)
+      .text(reg.student_name || '-', colX + 4, y + 4, { width: columns[2].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
+      .text(`Roll: ${rollDisplay}`, colX + 4, y + 15, { width: columns[2].width - 8, ellipsis: true });
     colX += columns[2].width;
 
-    // 4. Email
-    doc.text(reg.email, colX + 4, y + 5, { width: columns[3].width - 8, align: 'left', ellipsis: true });
+    // 4. Branch & Sem
+    const branchName = reg.branch?.code || reg.branch?.name || '-';
+    const semName = reg.semester?.semester_number ? `Sem ${reg.semester.semester_number}` : '-';
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
+      .text(branchName, colX + 4, y + 4, { width: columns[3].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
+      .text(semName, colX + 4, y + 15, { width: columns[3].width - 8, ellipsis: true });
     colX += columns[3].width;
 
-    // 5. Mobile
-    doc.text(reg.mobile, colX + 4, y + 5, { width: columns[4].width - 8, align: 'center' });
+    // 5. Contact & Email
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
+      .text(reg.mobile || '-', colX + 4, y + 4, { width: columns[4].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
+      .text(reg.email || '-', colX + 4, y + 15, { width: columns[4].width - 8, ellipsis: true });
     colX += columns[4].width;
 
-    // 6. Branch
-    const branchName = reg.branch?.code || reg.branch?.name || '-';
-    doc.text(branchName, colX + 4, y + 5, { width: columns[5].width - 8, align: 'left', ellipsis: true });
-    colX += columns[5].width;
-
-    // 7. Sem
-    const semName = reg.semester?.semester_number ? `Sem ${reg.semester.semester_number}` : '-';
-    doc.text(semName, colX + 2, y + 5, { width: columns[6].width - 4, align: 'center' });
-    colX += columns[6].width;
-
-    // 8. Payment Status (if paid event)
-    if (isPaid) {
-      const pColor =
-        reg.payment_status === 'VERIFIED'
-          ? PDF_COLORS.success
-          : reg.payment_status === 'REJECTED'
-          ? PDF_COLORS.danger
-          : PDF_COLORS.warning;
-      doc.fillColor(pColor).font('Helvetica-Bold').text(reg.payment_status, colX + 4, y + 5, { width: columns[7].width - 8, align: 'center' });
-      doc.fillColor(PDF_COLORS.slateDark).font('Helvetica');
-      colX += columns[7].width;
+    // 6. Status & Payment
+    const rColor = reg.registration_status === 'REGISTERED' ? PDF_COLORS.success : PDF_COLORS.danger;
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(rColor)
+      .text(reg.registration_status, colX + 2, y + 4, { width: columns[5].width - 4, align: 'center', ellipsis: true });
+    if (isPaid && reg.payment_status) {
+      const pColor = reg.payment_status === 'VERIFIED' ? PDF_COLORS.success : reg.payment_status === 'REJECTED' ? PDF_COLORS.danger : PDF_COLORS.warning;
+      doc.font('Helvetica').fontSize(6.5).fillColor(pColor)
+        .text(`Pay: ${reg.payment_status}`, colX + 2, y + 15, { width: columns[5].width - 4, align: 'center', ellipsis: true });
+    } else {
+      doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
+        .text('Free Entry', colX + 2, y + 15, { width: columns[5].width - 4, align: 'center' });
     }
-
-    // 9. Registration Status
-    const rColor = reg.registration_status === 'REGISTERED' ? PDF_COLORS.primary : PDF_COLORS.danger;
-    doc.fillColor(rColor).font('Helvetica-Bold').text(reg.registration_status, colX + 4, y + 5, { width: columns[columns.length - 1].width - 8, align: 'center' });
 
     y += rowHeight;
   }
 
+  if (y + 60 > pageHeight - margin - 35) {
+    doc.addPage();
+    y = margin;
+  }
   y = renderOfficialSignatureBlock(doc, y);
   renderOfficialFooter(doc, collegeName);
   doc.end();
@@ -2205,7 +2057,7 @@ export async function generateGoogleEventEnrollmentPDF(params: {
 
   const doc = new PDFDocument({
     size: 'A4',
-    layout: 'landscape',
+    layout: 'portrait',
     margin: 36,
     info: {
       Title: `${event.title} - Participant Roster`,
@@ -2216,9 +2068,9 @@ export async function generateGoogleEventEnrollmentPDF(params: {
 
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
-  const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
-  const contentWidth = pageWidth - margin * 2;
+  const pageWidth = doc.page.width; // 595.28 pt
+  const pageHeight = doc.page.height; // 841.89 pt
+  const contentWidth = pageWidth - margin * 2; // 523.28 pt
 
   const collegeMeta: CollegeMetadata = collegeDetails || {
     id: event.college_id,
@@ -2240,7 +2092,7 @@ export async function generateGoogleEventEnrollmentPDF(params: {
   });
 
   // Summary Metrics Bar
-  const summaryBoxH = 34;
+  const summaryBoxH = 32;
   const uniqueCategories = Array.from(new Set(responses.map(r => r.performanceType).filter(Boolean)));
   const summaryItems = [
     { label: 'TOTAL PARTICIPANTS', val: String(responses.length) },
@@ -2253,27 +2105,21 @@ export async function generateGoogleEventEnrollmentPDF(params: {
   summaryItems.forEach((item, idx) => {
     const boxX = margin + idx * sBoxW;
     doc.rect(boxX, y, sBoxW - 4, summaryBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
-    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 8, y + 5);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_COLORS.primary).text(item.val, boxX + 8, y + 16);
+    doc.font('Helvetica').fontSize(6).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 6, y + 4, { width: sBoxW - 12, ellipsis: true });
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.primary).text(item.val, boxX + 6, y + 14, { width: sBoxW - 12, ellipsis: true });
   });
 
-  y += summaryBoxH + 12;
+  y += summaryBoxH + 10;
 
-  // Table Columns
+  // Table Columns (Tailored for A4 Portrait with zero overlapping)
   const columns = [
-    { header: 'S.No', width: 34, align: 'center' as const },
-    { header: 'Pass / Reg No', width: 95, align: 'left' as const },
-    { header: 'Participant Name', width: 140, align: 'left' as const },
-    { header: 'Roll / Reg No', width: 85, align: 'left' as const },
-    { header: 'Year & Branch', width: 105, align: 'left' as const },
-    { header: 'Contact', width: 80, align: 'center' as const },
-    { header: 'Category / Performance', width: 110, align: 'left' as const },
-    { header: 'Mode', width: 55, align: 'center' as const },
-    { header: 'Submitted At', width: 65, align: 'center' as const },
+    { header: '#', width: 25, align: 'center' as const },
+    { header: 'Pass Number', width: 85, align: 'left' as const },
+    { header: 'Participant & Roll No', width: 125, align: 'left' as const },
+    { header: 'Department & Year', width: 110, align: 'left' as const },
+    { header: 'Category & Mode', width: 95, align: 'left' as const },
+    { header: 'Contact & Email', width: 83, align: 'left' as const },
   ];
-
-  const scale = contentWidth / columns.reduce((s, c) => s + c.width, 0);
-  columns.forEach(c => { c.width = Math.floor(c.width * scale); });
 
   const renderTableHeader = (currentY: number) => {
     doc.rect(margin, currentY, contentWidth, 20).fill(PDF_COLORS.primary);
@@ -2290,12 +2136,12 @@ export async function generateGoogleEventEnrollmentPDF(params: {
   };
 
   y = renderTableHeader(y);
-  const rowHeight = 18;
+  const rowHeight = 28;
   let rowIdx = 0;
 
   for (const resp of responses) {
     rowIdx++;
-    if (y + rowHeight > pageHeight - margin - 35) {
+    if (y + rowHeight > pageHeight - margin - 45) {
       doc.addPage();
       y = margin;
       y = renderTableHeader(y);
@@ -2306,53 +2152,52 @@ export async function generateGoogleEventEnrollmentPDF(params: {
     doc.moveTo(margin, y + rowHeight).lineTo(margin + contentWidth, y + rowHeight).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
 
     let colX = margin;
-    doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateDark);
 
     // 1. S.No
-    doc.text(String(rowIdx), colX + 2, y + 5, { width: columns[0].width - 4, align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateMuted)
+      .text(String(rowIdx), colX, y + 9, { width: columns[0].width, align: 'center' });
     colX += columns[0].width;
 
     // 2. Pass / Reg No
-    doc.font('Helvetica-Bold').text(resp.registrationNumber || '-', colX + 4, y + 5, { width: columns[1].width - 8, align: 'left', ellipsis: true });
-    doc.font('Helvetica');
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(PDF_COLORS.primary)
+      .text(resp.registrationNumber || '-', colX + 4, y + 9, { width: columns[1].width - 8, ellipsis: true });
     colX += columns[1].width;
 
-    // 3. Participant Name
-    doc.font('Helvetica-Bold').text(resp.participantName || '-', colX + 4, y + 5, { width: columns[2].width - 8, align: 'left', ellipsis: true });
-    doc.font('Helvetica');
+    // 3. Participant Name & Roll No
+    const rollDisplay = resp.rollNumber || resp.collegeRegistrationNumber || '-';
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark)
+      .text(resp.participantName || '-', colX + 4, y + 4, { width: columns[2].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
+      .text(`Roll: ${rollDisplay}`, colX + 4, y + 15, { width: columns[2].width - 8, ellipsis: true });
     colX += columns[2].width;
 
-    // 4. Roll / Reg No
-    const rollDisplay = resp.rollNumber || resp.collegeRegistrationNumber || '-';
-    doc.text(rollDisplay, colX + 4, y + 5, { width: columns[3].width - 8, align: 'left', ellipsis: true });
+    // 4. Branch & Year
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
+      .text(resp.branch || '-', colX + 4, y + 4, { width: columns[3].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
+      .text(resp.year || '-', colX + 4, y + 15, { width: columns[3].width - 8, ellipsis: true });
     colX += columns[3].width;
 
-    // 5. Year & Branch
-    const yb = [resp.year, resp.branch].filter(Boolean).join(' • ') || '-';
-    doc.text(yb, colX + 4, y + 5, { width: columns[4].width - 8, align: 'left', ellipsis: true });
+    // 5. Category & Mode
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.secondary)
+      .text(resp.performanceType || 'General Entry', colX + 4, y + 4, { width: columns[4].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateDark)
+      .text(`Mode: ${resp.participationType || 'Solo'}`, colX + 4, y + 15, { width: columns[4].width - 8, ellipsis: true });
     colX += columns[4].width;
 
-    // 6. Contact
-    doc.text(resp.contactNumber || '-', colX + 2, y + 5, { width: columns[5].width - 4, align: 'center' });
-    colX += columns[5].width;
-
-    // 7. Category / Performance
-    doc.font('Helvetica-Bold').fillColor(PDF_COLORS.secondary).text(resp.performanceType || 'General Entry', colX + 4, y + 5, { width: columns[6].width - 8, align: 'left', ellipsis: true });
-    doc.font('Helvetica').fillColor(PDF_COLORS.slateDark);
-    colX += columns[6].width;
-
-    // 8. Mode
-    const mode = resp.participationType || 'Solo';
-    doc.text(mode, colX + 2, y + 5, { width: columns[7].width - 4, align: 'center' });
-    colX += columns[7].width;
-
-    // 9. Submitted At
-    const dateStr = resp.submittedAt ? new Date(resp.submittedAt).toLocaleDateString('en-IN') : '-';
-    doc.text(dateStr, colX + 2, y + 5, { width: columns[8].width - 4, align: 'center' });
+    // 6. Contact & Email
+    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
+      .text(resp.contactNumber || '-', colX + 4, y + 4, { width: columns[5].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
+      .text(resp.email || '-', colX + 4, y + 15, { width: columns[5].width - 8, ellipsis: true });
 
     y += rowHeight;
   }
 
+  if (y + 60 > pageHeight - margin - 35) {
+    doc.addPage();
+    y = margin;
+  }
   y = renderOfficialSignatureBlock(doc, y);
   renderOfficialFooter(doc, collegeName);
   doc.end();
