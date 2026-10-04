@@ -11,7 +11,7 @@ import type {
   GoogleRegistrationResources,
 } from '@/types/events';
 import { normalizeEventSlug, isValidEventSlug } from '@/lib/events/slug';
-import { isCollegeGoogleConfigured } from '@/lib/google/auth';
+import { isCollegeGoogleConfigured, getCollegeGoogleServices } from '@/lib/google/auth';
 import {
   setupAutomatedEventRegistration,
   fetchGoogleFormEventResponses,
@@ -781,14 +781,14 @@ export async function deleteEventAction(
   eventId: string,
   targetCollegeId?: string,
   forceDelete?: boolean
-): Promise<{ success: boolean; error?: string; actionTaken?: 'DELETED' | 'CANCELLED' }> {
+): Promise<{ success: boolean; error?: string; actionTaken?: 'DELETED' | 'CANCELLED'; googleCleanup?: string }> {
   try {
     const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
     const db = await getAdminDb();
 
     const { data: existing, error: findError } = await db
       .from('events')
-      .select('id, title, status')
+      .select('id, title, status, google_form_id, google_spreadsheet_id, google_drive_folder_id')
       .eq('id', eventId)
       .eq('college_id', collegeId)
       .single();
@@ -833,7 +833,69 @@ export async function deleteEventAction(
       }
     }
 
-    // Permanently delete event:
+    // ── Clean up Google resources (Drive folder, Form, Spreadsheet) ──
+    const googleCleanupResults: string[] = [];
+    const hasGoogleResources =
+      existing.google_form_id || existing.google_spreadsheet_id || existing.google_drive_folder_id;
+
+    if (hasGoogleResources) {
+      try {
+        const services = await getCollegeGoogleServices(collegeId);
+        const drive = services.drive;
+
+        // Delete Google Drive folder (this also deletes all files inside: form, sheet, etc.)
+        if (existing.google_drive_folder_id) {
+          try {
+            await drive.files.delete({ fileId: existing.google_drive_folder_id });
+            googleCleanupResults.push(`Drive folder deleted (${existing.google_drive_folder_id})`);
+          } catch (driveErr: any) {
+            if (driveErr?.code === 404 || driveErr?.status === 404) {
+              googleCleanupResults.push('Drive folder already removed');
+            } else {
+              console.warn('[DELETE_EVENT_DRIVE_FOLDER_ERROR]', driveErr);
+              googleCleanupResults.push(`Drive folder cleanup failed: ${driveErr.message}`);
+            }
+          }
+        }
+
+        // Delete Google Form (may already be deleted with the folder, but try explicitly)
+        if (existing.google_form_id) {
+          try {
+            await drive.files.delete({ fileId: existing.google_form_id });
+            googleCleanupResults.push(`Google Form deleted (${existing.google_form_id})`);
+          } catch (formErr: any) {
+            if (formErr?.code === 404 || formErr?.status === 404) {
+              googleCleanupResults.push('Google Form already removed');
+            } else {
+              console.warn('[DELETE_EVENT_GOOGLE_FORM_ERROR]', formErr);
+              googleCleanupResults.push(`Google Form cleanup failed: ${formErr.message}`);
+            }
+          }
+        }
+
+        // Delete Google Spreadsheet (may already be deleted with the folder, but try explicitly)
+        if (existing.google_spreadsheet_id) {
+          try {
+            await drive.files.delete({ fileId: existing.google_spreadsheet_id });
+            googleCleanupResults.push(`Google Sheet deleted (${existing.google_spreadsheet_id})`);
+          } catch (sheetErr: any) {
+            if (sheetErr?.code === 404 || sheetErr?.status === 404) {
+              googleCleanupResults.push('Google Sheet already removed');
+            } else {
+              console.warn('[DELETE_EVENT_GOOGLE_SHEET_ERROR]', sheetErr);
+              googleCleanupResults.push(`Google Sheet cleanup failed: ${sheetErr.message}`);
+            }
+          }
+        }
+      } catch (googleAuthErr: any) {
+        console.warn('[DELETE_EVENT_GOOGLE_AUTH_ERROR]', googleAuthErr);
+        googleCleanupResults.push(
+          `Google cleanup skipped (auth error): ${googleAuthErr.message || 'Could not connect to Google'}`
+        );
+      }
+    }
+
+    // Permanently delete event from Supabase:
     // First safely clean up child rows if any to ensure no foreign key constraints block deletion
     try {
       await db.from('program_registrations').delete().eq('event_id', eventId).eq('college_id', collegeId);
@@ -854,6 +916,10 @@ export async function deleteEventAction(
       return { success: false, error: delError.message };
     }
 
+    const googleSummary = googleCleanupResults.length > 0
+      ? googleCleanupResults.join('; ')
+      : 'No Google resources to clean up';
+
     await logAudit(
       db,
       { userId: session.userId, email: session.email },
@@ -861,12 +927,12 @@ export async function deleteEventAction(
       'DELETE_EVENT',
       'events',
       eventId,
-      `Permanently deleted event "${existing.title}".`
+      `Permanently deleted event "${existing.title}" and all associated data. Google cleanup: ${googleSummary}`
     );
 
     revalidatePath('/admin/dashboard');
     revalidatePath('/admin/dashboard/events');
-    return { success: true, actionTaken: 'DELETED' };
+    return { success: true, actionTaken: 'DELETED', googleCleanup: googleSummary };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to delete event.' };
   }

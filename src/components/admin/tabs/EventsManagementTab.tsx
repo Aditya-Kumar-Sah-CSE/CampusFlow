@@ -13,11 +13,12 @@ import {
   ChevronDown,
   AlertCircle,
   AlertTriangle,
+  Trash2,
   X,
 } from 'lucide-react';
 import type { CollegeEvent, EventStatus } from '@/types/events';
 import type { CanonicalEventStats } from '@/lib/events/canonical-stats';
-import { updateEventStatusAction } from '@/app/admin/events/actions';
+import { updateEventStatusAction, deleteEventAction } from '@/app/admin/events/actions';
 
 interface Props {
   activeCollegeId?: string | null;
@@ -40,6 +41,14 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
     eventTitle: string;
     targetStatus: 'CLOSED' | 'CANCELLED';
   } | null>(null);
+
+  // Delete confirmation modal
+  const [deleteModal, setDeleteModal] = useState<{
+    eventId: string;
+    eventTitle: string;
+  } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -118,6 +127,33 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
     const { eventId, targetStatus } = confirmModal;
     setConfirmModal(null);
     await handleStatusChange(eventId, targetStatus);
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!deleteModal) return;
+    const { eventId, eventTitle } = deleteModal;
+    if (deleteConfirmText.trim().toLowerCase() !== eventTitle.trim().toLowerCase()) return;
+
+    try {
+      setDeleting(true);
+      setFeedbackMsg(null);
+      const res = await deleteEventAction(eventId, activeCollegeId || undefined, true);
+      if (res.success) {
+        setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        setFeedbackMsg({
+          type: 'success',
+          text: `"${eventTitle}" permanently deleted. ${res.googleCleanup ? `Google: ${res.googleCleanup}` : ''}`,
+        });
+      } else {
+        setFeedbackMsg({ type: 'error', text: res.error || 'Failed to delete event.' });
+      }
+    } catch (err: any) {
+      setFeedbackMsg({ type: 'error', text: err.message || 'Error deleting event.' });
+    } finally {
+      setDeleting(false);
+      setDeleteModal(null);
+      setDeleteConfirmText('');
+    }
   };
 
   const publishedCount = events.filter((e) => e.status === 'PUBLISHED').length;
@@ -377,6 +413,16 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                         )}
                       </div>
                     </div>
+
+                    {/* Delete Button */}
+                    <button
+                      type="button"
+                      onClick={() => setDeleteModal({ eventId: event.id, eventTitle: event.title })}
+                      title="Permanently delete this event and all associated data"
+                      className="inline-flex items-center justify-center p-1.5 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-all border border-transparent hover:border-red-500 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               );
@@ -456,6 +502,93 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                 {confirmModal.targetStatus === 'CANCELLED'
                   ? 'Confirm & Cancel Event'
                   : 'Confirm & Close Event'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    Permanently Delete Event?
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">
+                    {deleteModal.eventTitle}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-red-700 leading-relaxed bg-red-50 p-3.5 rounded-xl border border-red-200 space-y-2">
+              <p className="font-semibold">⚠️ This action is irreversible and will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-0.5 text-red-600">
+                <li>All event data and settings from the database</li>
+                <li>All student registrations and team records</li>
+                <li>All event programs and category records</li>
+                <li>Google Form (if created)</li>
+                <li>Google Sheet / Registration data (if created)</li>
+                <li>Google Drive folder and all its contents</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 block">
+                Type <span className="font-bold text-red-600">&quot;{deleteModal.eventTitle}&quot;</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder={deleteModal.eventTitle}
+                className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-red-500/20 focus:border-red-400"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => { setDeleteModal(null); setDeleteConfirmText(''); }}
+                className="px-3.5 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteEvent}
+                disabled={
+                  deleting ||
+                  deleteConfirmText.trim().toLowerCase() !== deleteModal.eventTitle.trim().toLowerCase()
+                }
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Delete Everything Permanently
+                  </>
+                )}
               </button>
             </div>
           </div>

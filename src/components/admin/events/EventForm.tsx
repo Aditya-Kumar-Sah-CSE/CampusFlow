@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -20,6 +20,7 @@ import {
   Sparkles,
   RefreshCw,
   CheckCircle2,
+  Check,
   X,
   Plus,
 } from 'lucide-react';
@@ -84,19 +85,59 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
     initialEvent?.performance_categories || []
   );
   const [newCategory, setNewCategory] = useState('');
+  const [editingCategoryIndex, setEditingCategoryIndex] = useState<number | null>(null);
+  const categoryInputRef = useRef<HTMLInputElement>(null);
 
-  const addCategory = () => {
+  const handleSaveCategory = () => {
     const val = newCategory.trim();
-    if (val && !performanceCategories.includes(val)) {
-      setPerformanceCategories([...performanceCategories, val]);
+    if (!val) return;
+
+    if (editingCategoryIndex !== null) {
+      const updated = [...performanceCategories];
+      updated[editingCategoryIndex] = val;
+      setPerformanceCategories(updated);
+      setEditingCategoryIndex(null);
+      setNewCategory('');
+    } else {
+      if (!performanceCategories.includes(val)) {
+        setPerformanceCategories([...performanceCategories, val]);
+      }
+      setNewCategory('');
     }
+  };
+
+  const handleTagClick = (cat: string, index: number) => {
+    if (editingCategoryIndex === index) {
+      setEditingCategoryIndex(null);
+      setNewCategory('');
+      return;
+    }
+    setNewCategory(cat);
+    setEditingCategoryIndex(index);
+    setTimeout(() => {
+      categoryInputRef.current?.focus();
+      categoryInputRef.current?.select();
+    }, 0);
+  };
+
+  const cancelEditingCategory = () => {
+    setEditingCategoryIndex(null);
     setNewCategory('');
   };
+
   const removeCategory = (idx: number) => {
     setPerformanceCategories(performanceCategories.filter((_, i) => i !== idx));
+    if (editingCategoryIndex === idx) {
+      setEditingCategoryIndex(null);
+      setNewCategory('');
+    } else if (editingCategoryIndex !== null && editingCategoryIndex > idx) {
+      setEditingCategoryIndex(editingCategoryIndex - 1);
+    }
   };
 
   const applyCategoryPreset = (preset: 'cultural' | 'tech' | 'sports' | 'academic' | 'clear') => {
+    setEditingCategoryIndex(null);
+    setNewCategory('');
     if (preset === 'clear') {
       setPerformanceCategories([]);
       return;
@@ -660,7 +701,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                         Event Categories / Tracks
                       </label>
                       <p className="text-[11px] text-slate-500">
-                        Add the competition categories, performance types, or tracks for this event.
+                        Add the competition categories, performance types, or tracks for this event. Click any tag to edit in textbox.
                       </p>
                     </div>
                     {performanceCategories.length > 0 && (
@@ -707,23 +748,45 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                     </button>
                   </div>
 
-                  {/* Category Chips */}
+                  {/* Category Chips (Clickable to edit in textbox) */}
                   <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-                    {performanceCategories.map((cat, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold border border-blue-200"
-                      >
-                        {cat}
-                        <button
-                          type="button"
-                          onClick={() => removeCategory(i)}
-                          className="hover:bg-blue-200 rounded-full p-0.5 transition-colors cursor-pointer"
+                    {performanceCategories.map((cat, i) => {
+                      const isEditing = editingCategoryIndex === i;
+                      return (
+                        <span
+                          key={i}
+                          className={`inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-full text-xs font-semibold border transition-all ${
+                            isEditing
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-sm ring-2 ring-blue-300'
+                              : 'bg-blue-100/90 hover:bg-blue-200 text-blue-800 border-blue-200 hover:border-blue-300'
+                          }`}
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
+                          <button
+                            type="button"
+                            onClick={() => handleTagClick(cat, i)}
+                            className="cursor-pointer hover:underline flex items-center text-left"
+                            title="Click to edit category in textbox"
+                          >
+                            {cat}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeCategory(i);
+                            }}
+                            title="Remove category"
+                            className={`rounded-full p-0.5 transition-colors cursor-pointer ${
+                              isEditing
+                                ? 'hover:bg-blue-700 text-white'
+                                : 'hover:bg-blue-300 text-blue-700'
+                            }`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
                     {performanceCategories.length === 0 && (
                       <span className="text-xs text-slate-400 italic flex items-center gap-1.5 py-0.5">
                         <span>No custom categories added — standard cultural categories will be used in the Google Form.</span>
@@ -731,24 +794,61 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                     )}
                   </div>
 
-                  {/* Add Input */}
+                  {/* Add / Edit Input */}
                   <div className="flex gap-2">
                     <input
+                      ref={categoryInputRef}
                       type="text"
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }}
-                      placeholder="Type a category and press Enter (e.g. Singing, Dance, Coding, Quiz)..."
-                      className="flex-1 px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSaveCategory();
+                        } else if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelEditingCategory();
+                        }
+                      }}
+                      placeholder={
+                        editingCategoryIndex !== null
+                          ? `Edit "${performanceCategories[editingCategoryIndex]}" (Enter to save, Esc to cancel)...`
+                          : "Type a category and press Enter (or click any tag above to edit)..."
+                      }
+                      className={`flex-1 px-3.5 py-2 text-xs sm:text-sm border rounded-xl focus:outline-hidden focus:ring-2 bg-white transition-all ${
+                        editingCategoryIndex !== null
+                          ? 'border-blue-500 ring-2 ring-blue-500/20 text-blue-900 font-medium'
+                          : 'border-slate-200 focus:ring-bce-cobalt/20 focus:border-bce-cobalt'
+                      }`}
                     />
-                    <button
-                      type="button"
-                      onClick={addCategory}
-                      className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-bce-cobalt hover:bg-bce-cobalt/90 text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add Category
-                    </button>
+                    {editingCategoryIndex !== null ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleSaveCategory}
+                          className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          Update
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditingCategory}
+                          className="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSaveCategory}
+                        className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-bce-cobalt hover:bg-bce-cobalt/90 text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Category
+                      </button>
+                    )}
                   </div>
 
                   {/* Informative Note about hardcoded participation modes */}
