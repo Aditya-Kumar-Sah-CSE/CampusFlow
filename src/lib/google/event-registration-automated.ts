@@ -1290,9 +1290,19 @@ export async function setupAutomatedEventRegistration(params: {
 // ============================================================
 
 /**
- * Fetches participant registration responses directly from Google Sheets / Forms API.
- * Google Sheets is the ONLY source of truth.
- * Returns normalized participant objects with zero database persistence.
+ * Helper to generate a unique deduplication signature for an event registration response
+ */
+function makeRegistrationSignature(timestamp: string, roll: string, name: string): string {
+  const tsPrefix = (timestamp || '').slice(0, 16);
+  const cleanRoll = (roll || '').trim().toLowerCase();
+  const cleanName = (name || '').trim().toLowerCase();
+  return `${cleanRoll}|${cleanName}|${tsPrefix}`;
+}
+
+/**
+ * Fetches participant registration responses directly from Google Sheets & Forms API.
+ * Automatically synchronizes Google Form web submissions into the Google Sheet ledger,
+ * deduplicates entries, and returns normalized participant objects with zero database storage.
  */
 export async function fetchGoogleFormEventResponses(params: {
   collegeId: string;
@@ -1338,90 +1348,25 @@ export async function fetchGoogleFormEventResponses(params: {
 
   const event = enrichEventWithGoogleMetadata(rawEvent);
   const eventSlug = event.slug || 'EVENT';
-
-  // 3. Attempt reading directly from Google Sheets API
   const sheetId = event.google_spreadsheet_id || event.registration_sheet_id;
   const formId = event.google_form_id;
 
-  const responses: GoogleFormParticipantResponse[] = [];
+  let formApiResponses: GoogleFormParticipantResponse[] = [];
+  let sheetRows: any[][] = [];
+  let tabName = 'Form Responses 1';
   let source: 'GOOGLE_SHEETS' | 'GOOGLE_FORMS_API' = 'GOOGLE_SHEETS';
 
-  if (sheetId) {
-    try {
-      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
-        // Find sheets/tabs
-        const meta = await sheets.spreadsheets.get({
-          spreadsheetId: sheetId,
-          fields: 'sheets(properties(sheetId,title))',
-        });
-
-        const tabName = meta.data.sheets?.[0]?.properties?.title || 'Form Responses 1';
-
-        const valuesRes = await sheets.spreadsheets.values.get({
-          spreadsheetId: sheetId,
-          range: `'${tabName}'!A2:Z1000`,
-        });
-
-        const rows = valuesRes.data.values || [];
-        rows.forEach((row, idx) => {
-          if (!row || row.length === 0 || !row[1]) return; // empty row or missing name
-
-          const submittedAt = row[0] ? new Date(row[0]).toISOString() : new Date().toISOString();
-          const participantName = (row[1] || '').trim();
-          const rollNumber = (row[3] || '').trim();
-          const customRegNo = (row[2] || '').trim();
-          const passRegNo = generateRegistrationNumber(eventSlug, 'REG', idx + 1);
-
-          responses.push({
-            responseId: `sheet-row-${idx + 2}`,
-            submittedAt,
-            participantName,
-            registrationNumber: passRegNo,
-            collegeRegistrationNumber: customRegNo || undefined,
-            rollNumber,
-            year: (row[4] || '1st Year').trim(),
-            branch: (row[5] || '').trim(),
-            contactNumber: (row[6] || '').trim(),
-            email: (row[7] || '').trim(),
-            performanceType: (row[8] || '').trim(),
-            participationType: (row[9] || 'Solo').trim(),
-            notes: (row[10] || '').trim(),
-            consent: true,
-            rawAnswers: {
-              Name: participantName,
-              Roll: rollNumber,
-              RegNo: customRegNo || passRegNo,
-              PassNo: passRegNo,
-              Year: row[4] || '',
-              Branch: row[5] || '',
-              Mobile: row[6] || '',
-              Email: row[7] || '',
-              Category: row[8] || '',
-              Mode: row[9] || '',
-              Remarks: row[10] || '',
-            },
-          });
-        });
-      });
-    } catch (sheetErr) {
-      console.warn('[AutoRegFetch] Sheets read warning; falling back to Forms API responses:', sheetErr);
-    }
-  }
-
-  // 4. Complementary / Fallback: Google Forms API Responses
-  // If Sheet had no rows or sheet read was empty, fetch directly from Google Forms API!
-  if (responses.length === 0 && formId) {
-    try {
-      let isFormsApiSource = false;
-      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ forms }) => {
-        source = 'GOOGLE_FORMS_API';
-        isFormsApiSource = true;
+  // 3. Fetch data from Google Forms API & Google Sheets API
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ forms, sheets }) => {
+    // 3a. Read live responses from Google Forms API
+    if (formId) {
+      try {
         const [formSchemaRes, formResponsesRes] = await Promise.all([
           forms.forms.get({ formId }),
           forms.forms.responses.list({ formId }),
         ]);
 
-        const questionMap = new Map<string, string>(); // questionId -> title
+        const questionMap = new Map<string, string>();
         (formSchemaRes.data.items || []).forEach((item) => {
           const qId = item.questionItem?.question?.questionId;
           if (qId && item.title) {
@@ -1429,8 +1374,8 @@ export async function fetchGoogleFormEventResponses(params: {
           }
         });
 
-        const formResponses = formResponsesRes.data.responses || [];
-        formResponses.forEach((fRes, idx) => {
+        const rawFormResponses = formResponsesRes.data.responses || [];
+        rawFormResponses.forEach((fRes, idx) => {
           const rawAnswers: Record<string, string> = {};
           let name = '';
           let regNo = '';
@@ -1449,35 +1394,48 @@ export async function fetchGoogleFormEventResponses(params: {
             const val = (ansObj.textAnswers?.answers || []).map((a) => a.value).filter(Boolean).join(', ');
             rawAnswers[qTitle || qId] = val;
 
-            if (qTitle.includes('participant name') || qTitle.includes('student name')) {
+            if (
+              qTitle.includes('participation') ||
+              qTitle.includes('participate') ||
+              qTitle.includes('what type of performance would you like')
+            ) {
+              partType = val;
+            } else if (
+              qTitle.includes('which type of performance will you present') ||
+              qTitle.includes('category') ||
+              qTitle.includes('performance')
+            ) {
+              perfType = val;
+            } else if (qTitle.includes('participant name') || (qTitle.includes('name') && !qTitle.includes('project'))) {
               name = val;
-            } else if (qTitle.includes('registration number')) {
+            } else if (qTitle.includes('registration number') || qTitle.includes('reg no')) {
               regNo = val;
-            } else if (qTitle.includes('roll number')) {
+            } else if (qTitle.includes('roll number') || qTitle.includes('roll')) {
               roll = val;
-            } else if (qTitle.includes('year')) {
+            } else if (qTitle.includes('academic year') || qTitle.includes('year')) {
               year = val;
             } else if (qTitle.includes('branch') || qTitle.includes('department')) {
               branch = val;
-            } else if (qTitle.includes('contact') || qTitle.includes('mobile') || qTitle.includes('phone')) {
+            } else if (qTitle.includes('contact') || qTitle.includes('mobile') || qTitle.includes('phone') || qTitle.includes('whatsapp')) {
               contact = val;
             } else if (qTitle.includes('email')) {
               email = email || val;
-            } else if (qTitle.includes('performance') || qTitle.includes('category')) {
-              perfType = val;
-            } else if (qTitle.includes('participation') || qTitle.includes('mode')) {
-              partType = val;
-            } else if (qTitle.includes('title') || qTitle.includes('piece') || qTitle.includes('notes') || qTitle.includes('details')) {
+            } else if (
+              qTitle.includes('title') ||
+              qTitle.includes('topic') ||
+              qTitle.includes('requirement') ||
+              qTitle.includes('notes') ||
+              qTitle.includes('remark')
+            ) {
               notes = val;
             }
           }
 
-          const passRegNo = generateRegistrationNumber(eventSlug, 'REG', idx + 1);
-          responses.push({
+          formApiResponses.push({
             responseId: fRes.responseId || `form-res-${idx + 1}`,
-            submittedAt: fRes.lastSubmittedTime || new Date().toISOString(),
+            submittedAt: fRes.lastSubmittedTime || fRes.createTime || new Date().toISOString(),
             participantName: name || 'Participant',
-            registrationNumber: passRegNo,
+            registrationNumber: '',
             collegeRegistrationNumber: regNo || undefined,
             rollNumber: roll || '—',
             year: year || '1st Year',
@@ -1486,56 +1444,152 @@ export async function fetchGoogleFormEventResponses(params: {
             email: email || '—',
             performanceType: perfType || 'General Entry',
             participationType: partType || 'Solo',
-            notes,
+            notes: notes || '',
             consent: true,
             rawAnswers,
           });
         });
-      });
-
-      // Synchronize rows back to Google Sheet if read via Forms API
-      if (isFormsApiSource && sheetId && responses.length > 0) {
-        try {
-          await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
-            const rowsToAppend = responses.map((r) => [
-              r.submittedAt,
-              r.participantName,
-              r.collegeRegistrationNumber || '',
-              r.rollNumber,
-              r.year,
-              r.branch,
-              r.contactNumber,
-              r.email,
-              r.performanceType || '',
-              r.participationType || 'Solo',
-              r.notes || '',
-              'Yes',
-            ]);
-            await sheets.spreadsheets.values.append({
-              spreadsheetId: sheetId,
-              range: `'Form Responses 1'!A:L`,
-              valueInputOption: 'USER_ENTERED',
-              requestBody: { values: rowsToAppend },
-            });
-          });
-        } catch (syncErr) {
-          console.warn('[AutoRegFetch] Notice syncing Forms API responses to sheet:', syncErr);
-        }
+      } catch (formApiErr) {
+        console.warn('[AutoRegFetch] Forms API read error:', formApiErr);
       }
-    } catch (formApiErr) {
-      console.warn('[AutoRegFetch] Forms API read error:', formApiErr);
     }
+
+    // 3b. Read existing ledger rows from Google Sheets API
+    if (sheetId) {
+      try {
+        const meta = await sheets.spreadsheets.get({
+          spreadsheetId: sheetId,
+          fields: 'sheets(properties(sheetId,title))',
+        });
+        tabName = meta.data.sheets?.[0]?.properties?.title || 'Form Responses 1';
+
+        const valuesRes = await sheets.spreadsheets.values.get({
+          spreadsheetId: sheetId,
+          range: `'${tabName}'!A1:Z5000`,
+        });
+        sheetRows = valuesRes.data.values || [];
+      } catch (sheetErr) {
+        console.warn('[AutoRegFetch] Sheet read warning:', sheetErr);
+      }
+    }
+  });
+
+  // 4. Merge & Deduplicate responses
+  const sheetData = sheetRows.slice(1);
+  const dedupMap = new Map<string, GoogleFormParticipantResponse>();
+
+  // Add Forms API responses first (authoritative on web form submissions)
+  formApiResponses.forEach((r) => {
+    const sig = makeRegistrationSignature(r.submittedAt, r.rollNumber, r.participantName);
+    dedupMap.set(sig, r);
+  });
+
+  // Add any rows from Google Sheet that might not be in Forms API (e.g. manual entries)
+  sheetData.forEach((row, idx) => {
+    if (!row || row.length === 0 || !row[1]) return;
+    const submittedAt = row[0] ? new Date(row[0]).toISOString() : new Date().toISOString();
+    const participantName = (row[1] || '').trim();
+    const rollNumber = (row[3] || '').trim();
+    const customRegNo = (row[2] || '').trim();
+    const sig = makeRegistrationSignature(submittedAt, rollNumber, participantName);
+
+    if (!dedupMap.has(sig)) {
+      dedupMap.set(sig, {
+        responseId: `sheet-row-${idx + 2}`,
+        submittedAt,
+        participantName,
+        registrationNumber: '',
+        collegeRegistrationNumber: customRegNo || undefined,
+        rollNumber: rollNumber || '—',
+        year: (row[4] || '1st Year').trim(),
+        branch: (row[5] || '').trim(),
+        contactNumber: (row[6] || '').trim(),
+        email: (row[7] || '').trim(),
+        performanceType: (row[8] || '').trim(),
+        participationType: (row[9] || 'Solo').trim(),
+        notes: (row[10] || '').trim(),
+        consent: true,
+        rawAnswers: {
+          Name: participantName,
+          Roll: rollNumber,
+          RegNo: customRegNo,
+          Year: row[4] || '',
+          Branch: row[5] || '',
+          Mobile: row[6] || '',
+          Email: row[7] || '',
+          Category: row[8] || '',
+          Mode: row[9] || '',
+          Remarks: row[10] || '',
+        },
+      });
+    }
+  });
+
+  const mergedResponses = Array.from(dedupMap.values());
+  // Sort chronologically
+  mergedResponses.sort((a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime());
+
+  // Assign sequential pass numbers
+  mergedResponses.forEach((r, idx) => {
+    r.registrationNumber = generateRegistrationNumber(eventSlug, 'REG', idx + 1);
+  });
+
+  // 5. Automatically write & synchronize the complete ledger back to Google Sheet
+  if (sheetId && mergedResponses.length > 0) {
+    try {
+      await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+        const formattedRows = mergedResponses.map((r) => [
+          r.submittedAt,
+          r.participantName,
+          r.collegeRegistrationNumber || '',
+          r.rollNumber,
+          r.year,
+          r.branch,
+          r.contactNumber,
+          r.email,
+          r.performanceType || '',
+          r.participationType || 'Solo',
+          r.notes || '',
+          'Yes',
+        ]);
+
+        await sheets.spreadsheets.values.update({
+          spreadsheetId: sheetId,
+          range: `'${tabName}'!A1:L${formattedRows.length + 1}`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [GOOGLE_EVENT_REG_HEADERS, ...formattedRows],
+          },
+        });
+
+        // If the sheet previously had more rows (e.g. duplicate rows), clear trailing rows
+        if (sheetRows.length > formattedRows.length + 1) {
+          await sheets.spreadsheets.values.clear({
+            spreadsheetId: sheetId,
+            range: `'${tabName}'!A${formattedRows.length + 2}:L${sheetRows.length + 10}`,
+          });
+        }
+      });
+    } catch (syncErr) {
+      console.warn('[AutoRegFetch] Sheet sync update notice:', syncErr);
+    }
+  }
+
+  if (mergedResponses.length > 0 && formApiResponses.length > 0) {
+    source = 'GOOGLE_SHEETS';
+  } else if (formApiResponses.length > 0) {
+    source = 'GOOGLE_FORMS_API';
   }
 
   // Update in-memory cache
   responseCache.set(eventId, {
     timestamp: Date.now(),
-    data: responses,
+    data: mergedResponses,
   });
 
   return {
-    responses,
-    totalCount: responses.length,
+    responses: mergedResponses,
+    totalCount: mergedResponses.length,
     syncedAt: new Date().toISOString(),
     source,
   };
