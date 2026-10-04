@@ -24,6 +24,12 @@ export default async function EventProgramsPage({ params }: Props) {
   const event = await getAdminEventById(id, collegeId);
   if (!event) notFound();
 
+  // Small Events (Google Form registration) do not need programs or categories.
+  // Directly redirect to the live responses, sync, and PDF pass management page.
+  if (event.registration_type === 'google_form') {
+    redirect(`/admin/dashboard/events/${event.id}/registrations`);
+  }
+
   const [categories, programs, stats, isSchemaReady] = await Promise.all([
     getAdminEventCategories(event.id, collegeId),
     getAdminEventPrograms(event.id, collegeId),

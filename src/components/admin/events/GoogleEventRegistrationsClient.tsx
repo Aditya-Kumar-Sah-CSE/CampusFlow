@@ -271,15 +271,15 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
               {event.title}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-              Google Form Pipeline
+              Small Event • Google Form Mode
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-            <span>Live Response Ledger</span>
+            <span>Direct Google Form Responses</span>
             <span>&bull;</span>
             <span className="text-emerald-700 font-semibold flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" />
-              <span>Google Sheets is Sole Source of Truth</span>
+              <span>Google Sheets is Sole Source of Truth (No Categories/Programs Needed)</span>
             </span>
           </p>
         </div>
@@ -322,14 +322,26 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
             </a>
           )}
 
+          <a
+            href={`/api/admin/events/${event.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 shadow-2xs transition-all"
+            title="Download Complete Event Roster PDF"
+          >
+            <Download className="w-3.5 h-3.5 text-red-600 shrink-0" />
+            <span>Complete Event PDF</span>
+          </a>
+
           <button
             type="button"
             onClick={() => fetchRegistrations(true)}
             disabled={refreshing}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-bce-cobalt text-white text-xs font-semibold hover:bg-blue-800 shadow-xs transition-all disabled:opacity-60 cursor-pointer"
+            title="Sync latest responses from Google Sheets"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>{refreshing ? 'Refreshing...' : 'Refresh Sheet'}</span>
+            <span>{refreshing ? 'Syncing...' : 'Sync Form Data'}</span>
           </button>
         </div>
       </div>
@@ -544,8 +556,31 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
             </div>
           </div>
 
-          {/* Action Buttons: Print Roster & Export CSV */}
-          <div className="flex items-center gap-2">
+          {/* Action Buttons: Complete Event PDF, Export CSV, Print Roster */}
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={`/api/admin/events/${event.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 shadow-2xs transition-colors ${
+                sortedFiltered.length === 0 ? 'opacity-50 pointer-events-none' : ''
+              }`}
+              title="Download Complete Event Roster PDF"
+            >
+              <Download className="w-3.5 h-3.5 text-red-600" />
+              <span>Complete Event PDF</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={sortedFiltered.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Export CSV</span>
+            </button>
+
             <button
               type="button"
               onClick={() => window.print()}
@@ -554,17 +589,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
               title="Print Roster"
             >
               <Printer className="w-3.5 h-3.5 text-slate-600" />
-              <span>Print Roster</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleExportCsv}
-              disabled={sortedFiltered.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-600" />
-              <span>Export CSV</span>
+              <span>Print</span>
             </button>
           </div>
         </div>
@@ -586,7 +611,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
             <h3 className="text-sm font-bold text-slate-800">No Registrations Found</h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               {responses.length === 0
-                ? 'Responses submitted by students through the generated Google Form will automatically appear here.'
+                ? 'Small events use direct Google Form registration — no category or program setup needed! When students submit the form, their responses sync here automatically and you can generate official PDF passes & complete roster reports.'
                 : 'No responses matched your search and filter criteria.'}
             </p>
             {event.google_form_url && (

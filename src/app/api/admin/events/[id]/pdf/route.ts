@@ -53,6 +53,53 @@ export async function GET(
     const paymentStatus = (searchParams.get('paymentStatus') as any) || 'ALL';
     const registrationStatus = (searchParams.get('registrationStatus') as any) || 'ALL';
 
+    // Fetch college branding and details
+    const branding = await getCollegeBranding(collegeId);
+    const collegeName = session.activeCollege?.name || 'College';
+    const collegeCode = session.activeCollege?.code || 'COLLEGE';
+
+    const db = (await import('@/lib/supabase/admin')).createAdminClient() || await (await import('@/lib/supabase/server')).createClient();
+    const { data: collegeDetails } = await db.from('colleges').select('*').eq('id', collegeId).maybeSingle();
+
+    // Small Event (Google Form mode): generate roster directly from Google Sheets
+    if (event.registration_type === 'google_form') {
+      const { fetchGoogleFormEventResponses } = await import('@/lib/google/event-registration-automated');
+      const { generateGoogleEventEnrollmentPDF } = await import('@/lib/events/event-pdf-reports');
+
+      const syncResult = await fetchGoogleFormEventResponses({ collegeId, eventId: event.id });
+      let responses = syncResult.responses || [];
+
+      if (search && search.trim()) {
+        const q = search.trim().toLowerCase();
+        responses = responses.filter(r =>
+          r.participantName?.toLowerCase().includes(q) ||
+          r.rollNumber?.toLowerCase().includes(q) ||
+          r.registrationNumber?.toLowerCase().includes(q) ||
+          r.collegeRegistrationNumber?.toLowerCase().includes(q)
+        );
+      }
+
+      const pdfBuffer = await generateGoogleEventEnrollmentPDF({
+        event,
+        responses,
+        collegeName,
+        collegeCode,
+        branding,
+        collegeDetails: collegeDetails || undefined,
+      });
+
+      const safeTitle = event.slug || 'event';
+      const filename = `${safeTitle}-roster-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      return new NextResponse(new Uint8Array(pdfBuffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
     const { registrations, stats } = await getEventRegistrations({
       eventId: event.id,
       collegeId,
@@ -62,14 +109,6 @@ export async function GET(
       paymentStatus,
       registrationStatus,
     });
-
-    // Fetch college branding and details
-    const branding = await getCollegeBranding(collegeId);
-    const collegeName = session.activeCollege?.name || 'College';
-    const collegeCode = session.activeCollege?.code || 'COLLEGE';
-
-    const db = (await import('@/lib/supabase/admin')).createAdminClient() || await (await import('@/lib/supabase/server')).createClient();
-    const { data: collegeDetails } = await db.from('colleges').select('*').eq('id', collegeId).maybeSingle();
 
     const pdfBuffer = await generateEventEnrollmentPDF({
       event,

@@ -56,20 +56,35 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <Link
-            href={`/admin/dashboard/events/${event.id}/programs`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"
-          >
-            <Trophy className="w-3.5 h-3.5 text-amber-600" />
-            <span>Manage Programs</span>
-          </Link>
+          {event.registration_type !== 'google_form' && (
+            <Link
+              href={`/admin/dashboard/events/${event.id}/programs`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-600" />
+              <span>Manage Programs</span>
+            </Link>
+          )}
 
           <Link
-            href={`/admin/dashboard/events/${event.slug || event.id}/registrations`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+            href={`/admin/dashboard/events/${event.id}/registrations`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+              event.registration_type === 'google_form'
+                ? 'bg-blue-50 hover:bg-blue-100 text-blue-800 border-blue-200'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-200'
+            }`}
           >
-            <Users className="w-3.5 h-3.5 text-blue-600" />
-            <span>Registrations ({event.active_registrations_count || 0})</span>
+            {event.registration_type === 'google_form' ? (
+              <>
+                <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+                <span>Form Data &amp; PDF</span>
+              </>
+            ) : (
+              <>
+                <Users className="w-3.5 h-3.5 text-blue-600" />
+                <span>Registrations ({event.active_registrations_count || 0})</span>
+              </>
+            )}
           </Link>
 
           {event.google_form_url && (

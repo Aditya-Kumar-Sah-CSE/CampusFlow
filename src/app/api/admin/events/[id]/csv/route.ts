@@ -41,6 +41,66 @@ export async function GET(
     const paymentStatus = (searchParams.get('paymentStatus') as any) || 'ALL';
     const registrationStatus = (searchParams.get('registrationStatus') as any) || 'ALL';
 
+    // Small Event (Google Form mode): export directly from Google Sheets
+    if (event.registration_type === 'google_form') {
+      const { fetchGoogleFormEventResponses } = await import('@/lib/google/event-registration-automated');
+      const syncResult = await fetchGoogleFormEventResponses({ collegeId, eventId: event.id });
+      let responses = syncResult.responses || [];
+
+      if (search && search.trim()) {
+        const q = search.trim().toLowerCase();
+        responses = responses.filter(r =>
+          r.participantName?.toLowerCase().includes(q) ||
+          r.rollNumber?.toLowerCase().includes(q) ||
+          r.registrationNumber?.toLowerCase().includes(q) ||
+          r.collegeRegistrationNumber?.toLowerCase().includes(q)
+        );
+      }
+
+      const headers = [
+        'S.No',
+        'Pass / Reg No',
+        'College Reg No',
+        'Participant Name',
+        'Roll Number',
+        'Year',
+        'Branch',
+        'Contact',
+        'Email',
+        'Performance Category',
+        'Participation Mode',
+        'Notes',
+        'Submitted At',
+      ];
+
+      const rows = responses.map((r, idx) => [
+        String(idx + 1),
+        escapeCsvField(r.registrationNumber),
+        escapeCsvField(r.collegeRegistrationNumber),
+        escapeCsvField(r.participantName),
+        escapeCsvField(r.rollNumber),
+        escapeCsvField(r.year),
+        escapeCsvField(r.branch),
+        escapeCsvField(r.contactNumber),
+        escapeCsvField(r.email),
+        escapeCsvField(r.performanceType),
+        escapeCsvField(r.participationType),
+        escapeCsvField(r.notes),
+        escapeCsvField(r.submittedAt ? new Date(r.submittedAt).toLocaleString('en-IN') : ''),
+      ]);
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(row => row.join(','))].join('\r\n');
+      const filename = `${event.slug}-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+
+      return new NextResponse(csvContent, {
+        headers: {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+
     const { registrations } = await getEventRegistrations({
       eventId: event.id,
       collegeId,

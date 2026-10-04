@@ -350,22 +350,53 @@ export function ProgramDashboard({
           <h1 className="text-lg sm:text-xl font-bold text-slate-900 break-words">Programs — {event.title}</h1>
           <p className="text-xs text-slate-500 mt-0.5">Manage categories, programs, registrations, and exports</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => { setShowCategoryForm(true); setEditingCategory(null); setCatName(''); setCatDesc(''); }}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+        {event.registration_type !== 'google_form' ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => { setShowCategoryForm(true); setEditingCategory(null); setCatName(''); setCatDesc(''); }}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+            >
+              <FolderPlus className="w-3.5 h-3.5" /> Add Category
+            </button>
+            <button
+              onClick={() => { setShowProgramForm(true); resetProgramForm(); }}
+              disabled={categories.length === 0}
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Program
+            </button>
+          </div>
+        ) : (
+          <Link
+            href={`/admin/dashboard/events/${event.id}/registrations`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
           >
-            <FolderPlus className="w-3.5 h-3.5" /> Add Category
-          </button>
-          <button
-            onClick={() => { setShowProgramForm(true); resetProgramForm(); }}
-            disabled={categories.length === 0}
-            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add Program
-          </button>
-        </div>
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Form Data &amp; PDF</span>
+          </Link>
+        )}
       </div>
+
+      {/* Small Event Notice */}
+      {event.registration_type === 'google_form' && (
+        <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <FileSpreadsheet className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+            <div className="text-xs sm:text-sm">
+              <p className="font-semibold text-blue-950">Small Event • Direct Google Form Registration</p>
+              <p className="mt-0.5 text-blue-800">
+                Categories and programs are not needed for this event. All submissions sync directly from Google Sheets with live PDF pass and roster generation.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/admin/dashboard/events/${event.id}/registrations`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+          >
+            <span>Open Form Responses &amp; PDF</span>
+          </Link>
+        </div>
+      )}
 
       {/* Feedback */}
       {feedback && (

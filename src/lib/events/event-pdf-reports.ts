@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getEventRegistrations, resolveEventRegistrationSpreadsheet, type MasterRegistrationRow } from '@/lib/google/event-registration-sheets';
 import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { formatSemesterDisplay, formatBranchDisplay } from '@/lib/events/academic-formatter';
-import type { CollegeEvent, EventRegistration, EventStats } from '@/types/events';
+import type { CollegeEvent, EventRegistration, EventStats, GoogleFormParticipantResponse } from '@/types/events';
 import type { EventProgram } from '@/types/programs';
 
 // ============================================================
@@ -2188,3 +2188,174 @@ export async function generateEventEnrollmentPDF(params: {
 }
 
 export const generateEnrollmentPDF = generateEventEnrollmentPDF;
+
+/**
+ * Generate official participant enrollment roster PDF for small events
+ * powered by live Google Form / Google Sheets responses.
+ */
+export async function generateGoogleEventEnrollmentPDF(params: {
+  event: CollegeEvent;
+  responses: GoogleFormParticipantResponse[];
+  collegeName: string;
+  collegeCode?: string;
+  branding?: any;
+  collegeDetails?: CollegeMetadata;
+}): Promise<Buffer> {
+  const { event, responses, collegeName, collegeCode = 'COLLEGE', branding, collegeDetails } = params;
+
+  const doc = new PDFDocument({
+    size: 'A4',
+    layout: 'landscape',
+    margin: 36,
+    info: {
+      Title: `${event.title} - Participant Roster`,
+      Author: `${collegeName} Event Management`,
+      Subject: 'Official Student Event Registration Roster (Google Form)',
+    },
+  });
+
+  const bufferPromise = streamToBuffer(doc);
+  const margin = 36;
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+  const contentWidth = pageWidth - margin * 2;
+
+  const collegeMeta: CollegeMetadata = collegeDetails || {
+    id: event.college_id,
+    name: collegeName,
+    code: collegeCode,
+    slug: '',
+    logo_url: branding?.logoUrl,
+    primary_color: branding?.primaryColor || PDF_COLORS.primary,
+  };
+
+  const logoBuffer = await fetchLogoBuffer(collegeMeta.logo_url);
+
+  let y = renderOfficialHeader(doc, {
+    college: collegeMeta,
+    event,
+    reportTitle: 'PARTICIPANT REGISTRATION ROSTER',
+    reportSubtitle: 'Live Google Form Registrations & Participant Ledger',
+    logoBuffer,
+  });
+
+  // Summary Metrics Bar
+  const summaryBoxH = 34;
+  const uniqueCategories = Array.from(new Set(responses.map(r => r.performanceType).filter(Boolean)));
+  const summaryItems = [
+    { label: 'TOTAL PARTICIPANTS', val: String(responses.length) },
+    { label: 'PERFORMANCE CATEGORIES', val: String(uniqueCategories.length) },
+    { label: 'DATA SOURCE', val: 'Google Sheets (Live)' },
+    { label: 'EVENT STATUS', val: event.status },
+  ];
+
+  const sBoxW = Math.floor(contentWidth / summaryItems.length);
+  summaryItems.forEach((item, idx) => {
+    const boxX = margin + idx * sBoxW;
+    doc.rect(boxX, y, sBoxW - 4, summaryBoxH).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
+    doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted).text(item.label, boxX + 8, y + 5);
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(PDF_COLORS.primary).text(item.val, boxX + 8, y + 16);
+  });
+
+  y += summaryBoxH + 12;
+
+  // Table Columns
+  const columns = [
+    { header: 'S.No', width: 34, align: 'center' as const },
+    { header: 'Pass / Reg No', width: 95, align: 'left' as const },
+    { header: 'Participant Name', width: 140, align: 'left' as const },
+    { header: 'Roll / Reg No', width: 85, align: 'left' as const },
+    { header: 'Year & Branch', width: 105, align: 'left' as const },
+    { header: 'Contact', width: 80, align: 'center' as const },
+    { header: 'Category / Performance', width: 110, align: 'left' as const },
+    { header: 'Mode', width: 55, align: 'center' as const },
+    { header: 'Submitted At', width: 65, align: 'center' as const },
+  ];
+
+  const scale = contentWidth / columns.reduce((s, c) => s + c.width, 0);
+  columns.forEach(c => { c.width = Math.floor(c.width * scale); });
+
+  const renderTableHeader = (currentY: number) => {
+    doc.rect(margin, currentY, contentWidth, 20).fill(PDF_COLORS.primary);
+    let colX = margin;
+    doc.fillColor(PDF_COLORS.white).font('Helvetica-Bold').fontSize(7.5);
+    for (const col of columns) {
+      doc.text(col.header, colX + 4, currentY + 6, {
+        width: col.width - 8,
+        align: col.align,
+      });
+      colX += col.width;
+    }
+    return currentY + 20;
+  };
+
+  y = renderTableHeader(y);
+  const rowHeight = 18;
+  let rowIdx = 0;
+
+  for (const resp of responses) {
+    rowIdx++;
+    if (y + rowHeight > pageHeight - margin - 35) {
+      doc.addPage();
+      y = margin;
+      y = renderTableHeader(y);
+    }
+
+    const isEven = rowIdx % 2 === 0;
+    doc.rect(margin, y, contentWidth, rowHeight).fill(isEven ? PDF_COLORS.white : PDF_COLORS.bgLight);
+    doc.moveTo(margin, y + rowHeight).lineTo(margin + contentWidth, y + rowHeight).strokeColor(PDF_COLORS.borderLight).lineWidth(0.5).stroke();
+
+    let colX = margin;
+    doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.slateDark);
+
+    // 1. S.No
+    doc.text(String(rowIdx), colX + 2, y + 5, { width: columns[0].width - 4, align: 'center' });
+    colX += columns[0].width;
+
+    // 2. Pass / Reg No
+    doc.font('Helvetica-Bold').text(resp.registrationNumber || '-', colX + 4, y + 5, { width: columns[1].width - 8, align: 'left', ellipsis: true });
+    doc.font('Helvetica');
+    colX += columns[1].width;
+
+    // 3. Participant Name
+    doc.font('Helvetica-Bold').text(resp.participantName || '-', colX + 4, y + 5, { width: columns[2].width - 8, align: 'left', ellipsis: true });
+    doc.font('Helvetica');
+    colX += columns[2].width;
+
+    // 4. Roll / Reg No
+    const rollDisplay = resp.rollNumber || resp.collegeRegistrationNumber || '-';
+    doc.text(rollDisplay, colX + 4, y + 5, { width: columns[3].width - 8, align: 'left', ellipsis: true });
+    colX += columns[3].width;
+
+    // 5. Year & Branch
+    const yb = [resp.year, resp.branch].filter(Boolean).join(' • ') || '-';
+    doc.text(yb, colX + 4, y + 5, { width: columns[4].width - 8, align: 'left', ellipsis: true });
+    colX += columns[4].width;
+
+    // 6. Contact
+    doc.text(resp.contactNumber || '-', colX + 2, y + 5, { width: columns[5].width - 4, align: 'center' });
+    colX += columns[5].width;
+
+    // 7. Category / Performance
+    doc.font('Helvetica-Bold').fillColor(PDF_COLORS.secondary).text(resp.performanceType || 'General Entry', colX + 4, y + 5, { width: columns[6].width - 8, align: 'left', ellipsis: true });
+    doc.font('Helvetica').fillColor(PDF_COLORS.slateDark);
+    colX += columns[6].width;
+
+    // 8. Mode
+    const mode = resp.participationType || 'Solo';
+    doc.text(mode, colX + 2, y + 5, { width: columns[7].width - 4, align: 'center' });
+    colX += columns[7].width;
+
+    // 9. Submitted At
+    const dateStr = resp.submittedAt ? new Date(resp.submittedAt).toLocaleDateString('en-IN') : '-';
+    doc.text(dateStr, colX + 2, y + 5, { width: columns[8].width - 4, align: 'center' });
+
+    y += rowHeight;
+  }
+
+  y = renderOfficialSignatureBlock(doc, y);
+  renderOfficialFooter(doc, collegeName);
+  doc.end();
+  return bufferPromise;
+}
+

@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   Trash2,
   X,
+  FileSpreadsheet,
 } from 'lucide-react';
 import type { CollegeEvent, EventStatus } from '@/types/events';
 import type { CanonicalEventStats } from '@/lib/events/canonical-stats';
@@ -347,39 +348,65 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
 
                   {/* Actions bar */}
                   <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100">
-                    <Link
-                      href={`/admin/dashboard/events/${event.id}/programs`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"
-                      title="Manage Categories and Programs for this event"
-                    >
-                      <Trophy className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Manage Programs</span>
-                    </Link>
-
-                    {/* Registrations Button (Dynamic real count from Google Sheets) */}
-                    {isStatsLoading ? (
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded-lg border border-slate-200">
-                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="inline-block w-20 h-3.5 bg-slate-200 animate-pulse rounded-md" />
-                      </div>
-                    ) : eventStats && !eventStats.available ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-400 text-xs font-semibold rounded-lg border border-slate-200 opacity-60 cursor-not-allowed"
-                        title="Registration data unavailable from Google Sheets"
-                      >
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Registrations (Unavailable)</span>
-                      </button>
-                    ) : (
+                    {/* Big Events: Show Manage Programs */}
+                    {event.registration_type !== 'google_form' && (
                       <Link
-                        href={`/admin/dashboard/events/${event.id}/registrations`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+                        href={`/admin/dashboard/events/${event.id}/programs`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold rounded-lg transition-colors border border-amber-200"
+                        title="Manage Categories and Programs for this event"
                       >
-                        <Users className="w-3.5 h-3.5 text-bce-cobalt" />
-                        <span>Registrations ({eventStats ? eventStats.totalRegistrations : 0})</span>
+                        <Trophy className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Manage Programs</span>
                       </Link>
+                    )}
+
+                    {/* Small Event (Google Form): direct Form Data & PDF Roster button */}
+                    {event.registration_type === 'google_form' ? (
+                      isStatsLoading ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-400 text-xs font-semibold rounded-lg border border-blue-200">
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                          <span className="inline-block w-24 h-3.5 bg-blue-200/50 animate-pulse rounded-md" />
+                        </div>
+                      ) : (
+                        <Link
+                          href={`/admin/dashboard/events/${event.id}/registrations`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 text-xs font-semibold rounded-lg transition-colors border border-blue-200"
+                          title="Form Data Sync, Google Sheets Responses & PDF Generation"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
+                          <span>
+                            {eventStats && !eventStats.available
+                              ? 'Form Data & PDF'
+                              : `Form Data & PDF (${eventStats ? eventStats.totalRegistrations : 0})`}
+                          </span>
+                        </Link>
+                      )
+                    ) : (
+                      /* Big Events: Registrations Button */
+                      isStatsLoading ? (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded-lg border border-slate-200">
+                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="inline-block w-20 h-3.5 bg-slate-200 animate-pulse rounded-md" />
+                        </div>
+                      ) : eventStats && !eventStats.available ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-400 text-xs font-semibold rounded-lg border border-slate-200 opacity-60 cursor-not-allowed"
+                          title="Registration data unavailable from Google Sheets"
+                        >
+                          <Users className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Registrations (Unavailable)</span>
+                        </button>
+                      ) : (
+                        <Link
+                          href={`/admin/dashboard/events/${event.id}/registrations`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
+                        >
+                          <Users className="w-3.5 h-3.5 text-bce-cobalt" />
+                          <span>Registrations ({eventStats ? eventStats.totalRegistrations : 0})</span>
+                        </Link>
+                      )
                     )}
 
                     <Link
