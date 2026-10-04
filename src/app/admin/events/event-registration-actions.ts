@@ -293,6 +293,9 @@ export async function identifyStudentAction(input: {
     branch: string;
     semester: string;
     gender: string;
+    totalPaidAmount?: number;
+    isPaid?: boolean;
+    specialEntryName?: string;
   };
 }> {
   try {
@@ -358,6 +361,26 @@ export async function identifyStudentAction(input: {
       gender: registration.gender,
     });
 
+    let totalPaid = 0;
+    const specialEntryPrograms: string[] = [];
+    try {
+      const allRows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
+      const cleanReg = registration.registrationNumber.toUpperCase();
+      const myRows = allRows.filter(
+        (r) => r.registrationNumber.toUpperCase() === cleanReg && r.registrationStatus !== 'CANCELLED'
+      );
+      for (const row of myRows) {
+        if (row.paymentAmount > 0 || row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED') {
+          totalPaid += (row.paymentAmount || 0);
+          if (row.programName && !specialEntryPrograms.includes(row.programName)) {
+            specialEntryPrograms.push(row.programName);
+          }
+        }
+      }
+    } catch {
+      // non-fatal
+    }
+
     return {
       success: true,
       isRegistered: true,
@@ -370,6 +393,9 @@ export async function identifyStudentAction(input: {
         branch: academic.branch,
         semester: academic.semester,
         gender: registration.gender,
+        totalPaidAmount: totalPaid,
+        isPaid: totalPaid > 0,
+        specialEntryName: specialEntryPrograms.length > 0 ? specialEntryPrograms.join(', ') : undefined,
       },
     };
   } catch (err: unknown) {
@@ -506,6 +532,9 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
     branch: string;
     semester: string;
     gender: string;
+    totalPaidAmount?: number;
+    isPaid?: boolean;
+    specialEntryName?: string;
   };
 }> {
   try {
@@ -516,7 +545,28 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
     const s = sessionResult.session;
 
     const event = await getEventWithCollege(eventId);
+    let totalPaid = 0;
+    const specialEntryPrograms: string[] = [];
+
     if (event.registration_sheet_id) {
+      try {
+        const allRows = await getEventRegistrations(s.collegeId, event.registration_sheet_id);
+        const cleanReg = s.registrationNumber.toUpperCase();
+        const myRows = allRows.filter(
+          (r) => r.registrationNumber.toUpperCase() === cleanReg && r.registrationStatus !== 'CANCELLED'
+        );
+        for (const row of myRows) {
+          if (row.paymentAmount > 0 || row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED') {
+            totalPaid += (row.paymentAmount || 0);
+            if (row.programName && !specialEntryPrograms.includes(row.programName)) {
+              specialEntryPrograms.push(row.programName);
+            }
+          }
+        }
+      } catch {
+        // non-fatal
+      }
+
       try {
         const row = await findEventRegistrationByCredentials(
           s.collegeId,
@@ -542,6 +592,9 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
               branch: academic.branch,
               semester: academic.semester,
               gender: row.gender,
+              totalPaidAmount: totalPaid,
+              isPaid: totalPaid > 0,
+              specialEntryName: specialEntryPrograms.length > 0 ? specialEntryPrograms.join(', ') : undefined,
             },
           };
         }
@@ -567,6 +620,9 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
         branch: fallbackAcademic.branch,
         semester: fallbackAcademic.semester,
         gender: s.gender || '',
+        totalPaidAmount: totalPaid,
+        isPaid: totalPaid > 0,
+        specialEntryName: specialEntryPrograms.length > 0 ? specialEntryPrograms.join(', ') : undefined,
       },
     };
   } catch (err) {

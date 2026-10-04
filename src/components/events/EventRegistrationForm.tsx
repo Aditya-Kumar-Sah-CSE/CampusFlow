@@ -100,12 +100,19 @@ export function EventRegistrationForm({
     mobile?: string;
     branch?: string;
     semester?: string;
+    isPaid?: boolean;
+    totalPaidAmount?: number;
+    specialEntryName?: string;
   }) => {
     setDownloadingPass(true);
     try {
+      const college = (event as any).college;
+      const isPaid = Boolean(details.isPaid || (details.totalPaidAmount && details.totalPaidAmount > 0));
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: collegeName || (event as any).college?.name,
+        collegeName: collegeName || college?.name,
+        collegeLogoUrl: college?.logo_url,
+        collegeCode: college?.code,
         venue: event.venue,
         participantName: details.fullName,
         email: details.email,
@@ -115,6 +122,9 @@ export function EventRegistrationForm({
         semester: details.semester,
         mobile: details.mobile,
         eventSlug: event.slug,
+        isPaid: isPaid,
+        totalPaidAmount: details.totalPaidAmount || 0,
+        specialEntryName: details.specialEntryName,
       });
     } catch (err) {
       console.error('Failed to download pass:', err);

@@ -22,6 +22,8 @@ import type { EventSessionPayload } from '@/lib/events/event-session';
 import {
   identifyStudentAction,
   logoutFromEventAction,
+  getStudentRegistrationsAction,
+  type StudentProgramRegistrationItem,
 } from '@/app/admin/events/event-registration-actions';
 import { EditEventPassModal } from './EditEventPassModal';
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
@@ -67,14 +69,43 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
   const [copied, setCopied] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
+  const [enrolledPrograms, setEnrolledPrograms] = useState<StudentProgramRegistrationItem[]>([]);
+
+  // Fetch enrolled programs whenever participant changes
+  React.useEffect(() => {
+    if (!participant) {
+      setEnrolledPrograms([]);
+      return;
+    }
+    let isMounted = true;
+    getStudentRegistrationsAction(event.id)
+      .then((res) => {
+        if (isMounted && res.success && res.programs) {
+          setEnrolledPrograms(res.programs);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [participant, event.id]);
+
+  const paidPrograms = enrolledPrograms.filter(
+    (p) => (p.paymentAmount > 0 || p.paymentStatus === 'PAID' || p.paymentStatus === 'VERIFIED') && p.registrationStatus !== 'CANCELLED'
+  );
+  const totalPaidAmount = paidPrograms.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
+  const specialEntryName = paidPrograms.map((p) => p.programName).filter(Boolean).join(', ');
 
   const handleDownloadPass = async () => {
     if (!participant) return;
     setDownloadingPass(true);
     try {
+      const college = (event as any).college;
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: (event as any).college?.name,
+        collegeName: college?.name,
+        collegeLogoUrl: college?.logo_url,
+        collegeCode: college?.code,
         venue: event.venue,
         participantName: participant.fullName,
         email: participant.email,
@@ -84,6 +115,9 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
         semester: participant.semester,
         mobile: participant.mobile,
         eventSlug: event.slug,
+        isPaid: totalPaidAmount > 0,
+        totalPaidAmount: totalPaidAmount,
+        specialEntryName: specialEntryName || undefined,
       });
     } catch (err) {
       console.error('Failed to download pass:', err);
@@ -268,6 +302,25 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
                   <Edit3 className="w-3 h-3" />
                   <span>Edit</span>
                 </button>
+              </div>
+
+              {/* Access Inclusions Badges */}
+              <div className="flex flex-wrap items-center gap-2 pt-1.5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Allowed for all FREE programs</span>
+                </span>
+
+                {specialEntryName ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Special Entry: {specialEntryName} (Paid ₹{totalPaidAmount})</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800/70 border border-slate-700/80 text-slate-400 text-[11px]">
+                    <span>Entry: Free Pass</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-400 pt-1">
                 You have exactly 1 event registration for {event.title}. Use this registration to participate in multiple programs below.

@@ -3,14 +3,16 @@
 import QRCode from 'qrcode';
 
 /**
- * High-Resolution PNG Event Pass Generator
- * Renders an official, beautiful VIP Event Pass directly on client-side Canvas
- * with a scannable, real QR Code linking to the live pass verification portal.
+ * High-Resolution VIP PNG Event Pass Generator
+ * Renders an official, modern, professional Event Pass directly on client-side Canvas
+ * with real scannable QR verification, payment status, college logo crest, and program access entitlements.
  */
 
 export interface EventPassDetails {
   eventTitle: string;
   collegeName?: string;
+  collegeLogoUrl?: string;
+  collegeCode?: string;
   venue?: string;
   startDate?: string;
   endDate?: string;
@@ -23,6 +25,11 @@ export interface EventPassDetails {
   mobile?: string;
   eventSlug?: string;
   verificationUrl?: string;
+
+  // Payment & Access Entitlements
+  isPaid?: boolean;
+  totalPaidAmount?: number;
+  specialEntryName?: string; // e.g. "DJ Night"
 }
 
 function roundRect(
@@ -46,6 +53,18 @@ function roundRect(
   ctx.closePath();
 }
 
+function loadLogoImage(url?: string): Promise<HTMLImageElement | null> {
+  if (!url) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    setTimeout(() => resolve(null), 1200); // 1.2s timeout fallback so download never hangs
+    img.src = url;
+  });
+}
+
 export async function generateAndDownloadPassPNG(details: EventPassDetails): Promise<void> {
   const width = 1200;
   const height = 620;
@@ -56,14 +75,17 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not initialize canvas context');
 
-  // Wait for fonts if available
+  // Font loading sync
   if (typeof document !== 'undefined' && document.fonts?.ready) {
     try {
       await document.fonts.ready;
     } catch {
-      // non-fatal font wait
+      // non-fatal
     }
   }
+
+  // Pre-load logo image if provided
+  const logoImg = await loadLogoImage(details.collegeLogoUrl);
 
   // Smooth rendering
   ctx.imageSmoothingEnabled = true;
@@ -77,39 +99,39 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
 
   // Dark rich VIP gradient background
   const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-  bgGradient.addColorStop(0, '#09101F');   // Deep Navy Black
-  bgGradient.addColorStop(0.5, '#0B1728'); // Slate Midnight
-  bgGradient.addColorStop(1, '#063B2C');   // Emerald Glow
+  bgGradient.addColorStop(0, '#070D18');   // Deep Navy Black
+  bgGradient.addColorStop(0.5, '#0B1728'); // Midnight Slate
+  bgGradient.addColorStop(1, '#052F24');   // Emerald Glow
   ctx.fillStyle = bgGradient;
   ctx.fillRect(0, 0, width, height);
 
-  // Subtle radial glow top-right and bottom-left
-  const glow1 = ctx.createRadialGradient(900, 100, 10, 900, 100, 400);
-  glow1.addColorStop(0, 'rgba(16, 185, 129, 0.18)');
+  // Subtle radial ambient glow
+  const glow1 = ctx.createRadialGradient(920, 90, 10, 920, 90, 420);
+  glow1.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
   glow1.addColorStop(1, 'rgba(16, 185, 129, 0)');
   ctx.fillStyle = glow1;
   ctx.fillRect(0, 0, width, height);
 
-  const glow2 = ctx.createRadialGradient(200, 500, 10, 200, 500, 400);
-  glow2.addColorStop(0, 'rgba(59, 130, 246, 0.15)');
+  const glow2 = ctx.createRadialGradient(180, 520, 10, 180, 520, 420);
+  glow2.addColorStop(0, 'rgba(59, 130, 246, 0.16)');
   glow2.addColorStop(1, 'rgba(59, 130, 246, 0)');
   ctx.fillStyle = glow2;
   ctx.fillRect(0, 0, width, height);
 
-  // Ticket Stub Notch (Perforated ticket cutout)
+  // Ticket Perforation Stub Notch (at X = 850)
   const stubX = 850;
 
-  // Draw dashed dividing line
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+  // Dashed dividing line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
   ctx.lineWidth = 2;
   ctx.setLineDash([8, 8]);
   ctx.beginPath();
-  ctx.moveTo(stubX, 30);
-  ctx.lineTo(stubX, height - 30);
+  ctx.moveTo(stubX, 28);
+  ctx.lineTo(stubX, height - 28);
   ctx.stroke();
-  ctx.setLineDash([]); // reset
+  ctx.setLineDash([]);
 
-  // Top and bottom cutouts (ticket punch notches)
+  // Top & bottom ticket notches
   ctx.fillStyle = '#030712';
   ctx.beginPath();
   ctx.arc(stubX, 0, 22, 0, Math.PI);
@@ -121,7 +143,7 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
 
   ctx.restore();
 
-  // Outer border with subtle glow
+  // Outer border with subtle neon emerald outline
   ctx.save();
   roundRect(ctx, 1, 1, width - 2, height - 2, cardRadius);
   ctx.strokeStyle = 'rgba(52, 211, 153, 0.35)';
@@ -130,109 +152,108 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
   ctx.restore();
 
   // ============================================================
-  // LEFT SECTION: MAIN EVENT & PARTICIPANT DETAILS
+  // LEFT SECTION: MAIN EVENT & PARTICIPANT & ACCESS PRIVILEGES
   // ============================================================
   const leftX = 50;
   const maxContentWidth = stubX - leftX - 40;
 
-  // 1. Header Badges: Verified Status & College
-  // Status Pill
-  const pillY = 48;
-  const pillH = 32;
-  const pillW = 260;
-  roundRect(ctx, leftX, pillY, pillW, pillH, 16);
+  // 1. Header Badges: Verified Status & College Name
+  const pillY = 38;
+  const pillH = 30;
+  const pillW = 250;
+  roundRect(ctx, leftX, pillY, pillW, pillH, 15);
   ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
   ctx.lineWidth = 1.2;
   ctx.stroke();
 
-  // Green checkmark dot
+  // Green status dot
   ctx.fillStyle = '#10B981';
   ctx.beginPath();
-  ctx.arc(leftX + 18, pillY + pillH / 2, 5, 0, Math.PI * 2);
+  ctx.arc(leftX + 16, pillY + pillH / 2, 4.5, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.font = 'bold 12px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#34D399';
-  ctx.fillText('OFFICIAL EVENT PASS • VERIFIED', leftX + 32, pillY + 20);
+  ctx.fillText('OFFICIAL EVENT PASS • VERIFIED', leftX + 28, pillY + 19);
 
-  // College Name
+  // College Name in Header
   if (details.collegeName) {
-    ctx.font = 'bold 12px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#94A3B8';
     let cName = details.collegeName.toUpperCase();
     const maxCollegeWidth = stubX - (leftX + pillW + 40);
     while (ctx.measureText(cName).width > maxCollegeWidth && cName.length > 5) {
       cName = cName.slice(0, -4) + '...';
     }
-    ctx.fillText(cName, leftX + pillW + 20, pillY + 20);
+    ctx.fillText(cName, leftX + pillW + 18, pillY + 19);
   }
 
   // 2. Event Title
-  ctx.font = '900 36px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = '900 34px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#FFFFFF';
   let cleanTitle = details.eventTitle || 'Campus Event';
   while (ctx.measureText(cleanTitle).width > maxContentWidth && cleanTitle.length > 5) {
     cleanTitle = cleanTitle.slice(0, -4) + '...';
   }
-  ctx.fillText(cleanTitle, leftX, 132);
+  ctx.fillText(cleanTitle, leftX, 108);
 
-  // 3. Venue & Dates
+  // 3. Venue
   const venueText = details.venue ? `📍 ${details.venue}` : '📍 Campus Venue';
-  ctx.font = '500 16px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = '500 15px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#CBD5E1';
   let cleanVenue = venueText;
   while (ctx.measureText(cleanVenue).width > maxContentWidth && cleanVenue.length > 5) {
     cleanVenue = cleanVenue.slice(0, -4) + '...';
   }
-  ctx.fillText(cleanVenue, leftX, 164);
+  ctx.fillText(cleanVenue, leftX, 136);
 
   // 4. Horizontal Separator
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(leftX, 196);
-  ctx.lineTo(stubX - 50, 196);
+  ctx.moveTo(leftX, 160);
+  ctx.lineTo(stubX - 50, 160);
   ctx.stroke();
 
   // 5. Participant Info
-  ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#34D399';
-  ctx.fillText('PARTICIPANT DETAILS', leftX, 226);
+  ctx.fillText('PARTICIPANT DETAILS', leftX, 184);
 
   // Full Name
-  ctx.font = 'bold 28px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = 'bold 26px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#FFFFFF';
   let cleanParticipant = details.participantName || 'Participant';
   while (ctx.measureText(cleanParticipant).width > maxContentWidth && cleanParticipant.length > 5) {
     cleanParticipant = cleanParticipant.slice(0, -4) + '...';
   }
-  ctx.fillText(cleanParticipant, leftX, 264);
+  ctx.fillText(cleanParticipant, leftX, 218);
 
   // Email
-  ctx.font = '500 15px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = '500 14px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#94A3B8';
-  ctx.fillText(details.email || '', leftX, 292);
+  ctx.fillText(details.email || '', leftX, 242);
 
   // 6. Metadata Pills (Roll, Branch, Semester, Mobile)
   const badges: { label: string; value: string }[] = [];
   if (details.studentId) badges.push({ label: 'Roll', value: details.studentId });
   if (details.branch) badges.push({ label: 'Branch', value: details.branch });
-  if (details.semester) badges.push({ label: 'Semester', value: details.semester });
+  if (details.semester) badges.push({ label: 'Sem', value: details.semester });
   if (details.mobile) badges.push({ label: 'Phone', value: details.mobile });
 
   let badgeX = leftX;
-  const badgeY = 328;
-  const badgeH = 34;
+  const badgeY = 266;
+  const badgeH = 30;
 
   for (const b of badges) {
     const text = `${b.label}: ${b.value}`;
-    ctx.font = 'bold 13px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.font = 'bold 12px "Inter", system-ui, -apple-system, sans-serif';
     const textWidth = ctx.measureText(text).width;
-    const badgeW = textWidth + 24;
+    const badgeW = textWidth + 22;
 
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 10);
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 9);
     ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
     ctx.fill();
     ctx.strokeStyle = 'rgba(71, 85, 105, 0.6)';
@@ -240,52 +261,236 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     ctx.stroke();
 
     ctx.fillStyle = '#F8FAFC';
-    ctx.fillText(text, badgeX + 12, badgeY + 22);
+    ctx.fillText(text, badgeX + 11, badgeY + 20);
 
-    badgeX += badgeW + 10;
+    badgeX += badgeW + 8;
     if (badgeX > stubX - 100) break;
   }
 
-  // 7. Security note footer
-  ctx.font = '400 12px "Inter", system-ui, -apple-system, sans-serif';
+  // 7. PROGRAM ACCESS & PRIVILEGES CARD (MODERN KEYWORD-BASED)
+  // "allowwed for all FREE program if paid program ka bhi money pay kia then special entry event name show krna as example DJ Night"
+  const accessCardY = 320;
+  const accessCardH = 205;
+  const accessCardW = maxContentWidth;
+
+  roundRect(ctx, leftX, accessCardY, accessCardW, accessCardH, 16);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(51, 65, 85, 0.65)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Card Header Row
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#34D399';
+  ctx.fillText('PASS PRIVILEGES & INCLUSIONS', leftX + 18, accessCardY + 24);
+
+  const hasSpecialPaid = Boolean(
+    (details.totalPaidAmount && details.totalPaidAmount > 0) || details.specialEntryName || details.isPaid
+  );
+
+  // Access Tier Badge on Top-Right of Card
+  const tierText = hasSpecialPaid ? '★ VIP ALL-ACCESS' : '✓ STANDARD ACCESS';
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
+  const tierW = ctx.measureText(tierText).width + 20;
+  const tierX = leftX + accessCardW - tierW - 18;
+  const tierY = accessCardY + 12;
+  roundRect(ctx, tierX, tierY, tierW, 22, 6);
+  ctx.fillStyle = hasSpecialPaid ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.18)';
+  ctx.fill();
+  ctx.strokeStyle = hasSpecialPaid ? 'rgba(245, 158, 11, 0.55)' : 'rgba(16, 185, 129, 0.45)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = hasSpecialPaid ? '#FBBF24' : '#34D399';
+  ctx.fillText(tierText, tierX + 10, tierY + 15);
+
+  // INCLUSION ROW 1: "ALLOWED FOR ALL FREE PROGRAMS"
+  const incPill1Y = accessCardY + 44;
+  const incPill1H = 34;
+  const incPill1W = accessCardW - 36;
+  roundRect(ctx, leftX + 18, incPill1Y, incPill1W, incPill1H, 10);
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.14)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Green check dot
+  ctx.fillStyle = '#10B981';
+  ctx.beginPath();
+  ctx.arc(leftX + 34, incPill1Y + incPill1H / 2, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.font = 'bold 12px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#34D399';
+  ctx.fillText('ALLOWED FOR ALL FREE PROGRAMS', leftX + 46, incPill1Y + 22);
+
+  ctx.font = '500 11px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#94A3B8';
+  ctx.fillText('• Indoor & Outdoor Sports, Competitions & Open Entry', leftX + 300, incPill1Y + 22);
+
+  // INCLUSION ROW 2: SPECIAL ENTRY (e.g. DJ Night if paid) OR STANDARD ENTRY
+  const incPill2Y = accessCardY + 88;
+  const incPill2H = 34;
+  const incPill2W = accessCardW - 36;
+  roundRect(ctx, leftX + 18, incPill2Y, incPill2W, incPill2H, 10);
+
+  if (hasSpecialPaid) {
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.16)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Gold star dot
+    ctx.fillStyle = '#F59E0B';
+    ctx.beginPath();
+    ctx.arc(leftX + 34, incPill2Y + incPill2H / 2, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    const specialName = (details.specialEntryName || 'SPECIAL EVENT').toUpperCase();
+    ctx.font = 'bold 12px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#FBBF24';
+    ctx.fillText(`★ SPECIAL ENTRY: ${specialName}`, leftX + 46, incPill2Y + 22);
+
+    ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#34D399';
+    ctx.fillText('• PAID & VERIFIED ✓', leftX + 46 + ctx.measureText(`★ SPECIAL ENTRY: ${specialName}`).width + 16, incPill2Y + 22);
+  } else {
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.55)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Blue dot
+    ctx.fillStyle = '#60A5FA';
+    ctx.beginPath();
+    ctx.arc(leftX + 34, incPill2Y + incPill2H / 2, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = 'bold 12px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#E2E8F0';
+    ctx.fillText('STANDARD EVENT ADMISSION', leftX + 46, incPill2Y + 22);
+
+    ctx.font = '500 11px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#94A3B8';
+    ctx.fillText('• Upgrade available for special ticketed events (DJ Night, etc.)', leftX + 270, incPill2Y + 22);
+  }
+
+  // INCLUSION ROW 3: MODERN KEYWORD TAGS (NO LONG PARAGRAPHS!)
+  const keywordTags = [
+    'GATE ADMISSION: AUTHORISED',
+    'PHOTO ID MANDATORY',
+    'ALL-DAY ENTRY',
+    'NON-TRANSFERABLE',
+  ];
+
+  let tagX = leftX + 18;
+  const tagY = accessCardY + 138;
+  const tagH = 26;
+
+  for (const t of keywordTags) {
+    ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
+    const tWidth = ctx.measureText(t).width;
+    const tBoxW = tWidth + 18;
+
+    roundRect(ctx, tagX, tagY, tBoxW, tagH, 7);
+    ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#CBD5E1';
+    ctx.fillText(t, tagX + 9, tagY + 17);
+
+    tagX += tBoxW + 8;
+    if (tagX > leftX + accessCardW - 100) break;
+  }
+
+  // 8. Footer Micro-Bar (Modern & Compact Keyword Footer)
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#64748B';
   ctx.fillText(
-    '✓ Official student access pass. Scan the verified QR code with any camera to verify authenticity.',
+    'CAMPUSFLOW SECURE PASS • PRESENT AT REGISTRATION DESK • VALID WITH COLLEGE PHOTO ID',
     leftX,
-    570
+    578
   );
 
   // ============================================================
-  // RIGHT SECTION: TICKET STUB / REGISTRATION NUMBER & REAL QR CODE
+  // RIGHT SECTION: TICKET STUB / LOGO / REG # / QR / PAYMENT
   // ============================================================
   const rightWidth = width - stubX;
   const rightCenterX = stubX + rightWidth / 2;
 
-  // Header
-  ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
+  // 1. TOP: COLLEGE LOGO CREST
+  // "right part me top me college logo"
+  const logoCenterY = 46;
+  const logoRadius = 24;
+
+  if (logoImg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(rightCenterX, logoCenterY, logoRadius, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(
+      logoImg,
+      rightCenterX - logoRadius,
+      logoCenterY - logoRadius,
+      logoRadius * 2,
+      logoRadius * 2
+    );
+    ctx.restore();
+
+    // Subtle emerald glowing ring around logo
+    ctx.beginPath();
+    ctx.arc(rightCenterX, logoCenterY, logoRadius + 1, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else {
+    // Sleek branded monogram emblem
+    ctx.beginPath();
+    ctx.arc(rightCenterX, logoCenterY, logoRadius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const collegeAbbr = details.collegeCode || details.collegeName?.slice(0, 3).toUpperCase() || 'BCE';
+    ctx.font = '900 13px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#34D399';
+    ctx.textAlign = 'center';
+    ctx.fillText(collegeAbbr, rightCenterX, logoCenterY + 5);
+  }
+
+  // 2. Header
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#94A3B8';
   ctx.textAlign = 'center';
-  ctx.fillText('EVENT REGISTRATION #', rightCenterX, 74);
+  ctx.fillText('EVENT REGISTRATION #', rightCenterX, 86);
 
-  // Golden Registration Box
+  // 3. Golden Registration Box
   const regBoxW = 270;
-  const regBoxH = 56;
+  const regBoxH = 50;
   const regBoxX = rightCenterX - regBoxW / 2;
-  const regBoxY = 92;
+  const regBoxY = 96;
 
-  roundRect(ctx, regBoxX, regBoxY, regBoxW, regBoxH, 14);
+  roundRect(ctx, regBoxX, regBoxY, regBoxW, regBoxH, 13);
   ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
-  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
+  ctx.lineWidth = 1.4;
   ctx.stroke();
 
-  ctx.font = 'bold 24px "Courier New", Courier, monospace';
+  ctx.font = 'bold 23px "Courier New", Courier, monospace';
   ctx.fillStyle = '#FBBF24';
   ctx.textAlign = 'center';
-  ctx.fillText(details.registrationNumber, rightCenterX, regBoxY + 36);
+  ctx.fillText(details.registrationNumber, rightCenterX, regBoxY + 34);
 
-  // Construct Verification URL for QR Code
+  // 4. Verification URL & Real QR Code
   let verificationUrl = details.verificationUrl;
   if (!verificationUrl) {
     const origin = typeof window !== 'undefined' && window.location.origin
@@ -295,33 +500,32 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     verificationUrl = `${origin}/events/${slug}/verify?reg=${encodeURIComponent(details.registrationNumber)}`;
   }
 
-  // Real Scannable QR Code
-  const qrContainerW = 168;
-  const qrContainerH = 168;
+  const qrContainerW = 158;
+  const qrContainerH = 158;
   const qrContainerX = rightCenterX - qrContainerW / 2;
-  const qrContainerY = 168;
+  const qrContainerY = 158;
 
-  // Background white card with rounded corners and emerald border for maximum scanner contrast
-  roundRect(ctx, qrContainerX, qrContainerY, qrContainerW, qrContainerH, 16);
+  // Background white card with rounded corners and emerald border for maximum camera contrast
+  roundRect(ctx, qrContainerX, qrContainerY, qrContainerW, qrContainerH, 15);
   ctx.fillStyle = '#FFFFFF';
   ctx.fill();
   ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Render QR Code onto a temporary canvas
+  // Render QR Code via qrcode onto temporary canvas
   const qrCanvas = document.createElement('canvas');
   await QRCode.toCanvas(qrCanvas, verificationUrl, {
     width: 320,
     margin: 1,
     errorCorrectionLevel: 'M',
     color: {
-      dark: '#09101F',
+      dark: '#070D18',
       light: '#FFFFFF',
     },
   });
 
-  const qrPad = 10;
+  const qrPad = 8;
   const qrDrawSize = qrContainerW - qrPad * 2;
   ctx.drawImage(
     qrCanvas,
@@ -331,39 +535,85 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     qrDrawSize
   );
 
-  // Micro label under QR
-  ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
+  // Label under QR
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#34D399';
   ctx.textAlign = 'center';
-  ctx.fillText('⚡ SCAN TO VERIFY PASS', rightCenterX, qrContainerY + qrContainerH + 20);
+  ctx.fillText('⚡ SCAN TO VERIFY PASS', rightCenterX, qrContainerY + qrContainerH + 18);
 
-  // Security Seal
-  const sealY = 388;
-  const sealH = 74;
-  roundRect(ctx, regBoxX + 15, sealY, regBoxW - 30, sealH, 14);
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+  // 5. PAYMENT INFO BOX (DIRECTLY UNDER QR CODE)
+  // "FREE or total paid charge QR ke bottom me show kro"
+  const payBoxW = 270;
+  const payBoxH = 50;
+  const payBoxX = rightCenterX - payBoxW / 2;
+  const payBoxY = 348;
+
+  roundRect(ctx, payBoxX, payBoxY, payBoxW, payBoxH, 13);
+
+  const isPaidStudent = Boolean(
+    (details.totalPaidAmount && details.totalPaidAmount > 0) || details.isPaid
+  );
+  const paidAmount = details.totalPaidAmount || 0;
+
+  if (isPaidStudent && paidAmount > 0) {
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.16)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    ctx.font = 'bold 14px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#FBBF24';
+    ctx.textAlign = 'center';
+    ctx.fillText(`TOTAL PAID: ₹${paidAmount}`, rightCenterX, payBoxY + 23);
+
+    ctx.font = 'bold 9px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#34D399';
+    ctx.fillText('PAYMENT VERIFIED • VIP INCLUSIONS ✓', rightCenterX, payBoxY + 39);
+  } else {
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.14)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+
+    ctx.font = 'bold 14px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#34D399';
+    ctx.textAlign = 'center';
+    ctx.fillText('ENTRY: FREE PASS • ₹0', rightCenterX, payBoxY + 23);
+
+    ctx.font = 'bold 9px "Inter", system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#94A3B8';
+    ctx.fillText('COMPLIMENTARY STUDENT ACCESS', rightCenterX, payBoxY + 39);
+  }
+
+  // 6. BOTTOM: DIGITAL SECURITY SEAL
+  const sealY = 412;
+  const sealH = 72;
+  roundRect(ctx, regBoxX + 15, sealY, regBoxW - 30, sealH, 13);
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(51, 65, 85, 0.7)';
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = 'bold 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#34D399';
   ctx.textAlign = 'center';
-  ctx.fillText('CAMPUSFLOW VERIFIED PASS', rightCenterX, sealY + 28);
+  ctx.fillText('CAMPUSFLOW VERIFIED PASS', rightCenterX, sealY + 26);
 
   ctx.font = '500 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#94A3B8';
-  ctx.fillText(`ISSUED: ${new Date().toLocaleDateString('en-IN')}`, rightCenterX, sealY + 48);
+  ctx.fillText(`ISSUED: ${new Date().toLocaleDateString('en-IN')}`, rightCenterX, sealY + 44);
 
-  ctx.font = '400 9px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.font = 'bold 8px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#64748B';
-  ctx.fillText('DIGITALLY SIGNED & ENCRYPTED', rightCenterX, sealY + 64);
+  ctx.fillText('ENCRYPTED ID • TAMPER-EVIDENT', rightCenterX, sealY + 59);
 
   // Reset text align
   ctx.textAlign = 'left';
 
-  // 8. Convert to Blob & Trigger Browser Download
+  // 7. Convert to Blob & Trigger Download
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {

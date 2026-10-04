@@ -67,13 +67,22 @@ export function StudentMyRegistrationsClient({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
 
+  const paidPrograms = programs.filter(
+    (p) => (p.paymentAmount > 0 || p.paymentStatus === 'PAID' || p.paymentStatus === 'VERIFIED') && p.registrationStatus !== 'CANCELLED'
+  );
+  const totalPaidAmount = paidPrograms.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
+  const specialEntryName = paidPrograms.map((p) => p.programName).filter(Boolean).join(', ');
+
   const handleDownloadPass = async () => {
     if (!session) return;
     setDownloadingPass(true);
     try {
+      const college = (event as any).college;
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: (event as any).college?.name,
+        collegeName: college?.name,
+        collegeLogoUrl: college?.logo_url,
+        collegeCode: college?.code,
         venue: event.venue,
         participantName: session.fullName,
         email: session.email,
@@ -83,6 +92,9 @@ export function StudentMyRegistrationsClient({
         semester: session.semester,
         mobile: session.mobile,
         eventSlug: event.slug,
+        isPaid: totalPaidAmount > 0,
+        totalPaidAmount: totalPaidAmount,
+        specialEntryName: specialEntryName || undefined,
       });
     } catch (err) {
       console.error('Failed to download pass:', err);
@@ -373,6 +385,22 @@ export function StudentMyRegistrationsClient({
                   )}
                 </div>
               )}
+
+              {/* Inclusions Badges */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
+                  ✓ Allowed for all FREE programs
+                </span>
+                {specialEntryName ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold">
+                    ★ Special Entry: {specialEntryName} (Paid ₹{totalPaidAmount})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700 text-slate-400 text-[10px]">
+                    Entry: Free Pass
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1 min-w-0 bg-slate-800/70 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none">
