@@ -15,6 +15,8 @@ import {
   Bell,
   Send,
   ChevronRight,
+  Edit3,
+  Download,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -26,6 +28,8 @@ import {
 } from '@/app/admin/events/event-registration-actions';
 import { ManageTeamModal } from './ManageTeamModal';
 import { FindTeamModal } from './FindTeamModal';
+import { EditEventPassModal } from './EditEventPassModal';
+import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
 import { getMyJoinRequestsAction } from '@/app/events/join-requests/actions';
 
@@ -58,6 +62,34 @@ export function StudentMyRegistrationsClient({
     programName: string;
     initialView?: 'search' | 'requests';
   } | null>(null);
+
+  // Edit pass & download pass states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [downloadingPass, setDownloadingPass] = useState(false);
+
+  const handleDownloadPass = async () => {
+    if (!session) return;
+    setDownloadingPass(true);
+    try {
+      await generateAndDownloadPassPNG({
+        eventTitle: event.title,
+        collegeName: (event as any).college?.name,
+        venue: event.venue,
+        participantName: session.fullName,
+        email: session.email,
+        registrationNumber: session.registrationNumber,
+        studentId: session.studentId,
+        branch: session.branch,
+        semester: session.semester,
+        mobile: session.mobile,
+      });
+    } catch (err) {
+      console.error('Failed to download pass:', err);
+      alert('Could not download pass. Please try again.');
+    } finally {
+      setDownloadingPass(false);
+    }
+  };
 
   useEffect(() => {
     if (!session) { setUnreadInvitationCount(0); setUnreadJoinRequestCount(0); return; }
@@ -92,7 +124,10 @@ export function StudentMyRegistrationsClient({
           registrationNumber: res.session.registrationNumber,
           email: res.session.email,
           fullName: res.session.fullName,
-          studentId: '',
+          studentId: res.session.studentId || '',
+          mobile: res.session.mobile || '',
+          branch: res.session.branch || '',
+          semester: res.session.semester || '',
           eventId: event.id,
           collegeId: event.college_id,
           issuedAt: Date.now(),
@@ -241,17 +276,45 @@ export function StudentMyRegistrationsClient({
         </div>
 
         <div className="relative z-10 space-y-4">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-900/60 px-2.5 sm:px-3 py-1 rounded-full border border-blue-800">
               Official Event Pass
             </span>
-            <button
-              onClick={handleLogout}
-              className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Log out</span>
-            </button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-300 border border-amber-500/30 transition-all cursor-pointer"
+                title="Edit Pass Details"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Edit Pass</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadPass}
+                disabled={downloadingPass}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 transition-all cursor-pointer disabled:opacity-50"
+                title="Download PNG Pass"
+              >
+                {downloadingPass ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span>Download Pass</span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 px-1.5 py-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log out</span>
+              </button>
+            </div>
           </div>
 
           <div className="min-w-0">
@@ -260,10 +323,55 @@ export function StudentMyRegistrationsClient({
           </div>
 
           <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4 pt-4 border-t border-slate-700/60">
-            <div className="space-y-1 min-w-0">
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">Participant Name</div>
+            <div className="space-y-1.5 min-w-0">
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <span>Participant Name</span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="text-amber-400 hover:text-amber-300 text-[10px] inline-flex items-center gap-0.5 cursor-pointer underline"
+                >
+                  <Edit3 className="w-2.5 h-2.5" />
+                  <span>Edit</span>
+                </button>
+              </div>
               <div className="text-sm sm:text-base font-bold text-white break-words">{session.fullName}</div>
               <div className="text-xs text-slate-300 break-all">{session.email}</div>
+
+              {(session.studentId || session.branch || session.semester) && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+                  {session.studentId && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="bg-slate-800/80 hover:bg-slate-700/80 px-2 py-0.5 rounded-md border border-slate-700/60 font-mono text-[11px] text-slate-300 transition-colors cursor-pointer"
+                      title="Click to edit"
+                    >
+                      Roll: {session.studentId}
+                    </button>
+                  )}
+                  {session.branch && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="bg-slate-800/80 hover:bg-slate-700/80 px-2 py-0.5 rounded-md border border-slate-700/60 text-[11px] text-slate-300 transition-colors cursor-pointer"
+                      title="Click to edit"
+                    >
+                      {session.branch}
+                    </button>
+                  )}
+                  {session.semester && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="bg-slate-800/80 hover:bg-slate-700/80 px-2 py-0.5 rounded-md border border-slate-700/60 text-[11px] text-slate-300 transition-colors cursor-pointer"
+                      title="Click to edit"
+                    >
+                      {session.semester}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1 min-w-0 bg-slate-800/70 sm:bg-transparent p-3 sm:p-0 rounded-xl sm:rounded-none">
@@ -274,6 +382,30 @@ export function StudentMyRegistrationsClient({
             </div>
           </div>
         </div>
+
+        {/* Edit Pass Modal */}
+        {session && (
+          <EditEventPassModal
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            event={event}
+            participant={session}
+            onSuccess={(updated) => {
+              setSession((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      fullName: updated.fullName,
+                      studentId: updated.studentId,
+                      mobile: updated.mobile,
+                      branch: updated.branch,
+                      semester: updated.semester,
+                    }
+                  : null
+              );
+            }}
+          />
+        )}
       </div>
 
       <Link href={`/events/invitations?eventId=${encodeURIComponent(event.id)}`} className="flex items-center justify-between rounded-xl sm:rounded-2xl border border-violet-200 bg-white p-3.5 sm:p-4 shadow-sm hover:bg-violet-50 transition-colors">

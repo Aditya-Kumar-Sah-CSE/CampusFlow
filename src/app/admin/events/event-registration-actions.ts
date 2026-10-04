@@ -28,6 +28,7 @@ import {
   updateTeamNameInSheets,
   updateTeamMemberDetailsInSheet,
   removeTeamMemberFromSheet,
+  updateStudentEventRegistrationInSheet,
 } from '@/lib/google/event-registration-sheets';
 import {
   createEventSession,
@@ -192,6 +193,11 @@ export async function loginToEventAction(
     registrationNumber: string;
     fullName: string;
     email: string;
+    studentId?: string;
+    mobile?: string;
+    branch?: string;
+    semester?: string;
+    gender?: string;
   };
 }> {
   try {
@@ -251,6 +257,11 @@ export async function loginToEventAction(
         registrationNumber: registration.registrationNumber,
         fullName: registration.participantName,
         email: registration.email,
+        studentId: registration.studentId,
+        mobile: registration.mobile,
+        branch: registration.branch,
+        semester: registration.semester,
+        gender: registration.gender,
       },
     };
   } catch (err: unknown) {
@@ -1981,6 +1992,151 @@ export async function getEventAcademicMastersByEventIdAction(eventId: string): P
   } catch (err) {
     console.error('Failed to get academic masters by eventId:', err);
     return { branches: [], semesters: [] };
+  }
+}
+
+/**
+ * Updates a student's personal registration / pass details (Name, Roll, Branch, Semester, Mobile)
+ * in Google Sheets and updates the active event session.
+ */
+export async function updateStudentEventRegistrationAction(input: {
+  eventId: string;
+  registrationNumber: string;
+  fullName: string;
+  studentId: string;
+  email?: string;
+  mobile?: string;
+  branch?: string;
+  semester?: string;
+  gender?: string;
+}): Promise<{
+  success: boolean;
+  error?: string;
+  participant?: {
+    fullName: string;
+    registrationNumber: string;
+    email: string;
+    studentId: string;
+    mobile: string;
+    branch: string;
+    semester: string;
+    gender: string;
+  };
+}> {
+  try {
+    const cleanReg = input.registrationNumber?.trim().toUpperCase();
+    if (!cleanReg) {
+      return { success: false, error: 'Registration number is required.' };
+    }
+    const cleanName = input.fullName?.trim();
+    if (!cleanName) {
+      return { success: false, error: 'Full name is required.' };
+    }
+    const cleanStudentId = input.studentId?.trim().toUpperCase();
+    if (!cleanStudentId) {
+      return { success: false, error: 'Roll number / Student ID is required.' };
+    }
+
+    const event = await getEventWithCollege(input.eventId);
+    const googleConnected = await isCollegeGoogleConfigured(event.college_id);
+    if (!googleConnected) {
+      return {
+        success: false,
+        error: 'College registration service is not connected to Google Drive.',
+      };
+    }
+
+    if (!event.registration_sheet_id) {
+      return {
+        success: false,
+        error: 'No registration sheet found for this event.',
+      };
+    }
+
+    // Resolve branch and semester to clean display values
+    let finalBranch = input.branch?.trim() || '';
+    let finalSemester = input.semester?.trim() || '';
+    try {
+      const academic = await resolveAcademicDisplayValues(event.college_id, finalBranch, finalSemester);
+      finalBranch = academic.branch;
+      finalSemester = academic.semester;
+    } catch {
+      // non-fatal fallback
+    }
+
+    // Update in Google Sheet
+    const ok = await updateStudentEventRegistrationInSheet(
+      event.college_id,
+      event.registration_sheet_id,
+      cleanReg,
+      {
+        fullName: cleanName,
+        studentId: cleanStudentId,
+        mobile: input.mobile?.trim(),
+        branch: finalBranch,
+        semester: finalSemester,
+        gender: input.gender?.trim(),
+      }
+    );
+
+    if (!ok) {
+      return { success: false, error: `Could not find registration ${cleanReg} to update.` };
+    }
+
+    // Update session cookie if active
+    const sessionResult = await verifyEventSession(event.id);
+    const currentSession = sessionResult.session;
+    let email = input.email?.trim() || currentSession?.email || '';
+    if (!email) {
+      const reg = await lookupEventRegistrationByNumber(
+        event.college_id,
+        event.id,
+        cleanReg,
+        event.registration_sheet_id
+      );
+      if (reg?.email) {
+        email = reg.email;
+      }
+    }
+
+    if (sessionResult.isValid || email) {
+      await createEventSession({
+        registrationNumber: cleanReg,
+        email: email,
+        fullName: cleanName,
+        studentId: cleanStudentId,
+        eventId: event.id,
+        collegeId: event.college_id,
+        mobile: input.mobile?.trim() || currentSession?.mobile || '',
+        branch: finalBranch,
+        semester: finalSemester,
+        gender: input.gender?.trim() || currentSession?.gender || '',
+      });
+    }
+
+    revalidatePath(`/events/${event.slug}`);
+    revalidatePath(`/events/${event.slug}/my-registrations`);
+    revalidatePath(`/admin/events/${event.id}`);
+
+    return {
+      success: true,
+      participant: {
+        fullName: cleanName,
+        registrationNumber: cleanReg,
+        email: email,
+        studentId: cleanStudentId,
+        mobile: input.mobile?.trim() || currentSession?.mobile || '',
+        branch: finalBranch,
+        semester: finalSemester,
+        gender: input.gender?.trim() || currentSession?.gender || '',
+      },
+    };
+  } catch (err: unknown) {
+    console.error('[UPDATE_EVENT_REGISTRATION_ERROR]', err);
+    return {
+      success: false,
+      error: (err as Error).message || 'Failed to update pass details. Please try again.',
+    };
   }
 }
 

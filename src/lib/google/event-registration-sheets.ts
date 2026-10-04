@@ -1572,6 +1572,58 @@ export async function updateTeamMemberDetailsInSheet(
 }
 
 /**
+ * Update a student's personal details (Name, Roll, Branch, Semester, Mobile) in EVENT_REGISTRATIONS
+ * and any enrolled program sheets where their registration number appears.
+ */
+export async function updateStudentEventRegistrationInSheet(
+  collegeId: string,
+  spreadsheetId: string,
+  registrationNumber: string,
+  details: {
+    fullName: string;
+    studentId: string;
+    email?: string;
+    mobile?: string;
+    branch?: string;
+    semester?: string;
+    gender?: string;
+  }
+): Promise<boolean> {
+  await assertCollegeGoogleConnected(collegeId);
+  const cleanReg = registrationNumber.trim().toUpperCase();
+  const all = await getEventRegistrations(collegeId, spreadsheetId);
+  const matchingRows = all.filter(r => r.registrationNumber.toUpperCase() === cleanReg);
+  if (matchingRows.length === 0) return false;
+
+  const cleanName = details.fullName.trim();
+  const cleanStudentId = details.studentId.trim().toUpperCase();
+  const cleanMobile = details.mobile?.trim() || '';
+  const cleanBranch = details.branch?.trim() || '';
+  const cleanSemester = details.semester?.trim() || '';
+  const cleanGender = details.gender?.trim() || '';
+
+  // Update in MASTER_SHEET_NAME for all rows matching this registration number
+  await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    for (const target of matchingRows) {
+      if (!target.rowIndex) continue;
+      const keepEmail = (details.email?.trim() || target.email || '').toLowerCase();
+      const keepGender = cleanGender || target.gender || '';
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `'${MASTER_SHEET_NAME}'!I${target.rowIndex}:O${target.rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[cleanName, cleanStudentId, keepEmail, cleanMobile, cleanBranch, cleanSemester, keepGender]],
+        },
+      });
+    }
+  });
+
+  return true;
+}
+
+
+/**
  * Remove a team member by cancelling in EVENT_REGISTRATIONS and deleting the row in PROGRAM tab.
  */
 export async function removeTeamMemberFromSheet(

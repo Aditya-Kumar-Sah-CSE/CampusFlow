@@ -14,6 +14,8 @@ import {
   ArrowRight,
   LogOut,
   Sparkles,
+  Edit3,
+  Download,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -21,6 +23,8 @@ import {
   identifyStudentAction,
   logoutFromEventAction,
 } from '@/app/admin/events/event-registration-actions';
+import { EditEventPassModal } from './EditEventPassModal';
+import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
 
 interface Props {
   event: CollegeEvent;
@@ -61,6 +65,32 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [notFoundQuery, setNotFoundQuery] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [downloadingPass, setDownloadingPass] = useState(false);
+
+  const handleDownloadPass = async () => {
+    if (!participant) return;
+    setDownloadingPass(true);
+    try {
+      await generateAndDownloadPassPNG({
+        eventTitle: event.title,
+        collegeName: (event as any).college?.name,
+        venue: event.venue,
+        participantName: participant.fullName,
+        email: participant.email,
+        registrationNumber: participant.registrationNumber,
+        studentId: participant.studentId,
+        branch: participant.branch,
+        semester: participant.semester,
+        mobile: participant.mobile,
+      });
+    } catch (err) {
+      console.error('Failed to download pass:', err);
+      alert('Could not download pass. Please try again.');
+    } finally {
+      setDownloadingPass(false);
+    }
+  };
 
   // IDENTIFY STUDENT (Email / Registration Number / Roll Number)
   const handleIdentify = async (e: React.FormEvent) => {
@@ -144,13 +174,44 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
               <span className="text-[11px] text-slate-400">Google Sheet: EVENT_REGISTRATIONS</span>
             </div>
 
-            <button
-              onClick={handleSwitchStudent}
-              className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start sm:self-auto"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Switch Student</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              {/* Edit Pass Button */}
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs font-semibold text-amber-300 border border-amber-500/30 shadow-xs transition-all cursor-pointer"
+                title="Edit Pass Details"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Edit Pass</span>
+              </button>
+
+              {/* Download PNG Pass Button */}
+              <button
+                type="button"
+                onClick={handleDownloadPass}
+                disabled={downloadingPass}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                title="Download PNG Pass"
+              >
+                {downloadingPass ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5 text-emerald-400" />
+                )}
+                <span>Download Pass</span>
+              </button>
+
+              {/* Switch Student */}
+              <button
+                type="button"
+                onClick={handleSwitchStudent}
+                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer px-1.5 py-1"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Switch Student</span>
+              </button>
+            </div>
           </div>
 
           {/* Student Info Card */}
@@ -168,20 +229,44 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
               </p>
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-300 pt-1">
                 {participant.studentId && (
-                  <span className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="bg-slate-800/80 hover:bg-slate-700/80 px-2.5 py-1 rounded-lg border border-slate-700/60 font-mono transition-colors cursor-pointer text-left"
+                    title="Click to edit"
+                  >
                     Roll: {participant.studentId}
-                  </span>
+                  </button>
                 )}
                 {participant.branch && (
-                  <span className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="bg-slate-800/80 hover:bg-slate-700/80 px-2.5 py-1 rounded-lg border border-slate-700/60 transition-colors cursor-pointer text-left"
+                    title="Click to edit"
+                  >
                     {participant.branch}
-                  </span>
+                  </button>
                 )}
                 {participant.semester && (
-                  <span className="bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700/60">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="bg-slate-800/80 hover:bg-slate-700/80 px-2.5 py-1 rounded-lg border border-slate-700/60 transition-colors cursor-pointer text-left"
+                    title="Click to edit"
+                  >
                     {participant.semester}
-                  </span>
+                  </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors px-1 py-0.5"
+                  title="Edit details"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Edit</span>
+                </button>
               </div>
               <p className="text-xs text-slate-400 pt-1">
                 You have exactly 1 event registration for {event.title}. Use this registration to participate in multiple programs below.
@@ -226,6 +311,28 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
             </Link>
           </div>
         </div>
+
+        {/* Edit Pass Modal */}
+        <EditEventPassModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          event={event}
+          participant={participant}
+          onSuccess={(updated) => {
+            setParticipant((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    fullName: updated.fullName,
+                    studentId: updated.studentId,
+                    mobile: updated.mobile,
+                    branch: updated.branch,
+                    semester: updated.semester,
+                  }
+                : null
+            );
+          }}
+        />
       </div>
     );
   }

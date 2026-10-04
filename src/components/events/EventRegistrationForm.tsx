@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   Search,
   LogOut,
+  Download,
 } from 'lucide-react';
+import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
 import {
   registerForEventAction,
   identifyStudentAction,
@@ -88,6 +90,38 @@ export function EventRegistrationForm({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successRegNumber, setSuccessRegNumber] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [downloadingPass, setDownloadingPass] = useState(false);
+
+  const handleDownloadPass = async (details: {
+    fullName: string;
+    studentId: string;
+    email: string;
+    registrationNumber: string;
+    mobile?: string;
+    branch?: string;
+    semester?: string;
+  }) => {
+    setDownloadingPass(true);
+    try {
+      await generateAndDownloadPassPNG({
+        eventTitle: event.title,
+        collegeName: collegeName || (event as any).college?.name,
+        venue: event.venue,
+        participantName: details.fullName,
+        email: details.email,
+        registrationNumber: details.registrationNumber,
+        studentId: details.studentId,
+        branch: details.branch,
+        semester: details.semester,
+        mobile: details.mobile,
+      });
+    } catch (err) {
+      console.error('Failed to download pass:', err);
+      alert('Could not download pass. Please try again.');
+    } finally {
+      setDownloadingPass(false);
+    }
+  };
 
   // Check if session cookie already exists on mount
   useEffect(() => {
@@ -260,13 +294,27 @@ export function EventRegistrationForm({
           <p className="text-[11px] text-slate-400">
             This registration number is your permanent event identity. Use it alongside your registered email to join programs.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
             <button
               onClick={() => handleCopy(alreadyRegisteredParticipant.registrationNumber)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5" />
               <span>{copied ? 'Copied to Clipboard!' : 'Copy Registration Number'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleDownloadPass(alreadyRegisteredParticipant)}
+              disabled={downloadingPass}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {downloadingPass ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+              <span>Download Pass (PNG)</span>
             </button>
           </div>
         </div>
@@ -332,13 +380,37 @@ export function EventRegistrationForm({
           <p className="text-[11px] text-slate-400">
             This registration number is your permanent event identity. Use it alongside your registered email to join programs.
           </p>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
             <button
               onClick={() => handleCopy(successRegNumber)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5" />
               <span>{copied ? 'Copied to Clipboard!' : 'Copy Registration Number'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleDownloadPass({
+                  fullName: fullName.trim(),
+                  studentId: studentId.trim().toUpperCase(),
+                  email: email.trim().toLowerCase(),
+                  registrationNumber: successRegNumber,
+                  mobile: mobile.trim(),
+                  branch: branch.trim(),
+                  semester: semester.trim(),
+                })
+              }
+              disabled={downloadingPass}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {downloadingPass ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+              <span>Download Pass (PNG)</span>
             </button>
           </div>
         </div>
