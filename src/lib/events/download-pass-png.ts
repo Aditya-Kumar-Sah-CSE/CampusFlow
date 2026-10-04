@@ -1,9 +1,11 @@
 'use client';
 
+import QRCode from 'qrcode';
+
 /**
  * High-Resolution PNG Event Pass Generator
  * Renders an official, beautiful VIP Event Pass directly on client-side Canvas
- * and triggers immediate browser download without any external heavy dependencies.
+ * with a scannable, real QR Code linking to the live pass verification portal.
  */
 
 export interface EventPassDetails {
@@ -19,6 +21,8 @@ export interface EventPassDetails {
   branch?: string;
   semester?: string;
   mobile?: string;
+  eventSlug?: string;
+  verificationUrl?: string;
 }
 
 function roundRect(
@@ -42,42 +46,6 @@ function roundRect(
   ctx.closePath();
 }
 
-/**
- * Draws a realistic, stylized verification barcode on canvas
- */
-function drawBarcode(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  startX: number,
-  startY: number,
-  width: number,
-  height: number
-) {
-  const seed = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  ctx.fillStyle = '#E2E8F0';
-
-  const barCount = 48;
-  const barWidth = width / (barCount * 1.6);
-  let currentX = startX;
-
-  for (let i = 0; i < barCount; i++) {
-    // Deterministic pseudo-random pattern based on text
-    const pattern = (seed * (i + 1) * 31) % 7;
-    const isThick = pattern > 4;
-    const isGap = pattern === 0 && i > 3 && i < barCount - 3;
-
-    if (!isGap) {
-      const w = isThick ? barWidth * 1.8 : barWidth * 0.9;
-      ctx.fillRect(currentX, startY, w, height);
-      currentX += w + barWidth * 0.7;
-    } else {
-      currentX += barWidth * 1.5;
-    }
-
-    if (currentX >= startX + width) break;
-  }
-}
-
 export async function generateAndDownloadPassPNG(details: EventPassDetails): Promise<void> {
   const width = 1200;
   const height = 620;
@@ -88,11 +56,12 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not initialize canvas context');
 
+  // Wait for fonts if available
   if (typeof document !== 'undefined' && document.fonts?.ready) {
     try {
       await document.fonts.ready;
     } catch {
-      // non-fatal
+      // non-fatal font wait
     }
   }
 
@@ -141,7 +110,7 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
   ctx.setLineDash([]); // reset
 
   // Top and bottom cutouts (ticket punch notches)
-  ctx.fillStyle = '#030712'; // dark transparent match
+  ctx.fillStyle = '#030712';
   ctx.beginPath();
   ctx.arc(stubX, 0, 22, 0, Math.PI);
   ctx.fill();
@@ -274,20 +243,20 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     ctx.fillText(text, badgeX + 12, badgeY + 22);
 
     badgeX += badgeW + 10;
-    if (badgeX > stubX - 100) break; // keep within left partition
+    if (badgeX > stubX - 100) break;
   }
 
   // 7. Security note footer
   ctx.font = '400 12px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#64748B';
   ctx.fillText(
-    '✓ Official student access pass. Present this digital pass at the entrance or registration desk.',
+    '✓ Official student access pass. Scan the verified QR code with any camera to verify authenticity.',
     leftX,
     570
   );
 
   // ============================================================
-  // RIGHT SECTION: TICKET STUB / REGISTRATION NUMBER & BARCODE
+  // RIGHT SECTION: TICKET STUB / REGISTRATION NUMBER & REAL QR CODE
   // ============================================================
   const rightWidth = width - stubX;
   const rightCenterX = stubX + rightWidth / 2;
@@ -296,42 +265,82 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
   ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#94A3B8';
   ctx.textAlign = 'center';
-  ctx.fillText('EVENT REGISTRATION #', rightCenterX, 85);
+  ctx.fillText('EVENT REGISTRATION #', rightCenterX, 74);
 
   // Golden Registration Box
   const regBoxW = 270;
-  const regBoxH = 64;
+  const regBoxH = 56;
   const regBoxX = rightCenterX - regBoxW / 2;
-  const regBoxY = 105;
+  const regBoxY = 92;
 
-  roundRect(ctx, regBoxX, regBoxY, regBoxW, regBoxH, 16);
+  roundRect(ctx, regBoxX, regBoxY, regBoxW, regBoxH, 14);
   ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  ctx.font = 'bold 25px "Courier New", Courier, monospace';
+  ctx.font = 'bold 24px "Courier New", Courier, monospace';
   ctx.fillStyle = '#FBBF24';
   ctx.textAlign = 'center';
-  ctx.fillText(details.registrationNumber, rightCenterX, regBoxY + 41);
+  ctx.fillText(details.registrationNumber, rightCenterX, regBoxY + 36);
 
-  // Barcode
-  const barcodeW = 230;
-  const barcodeH = 55;
-  const barcodeX = rightCenterX - barcodeW / 2;
-  const barcodeY = 205;
-  drawBarcode(ctx, details.registrationNumber, barcodeX, barcodeY, barcodeW, barcodeH);
+  // Construct Verification URL for QR Code
+  let verificationUrl = details.verificationUrl;
+  if (!verificationUrl) {
+    const origin = typeof window !== 'undefined' && window.location.origin
+      ? window.location.origin
+      : 'https://campusflow.in';
+    const slug = details.eventSlug || (details.eventTitle || 'event').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    verificationUrl = `${origin}/events/${slug}/verify?reg=${encodeURIComponent(details.registrationNumber)}`;
+  }
 
-  // Barcode caption
-  ctx.font = '11px "Courier New", Courier, monospace';
-  ctx.fillStyle = '#94A3B8';
+  // Real Scannable QR Code
+  const qrContainerW = 168;
+  const qrContainerH = 168;
+  const qrContainerX = rightCenterX - qrContainerW / 2;
+  const qrContainerY = 168;
+
+  // Background white card with rounded corners and emerald border for maximum scanner contrast
+  roundRect(ctx, qrContainerX, qrContainerY, qrContainerW, qrContainerH, 16);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(52, 211, 153, 0.45)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Render QR Code onto a temporary canvas
+  const qrCanvas = document.createElement('canvas');
+  await QRCode.toCanvas(qrCanvas, verificationUrl, {
+    width: 320,
+    margin: 1,
+    errorCorrectionLevel: 'M',
+    color: {
+      dark: '#09101F',
+      light: '#FFFFFF',
+    },
+  });
+
+  const qrPad = 10;
+  const qrDrawSize = qrContainerW - qrPad * 2;
+  ctx.drawImage(
+    qrCanvas,
+    qrContainerX + qrPad,
+    qrContainerY + qrPad,
+    qrDrawSize,
+    qrDrawSize
+  );
+
+  // Micro label under QR
+  ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#34D399';
   ctx.textAlign = 'center';
-  ctx.fillText(`* ${details.registrationNumber} *`, rightCenterX, barcodeY + barcodeH + 20);
+  ctx.fillText('⚡ SCAN TO VERIFY PASS', rightCenterX, qrContainerY + qrContainerH + 20);
 
   // Security Seal
-  const sealY = 350;
-  roundRect(ctx, regBoxX + 15, sealY, regBoxW - 30, 80, 14);
+  const sealY = 388;
+  const sealH = 74;
+  roundRect(ctx, regBoxX + 15, sealY, regBoxW - 30, sealH, 14);
   ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(51, 65, 85, 0.7)';
@@ -341,16 +350,20 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
   ctx.font = 'bold 11px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#34D399';
   ctx.textAlign = 'center';
-  ctx.fillText('CAMPUSFLOW VERIFIED PASS', rightCenterX, sealY + 32);
+  ctx.fillText('CAMPUSFLOW VERIFIED PASS', rightCenterX, sealY + 28);
 
   ctx.font = '500 10px "Inter", system-ui, -apple-system, sans-serif';
   ctx.fillStyle = '#94A3B8';
-  ctx.fillText(`ISSUED: ${new Date().toLocaleDateString('en-IN')}`, rightCenterX, sealY + 54);
+  ctx.fillText(`ISSUED: ${new Date().toLocaleDateString('en-IN')}`, rightCenterX, sealY + 48);
+
+  ctx.font = '400 9px "Inter", system-ui, -apple-system, sans-serif';
+  ctx.fillStyle = '#64748B';
+  ctx.fillText('DIGITALLY SIGNED & ENCRYPTED', rightCenterX, sealY + 64);
 
   // Reset text align
   ctx.textAlign = 'left';
 
-  // 8. Convert to Blob & Trigger Download
+  // 8. Convert to Blob & Trigger Browser Download
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (!blob) {

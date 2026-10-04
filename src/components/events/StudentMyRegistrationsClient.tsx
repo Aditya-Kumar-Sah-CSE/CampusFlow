@@ -82,6 +82,7 @@ export function StudentMyRegistrationsClient({
         branch: session.branch,
         semester: session.semester,
         mobile: session.mobile,
+        eventSlug: event.slug,
       });
     } catch (err) {
       console.error('Failed to download pass:', err);

@@ -114,6 +114,7 @@ export function EventRegistrationForm({
         branch: details.branch,
         semester: details.semester,
         mobile: details.mobile,
+        eventSlug: event.slug,
       });
     } catch (err) {
       console.error('Failed to download pass:', err);

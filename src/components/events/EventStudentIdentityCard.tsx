@@ -83,6 +83,7 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
         branch: participant.branch,
         semester: participant.semester,
         mobile: participant.mobile,
+        eventSlug: event.slug,
       });
     } catch (err) {
       console.error('Failed to download pass:', err);
