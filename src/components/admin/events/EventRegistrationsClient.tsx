@@ -16,10 +16,10 @@ import {
 import type { CollegeEvent, EventRegistration, EventStats, EventPaymentStatus, EventRegistrationStatus } from '@/types/events';
 import type { Branch, Semester } from '@/types/database';
 import {
-  verifyRegistrationPaymentAction,
-  rejectRegistrationPaymentAction,
-  updateRegistrationStatusAction,
-} from '@/app/admin/events/actions';
+  verifyProgramPaymentSheetAction,
+  rejectProgramPaymentSheetAction,
+  updateProgramRegStatusSheetAction,
+} from '@/app/admin/events/event-registration-actions';
 
 interface Props {
   event: CollegeEvent;
@@ -77,11 +77,16 @@ export function EventRegistrationsClient({
     return true;
   });
 
-  const handleVerifyPayment = async (regId: string) => {
+  const handleVerifyPayment = async (regId: string, registrationNumber?: string) => {
+    const regNum = registrationNumber || registrations.find(r => r.id === regId)?.registration_number;
     try {
       setActionLoadingId(regId);
       setFeedback(null);
-      const res = await verifyRegistrationPaymentAction(regId, event.id, activeCollegeId);
+      const res = await verifyProgramPaymentSheetAction(
+        event.id,
+        regNum || regId,
+        activeCollegeId
+      );
       if (res.success) {
         setRegistrations((prev) =>
           prev.map((r) => (r.id === regId ? { ...r, payment_status: 'VERIFIED' } : r))
@@ -92,7 +97,7 @@ export function EventRegistrationsClient({
           paymentVerified: prev.paymentVerified + 1,
           paymentPending: Math.max(0, prev.paymentPending - 1),
         }));
-        setFeedback({ type: 'success', message: 'Payment verified successfully.' });
+        setFeedback({ type: 'success', message: 'Payment verified successfully in Google Sheet.' });
       } else {
         setFeedback({ type: 'error', message: res.error || 'Failed to verify payment.' });
       }
@@ -103,11 +108,16 @@ export function EventRegistrationsClient({
     }
   };
 
-  const handleRejectPayment = async (regId: string) => {
+  const handleRejectPayment = async (regId: string, registrationNumber?: string) => {
+    const regNum = registrationNumber || registrations.find(r => r.id === regId)?.registration_number;
     try {
       setActionLoadingId(regId);
       setFeedback(null);
-      const res = await rejectRegistrationPaymentAction(regId, event.id, activeCollegeId);
+      const res = await rejectProgramPaymentSheetAction(
+        event.id,
+        regNum || regId,
+        activeCollegeId
+      );
       if (res.success) {
         setRegistrations((prev) =>
           prev.map((r) => (r.id === regId ? { ...r, payment_status: 'REJECTED' } : r))
@@ -118,7 +128,7 @@ export function EventRegistrationsClient({
           paymentRejected: prev.paymentRejected + 1,
           paymentPending: Math.max(0, prev.paymentPending - 1),
         }));
-        setFeedback({ type: 'success', message: 'Payment rejected.' });
+        setFeedback({ type: 'success', message: 'Payment rejected in Google Sheet.' });
       } else {
         setFeedback({ type: 'error', message: res.error || 'Failed to reject payment.' });
       }
@@ -130,10 +140,16 @@ export function EventRegistrationsClient({
   };
 
   const handleStatusChange = async (regId: string, newStatus: EventRegistrationStatus) => {
+    const regNum = registrations.find(r => r.id === regId)?.registration_number;
     try {
       setActionLoadingId(regId);
       setFeedback(null);
-      const res = await updateRegistrationStatusAction(regId, event.id, newStatus, activeCollegeId);
+      const res = await updateProgramRegStatusSheetAction(
+        event.id,
+        regNum || regId,
+        newStatus,
+        activeCollegeId
+      );
       if (res.success) {
         setRegistrations((prev) =>
           prev.map((r) => (r.id === regId ? { ...r, registration_status: newStatus } : r))
@@ -475,12 +491,12 @@ export function EventRegistrationsClient({
                           </button>
 
                           {/* Payment Actions */}
-                          {isPaid && reg.payment_status === 'PENDING' && (
+                          {isPaid && (reg.payment_status === 'PENDING' || reg.payment_status === 'SUBMITTED') && (
                             <>
                               <button
                                 type="button"
                                 disabled={isLoading}
-                                onClick={() => setConfirmAction({ type: 'VERIFY', reg })}
+                                onClick={() => setConfirmAction({ type: 'VERIFY', reg: reg })}
                                 suppressHydrationWarning
                                 className="px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded text-[11px] font-bold transition-colors disabled:opacity-50"
                                 title="Verify Payment"
@@ -619,7 +635,7 @@ export function EventRegistrationsClient({
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
-              {isPaid && selectedReg.payment_status === 'PENDING' ? (
+              {isPaid && (selectedReg.payment_status === 'PENDING' || selectedReg.payment_status === 'SUBMITTED') ? (
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -741,7 +757,7 @@ export function EventRegistrationsClient({
                   type="button"
                   disabled={actionLoadingId !== null}
                   onClick={async () => {
-                    await handleVerifyPayment(confirmAction.reg.id);
+                    await handleVerifyPayment(confirmAction.reg.id, confirmAction.reg.registration_number);
                     setConfirmAction(null);
                   }}
                   suppressHydrationWarning
@@ -764,7 +780,7 @@ export function EventRegistrationsClient({
                   type="button"
                   disabled={actionLoadingId !== null}
                   onClick={async () => {
-                    await handleRejectPayment(confirmAction.reg.id);
+                    await handleRejectPayment(confirmAction.reg.id, confirmAction.reg.registration_number);
                     setConfirmAction(null);
                   }}
                   suppressHydrationWarning

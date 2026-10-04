@@ -63,6 +63,7 @@ export interface SheetEventRegistrationInput {
   branch?: string;
   semester?: string;
   gender?: string;
+  payment_reference?: string;
 }
 
 export interface EventLoginInput {

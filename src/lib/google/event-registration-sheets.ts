@@ -128,6 +128,10 @@ export interface EventRegistrationInputData {
   branch?: string;
   semester?: string;
   gender?: string;
+  paymentRequired?: boolean;
+  paymentAmount?: number;
+  paymentStatus?: string;
+  paymentReference?: string;
 }
 
 export interface ProgramRegistrationInputData {
@@ -1042,10 +1046,10 @@ export async function appendEventRegistration(
     data.branch?.trim() || '',             // Branch
     data.semester?.trim() || '',           // Semester
     data.gender?.trim() || '',             // Gender
-    'NO',                                  // Payment Required
-    '0',                                   // Payment Amount
-    'NOT_REQUIRED',                        // Payment Status
-    '',                                    // Payment Reference
+    data.paymentRequired ? 'YES' : 'NO',                    // Payment Required
+    String(data.paymentAmount || 0),                        // Payment Amount
+    data.paymentStatus || (data.paymentRequired ? 'PENDING' : 'NOT_REQUIRED'), // Payment Status
+    data.paymentReference || '',                            // Payment Reference
     'REGISTERED',                          // Registration Status
     new Date().toISOString(),              // Registered At
     '',                                    // Team Leader Registration Number
@@ -1715,6 +1719,24 @@ export async function updateRegistration(
   const rowIndex = target.rowIndex;
 
   await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    if (updates.paymentRequired !== undefined) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `'${MASTER_SHEET_NAME}'!P${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[updates.paymentRequired]] },
+      });
+    }
+
+    if (updates.paymentAmount !== undefined) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `'${MASTER_SHEET_NAME}'!Q${rowIndex}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [[String(updates.paymentAmount)]] },
+      });
+    }
+
     // If updating payment status or reference
     if (updates.paymentStatus !== undefined) {
       await sheets.spreadsheets.values.update({
