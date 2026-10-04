@@ -42,7 +42,7 @@ export async function GET(
     const teamId = searchParams.get('teamId');
 
     let pdfBuffer: Buffer;
-    let filenameSuffix = 'complete-roster';
+    let filenameSuffix = 'complete-participants';
 
     if (teamId) {
       pdfBuffer = await generateIndividualTeamPDF(reportData, teamId);

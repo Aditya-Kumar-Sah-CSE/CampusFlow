@@ -65,5 +65,24 @@ export function formatBranchDisplay(branchCodeOrName: string | null | undefined)
   if (isUuid(str)) {
     return 'Branch not available';
   }
+  const lower = str.toLowerCase();
+  if (lower === 'computer science and engineering' || lower === 'computer science & engineering') {
+    return 'CSE (Computer Science)';
+  }
+  if (lower === 'electronics and communication engineering' || lower === 'electronics & communication engineering') {
+    return 'ECE (Electronics & Comm)';
+  }
+  if (lower === 'electrical engineering' || lower === 'electrical and electronics engineering') {
+    return 'EE (Electrical Engg)';
+  }
+  if (lower === 'mechanical engineering') {
+    return 'ME (Mechanical Engg)';
+  }
+  if (lower === 'civil engineering') {
+    return 'CE (Civil Engg)';
+  }
+  if (lower === 'information technology') {
+    return 'IT (Info Technology)';
+  }
   return str;
 }

@@ -89,7 +89,7 @@ export async function GET(
       });
 
       const safeTitle = event.slug || 'event';
-      const filename = `${safeTitle}-roster-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const filename = `${safeTitle}-registrations-${new Date().toISOString().slice(0, 10)}.pdf`;
 
       return new NextResponse(new Uint8Array(pdfBuffer), {
         headers: {

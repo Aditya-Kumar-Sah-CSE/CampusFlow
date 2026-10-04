@@ -90,7 +90,7 @@ export async function GET(
       ]);
 
       const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(row => row.join(','))].join('\r\n');
-      const filename = `${event.slug}-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+      const filename = `${event.slug}-registrations-${new Date().toISOString().slice(0, 10)}.csv`;
 
       return new NextResponse(csvContent, {
         headers: {

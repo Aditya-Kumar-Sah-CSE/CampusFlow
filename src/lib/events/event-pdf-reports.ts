@@ -664,7 +664,7 @@ export function renderOfficialHeader(
 
   // Right Block: Report Title Badge & Generation Time
   // Placed first with strictly bounded coordinates so it NEVER overlaps middle college text
-  const badgeWidth = isLandscape ? 210 : 160;
+  const badgeWidth = isLandscape ? 210 : 170;
   const badgeX = margin + contentWidth - badgeWidth - 8;
   const badgeY = y + 8;
   const badgeHeight = headerH - 16;
@@ -673,16 +673,16 @@ export function renderOfficialHeader(
 
   const titleFontSize = isLandscape ? 9.5 : 8.5;
   doc.font('Helvetica-Bold').fontSize(titleFontSize).fillColor(PDF_COLORS.primary)
-    .text(reportTitle.toUpperCase(), badgeX + 4, badgeY + 8, { width: badgeWidth - 8, align: 'center', ellipsis: true });
+    .text(reportTitle.toUpperCase(), badgeX + 4, badgeY + 8, { width: badgeWidth - 8, align: 'center', ellipsis: true, lineBreak: false });
 
   if (reportSubtitle) {
-    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.secondary)
-      .text(reportSubtitle, badgeX + 4, badgeY + 23, { width: badgeWidth - 8, align: 'center', ellipsis: true });
+    doc.font('Helvetica').fontSize(7).fillColor(PDF_COLORS.secondary)
+      .text(reportSubtitle, badgeX + 4, badgeY + 23, { width: badgeWidth - 8, align: 'center', ellipsis: true, lineBreak: false });
   }
 
   const generatedTimeStr = formatDateTime(new Date());
   doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
-    .text(`Generated: ${generatedTimeStr}`, badgeX + 4, badgeY + badgeHeight - 15, { width: badgeWidth - 8, align: 'center' });
+    .text(`Generated: ${generatedTimeStr}`, badgeX + 4, badgeY + badgeHeight - 15, { width: badgeWidth - 8, align: 'center', lineBreak: false });
 
   // Middle: College Details (Strictly bounded between logo and right badge)
   const collegeTextX = logoX + logoBoxSize + 10;
@@ -690,15 +690,15 @@ export function renderOfficialHeader(
 
   const collegeNameFontSize = isLandscape ? 13 : 11;
   doc.font('Helvetica-Bold').fontSize(collegeNameFontSize).fillColor(college.primary_color || PDF_COLORS.primary)
-    .text(college.name.toUpperCase(), collegeTextX, y + 8, { width: collegeColWidth, ellipsis: true });
+    .text(college.name.toUpperCase(), collegeTextX, y + 8, { width: collegeColWidth, ellipsis: true, lineBreak: false });
 
   const codeAndAffil = [
     college.code ? college.code.toUpperCase() : null,
-    'Official Event Registration Roster',
+    'Official Event Registration Record',
   ].filter(Boolean).join('  •  ');
 
   doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.secondary)
-    .text(codeAndAffil, collegeTextX, y + 24, { width: collegeColWidth, ellipsis: true });
+    .text(codeAndAffil, collegeTextX, y + 24, { width: collegeColWidth, ellipsis: true, lineBreak: false });
 
   // Address & Contacts (Gracefully separated and spaced)
   let textCursorY = y + 37;
@@ -852,7 +852,7 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
     info: {
       Title: `All Teams — ${program.name}`,
       Author: `${college.name} Event Management`,
-      Subject: 'Official Program Teams Roster',
+      Subject: 'Official Program Teams Record',
     },
   });
 
@@ -866,7 +866,7 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
     college,
     event,
     program,
-    reportTitle: 'ALL TEAMS ROSTER',
+    reportTitle: 'ALL TEAMS RECORD',
     reportSubtitle: program.name,
     logoBuffer,
   });
@@ -1086,7 +1086,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   // --- TEAM MEMBERS SECTION HEADING ---
   doc.rect(margin, y, contentWidth, 16).fill(PDF_COLORS.primary);
   doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.white)
-    .text(`OFFICIAL TEAM ROSTER (${team.members.length} MEMBERS)`, margin + 8, y + 4);
+    .text(`OFFICIAL TEAM MEMBERS (${team.members.length} MEMBERS)`, margin + 8, y + 4);
 
   y += 18;
 
@@ -1218,7 +1218,7 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
     info: {
       Title: `Individual Participants — ${program.name}`,
       Author: `${college.name} Event Management`,
-      Subject: 'Individual Participants Roster',
+      Subject: 'Individual Participants Record',
     },
   });
 
@@ -1885,9 +1885,9 @@ export async function generateEventEnrollmentPDF(params: {
     layout: 'portrait',
     margin: 36,
     info: {
-      Title: `${event.title} - Official Enrollment Roster`,
+      Title: `${event.title} - Official Enrollment Record`,
       Author: `${collegeName} Event Management`,
-      Subject: 'Official Student Event Enrollment Roster',
+      Subject: 'Official Student Event Enrollment Record',
     },
   });
 
@@ -1911,7 +1911,7 @@ export async function generateEventEnrollmentPDF(params: {
   let y = renderOfficialHeader(doc, {
     college: collegeMeta,
     event,
-    reportTitle: 'EVENT ENROLLMENT ROSTER',
+    reportTitle: 'EVENT ENROLLMENT RECORD',
     reportSubtitle: 'Master Student Registrations',
     logoBuffer,
   });
@@ -1939,12 +1939,12 @@ export async function generateEventEnrollmentPDF(params: {
 
   // Table Columns (Tailored for A4 Portrait with zero overlapping)
   const columns = [
-    { header: '#', width: 25, align: 'center' as const },
-    { header: 'Reg Number', width: 85, align: 'left' as const },
+    { header: '#', width: 22, align: 'center' as const },
+    { header: 'Pass No. / Reg No.', width: 96, align: 'left' as const },
     { header: 'Student Name & Roll', width: 125, align: 'left' as const },
-    { header: 'Branch & Sem', width: 105, align: 'left' as const },
-    { header: 'Contact & Email', width: 100, align: 'left' as const },
-    { header: 'Status', width: 83, align: 'center' as const },
+    { header: 'Branch & Sem', width: 102, align: 'left' as const },
+    { header: 'Contact & Email', width: 98, align: 'left' as const },
+    { header: 'Status', width: 80, align: 'center' as const },
   ];
 
   const renderTableHeader = (currentY: number) => {
@@ -1981,12 +1981,15 @@ export async function generateEventEnrollmentPDF(params: {
 
     // 1. S.No
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateMuted)
-      .text(String(rowIdx), colX, y + 9, { width: columns[0].width, align: 'center' });
+      .text(String(rowIdx), colX, y + 9, { width: columns[0].width, align: 'center', lineBreak: false });
     colX += columns[0].width;
 
-    // 2. Reg. Number
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(PDF_COLORS.primary)
-      .text(reg.registration_number || '-', colX + 4, y + 9, { width: columns[1].width - 8, ellipsis: true });
+    // 2. Pass No. / Reg. Number
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary)
+      .text(reg.registration_number || '-', colX + 4, y + 4, { width: columns[1].width - 8, ellipsis: true, lineBreak: false });
+    const regSub = (reg as any).student_id || (reg as any).roll_number ? `ID: ${(reg as any).student_id || (reg as any).roll_number}` : 'Event Reg / Pass';
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
+      .text(regSub, colX + 4, y + 15, { width: columns[1].width - 8, ellipsis: true, lineBreak: false });
     colX += columns[1].width;
 
     // 3. Student Name & Roll
@@ -2060,9 +2063,9 @@ export async function generateGoogleEventEnrollmentPDF(params: {
     layout: 'portrait',
     margin: 36,
     info: {
-      Title: `${event.title} - Participant Roster`,
+      Title: `${event.title} - Event Registrations`,
       Author: `${collegeName} Event Management`,
-      Subject: 'Official Student Event Registration Roster (Google Form)',
+      Subject: 'Official Student Event Registration Record (Google Form)',
     },
   });
 
@@ -2086,8 +2089,8 @@ export async function generateGoogleEventEnrollmentPDF(params: {
   let y = renderOfficialHeader(doc, {
     college: collegeMeta,
     event,
-    reportTitle: 'PARTICIPANT REGISTRATION ROSTER',
-    reportSubtitle: 'Live Google Form Registrations & Participant Ledger',
+    reportTitle: 'EVENT REGISTRATIONS',
+    reportSubtitle: 'Live Google Form Registrations & Entries',
     logoBuffer,
   });
 
@@ -2113,10 +2116,10 @@ export async function generateGoogleEventEnrollmentPDF(params: {
 
   // Table Columns (Tailored for A4 Portrait with zero overlapping)
   const columns = [
-    { header: '#', width: 25, align: 'center' as const },
-    { header: 'Pass Number', width: 85, align: 'left' as const },
-    { header: 'Participant & Roll No', width: 125, align: 'left' as const },
-    { header: 'Department & Year', width: 110, align: 'left' as const },
+    { header: '#', width: 22, align: 'center' as const },
+    { header: 'Pass No. / Reg No.', width: 96, align: 'left' as const },
+    { header: 'Participant & Roll No', width: 120, align: 'left' as const },
+    { header: 'Department & Year', width: 107, align: 'left' as const },
     { header: 'Category & Mode', width: 95, align: 'left' as const },
     { header: 'Contact & Email', width: 83, align: 'left' as const },
   ];
@@ -2155,41 +2158,46 @@ export async function generateGoogleEventEnrollmentPDF(params: {
 
     // 1. S.No
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.slateMuted)
-      .text(String(rowIdx), colX, y + 9, { width: columns[0].width, align: 'center' });
+      .text(String(rowIdx), colX, y + 9, { width: columns[0].width, align: 'center', lineBreak: false });
     colX += columns[0].width;
 
-    // 2. Pass / Reg No
-    doc.font('Helvetica-Bold').fontSize(7).fillColor(PDF_COLORS.primary)
-      .text(resp.registrationNumber || '-', colX + 4, y + 9, { width: columns[1].width - 8, ellipsis: true });
+    // 2. Pass No. / Reg No
+    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.primary)
+      .text(resp.registrationNumber || '-', colX + 4, y + 4, { width: columns[1].width - 8, ellipsis: true, lineBreak: false });
+    const regSub = resp.collegeRegistrationNumber ? `Reg: ${resp.collegeRegistrationNumber}` : 'Pass / Event Reg';
+    doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
+      .text(regSub, colX + 4, y + 15, { width: columns[1].width - 8, ellipsis: true, lineBreak: false });
     colX += columns[1].width;
 
     // 3. Participant Name & Roll No
-    const rollDisplay = resp.rollNumber || resp.collegeRegistrationNumber || '-';
+    const rollParts = [resp.rollNumber ? `Roll: ${resp.rollNumber}` : null, resp.collegeRegistrationNumber ? `Reg: ${resp.collegeRegistrationNumber}` : null].filter(Boolean);
+    const rollDisplay = rollParts.length > 0 ? rollParts.join(' | ') : 'Roll: —';
     doc.font('Helvetica-Bold').fontSize(8).fillColor(PDF_COLORS.slateDark)
-      .text(resp.participantName || '-', colX + 4, y + 4, { width: columns[2].width - 8, ellipsis: true });
+      .text(resp.participantName || '-', colX + 4, y + 4, { width: columns[2].width - 8, ellipsis: true, lineBreak: false });
     doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
-      .text(`Roll: ${rollDisplay}`, colX + 4, y + 15, { width: columns[2].width - 8, ellipsis: true });
+      .text(rollDisplay, colX + 4, y + 15, { width: columns[2].width - 8, ellipsis: true, lineBreak: false });
     colX += columns[2].width;
 
-    // 4. Branch & Year
+    // 4. Department & Year
+    const deptName = formatBranchDisplay(resp.branch) || resp.branch || '—';
     doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
-      .text(resp.branch || '-', colX + 4, y + 4, { width: columns[3].width - 8, ellipsis: true });
+      .text(deptName, colX + 4, y + 4, { width: columns[3].width - 8, ellipsis: true, lineBreak: false });
     doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateMuted)
-      .text(resp.year || '-', colX + 4, y + 15, { width: columns[3].width - 8, ellipsis: true });
+      .text(resp.year || '—', colX + 4, y + 15, { width: columns[3].width - 8, ellipsis: true, lineBreak: false });
     colX += columns[3].width;
 
     // 5. Category & Mode
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(PDF_COLORS.secondary)
-      .text(resp.performanceType || 'General Entry', colX + 4, y + 4, { width: columns[4].width - 8, ellipsis: true });
+      .text(resp.performanceType || 'General Entry', colX + 4, y + 4, { width: columns[4].width - 8, ellipsis: true, lineBreak: false });
     doc.font('Helvetica').fontSize(6.8).fillColor(PDF_COLORS.slateDark)
-      .text(`Mode: ${resp.participationType || 'Solo'}`, colX + 4, y + 15, { width: columns[4].width - 8, ellipsis: true });
+      .text(`Mode: ${resp.participationType || 'Solo'}`, colX + 4, y + 15, { width: columns[4].width - 8, ellipsis: true, lineBreak: false });
     colX += columns[4].width;
 
     // 6. Contact & Email
-    doc.font('Helvetica').fontSize(7.5).fillColor(PDF_COLORS.slateDark)
-      .text(resp.contactNumber || '-', colX + 4, y + 4, { width: columns[5].width - 8, ellipsis: true });
+    doc.font('Helvetica').fontSize(7.2).fillColor(PDF_COLORS.slateDark)
+      .text(resp.contactNumber || '—', colX + 4, y + 4, { width: columns[5].width - 8, ellipsis: true, lineBreak: false });
     doc.font('Helvetica').fontSize(6.5).fillColor(PDF_COLORS.slateMuted)
-      .text(resp.email || '-', colX + 4, y + 15, { width: columns[5].width - 8, ellipsis: true });
+      .text(resp.email || '—', colX + 4, y + 15, { width: columns[5].width - 8, ellipsis: true, lineBreak: false });
 
     y += rowHeight;
   }

@@ -327,7 +327,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 shadow-2xs transition-all"
-            title="Download Complete Event Roster PDF"
+            title="Download Complete Event Registrations PDF"
           >
             <Download className="w-3.5 h-3.5 text-red-600 shrink-0" />
             <span>Complete Event PDF</span>
@@ -467,7 +467,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
         <div className="hidden print:block p-6 border-b border-slate-300">
           <h2 className="text-xl font-black text-slate-900">{event.title}</h2>
           <p className="text-xs text-slate-600 mt-1">
-            Official Participant Registration Roster &bull; Total Registered: {sortedFiltered.length}
+            Official Participant Registrations &bull; Total Registered: {sortedFiltered.length}
           </p>
           <p className="text-[10px] text-slate-400 mt-0.5">
             Printed on: {new Date().toLocaleString('en-IN')} &bull; Source: Google Sheets
@@ -565,7 +565,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-xs font-semibold text-red-700 border border-red-200 shadow-2xs transition-colors ${
                 sortedFiltered.length === 0 ? 'opacity-50 pointer-events-none' : ''
               }`}
-              title="Download Complete Event Roster PDF"
+              title="Download Complete Event Registrations PDF"
             >
               <Download className="w-3.5 h-3.5 text-red-600" />
               <span>Complete Event PDF</span>
@@ -586,7 +586,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
               onClick={() => window.print()}
               disabled={sortedFiltered.length === 0}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
-              title="Print Roster"
+              title="Print Registrations"
             >
               <Printer className="w-3.5 h-3.5 text-slate-600" />
               <span>Print</span>
@@ -611,7 +611,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
             <h3 className="text-sm font-bold text-slate-800">No Registrations Found</h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               {responses.length === 0
-                ? 'Small events use direct Google Form registration — no category or program setup needed! When students submit the form, their responses sync here automatically and you can generate official PDF passes & complete roster reports.'
+                ? 'Small events use direct Google Form registration — no category or program setup needed! When students submit the form, their responses sync here automatically and you can generate official PDF passes & complete registration reports.'
                 : 'No responses matched your search and filter criteria.'}
             </p>
             {event.google_form_url && (
