@@ -98,8 +98,8 @@ export function StudentRegistrationModal({
     if (e) e.preventDefault();
     setErrorMsg(null);
 
-    if (isPaid && !transactionId.trim()) {
-      setErrorMsg('Transaction ID / UTR number is required for verification.');
+    if (isPaid && !transactionId.trim() && !proofFile) {
+      setErrorMsg('Please provide at least a Transaction ID / UTR number or a Payment Screenshot for verification.');
       return;
     }
 
@@ -329,13 +329,18 @@ export function StudentRegistrationModal({
                 className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt font-mono"
               />
               <span className="text-[11px] text-slate-400">
-                Enter the 12-digit UTR/reference number from your UPI receipt.
+                Enter the UTR/reference number from your payment receipt.
               </span>
             </div>
 
-            {/* Optional screenshot */}
+            {/* Payment screenshot */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">Payment Screenshot (Optional)</label>
+              <label className="text-xs font-semibold text-slate-700">
+                Payment Screenshot {!transactionId.trim() ? <span className="text-red-500">*</span> : '(Optional)'}
+              </label>
+              <p className="text-[11px] text-amber-700 font-medium">
+                Provide UTR number or screenshot — at least one is required.
+              </p>
               <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                 <input
                   type="file"

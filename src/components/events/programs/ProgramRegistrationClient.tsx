@@ -393,6 +393,12 @@ export function ProgramRegistrationClient({
       return;
     }
 
+    // Validate payment reference for paid programs
+    if (isPaid && !paymentRef.trim()) {
+      setErrorMsg('Transaction ID / UTR number is required for paid programs. Please pay and enter your UTR.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       if (regType === 'INDIVIDUAL') {
@@ -1319,15 +1325,19 @@ export function ProgramRegistrationClient({
 
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-700">
-                Transaction ID / UTR / Reference ID
+                Transaction ID / UTR / Reference ID <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
+                required
                 placeholder="e.g. 329019284012"
                 value={paymentRef}
                 onChange={(e) => setPaymentRef(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20"
               />
+              <span className="text-[11px] text-slate-400">
+                Enter the UTR/reference number from your payment receipt. This is required for verification.
+              </span>
             </div>
           </div>
         )}
