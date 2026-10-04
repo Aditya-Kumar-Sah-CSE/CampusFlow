@@ -109,14 +109,36 @@ export function PwaInstallPrompt() {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
   };
 
-  if (isTenantRoute || isStandalone || !showPrompt) {
+  if (isStandalone || !showPrompt) {
     return null;
   }
+
+  const tenantSlug = isTenantRoute ? firstSegment : null;
+  const isBce = tenantSlug === 'bce-bgp';
+  const isGec = tenantSlug === 'gec-gaya';
+
+  const appDisplayName = isBce
+    ? 'BCE CampusFlow'
+    : isGec
+    ? 'GEC-GAYA CampusFlow'
+    : 'CampusFlow';
+
+  const installActionLabel = isBce
+    ? 'Install BCE CampusFlow'
+    : isGec
+    ? 'Install GEC-GAYA CampusFlow'
+    : 'Install CampusFlow';
+
+  const appDescription = isBce
+    ? 'Bhagalpur College of Engineering portal for feedback, events, and campus updates right from your home screen.'
+    : isGec
+    ? 'Government Engineering College, Gaya portal for feedback, events, and campus updates right from your home screen.'
+    : 'Campus management platform for feedback, events, and registrations right from your home screen.';
 
   return (
     <aside
       role="region"
-      aria-label="App installation notification"
+      aria-label={`Install ${appDisplayName} notification`}
       className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-fade-in"
     >
       <div className="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl border border-bce-cobalt/60 shadow-2xl shadow-slate-950/60 flex flex-col gap-3">
@@ -128,10 +150,10 @@ export function PwaInstallPrompt() {
             </div>
             <div>
               <h3 className="text-xs font-bold text-white tracking-tight">
-                Install CampusFlow
+                {installActionLabel}
               </h3>
               <p className="text-[11px] text-slate-300 leading-tight">
-                Campus management platform for feedback, events, and registrations right from your home screen.
+                {appDescription}
               </p>
             </div>
           </div>
@@ -170,7 +192,7 @@ export function PwaInstallPrompt() {
               className="flex-1 inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 text-xs font-bold transition-all shadow-md active:scale-98 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{isIos ? 'How to Install (iOS)' : 'Install CampusFlow'}</span>
+              <span>{isIos ? 'How to Install (iOS)' : installActionLabel}</span>
             </button>
             <button
               onClick={handleDismiss}

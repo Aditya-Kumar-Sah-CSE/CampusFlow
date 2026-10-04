@@ -5,18 +5,30 @@ import { getPublicEventBySlugGlobal } from '@/lib/events/service';
 import { getPublicEventPrograms } from '@/lib/events/programs-service';
 import { getPublicEventParticipants } from '@/lib/events/program-registrations-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
+import { getSmallEventById } from '@/config/events';
+import { SmallEventDetailView } from '@/components/events/SmallEventDetailView';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { EventStudentIdentityCard } from '@/components/events/EventStudentIdentityCard';
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
 import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
 import type { Metadata } from 'next';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
-import { Calendar, MapPin, Clock, ArrowLeft, Ticket, ShieldCheck, UserCheck } from 'lucide-react';
+import { Calendar, MapPin, Clock, ArrowLeft, Ticket, ShieldCheck, UserCheck, ExternalLink } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const smallEvent = getSmallEventById(slug);
+  if (smallEvent) {
+    return {
+      title: `${smallEvent.title} | CampusFlow Events`,
+      description: smallEvent.shortDescription,
+      openGraph: { title: `${smallEvent.title} | CampusFlow Events`, description: smallEvent.shortDescription },
+      twitter: { title: `${smallEvent.title} | CampusFlow Events`, description: smallEvent.shortDescription },
+    };
+  }
+
   const event = await getPublicEventBySlugGlobal(slug);
   const brand = getCampusFlowBrand({ code: event?.college?.code });
   return {
@@ -35,6 +47,38 @@ interface Props {
 
 export default async function PublicEventPage({ params }: Props) {
   const { slug } = await params;
+
+  // 1. Check for Config-Driven Small Event
+  const smallEvent = getSmallEventById(slug);
+  if (smallEvent) {
+    const institutionDisplayName =
+      smallEvent.institutionId === 'bce-bgp'
+        ? 'Bhagalpur College of Engineering'
+        : smallEvent.institutionId === 'gec-gaya'
+        ? 'Government Engineering College, Gaya'
+        : smallEvent.organizer;
+
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+        <RootPublicNavbar />
+        <main className="flex-1">
+          <SmallEventDetailView
+            event={smallEvent}
+            tenantSlug={smallEvent.institutionId}
+            institutionDisplayName={institutionDisplayName}
+            backHref="/events"
+          />
+        </main>
+        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
+          <div className="max-w-6xl mx-auto px-4">
+            <p>&copy; {new Date().getFullYear()} CampusFlow. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  // 2. Fallback to Database Events if existing
   const event = await getPublicEventBySlugGlobal(slug);
 
   if (!event || event.status === 'DRAFT') {
@@ -65,7 +109,8 @@ export default async function PublicEventPage({ params }: Props) {
     minute: '2-digit',
   })}`;
 
-  const deadlineFormatted = new Date(event.registration_end).toLocaleDateString('en-IN', {
+  const effectiveDeadline = event.registration_deadline || event.registration_end;
+  const deadlineFormatted = new Date(effectiveDeadline).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -74,9 +119,11 @@ export default async function PublicEventPage({ params }: Props) {
   });
 
   const now = new Date();
-  const isPastDeadline = now > new Date(event.registration_end);
+  const isPastDeadline = now > new Date(effectiveDeadline);
   const isUpcoming = now < new Date(event.registration_start);
   const isOpen = event.status === 'PUBLISHED' && event.registration_enabled && !isPastDeadline && !isUpcoming;
+  const isGoogleForm = event.registration_type === 'google_form' && Boolean(event.google_form_url);
+  const registerButtonLabel = event.registration_label || 'Register Now';
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -189,7 +236,17 @@ export default async function PublicEventPage({ params }: Props) {
 
             {isOpen && (
               <div className="flex items-center gap-3 w-full sm:w-auto">
-                {session ? (
+                {isGoogleForm ? (
+                  <a
+                    href={event.google_form_url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>{registerButtonLabel} &rarr;</span>
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                  </a>
+                ) : session ? (
                   <a
                     href="#programs"
                     className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
@@ -203,7 +260,7 @@ export default async function PublicEventPage({ params }: Props) {
                     className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                   >
                     <Ticket className="w-4 h-4 shrink-0" />
-                    <span>Register for Event</span>
+                    <span>{registerButtonLabel}</span>
                   </Link>
                 )}
               </div>
@@ -211,13 +268,15 @@ export default async function PublicEventPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Student Event Identity / Verification Section (Step 1 in architecture) */}
-        <section id="identity">
-          <EventStudentIdentityCard
-            event={event}
-            initialSession={session}
-          />
-        </section>
+        {/* Student Event Identity / Verification Section (Only for internal multi-program registration) */}
+        {!isGoogleForm && (
+          <section id="identity">
+            <EventStudentIdentityCard
+              event={event}
+              initialSession={session}
+            />
+          </section>
+        )}
 
         {/* Programs / Competitions Section */}
         {programData.categories.length > 0 && (

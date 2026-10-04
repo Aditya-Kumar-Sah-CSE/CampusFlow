@@ -206,6 +206,44 @@ export function EventRegistrationsClient({
         </div>
       </div>
 
+      {event.registration_type === 'google_form' && event.google_form_url && (
+        <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+              <FileSpreadsheet className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-blue-950">Google Form Registration Active</p>
+              <p className="text-blue-800 text-[11px]">
+                Student registrations for this event are collected directly via Google Forms.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <a
+              href={event.google_form_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-xs"
+            >
+              <span>Open Google Form</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            {event.registration_sheet_id && (
+              <a
+                href={`https://docs.google.com/spreadsheets/d/${event.registration_sheet_id}/edit`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl border border-slate-200 transition-all"
+              >
+                <span>Responses Sheet</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
       {feedback && (
         <div
           className={`p-3 rounded-xl text-xs font-medium border flex items-center justify-between ${

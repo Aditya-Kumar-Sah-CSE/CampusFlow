@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { getTenantBySlug } from '@/lib/tenant/resolver';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
@@ -14,16 +14,32 @@ function getIconMimeType(url: string): string {
   return 'image/png';
 }
 
-export async function GET() {
+export async function GET(request?: NextRequest) {
   try {
-    // Tenant identity for this shared manifest comes only from the authenticated
-    // administrator session. Public tenant pages use /api/manifest/[slug].
     let slug: string | null = null;
-    try {
-      const session = await getAdminSession();
-      if (session.isAuthenticated && session.activeCollege?.slug) slug = session.activeCollege.slug;
-    } catch {
-      // Public root manifest has no selected tenant.
+
+    if (request?.nextUrl) {
+      const { searchParams } = request.nextUrl;
+      const queryParam = searchParams.get('college') || searchParams.get('tenant') || searchParams.get('slug');
+      if (queryParam && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(queryParam.trim().toLowerCase())) {
+        slug = queryParam.trim().toLowerCase();
+      }
+    }
+
+    if (!slug && request?.headers) {
+      const headerSlug = request.headers.get('x-tenant-slug');
+      if (headerSlug && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(headerSlug.trim().toLowerCase())) {
+        slug = headerSlug.trim().toLowerCase();
+      }
+    }
+
+    if (!slug) {
+      try {
+        const session = await getAdminSession();
+        if (session.isAuthenticated && session.activeCollege?.slug) slug = session.activeCollege.slug;
+      } catch {
+        // Public root manifest has no selected tenant.
+      }
     }
 
     // If a tenant was resolved, return tenant-specific manifest

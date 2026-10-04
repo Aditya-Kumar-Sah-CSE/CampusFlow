@@ -13,9 +13,13 @@ import {
   Loader2,
   ArrowLeft,
   Upload,
+  Ticket,
+  FileSpreadsheet,
+  ExternalLink,
 } from 'lucide-react';
-import type { CollegeEvent, EventFormData, EventStatus } from '@/types/events';
+import type { CollegeEvent, EventFormData, EventStatus, EventRegistrationType } from '@/types/events';
 import { createEventAction, updateEventAction } from '@/app/admin/events/actions';
+import { isValidGoogleFormUrl } from '@/lib/validation/google-forms';
 
 interface Props {
   initialEvent?: CollegeEvent | null;
@@ -58,6 +62,16 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
   const [status, setStatus] = useState<EventStatus>(initialEvent?.status || 'DRAFT');
   const [registrationEnabled, setRegistrationEnabled] = useState(
     initialEvent?.registration_enabled ?? true
+  );
+  const [registrationType, setRegistrationType] = useState<EventRegistrationType>(
+    initialEvent?.registration_type || (initialEvent?.google_form_url ? 'google_form' : 'internal')
+  );
+  const [googleFormUrl, setGoogleFormUrl] = useState(initialEvent?.google_form_url || '');
+  const [registrationDeadline, setRegistrationDeadline] = useState(
+    formatForInput(initialEvent?.registration_deadline || initialEvent?.registration_end || defaultRegEnd)
+  );
+  const [registrationLabel, setRegistrationLabel] = useState(
+    initialEvent?.registration_label || 'Register Now'
   );
 
   // Payment states
@@ -133,6 +147,19 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         }
       }
 
+      if (registrationEnabled && registrationType === 'google_form') {
+        if (!googleFormUrl.trim()) {
+          setErrorMsg('Google Form URL is required when Google Form registration is enabled.');
+          setSubmitting(false);
+          return;
+        }
+        if (!isValidGoogleFormUrl(googleFormUrl)) {
+          setErrorMsg('Please enter a valid Google Form URL (e.g. https://docs.google.com/forms/d/... or https://forms.gle/...)');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const payload: EventFormData = {
         title: title.trim(),
         slug: slug.trim().toLowerCase(),
@@ -145,6 +172,10 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         max_capacity: maxCapacity ? parseInt(maxCapacity, 10) : null,
         status,
         registration_enabled: registrationEnabled,
+        registration_type: registrationType,
+        google_form_url: registrationType === 'google_form' ? googleFormUrl.trim() : undefined,
+        registration_deadline: registrationDeadline ? new Date(registrationDeadline).toISOString() : undefined,
+        registration_label: registrationLabel.trim() || 'Register Now',
         payment_required: paymentRequired,
         payment_amount: paymentRequired ? parseFloat(paymentAmount) || 0 : null,
         payment_upi_id: paymentRequired ? paymentUpiId.trim() : undefined,
@@ -310,6 +341,160 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         </div>
       </div>
 
+      {/* Registration Section */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="space-y-0.5">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Ticket className="w-4 h-4 text-bce-cobalt shrink-0" />
+              <span>Registration Settings</span>
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Configure how students register for this event (Google Form or CampusFlow portal).
+            </p>
+          </div>
+
+          <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
+            <input
+              type="checkbox"
+              checked={registrationEnabled}
+              onChange={(e) => setRegistrationEnabled(e.target.checked)}
+              className="w-4 h-4 rounded text-bce-cobalt border-slate-300 focus:ring-bce-cobalt"
+            />
+            <span>Enable Registration</span>
+          </label>
+        </div>
+
+        {registrationEnabled ? (
+          <div className="space-y-4 pt-1">
+            {/* Registration Method Selection */}
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-slate-700 block">Registration Method</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    registrationType === 'google_form'
+                      ? 'border-bce-cobalt bg-blue-50/60 ring-1 ring-bce-cobalt/30'
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="registrationType"
+                    value="google_form"
+                    checked={registrationType === 'google_form'}
+                    onChange={() => setRegistrationType('google_form')}
+                    className="mt-0.5 text-bce-cobalt focus:ring-bce-cobalt"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Google Form</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-blue-100 text-blue-800">
+                        Small / Cultural Events
+                      </span>
+                    </span>
+                    <span className="text-slate-500 text-[11px] leading-tight block mt-1">
+                      Direct students to an external Google Form (e.g. Open Mic, Seminars, Workshops, Club events).
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    registrationType === 'internal'
+                      ? 'border-bce-cobalt bg-blue-50/60 ring-1 ring-bce-cobalt/30'
+                      : 'border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="registrationType"
+                    value="internal"
+                    checked={registrationType === 'internal'}
+                    onChange={() => setRegistrationType('internal')}
+                    className="mt-0.5 text-bce-cobalt focus:ring-bce-cobalt"
+                  />
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                      <span>Internal CampusFlow Portal</span>
+                    </span>
+                    <span className="text-slate-500 text-[11px] leading-tight block mt-1">
+                      Multi-competition events with student ID verification, teams, and Google Sheets master ledger.
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Google Form Specific Configuration */}
+            {registrationType === 'google_form' && (
+              <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                      <span>Google Form URL *</span>
+                    </label>
+                    {googleFormUrl && isValidGoogleFormUrl(googleFormUrl) && (
+                      <a
+                        href={googleFormUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] font-semibold text-bce-cobalt hover:underline inline-flex items-center gap-1"
+                      >
+                        <span>Test Form URL</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    required={registrationEnabled && registrationType === 'google_form'}
+                    value={googleFormUrl}
+                    onChange={(e) => setGoogleFormUrl(e.target.value)}
+                    placeholder="https://docs.google.com/forms/d/e/.../viewform or https://forms.gle/..."
+                    className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Accepts official Google Forms URLs (<code className="font-mono text-[10px] bg-slate-200 px-1 py-0.5 rounded">docs.google.com/forms/...</code> or <code className="font-mono text-[10px] bg-slate-200 px-1 py-0.5 rounded">forms.gle/...</code>).
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700">Button Label</label>
+                    <input
+                      type="text"
+                      value={registrationLabel}
+                      onChange={(e) => setRegistrationLabel(e.target.value)}
+                      placeholder="Register Now"
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                    />
+                    <p className="text-[11px] text-slate-400">Label shown on the public event page (e.g. &apos;Register Now&apos;)</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700">Registration Deadline</label>
+                    <input
+                      type="datetime-local"
+                      value={registrationDeadline}
+                      onChange={(e) => setRegistrationDeadline(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                    />
+                    <p className="text-[11px] text-slate-400">After this date, the registration button will be closed.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500">
+            Registration is currently disabled. Students viewing this event will not see a registration CTA.
+          </div>
+        )}
+      </div>
+
       {/* Capacity & Lifecycle Status */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -317,7 +502,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
           <span>Capacity &amp; Availability</span>
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-700">
               Maximum Capacity <span className="text-slate-400 font-normal">(Leave empty for unlimited)</span>
@@ -333,7 +518,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-700">Initial Status</label>
+            <label className="text-xs font-semibold text-slate-700">Event Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as EventStatus)}
@@ -344,18 +529,6 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
               <option value="CLOSED">CLOSED (Registration stopped)</option>
               <option value="CANCELLED">CANCELLED</option>
             </select>
-          </div>
-
-          <div className="space-y-1 flex flex-col justify-end">
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer pt-2 sm:pt-4">
-              <input
-                type="checkbox"
-                checked={registrationEnabled}
-                onChange={(e) => setRegistrationEnabled(e.target.checked)}
-                className="w-4 h-4 rounded text-bce-cobalt border-slate-300 focus:ring-bce-cobalt"
-              />
-              <span>Accept Registrations</span>
-            </label>
           </div>
         </div>
       </div>

@@ -18,16 +18,37 @@ export async function GET() {
 
   const fingerprints = Array.from(new Set([...defaultFingerprints, ...envFingerprints]));
 
-  const assetLinks = [
+  const packages = [
     {
+      packageName: 'com.campusflow.app',
+      envKey: process.env.ANDROID_MAIN_SHA256_FINGERPRINTS,
+    },
+    {
+      packageName: 'com.campusflow.bcebgp',
+      envKey: process.env.ANDROID_BCE_SHA256_FINGERPRINTS,
+    },
+    {
+      packageName: 'com.campusflow.gecgaya',
+      envKey: process.env.ANDROID_GEC_SHA256_FINGERPRINTS,
+    },
+  ];
+
+  const assetLinks = packages.map((pkg) => {
+    const custom = (pkg.envKey || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const targetFingerprints = Array.from(new Set([...fingerprints, ...custom]));
+
+    return {
       relation: ['delegate_permission/common.handle_all_urls'],
       target: {
         namespace: 'android_app',
-        package_name: 'com.campusflow.app',
-        sha256_cert_fingerprints: fingerprints,
+        package_name: pkg.packageName,
+        sha256_cert_fingerprints: targetFingerprints,
       },
-    },
-  ];
+    };
+  });
 
   return new NextResponse(JSON.stringify(assetLinks, null, 2), {
     status: 200,

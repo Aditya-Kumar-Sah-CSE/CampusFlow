@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { getAdminEventById } from '@/lib/events/service';
 import { EventForm } from '@/components/admin/events/EventForm';
-import { ArrowLeft, Users, ExternalLink, Trophy } from 'lucide-react';
+import { ArrowLeft, Users, ExternalLink, Trophy, FileSpreadsheet } from 'lucide-react';
 
 interface EventEditViewProps {
   idOrSlug: string;
@@ -71,6 +71,19 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
             <Users className="w-3.5 h-3.5 text-blue-600" />
             <span>Registrations ({event.active_registrations_count || 0})</span>
           </Link>
+
+          {event.google_form_url && (
+            <a
+              href={event.google_form_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg transition-colors border border-emerald-200"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Google Form</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
 
           {activeCollegeSlug && event.status === 'PUBLISHED' && (
             <Link

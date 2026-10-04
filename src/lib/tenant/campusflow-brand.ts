@@ -7,7 +7,7 @@ export interface CampusFlowBrand {
   platformName: 'CampusFlow';
   tenantCode: string | null;
   displayName: string;
-  shortName: 'CampusFlow';
+  shortName: string;
 }
 
 /** Builds user-facing platform branding from authoritative tenant metadata. */
@@ -17,8 +17,8 @@ export function getCampusFlowBrand(tenant?: CampusFlowTenantIdentity | null): Ca
   return {
     platformName: 'CampusFlow',
     tenantCode,
-    displayName: tenantCode ? `CampusFlow ${tenantCode}` : 'CampusFlow',
-    shortName: 'CampusFlow',
+    displayName: tenantCode ? `${tenantCode} CampusFlow` : 'CampusFlow',
+    shortName: tenantCode ? `${tenantCode} CampusFlow` : 'CampusFlow',
   };
 }
 

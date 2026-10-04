@@ -6,6 +6,8 @@ import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { getPublicEventPrograms } from '@/lib/events/programs-service';
 import { getPublicEventParticipants } from '@/lib/events/program-registrations-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
+import { getSmallEventById } from '@/config/events';
+import { SmallEventDetailView } from '@/components/events/SmallEventDetailView';
 import { EventStudentIdentityCard } from '@/components/events/EventStudentIdentityCard';
 import { PublicEventDetailClient } from '@/components/events/PublicEventDetailClient';
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
@@ -26,6 +28,48 @@ export default async function PublicEventDetailPage({ params }: Props) {
   const { tenant: rawSlug, slug } = await params;
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
+  // 1. Check for Config-Driven Small Event (Google Forms registration)
+  const smallEvent = getSmallEventById(slug, tenant.slug);
+  if (smallEvent) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+        {/* Top Banner */}
+        <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-800">
+          <div className="max-w-5xl mx-auto flex justify-between items-center">
+            <span>{tenant.name} &bull; Event Portal</span>
+            <Link
+              href={`/${tenant.slug}/events`}
+              className="text-slate-300 hover:text-white flex items-center gap-1 text-[11px]"
+            >
+              <ArrowLeft className="w-3 h-3" /> All Events
+            </Link>
+          </div>
+        </div>
+
+        {/* Navbar */}
+        <PublicTenantNavbar tenant={tenant} currentPage="events" />
+
+        {/* Small Event Details */}
+        <main className="flex-1">
+          <SmallEventDetailView
+            event={smallEvent}
+            tenantSlug={tenant.slug}
+            institutionDisplayName={tenant.name}
+            backHref={`/${tenant.slug}/events`}
+          />
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
+          <div className="max-w-5xl mx-auto px-4">
+            <p>&copy; {new Date().getFullYear()} {tenant.name}. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  // 2. Fallback to Database Events if existing
   const [event, academic] = await Promise.all([
     getPublicEventBySlug(tenant.collegeId, slug),
     getCachedAcademicMasters(tenant.collegeId),
@@ -69,14 +113,16 @@ export default async function PublicEventDetailPage({ params }: Props) {
           semesters={academic.semesters}
         />
 
-        {/* Student Event Identity / Verification Section (Step 1 in architecture) */}
-        <section id="identity">
-          <EventStudentIdentityCard
-            event={event}
-            initialSession={session}
-            tenantSlug={tenant.slug}
-          />
-        </section>
+        {/* Student Event Identity / Verification Section (Only needed for internal multi-program registration) */}
+        {event.registration_type !== 'google_form' && (
+          <section id="identity">
+            <EventStudentIdentityCard
+              event={event}
+              initialSession={session}
+              tenantSlug={tenant.slug}
+            />
+          </section>
+        )}
 
         {/* Programs Section */}
         {programData.categories.length > 0 && (

@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicTenantEvents } from '@/lib/events/service';
+import { getEventsForTenant } from '@/config/events';
+import { SmallEventCard } from '@/components/events/SmallEventCard';
 import { PublicEventCard } from '@/components/events/PublicEventCard';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { Calendar, ArrowLeft, Ticket } from 'lucide-react';
@@ -17,7 +19,12 @@ export default async function PublicTenantEventsPage({ params }: Props) {
   const { tenant: rawSlug } = await params;
   const tenant = await resolveTenantOrNotFound(rawSlug);
 
-  const events = await getPublicTenantEvents(tenant.collegeId);
+  const [dbEvents, smallEvents] = await Promise.all([
+    getPublicTenantEvents(tenant.collegeId).catch(() => []),
+    Promise.resolve(getEventsForTenant(tenant.slug)),
+  ]);
+
+  const totalCount = dbEvents.length + smallEvents.length;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -51,12 +58,12 @@ export default async function PublicTenantEventsPage({ params }: Props) {
             Upcoming College Events
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            Explore workshops, hackathons, guest lectures, and cultural fests. Enroll online with instant verification.
+            Explore workshops, cultural fests, open mics, hackathons, and competitions at {tenant.shortName}. Register online via verified Google Forms.
           </p>
         </div>
 
         {/* Events Grid */}
-        {events.length === 0 ? (
+        {totalCount === 0 ? (
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-6 sm:p-12 text-center max-w-lg mx-auto space-y-3 shadow-2xs">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
               <Calendar className="w-6 h-6" />
@@ -68,7 +75,18 @@ export default async function PublicTenantEventsPage({ params }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {events.map((event) => (
+            {/* Small Events Configured for this Tenant */}
+            {smallEvents.map((event) => (
+              <SmallEventCard
+                key={event.id}
+                event={event}
+                tenantSlug={tenant.slug}
+                institutionDisplayName={tenant.name}
+              />
+            ))}
+
+            {/* Any Database-Driven Events for this College */}
+            {dbEvents.map((event) => (
               <PublicEventCard key={event.id} event={event} tenantSlug={tenant.slug} />
             ))}
           </div>
@@ -84,3 +102,4 @@ export default async function PublicTenantEventsPage({ params }: Props) {
     </div>
   );
 }
+

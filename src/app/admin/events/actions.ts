@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import type { EventStatus, EventRegistrationStatus, EventFormData } from '@/types/events';
 import { normalizeEventSlug, isValidEventSlug } from '@/lib/events/slug';
+import { isValidGoogleFormUrl, sanitizeGoogleFormUrl } from '@/lib/validation/google-forms';
 
 async function getAdminDb() {
   return createAdminClient() || await createClient();
@@ -118,6 +119,38 @@ export async function createEventAction(
       return { success: false, error: 'An event with this URL slug already exists in this institution.' };
     }
 
+    const registrationEnabled = data.registration_enabled ?? true;
+    let registrationType = data.registration_type;
+    if (!registrationType) {
+      registrationType = data.google_form_url?.trim() ? 'google_form' : 'internal';
+    }
+
+    let sanitizedGoogleFormUrl: string | null = null;
+    if (registrationType === 'google_form' && registrationEnabled) {
+      if (!data.google_form_url || !data.google_form_url.trim()) {
+        return { success: false, error: 'Google Form URL is required when Google Form registration is enabled.' };
+      }
+      if (!isValidGoogleFormUrl(data.google_form_url)) {
+        return { success: false, error: 'Please enter a valid Google Form URL (e.g. https://docs.google.com/forms/d/... or https://forms.gle/...)' };
+      }
+      sanitizedGoogleFormUrl = sanitizeGoogleFormUrl(data.google_form_url);
+    } else if (data.google_form_url?.trim()) {
+      sanitizedGoogleFormUrl = sanitizeGoogleFormUrl(data.google_form_url);
+    }
+
+    let sanitizedDeadline: string | null = null;
+    if (data.registration_deadline) {
+      const d = new Date(data.registration_deadline);
+      if (isNaN(d.getTime())) {
+        return { success: false, error: 'Invalid registration deadline format.' };
+      }
+      sanitizedDeadline = d.toISOString();
+    } else if (data.registration_end) {
+      sanitizedDeadline = data.registration_end;
+    }
+
+    const registrationLabel = data.registration_label?.trim() || 'Register Now';
+
     const { data: newEvent, error: insertError } = await db
       .from('events')
       .insert({
@@ -132,7 +165,11 @@ export async function createEventAction(
         registration_end: data.registration_end,
         max_capacity: data.max_capacity && data.max_capacity > 0 ? data.max_capacity : null,
         status: data.status || 'DRAFT',
-        registration_enabled: data.registration_enabled ?? true,
+        registration_enabled: registrationEnabled,
+        registration_type: registrationType,
+        google_form_url: sanitizedGoogleFormUrl,
+        registration_deadline: sanitizedDeadline,
+        registration_label: registrationLabel,
         payment_required: Boolean(data.payment_required),
         payment_amount: data.payment_required ? data.payment_amount : null,
         payment_upi_id: data.payment_required ? (data.payment_upi_id?.trim() || null) : null,
@@ -205,6 +242,53 @@ export async function updateEventAction(
     }
     if (data.status !== undefined) updates.status = data.status;
     if (data.registration_enabled !== undefined) updates.registration_enabled = data.registration_enabled;
+
+    const targetRegistrationEnabled =
+      data.registration_enabled !== undefined ? data.registration_enabled : existing.registration_enabled;
+
+    let targetRegistrationType = data.registration_type !== undefined
+      ? data.registration_type
+      : existing.registration_type;
+
+    if (!targetRegistrationType) {
+      const formUrlToCheck = data.google_form_url !== undefined ? data.google_form_url : existing.google_form_url;
+      targetRegistrationType = formUrlToCheck?.trim() ? 'google_form' : 'internal';
+    }
+
+    if (data.registration_type !== undefined) {
+      updates.registration_type = data.registration_type;
+    }
+
+    if (data.google_form_url !== undefined) {
+      const trimmedUrl = data.google_form_url.trim();
+      if (targetRegistrationType === 'google_form' && targetRegistrationEnabled) {
+        if (!trimmedUrl) {
+          return { success: false, error: 'Google Form URL is required when Google Form registration is enabled.' };
+        }
+        if (!isValidGoogleFormUrl(trimmedUrl)) {
+          return { success: false, error: 'Please enter a valid Google Form URL (e.g. https://docs.google.com/forms/d/... or https://forms.gle/...)' };
+        }
+      }
+      updates.google_form_url = trimmedUrl ? sanitizeGoogleFormUrl(trimmedUrl) : null;
+    } else if (data.registration_type === 'google_form' && targetRegistrationEnabled && !existing.google_form_url) {
+      return { success: false, error: 'Google Form URL is required when Google Form registration is enabled.' };
+    }
+
+    if (data.registration_deadline !== undefined) {
+      if (data.registration_deadline) {
+        const d = new Date(data.registration_deadline);
+        if (isNaN(d.getTime())) {
+          return { success: false, error: 'Invalid registration deadline format.' };
+        }
+        updates.registration_deadline = d.toISOString();
+      } else {
+        updates.registration_deadline = null;
+      }
+    }
+
+    if (data.registration_label !== undefined) {
+      updates.registration_label = data.registration_label.trim() || 'Register Now';
+    }
 
     if (data.payment_required !== undefined) {
       updates.payment_required = Boolean(data.payment_required);

@@ -1,6 +1,7 @@
 export type EventStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'CANCELLED';
 export type EventPaymentStatus = 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
 export type EventRegistrationStatus = 'REGISTERED' | 'CANCELLED' | 'REJECTED';
+export type EventRegistrationType = 'google_form' | 'internal' | 'none';
 
 export interface CollegeEvent {
   id: string;
@@ -16,6 +17,10 @@ export interface CollegeEvent {
   max_capacity: number | null;
   status: EventStatus;
   registration_enabled: boolean;
+  registration_type?: EventRegistrationType | null;
+  google_form_url?: string | null;
+  registration_deadline?: string | null;
+  registration_label?: string | null;
   payment_required: boolean;
   payment_amount: number | null;
   payment_upi_id: string | null;
@@ -114,6 +119,10 @@ export interface EventFormData {
   max_capacity?: number | null;
   status: EventStatus;
   registration_enabled: boolean;
+  registration_type?: EventRegistrationType;
+  google_form_url?: string;
+  registration_deadline?: string;
+  registration_label?: string;
   payment_required: boolean;
   payment_amount?: number | null;
   payment_upi_id?: string;

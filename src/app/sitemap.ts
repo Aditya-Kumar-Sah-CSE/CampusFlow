@@ -1,20 +1,21 @@
 import type { MetadataRoute } from 'next';
 import { appUrl, APP_URL } from '@/lib/config/app';
+import { getAllSmallEvents } from '@/config/events';
 
 /**
  * Next.js Metadata API sitemap generator.
  * Produces /sitemap.xml at build time with only genuinely public, indexable pages.
- *
- * Excluded by design:
- *  - /admin/* (authenticated dashboards, settings, billing)
- *  - /auth/* (callback routes)
- *  - /api/* (backend endpoints)
- *  - /feedback/* (form-specific, requires valid form IDs)
- *  - /[tenant]/* (dynamic tenant pages — not statically enumerable without DB)
- *  - /events/[slug]/* (dynamic event detail pages — require DB lookup)
- *  - /offline (PWA fallback)
  */
 export default function sitemap(): MetadataRoute.Sitemap {
+  const smallEvents = getAllSmallEvents();
+
+  const eventEntries: MetadataRoute.Sitemap = smallEvents.map((e) => ({
+    url: appUrl(`/${e.institutionId}/events/${e.id}`),
+    lastModified: new Date(e.createdAt),
+    changeFrequency: 'weekly',
+    priority: 0.7,
+  }));
+
   return [
     {
       url: APP_URL,
@@ -29,6 +30,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: appUrl('/bce-bgp'),
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: appUrl('/bce-bgp/events'),
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: appUrl('/gec-gaya'),
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: appUrl('/gec-gaya/events'),
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    ...eventEntries,
+    {
       url: appUrl('/privacy-policy'),
       lastModified: new Date(),
       changeFrequency: 'monthly',
@@ -42,3 +68,4 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 }
+
