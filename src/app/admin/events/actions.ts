@@ -22,6 +22,17 @@ async function getAdminDb() {
   return createAdminClient() || await createClient();
 }
 
+function isSchemaCacheOrColumnError(error: any): boolean {
+  if (!error) return false;
+  const msg = (error.message || '').toLowerCase();
+  return (
+    error.code === 'PGRST204' ||
+    msg.includes('schema cache') ||
+    msg.includes('does not exist') ||
+    (msg.includes('column') && (msg.includes('could not find') || msg.includes('not found') || msg.includes('unknown')))
+  );
+}
+
 /**
  * Safely inserts an event record, falling back gracefully if newly migrated
  * columns have not yet been applied by the database administrator.
@@ -30,7 +41,7 @@ async function safeInsertEvent(db: any, payload: Record<string, any>): Promise<{
   const { data, error } = await db.from('events').insert(payload).select('id').single();
   if (!error) return { data, error: null };
 
-  if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+  if (isSchemaCacheOrColumnError(error)) {
     const {
       registration_type,
       google_form_id,
@@ -69,7 +80,23 @@ async function safeInsertEvent(db: any, payload: Record<string, any>): Promise<{
       corePayload.registration_sheet_id = google_spreadsheet_id;
     }
 
-    return await db.from('events').insert(corePayload).select('id').single();
+    const { data: fallbackData, error: fallbackErr } = await db
+      .from('events')
+      .insert(corePayload)
+      .select('id')
+      .single();
+
+    if (!fallbackErr) {
+      return { data: fallbackData, error: null };
+    }
+
+    // Fallback if registration_sheet_id is also unmigrated
+    if (isSchemaCacheOrColumnError(fallbackErr) && corePayload.registration_sheet_id) {
+      delete corePayload.registration_sheet_id;
+      return await db.from('events').insert(corePayload).select('id').single();
+    }
+
+    return { data: null, error: fallbackErr };
   }
 
   return { data: null, error };
@@ -87,7 +114,7 @@ async function safeUpdateEvent(
   const { error } = await db.from('events').update(updates).eq('id', eventId).eq('college_id', collegeId);
   if (!error) return { error: null };
 
-  if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+  if (isSchemaCacheOrColumnError(error)) {
     const {
       registration_type,
       google_form_id,
@@ -129,7 +156,23 @@ async function safeUpdateEvent(
       coreUpdates.registration_sheet_id = google_spreadsheet_id;
     }
 
-    return await db.from('events').update(coreUpdates).eq('id', eventId).eq('college_id', collegeId);
+    const { error: updateFallbackErr } = await db
+      .from('events')
+      .update(coreUpdates)
+      .eq('id', eventId)
+      .eq('college_id', collegeId);
+
+    if (!updateFallbackErr) {
+      return { error: null };
+    }
+
+    // Fallback if registration_sheet_id is also unmigrated
+    if (isSchemaCacheOrColumnError(updateFallbackErr) && coreUpdates.registration_sheet_id) {
+      delete coreUpdates.registration_sheet_id;
+      return await db.from('events').update(coreUpdates).eq('id', eventId).eq('college_id', collegeId);
+    }
+
+    return { error: updateFallbackErr };
   }
 
   return { error };

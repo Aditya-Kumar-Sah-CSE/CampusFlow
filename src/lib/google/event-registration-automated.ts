@@ -836,7 +836,7 @@ export async function persistEventGoogleResources(params: {
       registration_type: 'google_form',
     })}-->`;
 
-    await db
+    const { error: sheetErr } = await db
       .from('events')
       .update({
         registration_sheet_id: resources.googleSpreadsheetId,
@@ -844,6 +844,16 @@ export async function persistEventGoogleResources(params: {
       })
       .eq('id', eventId)
       .eq('college_id', collegeId);
+
+    if (sheetErr) {
+      await db
+        .from('events')
+        .update({
+          description: cleanDesc + metaTag,
+        })
+        .eq('id', eventId)
+        .eq('college_id', collegeId);
+    }
   } catch (fallbackErr) {
     console.warn('[AutoRegPersist] Metadata tag fallback failed:', fallbackErr);
   }
