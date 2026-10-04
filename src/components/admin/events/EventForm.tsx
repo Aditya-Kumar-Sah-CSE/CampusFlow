@@ -20,6 +20,8 @@ import {
   Sparkles,
   RefreshCw,
   CheckCircle2,
+  X,
+  Plus,
 } from 'lucide-react';
 import type { CollegeEvent, EventFormData, EventStatus, EventRegistrationType } from '@/types/events';
 import { createEventAction, updateEventAction, resyncEventGoogleResourcesAction } from '@/app/admin/events/actions';
@@ -76,6 +78,38 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
   const [registrationLabel, setRegistrationLabel] = useState(
     initialEvent?.registration_label || 'Register Now'
   );
+
+  // Performance categories (admin-configured per event; Solo/Duet/Team mode is hardcoded in Google Form)
+  const [performanceCategories, setPerformanceCategories] = useState<string[]>(
+    initialEvent?.performance_categories || []
+  );
+  const [newCategory, setNewCategory] = useState('');
+
+  const addCategory = () => {
+    const val = newCategory.trim();
+    if (val && !performanceCategories.includes(val)) {
+      setPerformanceCategories([...performanceCategories, val]);
+    }
+    setNewCategory('');
+  };
+  const removeCategory = (idx: number) => {
+    setPerformanceCategories(performanceCategories.filter((_, i) => i !== idx));
+  };
+
+  const applyCategoryPreset = (preset: 'cultural' | 'tech' | 'sports' | 'academic' | 'clear') => {
+    if (preset === 'clear') {
+      setPerformanceCategories([]);
+      return;
+    }
+    const presets: Record<string, string[]> = {
+      cultural: ['Singing', 'Dance', 'Drama / Skit', 'Poetry / Shayari', 'Music / Instrumental', 'Mono Acting'],
+      tech: ['Coding / Hackathon', 'Web Development', 'AI / ML', 'Mobile App Dev', 'UI / UX Design', 'Tech Quiz'],
+      sports: ['Cricket', 'Football', 'Badminton', 'Table Tennis', 'Chess', 'Esports / Gaming'],
+      academic: ['Paper Presentation', 'Debate', 'Quiz / Trivia', 'Elocution', 'Poster Making'],
+    };
+    const toAdd = presets[preset] || [];
+    setPerformanceCategories(Array.from(new Set([...performanceCategories, ...toAdd])));
+  };
 
   // Payment states
   const [paymentRequired, setPaymentRequired] = useState(
@@ -195,6 +229,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         google_form_url: registrationType === 'google_form' ? googleFormUrl.trim() : undefined,
         registration_deadline: registrationDeadline ? new Date(registrationDeadline).toISOString() : undefined,
         registration_label: registrationLabel.trim() || 'Register Now',
+        performance_categories: performanceCategories.length > 0 ? performanceCategories : undefined,
         payment_required: paymentRequired,
         payment_amount: paymentRequired ? parseFloat(paymentAmount) || 0 : null,
         payment_upi_id: paymentRequired ? paymentUpiId.trim() : undefined,
@@ -445,11 +480,14 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                   />
                   <div className="text-xs">
                     <span className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-slate-700 shrink-0" />
-                      <span>Internal CampusFlow Portal</span>
+                      <Users className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                      <span>Big Event</span>
+                      <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800">
+                        Big / Flagship Events
+                      </span>
                     </span>
                     <span className="text-slate-500 text-[11px] leading-tight block mt-1">
-                      Existing CampusFlow registration system.
+                      CampusFlow registration portal + Drive-organized registration sheets.
                     </span>
                   </div>
                 </label>
@@ -564,7 +602,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                         Google Drive Folder
                       </span>
                       <span className="text-xs font-semibold text-slate-800 block truncate">
-                        CampusFlow / Events / Registration
+                        CampusFlow / Events / Small Events
                       </span>
                     </div>
                     {initialEvent?.google_drive_folder_url ? (
@@ -612,6 +650,228 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                       )}
                     </button>
                   )}
+                </div>
+
+                {/* Event Categories Configuration (Participation Modes: Solo/Duet/Group are hardcoded in Google Form) */}
+                <div className="space-y-3 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold text-slate-800 block">
+                        Event Categories / Tracks
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        Add the competition categories, performance types, or tracks for this event.
+                      </p>
+                    </div>
+                    {performanceCategories.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => applyCategoryPreset('clear')}
+                        className="text-[10px] text-red-500 hover:text-red-700 font-medium cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="text-slate-400 font-medium text-[10px]">Quick Presets:</span>
+                    <button
+                      type="button"
+                      onClick={() => applyCategoryPreset('cultural')}
+                      className="px-2.5 py-0.5 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-700 font-medium border border-pink-200 transition-colors cursor-pointer text-xs"
+                    >
+                      🎭 Cultural
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyCategoryPreset('tech')}
+                      className="px-2.5 py-0.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-medium border border-cyan-200 transition-colors cursor-pointer text-xs"
+                    >
+                      💻 Tech / Coding
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyCategoryPreset('sports')}
+                      className="px-2.5 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium border border-emerald-200 transition-colors cursor-pointer text-xs"
+                    >
+                      🏆 Sports
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyCategoryPreset('academic')}
+                      className="px-2.5 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium border border-indigo-200 transition-colors cursor-pointer text-xs"
+                    >
+                      📚 Academic
+                    </button>
+                  </div>
+
+                  {/* Category Chips */}
+                  <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                    {performanceCategories.map((cat, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-semibold border border-blue-200"
+                      >
+                        {cat}
+                        <button
+                          type="button"
+                          onClick={() => removeCategory(i)}
+                          className="hover:bg-blue-200 rounded-full p-0.5 transition-colors cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                    {performanceCategories.length === 0 && (
+                      <span className="text-xs text-slate-400 italic flex items-center gap-1.5 py-0.5">
+                        <span>No custom categories added — standard cultural categories will be used in the Google Form.</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Add Input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCategory(); } }}
+                      placeholder="Type a category and press Enter (e.g. Singing, Dance, Coding, Quiz)..."
+                      className="flex-1 px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCategory}
+                      className="inline-flex items-center gap-1 px-3.5 py-2 rounded-xl bg-bce-cobalt hover:bg-bce-cobalt/90 text-white text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Add Category
+                    </button>
+                  </div>
+
+                  {/* Informative Note about hardcoded participation modes */}
+                  <div className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Participation modes (<strong>Solo</strong>, <strong>Duet</strong>, and <strong>Group Performance</strong>) are automatically included in the Google Form.</span>
+                  </div>
+                </div>
+
+                {/* Button Label & Registration Deadline */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700">Button Label</label>
+                    <input
+                      type="text"
+                      value={registrationLabel}
+                      onChange={(e) => setRegistrationLabel(e.target.value)}
+                      placeholder="Register Now"
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                    />
+                    <p className="text-[11px] text-slate-400">Label shown on the public event page (e.g. &apos;Register Now&apos;)</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700">Registration Deadline</label>
+                    <input
+                      type="datetime-local"
+                      value={registrationDeadline}
+                      onChange={(e) => setRegistrationDeadline(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
+                    />
+                    <p className="text-[11px] text-slate-400">After this date, the registration button will be closed.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Big Event (internal) Drive Resources Panel */}
+            {registrationType === 'internal' && (
+              <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-200 space-y-4">
+                {/* Header */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-purple-200">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900">
+                      Big Event — Drive Resources
+                    </span>
+                  </div>
+
+                  <div>
+                    {initialEvent?.google_drive_folder_id ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Organized</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Organized on Save</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Resource Links */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Registration Sheet */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Registration Sheet (Source of Truth)
+                      </span>
+                      <span className="text-xs font-semibold text-slate-800 block truncate">
+                        {initialEvent?.title ? `${initialEvent.title} — Event Registrations` : 'Master Ledger'}
+                      </span>
+                    </div>
+                    {initialEvent?.google_spreadsheet_url || (initialEvent?.registration_sheet_id && `https://docs.google.com/spreadsheets/d/${initialEvent.registration_sheet_id}`) ? (
+                      <a
+                        href={initialEvent?.google_spreadsheet_url || `https://docs.google.com/spreadsheets/d/${initialEvent?.registration_sheet_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Open Sheet</span>
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Created upon save</span>
+                    )}
+                  </div>
+
+                  {/* Google Drive Folder */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Google Drive Folder
+                      </span>
+                      <span className="text-xs font-semibold text-slate-800 block truncate">
+                        CampusFlow / Events / Big Events
+                      </span>
+                    </div>
+                    {initialEvent?.google_drive_folder_url ? (
+                      <a
+                        href={initialEvent.google_drive_folder_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Open Folder</span>
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Organized upon save</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Explainer */}
+                <div className="flex items-start gap-2 p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs text-slate-600">
+                  <Sparkles className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] leading-relaxed">
+                    <strong>Auto-organized:</strong> CampusFlow creates the registration spreadsheet and stores it in your institution&apos;s Google Drive under <code className="text-purple-700 bg-purple-100 px-1 py-0.5 rounded text-[10px]">Events / Big Events / {title || 'Event Name'} / Registration</code>.
+                  </p>
                 </div>
 
                 {/* Button Label & Registration Deadline */}

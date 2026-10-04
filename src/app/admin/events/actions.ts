@@ -16,7 +16,11 @@ import {
   setupAutomatedEventRegistration,
   fetchGoogleFormEventResponses,
   enrichEventWithGoogleMetadata,
+  ensureEventGoogleDriveFolder,
 } from '@/lib/google/event-registration-automated';
+import { moveDriveFileToFolder } from '@/lib/google/feedback-drive';
+import { getOrCreateEventRegistrationSpreadsheet } from '@/lib/google/event-registration-sheets';
+import { executeWithCollegeGoogleOAuthRetry } from '@/lib/google/auth';
 
 async function getAdminDb() {
   return createAdminClient() || await createClient();
@@ -56,6 +60,8 @@ async function safeInsertEvent(db: any, payload: Record<string, any>): Promise<{
       google_resources_updated_at,
       registration_deadline,
       registration_label,
+      performance_categories,
+      participation_modes,
       ...corePayload
     } = payload;
 
@@ -73,6 +79,8 @@ async function safeInsertEvent(db: any, payload: Record<string, any>): Promise<{
       google_resources_updated_at,
       registration_deadline,
       registration_label,
+      performance_categories,
+      participation_modes,
     })}-->`;
 
     corePayload.description = (corePayload.description || '') + metaTag;
@@ -129,6 +137,8 @@ async function safeUpdateEvent(
       google_resources_updated_at,
       registration_deadline,
       registration_label,
+      performance_categories,
+      participation_modes,
       ...coreUpdates
     } = updates;
 
@@ -149,6 +159,8 @@ async function safeUpdateEvent(
       google_resources_updated_at,
       registration_deadline,
       registration_label,
+      performance_categories,
+      participation_modes,
     })}-->`;
 
     coreUpdates.description = (coreUpdates.description !== undefined ? coreUpdates.description : cleanDesc) + metaTag;
@@ -297,14 +309,14 @@ export async function createEventAction(
       registrationType = data.google_form_url?.trim() ? 'google_form' : 'internal';
     }
 
-    // Automated Google Registration: Validate institutional Google OAuth upfront
-    if (registrationType === 'google_form' && registrationEnabled) {
+    // Automated Google Registration / Big Event: Validate institutional Google OAuth upfront
+    if ((registrationType === 'google_form' || registrationType === 'internal') && registrationEnabled) {
       const isGoogleConnected = await isCollegeGoogleConfigured(collegeId);
       if (!isGoogleConnected) {
         return {
           success: false,
           error:
-            'Google Drive access is required to automatically create event registration resources. Please connect your institutional Google Workspace account in Admin Settings.',
+            'Google Drive access is required to organize event registration resources. Please connect your institutional Google Workspace account in Admin Settings.',
         };
       }
     }
@@ -344,6 +356,8 @@ export async function createEventAction(
       payment_upi_id: data.payment_required ? (data.payment_upi_id?.trim() || null) : null,
       payment_qr_url: data.payment_required ? (data.payment_qr_url?.trim() || null) : null,
       payment_instructions: data.payment_required ? (data.payment_instructions?.trim() || null) : null,
+      performance_categories: data.performance_categories?.length ? data.performance_categories : null,
+      participation_modes: data.participation_modes?.length ? data.participation_modes : null,
       created_by: session.userId,
     });
 
@@ -366,6 +380,8 @@ export async function createEventAction(
         venue: cleanVenue,
         registrationDeadline: sanitizedDeadline || undefined,
         eventSlug: cleanSlug,
+        performanceCategories: data.performance_categories,
+        participationModes: data.participation_modes,
       });
 
       if (!setupRes.success) {
@@ -377,6 +393,52 @@ export async function createEventAction(
       }
 
       googleResources = setupRes.resources;
+    }
+
+    // Big Event (internal) Drive Organization: Create Drive folder + pre-create registration sheet
+    if (registrationType === 'internal' && registrationEnabled) {
+      try {
+        const { data: collegeData } = await db
+          .from('colleges')
+          .select('name')
+          .eq('id', collegeId)
+          .single();
+        const collegeName = collegeData?.name || 'Institution';
+
+        // 1. Create Drive hierarchy: CampusFlow / <Institution> / Events / Big Events / <Event> / Registration
+        const driveFolder = await ensureEventGoogleDriveFolder({
+          collegeId,
+          collegeName,
+          eventTitle: cleanTitle,
+          registrationType: 'internal',
+        });
+
+        // 2. Create the registration spreadsheet
+        const sheetId = await getOrCreateEventRegistrationSpreadsheet(collegeId, newEvent.id, cleanTitle);
+
+        // 3. Move spreadsheet into the Drive folder
+        if (sheetId && driveFolder.folderId) {
+          await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ drive }) => {
+            await moveDriveFileToFolder(drive, sheetId, driveFolder.folderId);
+          });
+        }
+
+        // 4. Persist Drive folder metadata on the event (non-fatal)
+        try {
+          await safeUpdateEvent(db, newEvent.id, collegeId, {
+            google_drive_folder_id: driveFolder.folderId,
+            google_drive_folder_url: driveFolder.folderUrl,
+            google_spreadsheet_id: sheetId,
+            google_spreadsheet_url: sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}` : null,
+            registration_sheet_id: sheetId,
+          });
+        } catch (metaErr) {
+          console.warn('[CREATE_EVENT] Non-fatal: failed to persist Big Event Drive metadata:', metaErr);
+        }
+      } catch (driveErr: any) {
+        console.warn('[CREATE_EVENT] Non-fatal: Big Event Drive organization failed:', driveErr?.message || driveErr);
+        // Non-fatal — event was created, Drive org is best-effort
+      }
     }
 
     await logAudit(
@@ -459,14 +521,14 @@ export async function updateEventAction(
       updates.registration_type = data.registration_type;
     }
 
-    // Automated Google Registration: Validate institutional Google OAuth upfront
-    if (targetRegistrationType === 'google_form' && targetRegistrationEnabled) {
+    // Automated Google Registration / Big Event: Validate institutional Google OAuth upfront
+    if ((targetRegistrationType === 'google_form' || targetRegistrationType === 'internal') && targetRegistrationEnabled) {
       const isGoogleConnected = await isCollegeGoogleConfigured(collegeId);
       if (!isGoogleConnected) {
         return {
           success: false,
           error:
-            'Google Drive access is required to automatically create event registration resources. Please connect your institutional Google Workspace account in Admin Settings.',
+            'Google Drive access is required to organize event registration resources. Please connect your institutional Google Workspace account in Admin Settings.',
         };
       }
     }
@@ -485,6 +547,13 @@ export async function updateEventAction(
 
     if (data.registration_label !== undefined) {
       updates.registration_label = data.registration_label.trim() || 'Register Now';
+    }
+
+    if (data.performance_categories !== undefined) {
+      updates.performance_categories = data.performance_categories?.length ? data.performance_categories : null;
+    }
+    if (data.participation_modes !== undefined) {
+      updates.participation_modes = data.participation_modes?.length ? data.participation_modes : null;
     }
 
     if (data.payment_required !== undefined) {
@@ -557,7 +626,53 @@ export async function updateEventAction(
         venue: finalVenue,
         registrationDeadline: finalDeadline || undefined,
         eventSlug: finalSlug,
+        performanceCategories: data.performance_categories || existing.performance_categories || undefined,
+        participationModes: data.participation_modes || existing.participation_modes || undefined,
       });
+    }
+
+    // Big Event (internal) Drive Organization Maintenance:
+    // Ensure registration sheet lives in the organized Drive folder
+    if (targetRegistrationType === 'internal' && targetRegistrationEnabled) {
+      try {
+        const finalTitle = updates.title || existing.title;
+        const { data: collegeData } = await db
+          .from('colleges')
+          .select('name')
+          .eq('id', collegeId)
+          .single();
+        const collegeName = collegeData?.name || 'Institution';
+
+        const driveFolder = await ensureEventGoogleDriveFolder({
+          collegeId,
+          collegeName,
+          eventTitle: finalTitle,
+          existingFolderId: existing.google_drive_folder_id || null,
+          registrationType: 'internal',
+        });
+
+        const sheetId = await getOrCreateEventRegistrationSpreadsheet(collegeId, eventId, finalTitle);
+
+        if (sheetId && driveFolder.folderId) {
+          await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ drive }) => {
+            await moveDriveFileToFolder(drive, sheetId, driveFolder.folderId);
+          });
+        }
+
+        try {
+          await safeUpdateEvent(db, eventId, collegeId, {
+            google_drive_folder_id: driveFolder.folderId,
+            google_drive_folder_url: driveFolder.folderUrl,
+            google_spreadsheet_id: sheetId,
+            google_spreadsheet_url: sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}` : null,
+            registration_sheet_id: sheetId,
+          });
+        } catch {
+          // Non-fatal metadata persistence
+        }
+      } catch (driveErr: any) {
+        console.warn('[UPDATE_EVENT] Non-fatal: Big Event Drive organization failed:', driveErr?.message || driveErr);
+      }
     }
 
     await logAudit(
@@ -954,6 +1069,8 @@ export async function resyncEventGoogleResourcesAction(
       venue: event.venue,
       registrationDeadline: event.registration_deadline || undefined,
       eventSlug: event.slug,
+      performanceCategories: event.performance_categories || undefined,
+      participationModes: event.participation_modes || undefined,
       forceRecreate: false,
     });
 

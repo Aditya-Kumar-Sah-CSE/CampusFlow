@@ -12,6 +12,8 @@ ALTER TABLE public.events
     ADD COLUMN IF NOT EXISTS registration_type TEXT NOT NULL DEFAULT 'internal',
     ADD COLUMN IF NOT EXISTS registration_deadline TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS registration_label TEXT NOT NULL DEFAULT 'Register Now',
+    ADD COLUMN IF NOT EXISTS performance_categories TEXT[] DEFAULT '{}',
+    ADD COLUMN IF NOT EXISTS participation_modes TEXT[] DEFAULT '{}',
     ADD COLUMN IF NOT EXISTS google_form_id TEXT,
     ADD COLUMN IF NOT EXISTS google_form_url TEXT,
     ADD COLUMN IF NOT EXISTS google_spreadsheet_id TEXT,

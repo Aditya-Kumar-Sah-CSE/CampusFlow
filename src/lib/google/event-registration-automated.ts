@@ -19,6 +19,7 @@ import type {
   GoogleRegistrationResources,
   GoogleFormParticipantResponse,
   CollegeEvent,
+  EventRegistrationType,
 } from '@/types/events';
 import PDFDocument from 'pdfkit';
 import { streamToBuffer, fetchLogoBuffer, PDF_COLORS, formatDateTime } from '@/lib/events/event-pdf-reports';
@@ -134,37 +135,21 @@ async function getOrCreateFolder(
 }
 
 /**
- * Ensures the standard hierarchical Google Drive folder structure:
- * CampusFlow / <Institution> / Events / <Event Name> / Registration
+ * Ensures standard hierarchical Google Drive folder structure:
+ * CampusFlow / <Institution> / Events / Small Events / <Event Name> / Registration (for Small / Google Form events)
+ * CampusFlow / <Institution> / Events / Big Events / <Event Name> / Registration (for Big / Flagship events)
  */
 export async function ensureEventGoogleDriveFolder(params: {
   collegeId: string;
   collegeName: string;
   eventTitle: string;
   existingFolderId?: string | null;
+  registrationType?: EventRegistrationType | 'small' | 'big' | null;
 }): Promise<{ folderId: string; folderUrl: string }> {
-  const { collegeId, collegeName, eventTitle, existingFolderId } = params;
+  const { collegeId, collegeName, eventTitle, existingFolderId, registrationType } = params;
 
   return executeWithCollegeGoogleOAuthRetry(collegeId, async ({ drive }) => {
-    // 1. Verify existing folder ID if provided
-    if (existingFolderId) {
-      try {
-        const check = await drive.files.get({
-          fileId: existingFolderId,
-          fields: 'id, name, trashed, webViewLink',
-        });
-        if (check.data?.id && !check.data.trashed) {
-          return {
-            folderId: check.data.id,
-            folderUrl: check.data.webViewLink || `https://drive.google.com/drive/folders/${check.data.id}`,
-          };
-        }
-      } catch {
-        console.warn(`[AutoRegDrive] Stored folder ID ${existingFolderId} invalid or inaccessible. Re-creating hierarchy.`);
-      }
-    }
-
-    // 2. Build hierarchical path
+    // 1. Build hierarchical path
     // Root: CampusFlow
     const campusFlowFolder = await getOrCreateFolder(drive, 'CampusFlow');
 
@@ -175,11 +160,82 @@ export async function ensureEventGoogleDriveFolder(params: {
     // Level 2: Events
     const eventsFolder = await getOrCreateFolder(drive, 'Events', institutionFolder.id);
 
-    // Level 3: <Event Name>
-    const cleanEventTitle = eventTitle.trim();
-    const eventFolder = await getOrCreateFolder(drive, cleanEventTitle, eventsFolder.id);
+    // Level 3: Ensure BOTH Category folders exist inside Events:
+    // - "Small Events" (1-day Google Form events)
+    // - "Big Events" (Multi-programs / Flagship events)
+    const smallEventsFolder = await getOrCreateFolder(drive, 'Small Events', eventsFolder.id);
+    const bigEventsFolder = await getOrCreateFolder(drive, 'Big Events', eventsFolder.id);
 
-    // Level 4: Registration
+    const isBigEvent = registrationType === 'internal' || registrationType === 'big';
+    const targetCategoryFolder = isBigEvent ? bigEventsFolder : smallEventsFolder;
+
+    const cleanEventTitle = eventTitle.trim();
+
+    // Check if an event folder with cleanEventTitle was previously placed directly under Events (auto-migrate)
+    try {
+      const directSearch = await drive.files.list({
+        q: `mimeType = 'application/vnd.google-apps.folder' and name = '${cleanEventTitle.replace(/'/g, "\\'")}' and '${eventsFolder.id}' in parents and trashed = false`,
+        fields: 'files(id, name, parents)',
+        spaces: 'drive',
+      });
+      const directFiles = directSearch.data.files || [];
+      for (const dFile of directFiles) {
+        if (dFile.id) {
+          await drive.files.update({
+            fileId: dFile.id,
+            addParents: targetCategoryFolder.id,
+            removeParents: eventsFolder.id,
+            fields: 'id, parents',
+          });
+        }
+      }
+    } catch (migErr) {
+      console.warn('[AutoRegDrive] Direct folder migration notice:', migErr);
+    }
+
+    // 2. Verify existing folder ID if provided
+    if (existingFolderId) {
+      try {
+        const check = await drive.files.get({
+          fileId: existingFolderId,
+          fields: 'id, name, trashed, webViewLink, parents',
+        });
+        if (check.data?.id && !check.data.trashed) {
+          // If the registration folder's parent is directly under Events, move it to targetCategoryFolder
+          const regParentId = check.data.parents?.[0];
+          if (regParentId) {
+            try {
+              const parentCheck = await drive.files.get({
+                fileId: regParentId,
+                fields: 'id, name, parents',
+              });
+              if (parentCheck.data?.parents?.includes(eventsFolder.id)) {
+                await drive.files.update({
+                  fileId: regParentId,
+                  addParents: targetCategoryFolder.id,
+                  removeParents: eventsFolder.id,
+                  fields: 'id, parents',
+                });
+              }
+            } catch {
+              // Ignore parent check error
+            }
+          }
+
+          return {
+            folderId: check.data.id,
+            folderUrl: check.data.webViewLink || `https://drive.google.com/drive/folders/${check.data.id}`,
+          };
+        }
+      } catch {
+        console.warn(`[AutoRegDrive] Stored folder ID ${existingFolderId} invalid or inaccessible. Re-creating hierarchy.`);
+      }
+    }
+
+    // Level 4: <Event Name> inside the category folder (Small Events or Big Events)
+    const eventFolder = await getOrCreateFolder(drive, cleanEventTitle, targetCategoryFolder.id);
+
+    // Level 5: Registration
     const registrationFolder = await getOrCreateFolder(drive, 'Registration', eventFolder.id);
 
     return {
@@ -339,19 +395,25 @@ export function buildEventRegistrationQuestions(params: {
     },
   });
 
-  // 8. Performance Type / Category (Dynamic choice list, required)
-  const perfTypes = params.performanceTypes?.length ? params.performanceTypes : DEFAULT_PERFORMANCE_TYPES;
+  // 8. Performance Category (Configured by admin in EventForm)
+  const catOptions = params.performanceTypes && params.performanceTypes.length > 0
+    ? params.performanceTypes
+    : DEFAULT_PERFORMANCE_TYPES;
+
   requests.push({
     createItem: {
       item: {
-        title: 'Performance Category',
+        title: 'In which type of performance will you present ?',
         description: 'Choose the category of performance or activity you are registering for.',
         questionItem: {
           question: {
             required: true,
             choiceQuestion: {
               type: 'RADIO',
-              options: perfTypes.map((p) => ({ value: p })),
+              options: [
+                ...catOptions.map((p) => ({ value: p })),
+                { isOther: true },
+              ],
               shuffle: false,
             },
           },
@@ -361,19 +423,22 @@ export function buildEventRegistrationQuestions(params: {
     },
   });
 
-  // 9. Participation Mode (Solo / Duet / Group, required)
-  const partTypes = params.participationTypes?.length ? params.participationTypes : DEFAULT_PARTICIPATION_TYPES;
+  // 9. Participation Mode (Hardcoded: Solo, Duet, Group performance)
   requests.push({
     createItem: {
       item: {
-        title: 'Participation Mode',
+        title: 'what type of performance would you like to participate in?',
         description: 'Indicate whether you are participating individually or in a team.',
         questionItem: {
           question: {
             required: true,
             choiceQuestion: {
               type: 'RADIO',
-              options: partTypes.map((m) => ({ value: m })),
+              options: [
+                { value: 'Solo' },
+                { value: 'Duet' },
+                { value: 'Group performance' },
+              ],
               shuffle: false,
             },
           },
@@ -383,12 +448,12 @@ export function buildEventRegistrationQuestions(params: {
     },
   });
 
-  // 10. Performance Title / Notes / Remarks (Paragraph, optional)
+  // 10. Topic / Title / Details / Special Requirements (Paragraph, optional)
   requests.push({
     createItem: {
       item: {
-        title: 'Performance Title / Piece Details',
-        description: 'Song name, poem title, topic, team members (if group), or special stage requirements (instruments/mic).',
+        title: 'Project Title / Topic / Special Requirements',
+        description: 'Project name, song/poem title, team members (if group), or special technical/stage requirements (leave blank if none).',
         questionItem: {
           question: {
             required: false,
@@ -486,6 +551,8 @@ export async function createOrUpdateEventGoogleForm(params: {
   eventSlug?: string;
   tenantSlug?: string;
   branches: string[];
+  performanceCategories?: string[];
+  participationModes?: string[];
   existingFormId?: string | null;
   targetFolderId?: string | null;
 }): Promise<{ formId: string; formUrl: string; editUri: string }> {
@@ -501,6 +568,8 @@ export async function createOrUpdateEventGoogleForm(params: {
     eventSlug,
     tenantSlug,
     branches,
+    performanceCategories,
+    participationModes,
     existingFormId,
     targetFolderId,
   } = params;
@@ -526,23 +595,124 @@ export async function createOrUpdateEventGoogleForm(params: {
         if (getRes.data?.formId) {
           const formId = getRes.data.formId;
           const responderUri = getRes.data.responderUri || `https://docs.google.com/forms/d/e/${formId}/viewform`;
+          const existingItems = getRes.data.items || [];
 
-          await forms.forms.batchUpdate({
-            formId,
-            requestBody: {
-              requests: [
-                {
-                  updateFormInfo: {
-                    info: {
-                      title: formTitle,
-                      description: formDesc,
-                    },
-                    updateMask: 'title,description',
-                  },
+          const updateRequests: any[] = [
+            {
+              updateFormInfo: {
+                info: {
+                  title: formTitle,
+                  description: formDesc,
                 },
-              ],
+                updateMask: 'title,description',
+              },
             },
-          });
+          ];
+
+          // If existing form has questions, update Category & Mode questions to match new settings
+          if (existingItems.length > 0) {
+            const catItemIndex = existingItems.findIndex((it: any) =>
+              it.title && (
+                it.title.toLowerCase().includes('category') ||
+                it.title.toLowerCase().includes('performance') ||
+                it.title.toLowerCase().includes('present')
+              )
+            );
+            if (catItemIndex !== -1) {
+              const catItem = existingItems[catItemIndex];
+              const opts = (performanceCategories && performanceCategories.length > 0)
+                ? performanceCategories
+                : DEFAULT_PERFORMANCE_TYPES;
+
+              updateRequests.push({
+                updateItem: {
+                  item: {
+                    itemId: catItem.itemId,
+                    title: 'In which type of performance will you present ?',
+                    description: 'Choose the category of performance or activity you are registering for.',
+                    questionItem: {
+                      question: {
+                        required: true,
+                        choiceQuestion: {
+                          type: 'RADIO',
+                          options: [
+                            ...opts.map((p) => ({ value: p })),
+                            { isOther: true },
+                          ],
+                          shuffle: false,
+                        },
+                      },
+                    },
+                  },
+                  location: { index: catItemIndex },
+                  updateMask: 'questionItem,title,description',
+                },
+              });
+            }
+
+            const modeItemIndex = existingItems.findIndex((it: any) =>
+              it.title && (
+                it.title.toLowerCase().includes('mode') ||
+                it.title.toLowerCase().includes('participate') ||
+                it.title.toLowerCase().includes('what type')
+              )
+            );
+            if (modeItemIndex !== -1) {
+              const modeItem = existingItems[modeItemIndex];
+              updateRequests.push({
+                updateItem: {
+                  item: {
+                    itemId: modeItem.itemId,
+                    title: 'what type of performance would you like to participate in?',
+                    description: 'Indicate whether you are participating individually or in a team.',
+                    questionItem: {
+                      question: {
+                        required: true,
+                        choiceQuestion: {
+                          type: 'RADIO',
+                          options: [
+                            { value: 'Solo' },
+                            { value: 'Duet' },
+                            { value: 'Group performance' },
+                          ],
+                          shuffle: false,
+                        },
+                      },
+                    },
+                  },
+                  location: { index: modeItemIndex },
+                  updateMask: 'questionItem,title,description',
+                },
+              });
+            }
+          }
+
+          try {
+            await forms.forms.batchUpdate({
+              formId,
+              requestBody: {
+                requests: updateRequests,
+              },
+            });
+          } catch (updateBatchErr) {
+            console.warn('[AutoRegForm] Non-fatal: batchUpdate on existing form failed, falling back to info-only update:', updateBatchErr);
+            await forms.forms.batchUpdate({
+              formId,
+              requestBody: {
+                requests: [
+                  {
+                    updateFormInfo: {
+                      info: {
+                        title: formTitle,
+                        description: formDesc,
+                      },
+                      updateMask: 'title,description',
+                    },
+                  },
+                ],
+              },
+            });
+          }
 
           return {
             formId,
@@ -575,6 +745,8 @@ export async function createOrUpdateEventGoogleForm(params: {
     // 3. Populate Description & Generated Questions via batchUpdate
     const questionRequests = buildEventRegistrationQuestions({
       branches,
+      performanceTypes: performanceCategories,
+      participationTypes: participationModes,
       eventRef: eventSlug || eventTitle,
     });
 
@@ -874,6 +1046,8 @@ export function enrichEventWithGoogleMetadata(event: any): CollegeEvent {
   let folderUrl = event.google_drive_folder_url;
   let status: GoogleRegistrationStatus = event.google_registration_status || (formUrl ? 'READY' : 'NOT_CONFIGURED');
   let regType = event.registration_type;
+  let perfCategories = event.performance_categories || null;
+  let partModes = event.participation_modes || null;
 
   // Extract from description if columns were not present
   if (event.description && typeof event.description === 'string' && event.description.includes('<!--CAMPUSFLOW_GOOGLE_META:')) {
@@ -889,6 +1063,8 @@ export function enrichEventWithGoogleMetadata(event: any): CollegeEvent {
         folderUrl = folderUrl || parsed.google_drive_folder_url;
         status = status === 'NOT_CONFIGURED' ? parsed.google_registration_status || 'READY' : status;
         regType = regType || parsed.registration_type;
+        perfCategories = perfCategories || parsed.performance_categories || null;
+        partModes = partModes || parsed.participation_modes || null;
       }
     } catch {
       // ignore parse error
@@ -912,6 +1088,8 @@ export function enrichEventWithGoogleMetadata(event: any): CollegeEvent {
     google_drive_folder_url: folderUrl || (folderId ? `https://drive.google.com/drive/folders/${folderId}` : null),
     google_registration_status: status,
     registration_sheet_id: sheetId || null,
+    performance_categories: perfCategories,
+    participation_modes: partModes,
   };
 }
 
@@ -939,6 +1117,8 @@ export async function setupAutomatedEventRegistration(params: {
   venue?: string;
   registrationDeadline?: string;
   eventSlug?: string;
+  performanceCategories?: string[];
+  participationModes?: string[];
   forceRecreate?: boolean;
 }): Promise<{
   success: boolean;
@@ -956,6 +1136,8 @@ export async function setupAutomatedEventRegistration(params: {
     venue,
     registrationDeadline,
     eventSlug,
+    performanceCategories,
+    participationModes,
     forceRecreate = false,
   } = params;
 
@@ -985,14 +1167,24 @@ export async function setupAutomatedEventRegistration(params: {
   }
 
   // 2. Fetch College Metadata & Academic Branches
-  const [collegeRes, academic] = await Promise.all([
-    db.from('colleges').select('name, slug, code').eq('id', collegeId).single(),
-    getCachedAcademicMasters(collegeId),
-  ]);
+  const collegeRes = await db.from('colleges').select('name, slug, code').eq('id', collegeId).single();
+  let branches: string[] = [];
+
+  try {
+    const academic = await getCachedAcademicMasters(collegeId);
+    branches = (academic.branches || []).map((b) => b.name || b.code).filter(Boolean);
+  } catch {
+    const { data: bData } = await db
+      .from('branches')
+      .select('name, code')
+      .eq('college_id', collegeId)
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+    branches = (bData || []).map((b: any) => b.name || b.code).filter(Boolean);
+  }
 
   const collegeName = collegeRes.data?.name || 'Institution';
   const tenantSlug = collegeRes.data?.slug || undefined;
-  const branches = (academic.branches || []).map((b) => b.name || b.code).filter(Boolean);
 
   // 3. Check existing resources on event
   const { data: existingEventRaw } = await db
@@ -1009,12 +1201,13 @@ export async function setupAutomatedEventRegistration(params: {
   const existingSpreadsheetId = forceRecreate ? null : (existingEvent?.google_spreadsheet_id || existingEvent?.registration_sheet_id);
 
   try {
-    // 4. Ensure Dedicated Google Drive Folder
+    // 4. Ensure Dedicated Google Drive Folder (CampusFlow / <Institution> / Events / Small Events / <Event> / Registration)
     const driveFolder = await ensureEventGoogleDriveFolder({
       collegeId,
       collegeName,
       eventTitle,
       existingFolderId,
+      registrationType: 'google_form',
     });
 
     // 5. Create or Update Google Form
@@ -1030,6 +1223,8 @@ export async function setupAutomatedEventRegistration(params: {
       eventSlug,
       tenantSlug,
       branches,
+      performanceCategories,
+      participationModes,
       existingFormId,
       targetFolderId: driveFolder.folderId,
     });

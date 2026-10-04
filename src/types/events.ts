@@ -32,6 +32,8 @@ export interface CollegeEvent {
   google_resources_updated_at?: string | null;
   registration_deadline?: string | null;
   registration_label?: string | null;
+  performance_categories?: string[] | null;
+  participation_modes?: string[] | null;
   payment_required: boolean;
   payment_amount: number | null;
   payment_upi_id: string | null;
@@ -141,6 +143,8 @@ export interface EventFormData {
   google_registration_error?: string;
   registration_deadline?: string;
   registration_label?: string;
+  performance_categories?: string[];
+  participation_modes?: string[];
   payment_required: boolean;
   payment_amount?: number | null;
   payment_upi_id?: string;
