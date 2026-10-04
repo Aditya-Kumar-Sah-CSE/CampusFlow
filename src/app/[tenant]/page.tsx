@@ -122,9 +122,9 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
                   Find Your Feedback Form
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
+                {/* <p className="text-xs sm:text-sm text-slate-500">
                   Follow the discovery path: Year → Branch → Semester → Faculty &amp; Subject.
-                </p>
+                </p> */}
               </div>
             </div>
 

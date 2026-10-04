@@ -135,6 +135,13 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
     }
   };
 
+  const CATEGORY_PRESETS: Record<string, string[]> = {
+    cultural: ['Singing', 'Dance', 'Drama / Skit', 'Poetry / Shayari', 'Music / Instrumental', 'Mono Acting'],
+    tech: ['Coding / Hackathon', 'Web Development', 'AI / ML', 'Mobile App Dev', 'UI / UX Design', 'Tech Quiz'],
+    sports: ['Cricket', 'Football', 'Badminton', 'Table Tennis', 'Chess', 'Esports / Gaming'],
+    academic: ['Paper Presentation', 'Debate', 'Quiz / Trivia', 'Elocution', 'Poster Making'],
+  };
+
   const applyCategoryPreset = (preset: 'cultural' | 'tech' | 'sports' | 'academic' | 'clear') => {
     setEditingCategoryIndex(null);
     setNewCategory('');
@@ -142,14 +149,15 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       setPerformanceCategories([]);
       return;
     }
-    const presets: Record<string, string[]> = {
-      cultural: ['Singing', 'Dance', 'Drama / Skit', 'Poetry / Shayari', 'Music / Instrumental', 'Mono Acting'],
-      tech: ['Coding / Hackathon', 'Web Development', 'AI / ML', 'Mobile App Dev', 'UI / UX Design', 'Tech Quiz'],
-      sports: ['Cricket', 'Football', 'Badminton', 'Table Tennis', 'Chess', 'Esports / Gaming'],
-      academic: ['Paper Presentation', 'Debate', 'Quiz / Trivia', 'Elocution', 'Poster Making'],
-    };
-    const toAdd = presets[preset] || [];
-    setPerformanceCategories(Array.from(new Set([...performanceCategories, ...toAdd])));
+    const items = CATEGORY_PRESETS[preset] || [];
+    const allPresent = items.every((item) => performanceCategories.includes(item));
+    if (allPresent) {
+      // Toggle off: remove all items of this preset
+      setPerformanceCategories(performanceCategories.filter((c) => !items.includes(c)));
+    } else {
+      // Add missing items
+      setPerformanceCategories(Array.from(new Set([...performanceCategories, ...items])));
+    }
   };
 
   // Payment states
@@ -716,36 +724,39 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                   </div>
 
                   {/* Quick Presets */}
-                  <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px]">
                     <span className="text-slate-400 font-medium text-[10px]">Quick Presets:</span>
-                    <button
-                      type="button"
-                      onClick={() => applyCategoryPreset('cultural')}
-                      className="px-2.5 py-0.5 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-700 font-medium border border-pink-200 transition-colors cursor-pointer text-xs"
-                    >
-                      🎭 Cultural
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyCategoryPreset('tech')}
-                      className="px-2.5 py-0.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700 font-medium border border-cyan-200 transition-colors cursor-pointer text-xs"
-                    >
-                      💻 Tech / Coding
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyCategoryPreset('sports')}
-                      className="px-2.5 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium border border-emerald-200 transition-colors cursor-pointer text-xs"
-                    >
-                      🏆 Sports
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyCategoryPreset('academic')}
-                      className="px-2.5 py-0.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium border border-indigo-200 transition-colors cursor-pointer text-xs"
-                    >
-                      📚 Academic
-                    </button>
+                    {([
+                      { key: 'cultural' as const, emoji: '🎭', label: 'Cultural', colors: { bg: 'bg-pink-50', hoverBg: 'hover:bg-pink-100', text: 'text-pink-700', border: 'border-pink-200', activeBg: 'bg-pink-600', activeHoverBg: 'hover:bg-pink-700', activeText: 'text-white', activeBorder: 'border-pink-700', partialBg: 'bg-pink-100', partialBorder: 'border-pink-300' } },
+                      { key: 'tech' as const, emoji: '💻', label: 'Tech / Coding', colors: { bg: 'bg-cyan-50', hoverBg: 'hover:bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200', activeBg: 'bg-cyan-600', activeHoverBg: 'hover:bg-cyan-700', activeText: 'text-white', activeBorder: 'border-cyan-700', partialBg: 'bg-cyan-100', partialBorder: 'border-cyan-300' } },
+                      { key: 'sports' as const, emoji: '🏆', label: 'Sports', colors: { bg: 'bg-emerald-50', hoverBg: 'hover:bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', activeBg: 'bg-emerald-600', activeHoverBg: 'hover:bg-emerald-700', activeText: 'text-white', activeBorder: 'border-emerald-700', partialBg: 'bg-emerald-100', partialBorder: 'border-emerald-300' } },
+                      { key: 'academic' as const, emoji: '📚', label: 'Academic', colors: { bg: 'bg-indigo-50', hoverBg: 'hover:bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', activeBg: 'bg-indigo-600', activeHoverBg: 'hover:bg-indigo-700', activeText: 'text-white', activeBorder: 'border-indigo-700', partialBg: 'bg-indigo-100', partialBorder: 'border-indigo-300' } },
+                    ]).map((preset) => {
+                      const presetItems = CATEGORY_PRESETS[preset.key] || [];
+                      const matchCount = presetItems.filter((item) => performanceCategories.includes(item)).length;
+                      const isFullySelected = matchCount === presetItems.length;
+                      const isPartial = matchCount > 0 && !isFullySelected;
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => applyCategoryPreset(preset.key)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-semibold transition-all duration-200 cursor-pointer text-xs border whitespace-nowrap ${
+                            isFullySelected
+                              ? `${preset.colors.activeBg} ${preset.colors.activeHoverBg} ${preset.colors.activeText} ${preset.colors.activeBorder} shadow-md ring-2 ring-offset-1 ring-${preset.key === 'cultural' ? 'pink' : preset.key === 'tech' ? 'cyan' : preset.key === 'sports' ? 'emerald' : 'indigo'}-300`
+                              : isPartial
+                                ? `${preset.colors.partialBg} ${preset.colors.text} ${preset.colors.partialBorder} border-dashed ${preset.colors.hoverBg}`
+                                : `${preset.colors.bg} ${preset.colors.hoverBg} ${preset.colors.text} ${preset.colors.border}`
+                          }`}
+                          title={isFullySelected ? `Click to remove ${preset.label} categories` : isPartial ? `${matchCount}/${presetItems.length} added — click to complete` : `Click to add ${preset.label} categories`}
+                        >
+                          <span className="text-sm leading-none">{preset.emoji}</span>
+                          <span>{preset.label}</span>
+                          {isFullySelected && <span className="text-[10px] font-bold">✓</span>}
+                          {isPartial && <span className="text-[9px] opacity-80 font-bold">{matchCount}/{presetItems.length}</span>}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* Category Chips (Clickable to edit in textbox) */}
