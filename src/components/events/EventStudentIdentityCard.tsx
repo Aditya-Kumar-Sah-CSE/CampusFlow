@@ -16,6 +16,8 @@ import {
   Sparkles,
   Edit3,
   Download,
+  Clock,
+  Lock,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -90,14 +92,49 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
     };
   }, [participant, event.id]);
 
-  const paidPrograms = enrolledPrograms.filter(
-    (p) => (p.paymentAmount > 0 || p.paymentStatus === 'PAID' || p.paymentStatus === 'VERIFIED') && p.registrationStatus !== 'CANCELLED'
+  // Verified paid programs (verified by Admin)
+  const verifiedPaidPrograms = enrolledPrograms.filter(
+    (p) => (p.paymentStatus === 'PAID' || p.paymentStatus === 'VERIFIED') && p.registrationStatus !== 'CANCELLED'
   );
-  const totalPaidAmount = paidPrograms.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
-  const specialEntryName = paidPrograms.map((p) => p.programName).filter(Boolean).join(', ');
+
+  // Pending paid programs (awaiting Admin payment verification)
+  const pendingPaidPrograms = enrolledPrograms.filter(
+    (p) =>
+      (p.paymentAmount > 0 || p.paymentStatus === 'PENDING' || p.paymentStatus === 'SUBMITTED') &&
+      p.paymentStatus !== 'PAID' &&
+      p.paymentStatus !== 'VERIFIED' &&
+      p.paymentStatus !== 'REJECTED' &&
+      p.registrationStatus !== 'CANCELLED'
+  );
+
+  // Free programs
+  const freePrograms = enrolledPrograms.filter(
+    (p) =>
+      (!p.paymentAmount || p.paymentAmount === 0 || p.paymentStatus === 'NOT_REQUIRED' || p.paymentStatus === 'FREE') &&
+      p.registrationStatus !== 'CANCELLED'
+  );
+
+  const totalPaidAmount = verifiedPaidPrograms.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
+  const specialEntryName = verifiedPaidPrograms.map((p) => p.programName).filter(Boolean).join(', ');
+  const pendingAmount = pendingPaidPrograms.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
+  const pendingProgramNames = pendingPaidPrograms.map((p) => p.programName).filter(Boolean).join(', ');
+
+  // Pass generation locked if student registered ONLY for paid program and it has not been verified yet
+  const isPaidPassPending =
+    enrolledPrograms.length > 0 &&
+    verifiedPaidPrograms.length === 0 &&
+    freePrograms.length === 0 &&
+    pendingPaidPrograms.length > 0;
 
   const handleDownloadPass = async () => {
     if (!participant) return;
+    if (isPaidPassPending) {
+      alert(
+        `Payment verification is pending by Admin for ${pendingProgramNames}. Once the college admin verifies your payment, your official pass will be unlocked.`
+      );
+      return;
+    }
+
     setDownloadingPass(true);
     try {
       const college = (event as any).college;
@@ -225,16 +262,26 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
               <button
                 type="button"
                 onClick={handleDownloadPass}
-                disabled={downloadingPass}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                title="Download PNG Pass"
+                disabled={downloadingPass || isPaidPassPending}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all ${
+                  isPaidPassPending
+                    ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-not-allowed opacity-85'
+                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer disabled:opacity-50'
+                }`}
+                title={
+                  isPaidPassPending
+                    ? `Payment verification pending by Admin for ${pendingProgramNames}`
+                    : 'Download PNG Pass'
+                }
               >
                 {downloadingPass ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : isPaidPassPending ? (
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
                 ) : (
                   <Download className="w-3.5 h-3.5 text-emerald-400" />
                 )}
-                <span>Download Pass</span>
+                <span>{isPaidPassPending ? 'Pass Pending Verification' : 'Download Pass'}</span>
               </button>
 
               {/* Switch Student */}
@@ -311,17 +358,40 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
                   <span>Allowed for all FREE programs</span>
                 </span>
 
-                {specialEntryName ? (
+                {specialEntryName && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
                     <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Special Entry: {specialEntryName} (Paid ₹{totalPaidAmount})</span>
+                    <span>Special Entry: {specialEntryName} (Verified Paid ₹{totalPaidAmount})</span>
                   </span>
-                ) : (
+                )}
+
+                {pendingPaidPrograms.length > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Payment Verification Pending: {pendingProgramNames} (₹{pendingAmount})</span>
+                  </span>
+                )}
+
+                {!specialEntryName && pendingPaidPrograms.length === 0 && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800/70 border border-slate-700/80 text-slate-400 text-[11px]">
                     <span>Entry: Free Pass</span>
                   </span>
                 )}
               </div>
+
+              {/* Notice when paid pass is pending verification */}
+              {isPaidPassPending && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-amber-300">Paid Pass Pending Admin Verification</div>
+                    <div className="text-slate-300 text-[11px]">
+                      Your payment of ₹{pendingAmount} for <span className="font-semibold text-white">{pendingProgramNames}</span> has been submitted. Pass download will unlock automatically once college administrators verify your payment.
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <p className="text-xs text-slate-400 pt-1">
                 You have exactly 1 event registration for {event.title}. Use this registration to participate in multiple programs below.
               </p>

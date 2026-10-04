@@ -20,6 +20,8 @@ import {
   ExternalLink,
   Copy,
   Sparkles,
+  Clock,
+  Lock,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import { identifyStudentAction } from '@/app/admin/events/event-registration-actions';
@@ -60,6 +62,10 @@ export function EventPassVerificationClient({
       totalPaidAmount?: number;
       isPaid?: boolean;
       specialEntryName?: string;
+      hasPendingPayment?: boolean;
+      pendingPaymentProgram?: string;
+      pendingPaymentAmount?: number;
+      canGeneratePass?: boolean;
     };
   }>({
     searched: false,
@@ -125,6 +131,12 @@ export function EventPassVerificationClient({
 
   const handleDownload = async () => {
     if (!result.participant) return;
+    if (result.participant.canGeneratePass === false) {
+      alert(
+        `This pass is locked because payment is awaiting Admin verification for ${result.participant.pendingPaymentProgram || 'your registered program'}. Once the admin confirms the payment, pass download will be activated.`
+      );
+      return;
+    }
     setDownloadingPass(true);
     try {
       const college = (event as any).college;
@@ -390,7 +402,20 @@ export function EventPassVerificationClient({
                       ★ SPECIAL ENTRY: {result.participant.specialEntryName}
                     </div>
                     <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                      PAID ENTRY ✓
+                      PAID &amp; VERIFIED ✓
+                    </span>
+                  </div>
+                )}
+
+                {result.participant.hasPendingPayment && (
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-xs">
+                    <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <div className="flex-1 text-amber-300">
+                      <span className="font-bold">ADMIN VERIFICATION PENDING: </span>
+                      {result.participant.pendingPaymentProgram} (₹{result.participant.pendingPaymentAmount})
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                      NOT YET VERIFIED
                     </span>
                   </div>
                 )}
@@ -434,15 +459,25 @@ export function EventPassVerificationClient({
               <button
                 type="button"
                 onClick={handleDownload}
-                disabled={downloadingPass}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={downloadingPass || result.participant.canGeneratePass === false}
+                className={`flex-1 py-3 px-4 rounded-xl font-extrabold text-xs sm:text-sm shadow-lg transition-all flex items-center justify-center gap-2 ${
+                  result.participant.canGeneratePass === false
+                    ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-not-allowed opacity-80'
+                    : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20 cursor-pointer disabled:opacity-50'
+                }`}
               >
                 {downloadingPass ? (
                   <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                ) : result.participant.canGeneratePass === false ? (
+                  <Lock className="w-4 h-4 text-amber-400 shrink-0" />
                 ) : (
                   <Download className="w-4 h-4 shrink-0" />
                 )}
-                <span>Download Pass (PNG)</span>
+                <span>
+                  {result.participant.canGeneratePass === false
+                    ? 'Pass Locked (Admin Payment Pending)'
+                    : 'Download Pass (PNG)'}
+                </span>
               </button>
 
               <Link

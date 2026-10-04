@@ -296,6 +296,10 @@ export async function identifyStudentAction(input: {
     totalPaidAmount?: number;
     isPaid?: boolean;
     specialEntryName?: string;
+    hasPendingPayment?: boolean;
+    pendingPaymentProgram?: string;
+    pendingPaymentAmount?: number;
+    canGeneratePass?: boolean;
   };
 }> {
   try {
@@ -363,6 +367,10 @@ export async function identifyStudentAction(input: {
 
     let totalPaid = 0;
     const specialEntryPrograms: string[] = [];
+    const pendingPaymentPrograms: string[] = [];
+    let pendingPaymentAmount = 0;
+    let hasFreeAccess = false;
+
     try {
       const allRows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
       const cleanReg = registration.registrationNumber.toUpperCase();
@@ -370,16 +378,36 @@ export async function identifyStudentAction(input: {
         (r) => r.registrationNumber.toUpperCase() === cleanReg && r.registrationStatus !== 'CANCELLED'
       );
       for (const row of myRows) {
-        if (row.paymentAmount > 0 || row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED') {
+        const isVerified = row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED';
+        if (isVerified) {
           totalPaid += (row.paymentAmount || 0);
           if (row.programName && !specialEntryPrograms.includes(row.programName)) {
             specialEntryPrograms.push(row.programName);
           }
+        } else if (
+          (row.paymentAmount > 0 || row.paymentStatus === 'PENDING' || row.paymentStatus === 'SUBMITTED') &&
+          row.paymentStatus !== 'REJECTED'
+        ) {
+          pendingPaymentAmount += (row.paymentAmount || 0);
+          if (row.programName && !pendingPaymentPrograms.includes(row.programName)) {
+            pendingPaymentPrograms.push(row.programName);
+          }
+        }
+
+        if (
+          row.programId === '' ||
+          ((!row.paymentAmount || row.paymentAmount === 0) &&
+            (row.paymentStatus === 'NOT_REQUIRED' || row.paymentStatus === 'FREE' || !row.paymentStatus))
+        ) {
+          hasFreeAccess = true;
         }
       }
     } catch {
       // non-fatal
     }
+
+    const hasPendingPayment = pendingPaymentPrograms.length > 0;
+    const canGeneratePass = totalPaid > 0 || hasFreeAccess || !hasPendingPayment;
 
     return {
       success: true,
@@ -396,6 +424,10 @@ export async function identifyStudentAction(input: {
         totalPaidAmount: totalPaid,
         isPaid: totalPaid > 0,
         specialEntryName: specialEntryPrograms.length > 0 ? specialEntryPrograms.join(', ') : undefined,
+        hasPendingPayment,
+        pendingPaymentProgram: pendingPaymentPrograms.length > 0 ? pendingPaymentPrograms.join(', ') : undefined,
+        pendingPaymentAmount,
+        canGeneratePass,
       },
     };
   } catch (err: unknown) {
@@ -535,6 +567,10 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
     totalPaidAmount?: number;
     isPaid?: boolean;
     specialEntryName?: string;
+    hasPendingPayment?: boolean;
+    pendingPaymentProgram?: string;
+    pendingPaymentAmount?: number;
+    canGeneratePass?: boolean;
   };
 }> {
   try {
@@ -547,6 +583,9 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
     const event = await getEventWithCollege(eventId);
     let totalPaid = 0;
     const specialEntryPrograms: string[] = [];
+    const pendingPaymentPrograms: string[] = [];
+    let pendingPaymentAmount = 0;
+    let hasFreeAccess = false;
 
     if (event.registration_sheet_id) {
       try {
@@ -556,16 +595,36 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
           (r) => r.registrationNumber.toUpperCase() === cleanReg && r.registrationStatus !== 'CANCELLED'
         );
         for (const row of myRows) {
-          if (row.paymentAmount > 0 || row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED') {
+          const isVerified = row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED';
+          if (isVerified) {
             totalPaid += (row.paymentAmount || 0);
             if (row.programName && !specialEntryPrograms.includes(row.programName)) {
               specialEntryPrograms.push(row.programName);
             }
+          } else if (
+            (row.paymentAmount > 0 || row.paymentStatus === 'PENDING' || row.paymentStatus === 'SUBMITTED') &&
+            row.paymentStatus !== 'REJECTED'
+          ) {
+            pendingPaymentAmount += (row.paymentAmount || 0);
+            if (row.programName && !pendingPaymentPrograms.includes(row.programName)) {
+              pendingPaymentPrograms.push(row.programName);
+            }
+          }
+
+          if (
+            row.programId === '' ||
+            ((!row.paymentAmount || row.paymentAmount === 0) &&
+              (row.paymentStatus === 'NOT_REQUIRED' || row.paymentStatus === 'FREE' || !row.paymentStatus))
+          ) {
+            hasFreeAccess = true;
           }
         }
       } catch {
         // non-fatal
       }
+
+      const hasPendingPayment = pendingPaymentPrograms.length > 0;
+      const canGeneratePass = totalPaid > 0 || hasFreeAccess || !hasPendingPayment;
 
       try {
         const row = await findEventRegistrationByCredentials(
@@ -595,6 +654,10 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
               totalPaidAmount: totalPaid,
               isPaid: totalPaid > 0,
               specialEntryName: specialEntryPrograms.length > 0 ? specialEntryPrograms.join(', ') : undefined,
+              hasPendingPayment,
+              pendingPaymentProgram: pendingPaymentPrograms.length > 0 ? pendingPaymentPrograms.join(', ') : undefined,
+              pendingPaymentAmount,
+              canGeneratePass,
             },
           };
         }
@@ -608,6 +671,9 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
       s.branch,
       s.semester
     );
+
+    const hasPendingPayment = pendingPaymentPrograms.length > 0;
+    const canGeneratePass = totalPaid > 0 || hasFreeAccess || !hasPendingPayment;
 
     return {
       isValid: true,
@@ -623,6 +689,10 @@ export async function resolveCurrentEventRegistrationAction(eventId: string): Pr
         totalPaidAmount: totalPaid,
         isPaid: totalPaid > 0,
         specialEntryName: specialEntryPrograms.length > 0 ? specialEntryPrograms.join(', ') : undefined,
+        hasPendingPayment,
+        pendingPaymentProgram: pendingPaymentPrograms.length > 0 ? pendingPaymentPrograms.join(', ') : undefined,
+        pendingPaymentAmount,
+        canGeneratePass,
       },
     };
   } catch (err) {

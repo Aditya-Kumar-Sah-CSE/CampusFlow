@@ -19,6 +19,8 @@ import {
   Search,
   LogOut,
   Download,
+  Clock,
+  Lock,
 } from 'lucide-react';
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
 import {
@@ -69,6 +71,13 @@ export function EventRegistrationForm({
     mobile?: string;
     branch?: string;
     semester?: string;
+    totalPaidAmount?: number;
+    isPaid?: boolean;
+    specialEntryName?: string;
+    hasPendingPayment?: boolean;
+    pendingPaymentProgram?: string;
+    pendingPaymentAmount?: number;
+    canGeneratePass?: boolean;
   } | null>(null);
 
   // New Registration form fields
@@ -316,18 +325,48 @@ export function EventRegistrationForm({
 
             <button
               type="button"
-              onClick={() => handleDownloadPass(alreadyRegisteredParticipant)}
-              disabled={downloadingPass}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer disabled:opacity-50"
+              onClick={() => {
+                if (alreadyRegisteredParticipant.canGeneratePass === false) {
+                  alert(
+                    `This pass is locked because payment is awaiting Admin verification for ${alreadyRegisteredParticipant.pendingPaymentProgram || 'your registered program'}. Once the admin confirms your payment, pass download will be activated.`
+                  );
+                  return;
+                }
+                handleDownloadPass(alreadyRegisteredParticipant);
+              }}
+              disabled={downloadingPass || alreadyRegisteredParticipant.canGeneratePass === false}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                alreadyRegisteredParticipant.canGeneratePass === false
+                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-not-allowed opacity-85'
+                  : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer disabled:opacity-50'
+              }`}
             >
               {downloadingPass ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : alreadyRegisteredParticipant.canGeneratePass === false ? (
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
               ) : (
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
               )}
-              <span>Download Pass (PNG)</span>
+              <span>
+                {alreadyRegisteredParticipant.canGeneratePass === false
+                  ? 'Pass Locked (Admin Payment Pending)'
+                  : 'Download Pass (PNG)'}
+              </span>
             </button>
           </div>
+
+          {alreadyRegisteredParticipant.hasPendingPayment && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 text-left flex items-start gap-2.5 mt-2">
+              <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <div className="font-bold text-amber-300">Paid Pass Pending Admin Verification</div>
+                <div className="text-slate-300 text-[11px]">
+                  Payment for <span className="font-semibold text-white">{alreadyRegisteredParticipant.pendingPaymentProgram}</span> (₹{alreadyRegisteredParticipant.pendingPaymentAmount}) has been submitted. Pass download will unlock automatically once college administrators verify your payment.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Action Buttons */}
