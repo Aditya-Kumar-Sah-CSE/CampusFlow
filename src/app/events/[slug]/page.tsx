@@ -234,18 +234,24 @@ export default async function PublicEventPage({ params }: Props) {
               Registration deadline: <span className="font-semibold text-slate-800">{deadlineFormatted}</span>
             </div>
 
-            {isOpen && (
+            {isOpen ? (
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 {isGoogleForm ? (
-                  <a
-                    href={event.google_form_url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>{registerButtonLabel} &rarr;</span>
-                    <ExternalLink className="w-4 h-4 shrink-0" />
-                  </a>
+                  event.google_form_url ? (
+                    <a
+                      href={event.google_form_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>{registerButtonLabel} &rarr;</span>
+                      <ExternalLink className="w-4 h-4 shrink-0" />
+                    </a>
+                  ) : (
+                    <div className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 font-semibold text-xs sm:text-sm rounded-xl text-center">
+                      Registration temporarily unavailable
+                    </div>
+                  )
                 ) : session ? (
                   <a
                     href="#programs"
@@ -263,6 +269,12 @@ export default async function PublicEventPage({ params }: Props) {
                     <span>{registerButtonLabel}</span>
                   </Link>
                 )}
+              </div>
+            ) : (
+              <div className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 font-semibold text-xs sm:text-sm rounded-xl text-center">
+                {event.registration_type === 'google_form' && (!event.google_form_url || event.google_registration_status === 'ERROR')
+                  ? 'Registration temporarily unavailable'
+                  : 'Registration Closed'}
               </div>
             )}
           </div>

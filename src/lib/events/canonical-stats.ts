@@ -161,6 +161,7 @@ export async function getCanonicalEventStats(
     title: string;
     max_capacity: number | null;
     registration_sheet_id: string | null;
+    registration_type?: string | null;
   }
 ): Promise<CanonicalEventStats> {
   try {
@@ -169,7 +170,7 @@ export async function getCanonicalEventStats(
       const db = await getDb();
       const { data, error } = await db
         .from('events')
-        .select('id, title, max_capacity, registration_sheet_id')
+        .select('id, title, max_capacity, registration_sheet_id, registration_type')
         .eq('id', eventId)
         .eq('college_id', collegeId)
         .maybeSingle();
@@ -190,6 +191,43 @@ export async function getCanonicalEventStats(
         };
       }
       event = data;
+    }
+
+    // For Google Form / Small Events: query Google Sheets response layer directly
+    if (event.registration_type === 'google_form') {
+      try {
+        const { fetchGoogleFormEventResponses } = await import(
+          '@/lib/google/event-registration-automated'
+        );
+        const googleRes = await fetchGoogleFormEventResponses({ collegeId, eventId: event.id });
+        const total = googleRes.totalCount || 0;
+        return {
+          available: true,
+          totalEnrolled: total,
+          totalRegistrations: total,
+          teamsCount: 0,
+          individualCount: total,
+          paymentPending: 0,
+          paymentVerified: total,
+          paymentRejected: 0,
+          availableSeats: event.max_capacity !== null ? Math.max(0, event.max_capacity - total) : null,
+          maxCapacity: event.max_capacity ?? null,
+        };
+      } catch (err: any) {
+        return {
+          available: false,
+          error: err?.message || 'Google registration data unavailable',
+          totalEnrolled: 0,
+          totalRegistrations: 0,
+          teamsCount: 0,
+          individualCount: 0,
+          paymentPending: 0,
+          paymentVerified: 0,
+          paymentRejected: 0,
+          availableSeats: event.max_capacity ?? null,
+          maxCapacity: event.max_capacity ?? null,
+        };
+      }
     }
 
     // Google Sheets is the source of truth for registrations

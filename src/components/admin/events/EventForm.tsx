@@ -16,10 +16,13 @@ import {
   Ticket,
   FileSpreadsheet,
   ExternalLink,
+  FolderOpen,
+  Sparkles,
+  RefreshCw,
+  CheckCircle2,
 } from 'lucide-react';
 import type { CollegeEvent, EventFormData, EventStatus, EventRegistrationType } from '@/types/events';
-import { createEventAction, updateEventAction } from '@/app/admin/events/actions';
-import { isValidGoogleFormUrl } from '@/lib/validation/google-forms';
+import { createEventAction, updateEventAction, resyncEventGoogleResourcesAction } from '@/app/admin/events/actions';
 
 interface Props {
   initialEvent?: CollegeEvent | null;
@@ -66,7 +69,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
   const [registrationType, setRegistrationType] = useState<EventRegistrationType>(
     initialEvent?.registration_type || (initialEvent?.google_form_url ? 'google_form' : 'internal')
   );
-  const [googleFormUrl, setGoogleFormUrl] = useState(initialEvent?.google_form_url || '');
+  const [googleFormUrl] = useState(initialEvent?.google_form_url || '');
   const [registrationDeadline, setRegistrationDeadline] = useState(
     formatForInput(initialEvent?.registration_deadline || initialEvent?.registration_end || defaultRegEnd)
   );
@@ -92,6 +95,35 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
   const [qrPreview, setQrPreview] = useState<string | null>(initialEvent?.payment_qr_url || null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Automated Google Registration sync state
+  const [syncingGoogle, setSyncingGoogle] = useState(false);
+  const [googleFeedback, setGoogleFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [createdGoogleResources, setCreatedGoogleResources] = useState<{
+    eventId: string;
+    formUrl?: string | null;
+    spreadsheetUrl?: string | null;
+    driveFolderUrl?: string | null;
+  } | null>(null);
+
+  const handleResyncGoogleResources = async () => {
+    if (!initialEvent?.id) return;
+    setSyncingGoogle(true);
+    setGoogleFeedback(null);
+    try {
+      const res = await resyncEventGoogleResourcesAction(initialEvent.id, activeCollegeId || undefined);
+      if (res.success) {
+        setGoogleFeedback({ type: 'success', message: res.message || 'Google registration resources synchronized successfully.' });
+        router.refresh();
+      } else {
+        setGoogleFeedback({ type: 'error', message: res.error || 'Failed to sync Google resources.' });
+      }
+    } catch (err: any) {
+      setGoogleFeedback({ type: 'error', message: err.message || 'Error syncing Google resources.' });
+    } finally {
+      setSyncingGoogle(false);
+    }
+  };
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -147,19 +179,6 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         }
       }
 
-      if (registrationEnabled && registrationType === 'google_form') {
-        if (!googleFormUrl.trim()) {
-          setErrorMsg('Google Form URL is required when Google Form registration is enabled.');
-          setSubmitting(false);
-          return;
-        }
-        if (!isValidGoogleFormUrl(googleFormUrl)) {
-          setErrorMsg('Please enter a valid Google Form URL (e.g. https://docs.google.com/forms/d/... or https://forms.gle/...)');
-          setSubmitting(false);
-          return;
-        }
-      }
-
       const payload: EventFormData = {
         title: title.trim(),
         slug: slug.trim().toLowerCase(),
@@ -194,8 +213,17 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       } else {
         const res = await createEventAction(payload, activeCollegeId || undefined);
         if (res.success) {
-          router.push('/admin/dashboard?tab=events');
-          router.refresh();
+          if (registrationType === 'google_form' && res.resources) {
+            setCreatedGoogleResources({
+              eventId: res.eventId || '',
+              formUrl: res.resources.googleFormUrl || undefined,
+              spreadsheetUrl: res.resources.googleSpreadsheetUrl || undefined,
+              driveFolderUrl: res.resources.googleDriveFolderUrl || undefined,
+            });
+          } else {
+            router.push('/admin/dashboard?tab=events');
+            router.refresh();
+          }
         } else {
           setErrorMsg(res.error || 'Failed to create event.');
         }
@@ -395,7 +423,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                       </span>
                     </span>
                     <span className="text-slate-500 text-[11px] leading-tight block mt-1">
-                      Direct students to an external Google Form (e.g. Open Mic, Seminars, Workshops, Club events).
+                      Automatically creates Google Form + Response Sheet + Drive folder.
                     </span>
                   </div>
                 </label>
@@ -421,47 +449,173 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                       <span>Internal CampusFlow Portal</span>
                     </span>
                     <span className="text-slate-500 text-[11px] leading-tight block mt-1">
-                      Multi-competition events with student ID verification, teams, and Google Sheets master ledger.
+                      Existing CampusFlow registration system.
                     </span>
                   </div>
                 </label>
               </div>
             </div>
 
-            {/* Google Form Specific Configuration */}
+            {/* Automated Google Registration Pipeline UI */}
             {registrationType === 'google_form' && (
-              <div className="p-4 bg-slate-50/90 rounded-xl border border-slate-200 space-y-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                      <span>Google Form URL *</span>
-                    </label>
-                    {googleFormUrl && isValidGoogleFormUrl(googleFormUrl) && (
-                      <a
-                        href={googleFormUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] font-semibold text-bce-cobalt hover:underline inline-flex items-center gap-1"
-                      >
-                        <span>Test Form URL</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
+              <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-4">
+                {/* Header & Status */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900">
+                      Google Registration Resources
+                    </span>
+                  </div>
+
+                  <div>
+                    {initialEvent?.google_registration_status === 'READY' || initialEvent?.google_form_url ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>Ready</span>
+                      </span>
+                    ) : initialEvent?.google_registration_status === 'ERROR' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Error</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        <Sparkles className="w-3 h-3" />
+                        <span>Not Connected (Created on Save)</span>
+                      </span>
                     )}
                   </div>
-                  <input
-                    type="url"
-                    required={registrationEnabled && registrationType === 'google_form'}
-                    value={googleFormUrl}
-                    onChange={(e) => setGoogleFormUrl(e.target.value)}
-                    placeholder="https://docs.google.com/forms/d/e/.../viewform or https://forms.gle/..."
-                    className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Accepts official Google Forms URLs (<code className="font-mono text-[10px] bg-slate-200 px-1 py-0.5 rounded">docs.google.com/forms/...</code> or <code className="font-mono text-[10px] bg-slate-200 px-1 py-0.5 rounded">forms.gle/...</code>).
-                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {googleFeedback && (
+                  <div
+                    className={`p-3 rounded-xl text-xs flex items-start gap-2 ${
+                      googleFeedback.type === 'success'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}
+                  >
+                    {googleFeedback.type === 'success' ? (
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                    )}
+                    <span>{googleFeedback.message}</span>
+                  </div>
+                )}
+
+                {/* Resource Actions / Links */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Google Form */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Google Form
+                      </span>
+                      <span className="text-xs font-semibold text-slate-800 block truncate">
+                        {initialEvent?.title ? `${initialEvent.title} - Form` : 'Registration Form'}
+                      </span>
+                    </div>
+                    {initialEvent?.google_form_url ? (
+                      <a
+                        href={initialEvent.google_form_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open Form</span>
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Created upon save</span>
+                    )}
+                  </div>
+
+                  {/* Response Sheet */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Responses (Source of Truth)
+                      </span>
+                      <span className="text-xs font-semibold text-slate-800 block truncate">
+                        {initialEvent?.title ? `${initialEvent.title} - Responses` : 'Master Ledger'}
+                      </span>
+                    </div>
+                    {initialEvent?.google_spreadsheet_url ? (
+                      <a
+                        href={initialEvent.google_spreadsheet_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors"
+                      >
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                        <span>Open Responses</span>
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Linked upon save</span>
+                    )}
+                  </div>
+
+                  {/* Google Drive Folder */}
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 flex flex-col justify-between gap-2 shadow-2xs">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Google Drive Folder
+                      </span>
+                      <span className="text-xs font-semibold text-slate-800 block truncate">
+                        CampusFlow / Events / Registration
+                      </span>
+                    </div>
+                    {initialEvent?.google_drive_folder_url ? (
+                      <a
+                        href={initialEvent.google_drive_folder_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Open Folder</span>
+                      </a>
+                    ) : (
+                      <span className="text-[11px] text-slate-400 italic">Organized upon save</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Explanatory Banner & Recreate / Repair Resources */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-slate-600 bg-blue-50/50 p-3 rounded-xl border border-blue-100">
+                  <div className="flex items-start gap-2 max-w-xl">
+                    <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      <strong>Zero manual setup:</strong> CampusFlow automatically creates the Google Form with custom questions tailored to your active branches, generates the linked response Google Sheet, and stores everything in your institution&apos;s connected Google Drive.
+                    </p>
+                  </div>
+
+                  {isEdit && initialEvent && (
+                    <button
+                      type="button"
+                      onClick={handleResyncGoogleResources}
+                      disabled={syncingGoogle}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0 disabled:opacity-60 cursor-pointer"
+                    >
+                      {syncingGoogle ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Syncing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Recreate / Repair Resources</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+
+                {/* Button Label & Registration Deadline */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-slate-700">Button Label</label>
                     <input
@@ -672,6 +826,111 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
           <span>{isEdit ? 'Save Changes' : 'Create Event'}</span>
         </button>
       </div>
+      {/* Google Registration Created Success Modal (Requirement 7) */}
+      {createdGoogleResources && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  Google registration form created successfully.
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Your event&apos;s Google Form, response Google Sheet, and dedicated Drive folder have been automatically generated and connected.
+                </p>
+              </div>
+            </div>
+
+            {/* Resources Links Grid */}
+            <div className="space-y-2.5">
+              {createdGoogleResources.formUrl && (
+                <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 block">
+                      Google Form URL
+                    </span>
+                    <span className="text-xs font-mono text-slate-600 truncate block">
+                      {createdGoogleResources.formUrl}
+                    </span>
+                  </div>
+                  <a
+                    href={createdGoogleResources.formUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shrink-0 shadow-2xs transition-colors"
+                  >
+                    <span>Open Form</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {createdGoogleResources.spreadsheetUrl && (
+                <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 block">
+                      Response Sheet URL (Source of Truth)
+                    </span>
+                    <span className="text-xs font-mono text-slate-600 truncate block">
+                      {createdGoogleResources.spreadsheetUrl}
+                    </span>
+                  </div>
+                  <a
+                    href={createdGoogleResources.spreadsheetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shrink-0 shadow-2xs transition-colors"
+                  >
+                    <span>Open Responses</span>
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+
+              {createdGoogleResources.driveFolderUrl && (
+                <div className="p-3 bg-slate-100/70 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">
+                      Google Drive Folder
+                    </span>
+                    <span className="text-xs font-mono text-slate-600 truncate block">
+                      {createdGoogleResources.driveFolderUrl}
+                    </span>
+                  </div>
+                  <a
+                    href={createdGoogleResources.driveFolderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shrink-0 shadow-2xs transition-colors"
+                  >
+                    <span>Open Drive Folder</span>
+                    <FolderOpen className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <Link
+                href="/admin/dashboard?tab=events"
+                className="w-full sm:w-auto px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-xl border border-slate-200 text-center transition-colors"
+              >
+                Go to Events Dashboard
+              </Link>
+              <Link
+                href={`/admin/dashboard/events/${createdGoogleResources.eventId}/registrations`}
+                className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-white bg-bce-cobalt hover:bg-blue-800 rounded-xl text-center shadow-xs transition-colors"
+              >
+                View Event Registrations
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

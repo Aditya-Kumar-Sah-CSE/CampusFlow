@@ -10,6 +10,7 @@ import type {
 } from '@/types/events';
 import { isUuid, normalizeEventSlug } from '@/lib/events/slug';
 import { computeCanonicalStatsFromRows, getCanonicalEventStats } from '@/lib/events/canonical-stats';
+import { enrichEventWithGoogleMetadata } from '@/lib/google/event-registration-automated';
 
 async function getDb() {
   return createAdminClient() || await createClient();
@@ -34,7 +35,7 @@ export async function getAdminEvents(collegeId: string): Promise<CollegeEvent[]>
 
   // Google Sheets is the source of truth for registrations.
   // We do not query the deprecated Supabase event_registrations table.
-  return events || [];
+  return (events || []).map(enrichEventWithGoogleMetadata);
 }
 
 /**
@@ -102,14 +103,16 @@ export async function getAdminEventById(
     return null;
   }
 
+  const enriched = enrichEventWithGoogleMetadata(data);
+
   try {
-    const stats = await getCanonicalEventStats(collegeId, data.id, data);
+    const stats = await getCanonicalEventStats(collegeId, enriched.id, enriched);
     return {
-      ...data,
+      ...enriched,
       active_registrations_count: stats.available ? stats.totalEnrolled : undefined,
     };
   } catch {
-    return data;
+    return enriched;
   }
 }
 
@@ -136,7 +139,7 @@ export async function getPublicTenantEvents(collegeId: string): Promise<CollegeE
     return [];
   }
 
-  return data || [];
+  return (data || []).map(enrichEventWithGoogleMetadata);
 }
 
 /**
@@ -175,14 +178,16 @@ export async function getPublicEventBySlug(
     return null;
   }
 
+  const enriched = enrichEventWithGoogleMetadata(data);
+
   try {
-    const stats = await getCanonicalEventStats(collegeId, data.id, data);
+    const stats = await getCanonicalEventStats(collegeId, enriched.id, enriched);
     return {
-      ...data,
+      ...enriched,
       active_registrations_count: stats.available ? stats.totalEnrolled : undefined,
     };
   } catch {
-    return data;
+    return enriched;
   }
 }
 
@@ -214,7 +219,7 @@ export async function getPublicEventBySlugGlobal(
   }
 
   if (error || !data) return null;
-  return data as any;
+  return enrichEventWithGoogleMetadata(data) as any;
 }
 
 /**

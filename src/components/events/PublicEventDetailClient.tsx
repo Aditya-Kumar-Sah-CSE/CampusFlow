@@ -203,15 +203,32 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
             <div>
               {canRegister ? (
                 isGoogleForm ? (
-                  <a
-                    href={event.google_form_url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-bce-cobalt to-slate-900 hover:from-slate-900 hover:to-bce-cobalt text-white text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer text-center"
-                  >
-                    <span>{registerButtonLabel}</span>
-                    <ExternalLink className="w-4 h-4 shrink-0" />
-                  </a>
+                  event.google_form_url ? (
+                    <a
+                      href={event.google_form_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => {
+                        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                          e.preventDefault();
+                          alert('Registration requires an active internet connection to open Google Forms.');
+                        }
+                      }}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-bce-cobalt to-slate-900 hover:from-slate-900 hover:to-bce-cobalt text-white text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 cursor-pointer text-center"
+                    >
+                      <span>{registerButtonLabel} &rarr;</span>
+                      <ExternalLink className="w-4 h-4 shrink-0" />
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 text-xs sm:text-sm font-semibold rounded-xl sm:rounded-2xl cursor-not-allowed text-center"
+                    >
+                      <Lock className="w-4 h-4" />
+                      <span>Registration temporarily unavailable</span>
+                    </button>
+                  )
                 ) : (
                   <button
                     type="button"
@@ -230,15 +247,17 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
                 >
                   <Lock className="w-4 h-4" />
                   <span>
-                    {isClosed
+                    {isCancelled
+                      ? 'Event Cancelled'
+                      : isClosed || isPastDeadline
                       ? 'Registration Closed'
-                      : isPastDeadline
-                      ? 'Deadline Expired'
+                      : event.registration_type === 'google_form' && (!event.google_form_url || event.google_registration_status === 'ERROR')
+                      ? 'Registration temporarily unavailable'
                       : isUpcoming
                       ? `Opens ${new Date(event.registration_start).toLocaleDateString('en-IN')}`
                       : isFull
                       ? 'Capacity Reached'
-                      : 'Registration Unavailable'}
+                      : 'Registration Closed'}
                   </span>
                 </button>
               )}

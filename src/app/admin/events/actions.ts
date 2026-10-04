@@ -4,12 +4,135 @@ import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminSession } from '@/lib/auth/admin-auth';
-import type { EventStatus, EventRegistrationStatus, EventFormData } from '@/types/events';
+import type {
+  EventStatus,
+  EventRegistrationStatus,
+  EventFormData,
+  GoogleRegistrationResources,
+} from '@/types/events';
 import { normalizeEventSlug, isValidEventSlug } from '@/lib/events/slug';
-import { isValidGoogleFormUrl, sanitizeGoogleFormUrl } from '@/lib/validation/google-forms';
+import { isCollegeGoogleConfigured } from '@/lib/google/auth';
+import {
+  setupAutomatedEventRegistration,
+  fetchGoogleFormEventResponses,
+  enrichEventWithGoogleMetadata,
+} from '@/lib/google/event-registration-automated';
 
 async function getAdminDb() {
   return createAdminClient() || await createClient();
+}
+
+/**
+ * Safely inserts an event record, falling back gracefully if newly migrated
+ * columns have not yet been applied by the database administrator.
+ */
+async function safeInsertEvent(db: any, payload: Record<string, any>): Promise<{ data: any; error: any }> {
+  const { data, error } = await db.from('events').insert(payload).select('id').single();
+  if (!error) return { data, error: null };
+
+  if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+    const {
+      registration_type,
+      google_form_id,
+      google_form_url,
+      google_spreadsheet_id,
+      google_spreadsheet_url,
+      google_drive_folder_id,
+      google_drive_folder_url,
+      google_registration_status,
+      google_registration_error,
+      google_resources_created_at,
+      google_resources_updated_at,
+      registration_deadline,
+      registration_label,
+      ...corePayload
+    } = payload;
+
+    const metaTag = `\n\n<!--CAMPUSFLOW_GOOGLE_META:${JSON.stringify({
+      registration_type,
+      google_form_id,
+      google_form_url,
+      google_spreadsheet_id,
+      google_spreadsheet_url,
+      google_drive_folder_id,
+      google_drive_folder_url,
+      google_registration_status,
+      google_registration_error,
+      google_resources_created_at,
+      google_resources_updated_at,
+      registration_deadline,
+      registration_label,
+    })}-->`;
+
+    corePayload.description = (corePayload.description || '') + metaTag;
+    if (google_spreadsheet_id) {
+      corePayload.registration_sheet_id = google_spreadsheet_id;
+    }
+
+    return await db.from('events').insert(corePayload).select('id').single();
+  }
+
+  return { data: null, error };
+}
+
+/**
+ * Safely updates an event record with forward-compatible fallback.
+ */
+async function safeUpdateEvent(
+  db: any,
+  eventId: string,
+  collegeId: string,
+  updates: Record<string, any>
+): Promise<{ error: any }> {
+  const { error } = await db.from('events').update(updates).eq('id', eventId).eq('college_id', collegeId);
+  if (!error) return { error: null };
+
+  if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+    const {
+      registration_type,
+      google_form_id,
+      google_form_url,
+      google_spreadsheet_id,
+      google_spreadsheet_url,
+      google_drive_folder_id,
+      google_drive_folder_url,
+      google_registration_status,
+      google_registration_error,
+      google_resources_created_at,
+      google_resources_updated_at,
+      registration_deadline,
+      registration_label,
+      ...coreUpdates
+    } = updates;
+
+    const { data: cur } = await db.from('events').select('description').eq('id', eventId).eq('college_id', collegeId).maybeSingle();
+    const cleanDesc = (cur?.description || '').replace(/<!--CAMPUSFLOW_GOOGLE_META:[\s\S]*?-->/g, '').trim();
+
+    const metaTag = `\n\n<!--CAMPUSFLOW_GOOGLE_META:${JSON.stringify({
+      registration_type,
+      google_form_id,
+      google_form_url,
+      google_spreadsheet_id,
+      google_spreadsheet_url,
+      google_drive_folder_id,
+      google_drive_folder_url,
+      google_registration_status,
+      google_registration_error,
+      google_resources_created_at,
+      google_resources_updated_at,
+      registration_deadline,
+      registration_label,
+    })}-->`;
+
+    coreUpdates.description = (coreUpdates.description !== undefined ? coreUpdates.description : cleanDesc) + metaTag;
+    if (google_spreadsheet_id) {
+      coreUpdates.registration_sheet_id = google_spreadsheet_id;
+    }
+
+    return await db.from('events').update(coreUpdates).eq('id', eventId).eq('college_id', collegeId);
+  }
+
+  return { error };
 }
 
 async function logAudit(
@@ -69,7 +192,13 @@ async function assertAdminCollegeAuth(targetCollegeId?: string) {
 export async function createEventAction(
   data: EventFormData,
   targetCollegeId?: string
-): Promise<{ success: boolean; error?: string; eventId?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  eventId?: string;
+  resources?: GoogleRegistrationResources;
+  message?: string;
+}> {
   try {
     const { session, collegeId } = await assertAdminCollegeAuth(targetCollegeId);
     const db = await getAdminDb();
@@ -125,17 +254,16 @@ export async function createEventAction(
       registrationType = data.google_form_url?.trim() ? 'google_form' : 'internal';
     }
 
-    let sanitizedGoogleFormUrl: string | null = null;
+    // Automated Google Registration: Validate institutional Google OAuth upfront
     if (registrationType === 'google_form' && registrationEnabled) {
-      if (!data.google_form_url || !data.google_form_url.trim()) {
-        return { success: false, error: 'Google Form URL is required when Google Form registration is enabled.' };
+      const isGoogleConnected = await isCollegeGoogleConfigured(collegeId);
+      if (!isGoogleConnected) {
+        return {
+          success: false,
+          error:
+            'Google Drive access is required to automatically create event registration resources. Please connect your institutional Google Workspace account in Admin Settings.',
+        };
       }
-      if (!isValidGoogleFormUrl(data.google_form_url)) {
-        return { success: false, error: 'Please enter a valid Google Form URL (e.g. https://docs.google.com/forms/d/... or https://forms.gle/...)' };
-      }
-      sanitizedGoogleFormUrl = sanitizeGoogleFormUrl(data.google_form_url);
-    } else if (data.google_form_url?.trim()) {
-      sanitizedGoogleFormUrl = sanitizeGoogleFormUrl(data.google_form_url);
     }
 
     let sanitizedDeadline: string | null = null;
@@ -151,38 +279,61 @@ export async function createEventAction(
 
     const registrationLabel = data.registration_label?.trim() || 'Register Now';
 
-    const { data: newEvent, error: insertError } = await db
-      .from('events')
-      .insert({
-        college_id: collegeId,
-        title: cleanTitle,
-        slug: cleanSlug,
-        description: data.description?.trim() || null,
-        venue: cleanVenue,
-        start_at: data.start_at,
-        end_at: data.end_at,
-        registration_start: data.registration_start,
-        registration_end: data.registration_end,
-        max_capacity: data.max_capacity && data.max_capacity > 0 ? data.max_capacity : null,
-        status: data.status || 'DRAFT',
-        registration_enabled: registrationEnabled,
-        registration_type: registrationType,
-        google_form_url: sanitizedGoogleFormUrl,
-        registration_deadline: sanitizedDeadline,
-        registration_label: registrationLabel,
-        payment_required: Boolean(data.payment_required),
-        payment_amount: data.payment_required ? data.payment_amount : null,
-        payment_upi_id: data.payment_required ? (data.payment_upi_id?.trim() || null) : null,
-        payment_qr_url: data.payment_required ? (data.payment_qr_url?.trim() || null) : null,
-        payment_instructions: data.payment_required ? (data.payment_instructions?.trim() || null) : null,
-        created_by: session.userId,
-      })
-      .select('id')
-      .single();
+    const { data: newEvent, error: insertError } = await safeInsertEvent(db, {
+      college_id: collegeId,
+      title: cleanTitle,
+      slug: cleanSlug,
+      description: data.description?.trim() || null,
+      venue: cleanVenue,
+      start_at: data.start_at,
+      end_at: data.end_at,
+      registration_start: data.registration_start,
+      registration_end: data.registration_end,
+      max_capacity: data.max_capacity && data.max_capacity > 0 ? data.max_capacity : null,
+      status: data.status || 'DRAFT',
+      registration_enabled: registrationEnabled,
+      registration_type: registrationType,
+      google_form_url: null, // Populated via automated pipeline
+      registration_deadline: sanitizedDeadline,
+      registration_label: registrationLabel,
+      payment_required: Boolean(data.payment_required),
+      payment_amount: data.payment_required ? data.payment_amount : null,
+      payment_upi_id: data.payment_required ? (data.payment_upi_id?.trim() || null) : null,
+      payment_qr_url: data.payment_required ? (data.payment_qr_url?.trim() || null) : null,
+      payment_instructions: data.payment_required ? (data.payment_instructions?.trim() || null) : null,
+      created_by: session.userId,
+    });
 
-    if (insertError) {
+    if (insertError || !newEvent?.id) {
       console.error('[CREATE_EVENT_ERROR]', insertError);
-      return { success: false, error: insertError.message };
+      return { success: false, error: insertError?.message || 'Failed to insert event record.' };
+    }
+
+    let googleResources: any = null;
+
+    // Automated Google Registration Pipeline: Automatically create Drive folder, Form, and Sheet
+    if (registrationType === 'google_form' && registrationEnabled) {
+      const setupRes = await setupAutomatedEventRegistration({
+        collegeId,
+        eventId: newEvent.id,
+        eventTitle: cleanTitle,
+        eventDescription: data.description?.trim() || undefined,
+        startAt: data.start_at,
+        endAt: data.end_at,
+        venue: cleanVenue,
+        registrationDeadline: sanitizedDeadline || undefined,
+        eventSlug: cleanSlug,
+      });
+
+      if (!setupRes.success) {
+        return {
+          success: false,
+          error: setupRes.message || 'Failed to initialize Google registration resources.',
+          eventId: newEvent.id,
+        };
+      }
+
+      googleResources = setupRes.resources;
     }
 
     await logAudit(
@@ -192,11 +343,16 @@ export async function createEventAction(
       'CREATE_EVENT',
       'events',
       newEvent.id,
-      `Created event "${cleanTitle}" with status ${data.status}`
+      `Created event "${cleanTitle}" with status ${data.status} (Registration: ${registrationType})`
     );
 
     revalidatePath('/admin/dashboard');
-    return { success: true, eventId: newEvent.id };
+    return {
+      success: true,
+      eventId: newEvent.id,
+      resources: googleResources,
+      message: googleResources ? 'Google registration form created successfully.' : undefined,
+    };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to create event.' };
   }
@@ -215,16 +371,18 @@ export async function updateEventAction(
     const db = await getAdminDb();
 
     // Verify event ownership
-    const { data: existing, error: findError } = await db
+    const { data: rawExisting, error: findError } = await db
       .from('events')
       .select('*')
       .eq('id', eventId)
       .eq('college_id', collegeId)
       .single();
 
-    if (findError || !existing) {
+    if (findError || !rawExisting) {
       return { success: false, error: 'Event not found or unauthorized.' };
     }
+
+    const existing = enrichEventWithGoogleMetadata(rawExisting);
 
     const updates: Record<string, any> = {
       updated_at: new Date().toISOString(),
@@ -251,27 +409,23 @@ export async function updateEventAction(
       : existing.registration_type;
 
     if (!targetRegistrationType) {
-      const formUrlToCheck = data.google_form_url !== undefined ? data.google_form_url : existing.google_form_url;
-      targetRegistrationType = formUrlToCheck?.trim() ? 'google_form' : 'internal';
+      targetRegistrationType = existing.google_form_id || existing.google_form_url ? 'google_form' : 'internal';
     }
 
     if (data.registration_type !== undefined) {
       updates.registration_type = data.registration_type;
     }
 
-    if (data.google_form_url !== undefined) {
-      const trimmedUrl = data.google_form_url.trim();
-      if (targetRegistrationType === 'google_form' && targetRegistrationEnabled) {
-        if (!trimmedUrl) {
-          return { success: false, error: 'Google Form URL is required when Google Form registration is enabled.' };
-        }
-        if (!isValidGoogleFormUrl(trimmedUrl)) {
-          return { success: false, error: 'Please enter a valid Google Form URL (e.g. https://docs.google.com/forms/d/... or https://forms.gle/...)' };
-        }
+    // Automated Google Registration: Validate institutional Google OAuth upfront
+    if (targetRegistrationType === 'google_form' && targetRegistrationEnabled) {
+      const isGoogleConnected = await isCollegeGoogleConfigured(collegeId);
+      if (!isGoogleConnected) {
+        return {
+          success: false,
+          error:
+            'Google Drive access is required to automatically create event registration resources. Please connect your institutional Google Workspace account in Admin Settings.',
+        };
       }
-      updates.google_form_url = trimmedUrl ? sanitizeGoogleFormUrl(trimmedUrl) : null;
-    } else if (data.registration_type === 'google_form' && targetRegistrationEnabled && !existing.google_form_url) {
-      return { success: false, error: 'Google Form URL is required when Google Form registration is enabled.' };
     }
 
     if (data.registration_deadline !== undefined) {
@@ -332,15 +486,35 @@ export async function updateEventAction(
       }
     }
 
-    const { error: updateError } = await db
-      .from('events')
-      .update(updates)
-      .eq('id', eventId)
-      .eq('college_id', collegeId);
+    const { error: updateError } = await safeUpdateEvent(db, eventId, collegeId, updates);
 
     if (updateError) {
       console.error('[UPDATE_EVENT_ERROR]', updateError);
       return { success: false, error: updateError.message };
+    }
+
+    // Automated Google Registration Maintenance:
+    // If event uses Google Form, synchronize/update Form info and Drive folder seamlessly (idempotent, preserves responses)
+    if (targetRegistrationType === 'google_form' && targetRegistrationEnabled) {
+      const finalTitle = updates.title || existing.title;
+      const finalDesc = updates.description !== undefined ? updates.description : existing.description;
+      const finalVenue = updates.venue || existing.venue;
+      const finalStart = updates.start_at || existing.start_at;
+      const finalEnd = updates.end_at || existing.end_at;
+      const finalDeadline = updates.registration_deadline !== undefined ? updates.registration_deadline : existing.registration_deadline;
+      const finalSlug = updates.slug || existing.slug;
+
+      await setupAutomatedEventRegistration({
+        collegeId,
+        eventId,
+        eventTitle: finalTitle,
+        eventDescription: finalDesc || undefined,
+        startAt: finalStart,
+        endAt: finalEnd,
+        venue: finalVenue,
+        registrationDeadline: finalDeadline || undefined,
+        eventSlug: finalSlug,
+      });
     }
 
     await logAudit(
@@ -701,5 +875,91 @@ export async function updateRegistrationStatusAction(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to update registration status.' };
+  }
+}
+
+/**
+ * Re-sync / repair Google registration resources for a Small/Cultural Event.
+ */
+export async function resyncEventGoogleResourcesAction(
+  eventId: string,
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string; message?: string; resources?: any }> {
+  try {
+    const { collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    const { data: rawEvent, error } = await db
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .eq('college_id', collegeId)
+      .single();
+
+    if (error || !rawEvent) {
+      return { success: false, error: 'Event not found or unauthorized.' };
+    }
+
+    const event = enrichEventWithGoogleMetadata(rawEvent);
+    const res = await setupAutomatedEventRegistration({
+      collegeId,
+      eventId,
+      eventTitle: event.title,
+      eventDescription: event.description || undefined,
+      startAt: event.start_at,
+      endAt: event.end_at,
+      venue: event.venue,
+      registrationDeadline: event.registration_deadline || undefined,
+      eventSlug: event.slug,
+      forceRecreate: false,
+    });
+
+    if (!res.success) {
+      return { success: false, error: res.message || res.error };
+    }
+
+    revalidatePath('/admin/dashboard');
+    revalidatePath(`/admin/dashboard/events/${eventId}`);
+    revalidatePath(`/admin/dashboard/events/${eventId}/edit`);
+    revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
+    return { success: true, message: res.message, resources: res.resources };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to resync Google resources.' };
+  }
+}
+
+/**
+ * Fetch live Google Form / Google Sheets participant registrations.
+ * Zero database persistence: Google Sheets is the source of truth.
+ */
+export async function getEventGoogleRegistrationsAction(
+  eventId: string,
+  bypassCache = false,
+  targetCollegeId?: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  data?: any[];
+  totalCount?: number;
+  syncedAt?: string;
+  source?: string;
+}> {
+  try {
+    const { collegeId } = await assertAdminCollegeAuth(targetCollegeId);
+    const result = await fetchGoogleFormEventResponses({
+      collegeId,
+      eventId,
+      bypassCache,
+    });
+
+    return {
+      success: true,
+      data: result.responses,
+      totalCount: result.totalCount,
+      syncedAt: result.syncedAt,
+      source: result.source,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to fetch registrations from Google.' };
   }
 }
