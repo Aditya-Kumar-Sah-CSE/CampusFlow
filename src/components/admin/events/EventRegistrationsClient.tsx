@@ -467,9 +467,11 @@ export function EventRegistrationsClient({
                       <td className="py-2.5 px-3 text-center">
                         <span
                           className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                            reg.registration_status === 'REGISTERED'
-                              ? 'bg-slate-100 text-slate-800'
-                              : 'bg-red-50 text-red-700'
+                            reg.registration_status === 'REGISTERED' || reg.registration_status === 'CONFIRMED'
+                              ? 'bg-emerald-50 text-emerald-800'
+                              : reg.registration_status === 'CANCELLED'
+                              ? 'bg-red-50 text-red-700'
+                              : 'bg-amber-50 text-amber-800'
                           }`}
                         >
                           {reg.registration_status}
@@ -517,19 +519,8 @@ export function EventRegistrationsClient({
                             </>
                           )}
 
-                          {/* Cancel / Restore registration */}
-                          {reg.registration_status === 'REGISTERED' ? (
-                            <button
-                              type="button"
-                              disabled={isLoading}
-                              onClick={() => handleStatusChange(reg.id, 'CANCELLED')}
-                              suppressHydrationWarning
-                              className="px-1.5 py-0.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded text-[10px] transition-colors"
-                              title="Cancel Registration"
-                            >
-                              Cancel
-                            </button>
-                          ) : (
+                          {/* Cancel / Restore registration — only show Restore for CANCELLED */}
+                          {reg.registration_status === 'CANCELLED' ? (
                             <button
                               type="button"
                               disabled={isLoading}
@@ -539,6 +530,17 @@ export function EventRegistrationsClient({
                               title="Restore Registration"
                             >
                               Restore
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={isLoading}
+                              onClick={() => handleStatusChange(reg.id, 'CANCELLED')}
+                              suppressHydrationWarning
+                              className="px-1.5 py-0.5 text-slate-400 hover:text-red-700 hover:bg-red-50 rounded text-[10px] transition-colors"
+                              title="Cancel Registration"
+                            >
+                              Cancel
                             </button>
                           )}
                         </div>

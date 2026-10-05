@@ -1,6 +1,6 @@
 export type EventStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'CANCELLED';
-export type EventPaymentStatus = 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
-export type EventRegistrationStatus = 'REGISTERED' | 'CANCELLED' | 'REJECTED';
+export type EventPaymentStatus = 'NOT_REQUIRED' | 'PENDING' | 'SUBMITTED' | 'VERIFIED' | 'PAID' | 'REJECTED';
+export type EventRegistrationStatus = 'REGISTERED' | 'CONFIRMED' | 'PENDING PAYMENT' | 'CANCELLED' | 'REJECTED';
 export type EventRegistrationType = 'google_form' | 'internal' | 'none';
 
 export type GoogleRegistrationStatus = 'NOT_CONFIGURED' | 'PENDING' | 'READY' | 'ERROR';

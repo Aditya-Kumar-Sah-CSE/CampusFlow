@@ -29,6 +29,7 @@ import {
   updateTeamMemberDetailsInSheet,
   removeTeamMemberFromSheet,
   updateStudentEventRegistrationInSheet,
+  resolveEventRegistrationSpreadsheet,
 } from '@/lib/google/event-registration-sheets';
 import {
   createEventSession,
@@ -1264,13 +1265,16 @@ export async function verifyProgramPaymentSheetAction(
     const event = await getEventWithCollege(eventId);
     const collegeId = adminCollegeId || event.college_id;
 
-    if (!event.registration_sheet_id) {
+    const sheetId = event.registration_sheet_id
+      || await resolveEventRegistrationSpreadsheet(collegeId, event.id, event.title);
+
+    if (!sheetId) {
       return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const result = await updatePaymentStatus(
       collegeId,
-      event.registration_sheet_id,
+      sheetId,
       registrationNumber,
       'VERIFIED',
       undefined,
@@ -1281,7 +1285,7 @@ export async function verifyProgramPaymentSheetAction(
       revalidatePath('/admin/dashboard');
       return { success: true };
     }
-    return { success: false, error: 'Registration not found in sheet.' };
+    return { success: false, error: `Registration "${registrationNumber}" not found in sheet.` };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message || 'Payment verification failed.' };
   }
@@ -1297,13 +1301,16 @@ export async function rejectProgramPaymentSheetAction(
     const event = await getEventWithCollege(eventId);
     const collegeId = adminCollegeId || event.college_id;
 
-    if (!event.registration_sheet_id) {
+    const sheetId = event.registration_sheet_id
+      || await resolveEventRegistrationSpreadsheet(collegeId, event.id, event.title);
+
+    if (!sheetId) {
       return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const result = await updatePaymentStatus(
       collegeId,
-      event.registration_sheet_id,
+      sheetId,
       registrationNumber,
       'REJECTED',
       undefined,
@@ -1314,7 +1321,7 @@ export async function rejectProgramPaymentSheetAction(
       revalidatePath('/admin/dashboard');
       return { success: true };
     }
-    return { success: false, error: 'Registration not found in sheet.' };
+    return { success: false, error: `Registration "${registrationNumber}" not found in sheet.` };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message || 'Payment rejection failed.' };
   }
@@ -1334,13 +1341,16 @@ export async function updateProgramRegStatusSheetAction(
     const event = await getEventWithCollege(eventId);
     const collegeId = adminCollegeId || event.college_id;
 
-    if (!event.registration_sheet_id) {
+    const sheetId = event.registration_sheet_id
+      || await resolveEventRegistrationSpreadsheet(collegeId, event.id, event.title);
+
+    if (!sheetId) {
       return { success: false, error: 'Event registration data is temporarily unavailable. Please try again later.' };
     }
 
     const result = await updateRegistration(
       collegeId,
-      event.registration_sheet_id,
+      sheetId,
       registrationNumber,
       { registrationStatus: newStatus }
     );
@@ -1349,7 +1359,7 @@ export async function updateProgramRegStatusSheetAction(
       revalidatePath('/admin/dashboard');
       return { success: true };
     }
-    return { success: false, error: 'Registration not found in sheet.' };
+    return { success: false, error: `Registration "${registrationNumber}" not found in sheet.` };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message || 'Status update failed.' };
   }
