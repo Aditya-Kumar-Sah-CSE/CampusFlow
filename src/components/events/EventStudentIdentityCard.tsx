@@ -297,17 +297,6 @@ export function EventStudentIdentityCard({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              {/* Edit Pass Button */}
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-xs font-semibold text-amber-300 border border-amber-500/30 shadow-xs transition-all cursor-pointer"
-                title="Edit Pass Details"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-amber-400" />
-                <span>Edit Pass</span>
-              </button>
-
               {/* Download PNG Pass Button */}
               <button
                 type="button"

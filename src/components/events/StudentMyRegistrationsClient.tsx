@@ -555,7 +555,6 @@ export function StudentMyRegistrationsClient({
             }}
           />
         )}
-      </div>
 
       <Link href={`/events/invitations?eventId=${encodeURIComponent(event.id)}`} className="flex items-center justify-between rounded-xl sm:rounded-2xl border border-violet-200 bg-white p-3.5 sm:p-4 shadow-sm hover:bg-violet-50 transition-colors">
         <span className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-800"><Bell className="h-4 w-4 text-violet-700 shrink-0"/> My Invitations</span>

@@ -107,12 +107,13 @@ async function main() {
         is_active:             true,
         show_feedbacks:        true,
         show_events:           true,
-        logo_url:              col.logo_url || null,
+        logo_url:              col.logo_url || '/images/colleges/beu-bihar.png',
         contact_email:         null,
         contact_phone:         null,
         website_url:           null,
-        tagline:               null,
-        affiliated_university: null,
+        tagline:               'Dept. of Science, Technology & Technical Education, Govt. of Bihar',
+        affiliated_university: 'Bihar Engineering University, Patna',
+        aicte_approved:        true,
       })
       .select('id, name, code, slug')
       .single();

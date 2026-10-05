@@ -36,6 +36,10 @@ export const DEFAULT_COLLEGE_LOGOS: Record<string, string> = {
   // Nalanda College of Engineering
   'nce-chandi': '/images/colleges/nce-chandi.png',
   '109': '/images/colleges/nce-chandi.png',
+
+  // Bihar Engineering University, Patna (BEU)
+  'beu': '/images/colleges/beu-bihar.png',
+  'beu-bihar': '/images/colleges/beu-bihar.png',
 };
 
 export function resolveCollegeLogoUrl(details?: {

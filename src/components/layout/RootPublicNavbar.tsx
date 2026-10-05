@@ -6,10 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   Menu,
   X,
-  School,
   ArrowRight,
-  Shield,
-  FileText,
   Building2,
   ChevronRight,
   Bell,
@@ -62,8 +59,8 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
             href="/"
             className="flex items-center gap-2.5 sm:gap-3 min-w-0 group focus:outline-hidden focus:ring-2 focus:ring-blue-500 rounded-xl"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-xs border border-slate-800 shrink-0 group-hover:scale-105 transition-transform">
-              <School className="w-5 h-5 text-blue-400" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-xs border border-slate-800/10 shrink-0 group-hover:scale-105 transition-transform bg-slate-900 flex items-center justify-center p-1">
+              <img src="/icon-192.png" alt="CampusFlow Logo" className="w-full h-full object-contain rounded-lg" />
             </div>
             <div className="min-w-0 flex flex-col justify-center">
               <span className="block text-xs sm:text-base font-bold tracking-tight text-slate-900 truncate max-w-[190px] xs:max-w-[240px] sm:max-w-none group-hover:text-blue-700 transition-colors">
@@ -78,18 +75,6 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
           {/* Right: Desktop Links */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
             {eventId && <Link href={`/events/invitations?eventId=${encodeURIComponent(eventId)}`} aria-label="Team invitation notifications" className="relative rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-800"><Bell className="h-4 w-4"/>{unreadInvitations > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-violet-700 px-1 text-center text-[9px] font-bold text-white">{unreadInvitations}</span>}</Link>}
-            <Link
-              href="/privacy-policy"
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              Privacy Policy
-            </Link>
-            <Link
-              href="/terms-of-service"
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              Terms of Service
-            </Link>
             <Link
               href="/admin/login"
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg shadow-2xs transition-all shrink-0 active:scale-98"
@@ -136,8 +121,8 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/80">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-slate-900 text-blue-400 flex items-center justify-center shrink-0">
-                  <School className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-slate-900 flex items-center justify-center p-0.5">
+                  <img src="/icon-192.png" alt="CampusFlow Logo" className="w-full h-full object-contain rounded-md" />
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-xs text-slate-900 truncate">{brand.displayName}</p>
@@ -173,30 +158,6 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </Link>
-
-                <Link
-                  href="/privacy-policy"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Shield className="w-4 h-4 text-slate-500" />
-                    <span>Privacy Policy</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </Link>
-
-                <Link
-                  href="/terms-of-service"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <FileText className="w-4 h-4 text-slate-500" />
-                    <span>Terms of Service</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400" />
-                </Link>
               </div>
 
               {/* Super Admin Login Card */}
@@ -207,8 +168,8 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
                   className="flex items-center justify-between p-3 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-sm hover:from-slate-800 hover:to-slate-700 transition-all active:scale-98"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0">
-                      <School className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 bg-slate-900 flex items-center justify-center p-0.5">
+                      <img src="/icon-192.png" alt="CampusFlow Logo" className="w-full h-full object-contain rounded-md" />
                     </div>
                     <div>
                       <p className="text-xs font-bold leading-tight">Super Admin Login</p>
