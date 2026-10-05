@@ -1351,7 +1351,7 @@ export async function fetchGoogleFormEventResponses(params: {
   const sheetId = event.google_spreadsheet_id || event.registration_sheet_id;
   const formId = event.google_form_id;
 
-  let formApiResponses: GoogleFormParticipantResponse[] = [];
+  const formApiResponses: GoogleFormParticipantResponse[] = [];
   let sheetRows: any[][] = [];
   let tabName = 'Form Responses 1';
   let source: 'GOOGLE_SHEETS' | 'GOOGLE_FORMS_API' = 'GOOGLE_SHEETS';
