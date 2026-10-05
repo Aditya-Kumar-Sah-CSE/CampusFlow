@@ -425,17 +425,25 @@ export default function PrivacyPolicyPage() {
               {' '}(Assistant Professor)
             </p>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-slate-500">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4 text-[11px] text-slate-500">
+            <Link href="/" className="hover:text-slate-900 transition-colors">
+              Home
+            </Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/about" className="hover:text-slate-900 transition-colors">
+              About
+            </Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/services" className="hover:text-slate-900 transition-colors">
+              Services
+            </Link>
+            <span className="text-slate-300">•</span>
             <Link href="/privacy-policy" className="font-bold text-slate-900">
               Privacy Policy
             </Link>
             <span className="text-slate-300">•</span>
             <Link href="/terms-of-service" className="hover:text-slate-900 transition-colors">
               Terms of Service
-            </Link>
-            <span className="text-slate-300">•</span>
-            <Link href="/" className="hover:text-slate-900 transition-colors">
-              Home
             </Link>
           </div>
           <p className="text-[11px] text-slate-400">

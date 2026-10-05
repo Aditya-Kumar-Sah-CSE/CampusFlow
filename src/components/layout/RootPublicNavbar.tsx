@@ -10,6 +10,8 @@ import {
   Building2,
   ChevronRight,
   Bell,
+  Info,
+  Layers,
 } from 'lucide-react';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
@@ -73,7 +75,27 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
           </Link>
 
           {/* Right: Desktop Links */}
-          <div className="hidden md:flex items-center gap-3 shrink-0">
+          <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0">
+            <Link
+              href="/about"
+              className={`px-2.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${
+                pathname === '/about'
+                  ? 'text-blue-600 bg-blue-50'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              About
+            </Link>
+            <Link
+              href="/services"
+              className={`px-2.5 py-1.5 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${
+                pathname === '/services'
+                  ? 'text-blue-600 bg-blue-50'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              Services
+            </Link>
             {eventId && <Link href={`/events/invitations?eventId=${encodeURIComponent(eventId)}`} aria-label="Team invitation notifications" className="relative rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-800"><Bell className="h-4 w-4"/>{unreadInvitations > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-violet-700 px-1 text-center text-[9px] font-bold text-white">{unreadInvitations}</span>}</Link>}
             <Link
               href="/admin/login"
@@ -150,11 +172,41 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
                 <Link
                   href="/"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    pathname === '/' ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <Building2 className="w-4 h-4 text-blue-600" />
                     <span>Select Institution</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </Link>
+
+                <Link
+                  href="/about"
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    pathname === '/about' ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Info className="w-4 h-4 text-blue-600" />
+                    <span>About CampusFlow</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </Link>
+
+                <Link
+                  href="/services"
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    pathname === '/services' ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Layers className="w-4 h-4 text-blue-600" />
+                    <span>Platform Services</span>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </Link>

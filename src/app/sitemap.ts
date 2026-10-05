@@ -55,6 +55,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     ...eventEntries,
     {
+      url: appUrl('/about'),
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+    {
+      url: appUrl('/services'),
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    },
+    {
       url: appUrl('/privacy-policy'),
       lastModified: new Date(),
       changeFrequency: 'monthly',
