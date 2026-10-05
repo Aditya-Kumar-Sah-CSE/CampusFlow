@@ -29,17 +29,37 @@ import {
 } from '@/app/admin/events/event-registration-actions';
 import { EditEventPassModal } from './EditEventPassModal';
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
+import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
 
 interface Props {
   event: CollegeEvent;
   initialSession: EventSessionPayload | null;
   tenantSlug?: string;
+  collegeLogoUrl?: string | null;
+  collegeName?: string | null;
 }
 
-export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: Props) {
+export function EventStudentIdentityCard({
+  event,
+  initialSession,
+  tenantSlug,
+  collegeLogoUrl,
+  collegeName,
+}: Props) {
   const basePath = tenantSlug ? `/${tenantSlug}/events/${event.slug}` : `/events/${event.slug}`;
   const registerEventPath = `${basePath}/register`;
   const myRegistrationsPath = `${basePath}/my-registrations`;
+
+  const college = (event as any).college;
+  const effectiveCollegeLogo = resolveCollegeLogoUrl({
+    collegeLogoUrl: collegeLogoUrl || college?.logo_url,
+    collegeCode: college?.code,
+    collegeSlug: tenantSlug || college?.slug,
+    collegeName: collegeName || college?.name,
+  });
+  const effectiveCollegeName = collegeName || college?.name || 'Bhagalpur College of Engineering';
+  const effectiveCollegeCode = college?.code || '108';
+  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bgp';
 
   // State
   const [participant, setParticipant] = useState<{
@@ -137,12 +157,12 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
 
     setDownloadingPass(true);
     try {
-      const college = (event as any).college;
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: college?.name,
-        collegeLogoUrl: college?.logo_url,
-        collegeCode: college?.code,
+        collegeName: effectiveCollegeName,
+        collegeLogoUrl: effectiveCollegeLogo,
+        collegeCode: effectiveCollegeCode,
+        collegeSlug: effectiveCollegeSlug,
         venue: event.venue,
         participantName: participant.fullName,
         email: participant.email,
@@ -238,12 +258,42 @@ export function EventStudentIdentityCard({ event, initialSession, tenantSlug }: 
         <div className="relative z-10 space-y-4 sm:space-y-5">
           {/* Header Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-3 sm:pb-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Event Registration Verified</span>
-              </span>
-              <span className="text-[11px] text-slate-400">Google Sheet: EVENT_REGISTRATIONS</span>
+            <div className="flex items-center gap-3">
+              {/* Official College Crest on Pass */}
+              {effectiveCollegeLogo ? (
+                <div className="w-11 h-11 rounded-full bg-white p-0.5 shadow-md border-2 border-emerald-500/50 flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    src={effectiveCollegeLogo}
+                    alt={effectiveCollegeName || 'College Logo'}
+                    crossOrigin="anonymous"
+                    className="w-full h-full object-contain rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/images/colleges/bce-bgp.png';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-slate-800 border-2 border-emerald-500/50 flex items-center justify-center font-black text-xs text-emerald-400 shrink-0">
+                  {(effectiveCollegeCode || effectiveCollegeSlug || 'BCE').slice(0, 3).toUpperCase()}
+                </div>
+              )}
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Official Event Pass Verified</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {effectiveCollegeSlug ? `/${effectiveCollegeSlug}` : 'EVENT_REGISTRATIONS'}
+                  </span>
+                </div>
+                {effectiveCollegeName && (
+                  <div className="text-xs font-semibold text-slate-300 mt-0.5">
+                    {effectiveCollegeName}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">

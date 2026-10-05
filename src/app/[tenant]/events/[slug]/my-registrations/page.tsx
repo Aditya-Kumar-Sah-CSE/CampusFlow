@@ -57,6 +57,9 @@ export default async function TenantStudentMyRegistrationsPage({ params }: Props
           event={event}
           initialSession={session}
           initialPrograms={initialPrograms}
+          collegeLogoUrl={tenant.logo}
+          collegeName={tenant.name}
+          tenantSlug={tenant.slug}
         />
       </main>
 

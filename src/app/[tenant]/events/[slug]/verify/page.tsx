@@ -48,6 +48,7 @@ export default async function TenantEventPassVerifyPage({ params, searchParams }
           collegeName={tenant.name}
           initialRegNumber={reg || ''}
           tenantSlug={tenant.slug}
+          collegeLogoUrl={tenant.logo}
         />
       </main>
 

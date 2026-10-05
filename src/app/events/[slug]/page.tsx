@@ -286,6 +286,9 @@ export default async function PublicEventPage({ params }: Props) {
             <EventStudentIdentityCard
               event={event}
               initialSession={session}
+              tenantSlug={event.college?.slug}
+              collegeLogoUrl={event.college?.logo_url}
+              collegeName={event.college?.name}
             />
           </section>
         )}

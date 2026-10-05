@@ -26,12 +26,14 @@ import {
 import type { CollegeEvent } from '@/types/events';
 import { identifyStudentAction } from '@/app/admin/events/event-registration-actions';
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
+import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
 
 interface Props {
   event: CollegeEvent;
   collegeName: string;
   initialRegNumber?: string;
   tenantSlug?: string;
+  collegeLogoUrl?: string | null;
 }
 
 export function EventPassVerificationClient({
@@ -39,12 +41,24 @@ export function EventPassVerificationClient({
   collegeName,
   initialRegNumber = '',
   tenantSlug,
+  collegeLogoUrl,
 }: Props) {
   const [query, setQuery] = useState(initialRegNumber.trim());
   const [loading, setLoading] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
   const [copied, setCopied] = useState(false);
   const [verificationTime, setVerificationTime] = useState<string>('');
+
+  const college = (event as any).college;
+  const effectiveCollegeLogo = resolveCollegeLogoUrl({
+    collegeLogoUrl: collegeLogoUrl || college?.logo_url,
+    collegeCode: college?.code,
+    collegeSlug: tenantSlug || college?.slug,
+    collegeName: collegeName || college?.name,
+  });
+  const effectiveCollegeName = collegeName || college?.name || 'Bhagalpur College of Engineering';
+  const effectiveCollegeCode = college?.code || '108';
+  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bgp';
 
   const [result, setResult] = useState<{
     searched: boolean;
@@ -143,9 +157,10 @@ export function EventPassVerificationClient({
       const isPaid = Boolean(result.participant.totalPaidAmount && result.participant.totalPaidAmount > 0);
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: collegeName || college?.name,
-        collegeLogoUrl: college?.logo_url,
-        collegeCode: college?.code,
+        collegeName: effectiveCollegeName,
+        collegeLogoUrl: effectiveCollegeLogo,
+        collegeCode: effectiveCollegeCode,
+        collegeSlug: effectiveCollegeSlug,
         venue: event.venue,
         participantName: result.participant.fullName,
         email: result.participant.email,
@@ -233,16 +248,32 @@ export function EventPassVerificationClient({
           <div className="relative z-10 space-y-6">
             {/* Header Badge */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
-                  <ShieldCheck className="w-6 h-6 animate-pulse" />
-                </div>
+              <div className="flex items-center gap-3">
+                {effectiveCollegeLogo ? (
+                  <div className="w-12 h-12 rounded-full bg-white p-0.5 shadow-md border-2 border-emerald-500/50 flex items-center justify-center overflow-hidden shrink-0">
+                    <img
+                      src={effectiveCollegeLogo}
+                      alt={effectiveCollegeName || 'College Logo'}
+                      crossOrigin="anonymous"
+                      className="w-full h-full object-contain rounded-full"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/colleges/bce-bgp.png';
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-11 h-11 rounded-full bg-slate-800 border-2 border-emerald-500/50 flex items-center justify-center font-black text-xs text-emerald-400 shrink-0">
+                    {(effectiveCollegeCode || effectiveCollegeSlug || 'BCE').slice(0, 3).toUpperCase()}
+                  </div>
+                )}
                 <div>
                   <div className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Official Pass Verified</span>
                   </div>
-                  <div className="text-[11px] text-slate-400">Institutional Event Registry</div>
+                  <div className="text-[11px] text-slate-300 font-semibold">
+                    {effectiveCollegeName || 'Institutional Event Registry'}
+                  </div>
                 </div>
               </div>
 

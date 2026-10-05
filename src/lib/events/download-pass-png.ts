@@ -13,6 +13,7 @@ export interface EventPassDetails {
   collegeName?: string;
   collegeLogoUrl?: string;
   collegeCode?: string;
+  collegeSlug?: string;
   venue?: string;
   startDate?: string;
   endDate?: string;
@@ -31,6 +32,9 @@ export interface EventPassDetails {
   totalPaidAmount?: number;
   specialEntryName?: string; // e.g. "DJ Night"
 }
+
+export { DEFAULT_COLLEGE_LOGOS, resolveCollegeLogoUrl } from './college-logos';
+import { resolveCollegeLogoUrl, BCE_BGP_LOGO_DATA_URI } from './college-logos';
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -53,16 +57,69 @@ function roundRect(
   ctx.closePath();
 }
 
-function loadLogoImage(url?: string): Promise<HTMLImageElement | null> {
-  if (!url) return Promise.resolve(null);
+function loadSingleImage(src: string, timeoutMs: number): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    setTimeout(() => resolve(null), 1200); // 1.2s timeout fallback so download never hangs
-    img.src = url;
+    // Only set crossOrigin for remote absolute HTTP/S endpoints
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      img.crossOrigin = 'anonymous';
+    }
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(null);
+      }
+    }, timeoutMs);
+
+    img.onload = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(img);
+      }
+    };
+    img.onerror = () => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        resolve(null);
+      }
+    };
+    img.src = src;
   });
+}
+
+async function loadLogoImage(url?: string): Promise<HTMLImageElement | null> {
+  const targetUrl = url || BCE_BGP_LOGO_DATA_URI;
+
+  // 1. Data URI: load immediately
+  if (targetUrl.startsWith('data:image/')) {
+    const dataImg = await loadSingleImage(targetUrl, 2000);
+    if (dataImg) return dataImg;
+  }
+
+  // 2. Local relative static asset (/images/... or /logos/...): load immediately
+  if (targetUrl.startsWith('/')) {
+    const localImg = await loadSingleImage(targetUrl, 3000);
+    if (localImg) return localImg;
+  }
+
+  // 3. Remote HTTP/S: try direct load
+  if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+    const direct = await loadSingleImage(targetUrl, 3000);
+    if (direct) return direct;
+
+    // 4. Remote HTTP/S fallback: via same-origin image-proxy to bypass CORS
+    if (typeof window !== 'undefined') {
+      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(targetUrl)}`;
+      const proxied = await loadSingleImage(proxyUrl, 4000);
+      if (proxied) return proxied;
+    }
+  }
+
+  // 5. Ultimate fallback: bundled BCE Bhagalpur Data URI
+  return loadSingleImage(BCE_BGP_LOGO_DATA_URI, 2000);
 }
 
 export async function generateAndDownloadPassPNG(details: EventPassDetails): Promise<void> {
@@ -84,8 +141,14 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     }
   }
 
-  // Pre-load logo image if provided
-  const logoImg = await loadLogoImage(details.collegeLogoUrl);
+  // Pre-load logo image if provided, with automatic fallback resolution
+  const effectiveLogoUrl = resolveCollegeLogoUrl({
+    collegeLogoUrl: details.collegeLogoUrl,
+    collegeCode: details.collegeCode,
+    collegeSlug: details.collegeSlug || details.eventSlug,
+    collegeName: details.collegeName,
+  });
+  const logoImg = await loadLogoImage(effectiveLogoUrl);
 
   // Smooth rendering
   ctx.imageSmoothingEnabled = true;
@@ -434,6 +497,11 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     ctx.beginPath();
     ctx.arc(rightCenterX, logoCenterY, logoRadius, 0, Math.PI * 2);
     ctx.clip();
+
+    // Crisp white background so transparent or dark crests render brilliantly
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+
     ctx.drawImage(
       logoImg,
       rightCenterX - logoRadius,
@@ -446,7 +514,7 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     // Subtle emerald glowing ring around logo
     ctx.beginPath();
     ctx.arc(rightCenterX, logoCenterY, logoRadius + 1, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(52, 211, 153, 0.6)';
+    ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
   } else {
@@ -459,7 +527,7 @@ export async function generateAndDownloadPassPNG(details: EventPassDetails): Pro
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    const collegeAbbr = details.collegeCode || details.collegeName?.slice(0, 3).toUpperCase() || 'BCE';
+    const collegeAbbr = details.collegeCode || (details.collegeSlug ? details.collegeSlug.split('-')[0].toUpperCase() : null) || details.collegeName?.slice(0, 3).toUpperCase() || 'BCE';
     ctx.font = '900 13px "Inter", system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#34D399';
     ctx.textAlign = 'center';

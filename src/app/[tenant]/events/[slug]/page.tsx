@@ -120,6 +120,8 @@ export default async function PublicEventDetailPage({ params }: Props) {
               event={event}
               initialSession={session}
               tenantSlug={tenant.slug}
+              collegeLogoUrl={tenant.logo}
+              collegeName={tenant.name}
             />
           </section>
         )}

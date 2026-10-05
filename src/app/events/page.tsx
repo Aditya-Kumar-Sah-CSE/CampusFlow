@@ -9,12 +9,12 @@ import type { CollegeEvent } from '@/types/events';
 
 export const dynamic = 'force-dynamic';
 
-async function getAllPublishedEvents(): Promise<(CollegeEvent & { college?: { name: string; slug: string; code?: string } })[]> {
+async function getAllPublishedEvents(): Promise<(CollegeEvent & { college?: { name: string; slug: string; code?: string; logo_url?: string | null } })[]> {
   try {
     const supabase = createAdminClient() || await createClient();
     const { data, error } = await supabase
       .from('events')
-      .select('*, college:colleges(name, slug, code)')
+      .select('*, college:colleges(name, slug, code, logo_url)')
       .eq('status', 'PUBLISHED')
       .order('start_at', { ascending: true });
 

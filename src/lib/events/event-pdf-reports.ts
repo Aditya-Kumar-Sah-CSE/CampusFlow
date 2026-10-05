@@ -1,4 +1,6 @@
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getEventRegistrations, resolveEventRegistrationSpreadsheet, type MasterRegistrationRow } from '@/lib/google/event-registration-sheets';
@@ -136,15 +138,54 @@ export function streamToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
 }
 
 export async function fetchLogoBuffer(url?: string | null): Promise<Buffer | null> {
-  if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
-    if (!res.ok) return null;
-    const arrayBuffer = await res.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } catch {
+  if (!url || typeof url !== 'string') {
+    const defaultLocalPath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
+    if (fs.existsSync(defaultLocalPath)) {
+      return fs.readFileSync(defaultLocalPath);
+    }
     return null;
   }
+
+  // 1. Data URI
+  if (url.startsWith('data:image/')) {
+    const base64Data = url.split(',')[1];
+    if (base64Data) return Buffer.from(base64Data, 'base64');
+  }
+
+  // 2. Local relative file
+  if (url.startsWith('/')) {
+    const localPath = path.join(process.cwd(), 'public', url);
+    if (fs.existsSync(localPath)) {
+      return fs.readFileSync(localPath);
+    }
+  }
+
+  // 3. Known BCE CDN URL mapping to local asset
+  if (url.includes('q7sxHkG7V5h.png')) {
+    const bceLocalPath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
+    if (fs.existsSync(bceLocalPath)) return fs.readFileSync(bceLocalPath);
+  }
+
+  // 4. Remote HTTP/S
+  if (url.startsWith('http')) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
+      if (res.ok) {
+        const arrayBuffer = await res.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  // Fallback to local BCE logo
+  const fallbackPath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
+  if (fs.existsSync(fallbackPath)) {
+    return fs.readFileSync(fallbackPath);
+  }
+
+  return null;
 }
 
 // Safe formatting for currencies to avoid PDFKit WinAnsiEncoding glitches

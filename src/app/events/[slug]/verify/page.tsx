@@ -45,6 +45,7 @@ export default async function EventPassVerifyPage({ params, searchParams }: Prop
           collegeName={collegeName}
           initialRegNumber={reg || ''}
           tenantSlug={event.college?.slug}
+          collegeLogoUrl={event.college?.logo_url}
         />
       </main>
 

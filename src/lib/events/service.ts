@@ -65,7 +65,7 @@ export async function getAdminEventById(
     // Primary query by UUID
     const res = await db
       .from('events')
-      .select('*')
+      .select('*, college:colleges(id, name, slug, code, logo_url)')
       .eq('id', clean)
       .eq('college_id', collegeId)
       .maybeSingle();
@@ -77,7 +77,7 @@ export async function getAdminEventById(
     if (!data && !error) {
       const fallbackRes = await db
         .from('events')
-        .select('*')
+        .select('*, college:colleges(id, name, slug, code, logo_url)')
         .eq('slug', clean.toLowerCase())
         .eq('college_id', collegeId)
         .maybeSingle();
@@ -89,7 +89,7 @@ export async function getAdminEventById(
     const normalized = normalizeEventSlug(clean);
     const res = await db
       .from('events')
-      .select('*')
+      .select('*, college:colleges(id, name, slug, code, logo_url)')
       .eq('slug', normalized)
       .eq('college_id', collegeId)
       .maybeSingle();
@@ -157,7 +157,7 @@ export async function getPublicEventBySlug(
 
   let { data, error } = await db
     .from('events')
-    .select('*')
+    .select('*, college:colleges(id, name, slug, code, logo_url)')
     .eq('college_id', collegeId)
     .eq('slug', clean)
     .maybeSingle();
@@ -166,7 +166,7 @@ export async function getPublicEventBySlug(
   if (!data && isUuid(slugOrId)) {
     const res = await db
       .from('events')
-      .select('*')
+      .select('*, college:colleges(id, name, slug, code, logo_url)')
       .eq('college_id', collegeId)
       .eq('id', slugOrId.trim())
       .maybeSingle();
@@ -197,21 +197,21 @@ export async function getPublicEventBySlug(
  */
 export async function getPublicEventBySlugGlobal(
   slugOrId: string
-): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; code?: string } }) | null> {
+): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; code?: string; logo_url?: string | null } }) | null> {
   if (!slugOrId) return null;
   const db = await getDb();
   const clean = normalizeEventSlug(slugOrId);
 
   let { data, error } = await db
     .from('events')
-    .select('*, college:colleges(id, name, slug, code)')
+    .select('*, college:colleges(id, name, slug, code, logo_url)')
     .eq('slug', clean)
     .maybeSingle();
 
   if (!data && isUuid(slugOrId)) {
     const res = await db
       .from('events')
-      .select('*, college:colleges(id, name, slug, code)')
+      .select('*, college:colleges(id, name, slug, code, logo_url)')
       .eq('id', slugOrId.trim())
       .maybeSingle();
     data = res.data;

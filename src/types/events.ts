@@ -47,6 +47,13 @@ export interface CollegeEvent {
   // Computed / joined
   registrations_count?: number;
   active_registrations_count?: number;
+  college?: {
+    id: string;
+    name: string;
+    slug: string;
+    code?: string;
+    logo_url?: string | null;
+  };
 }
 
 // ============================================================

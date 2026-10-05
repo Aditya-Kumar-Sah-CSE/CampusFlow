@@ -70,6 +70,7 @@ export default async function EventRegisterPage({ params }: Props) {
         <EventRegistrationForm
           event={event}
           collegeName={event.college?.name || 'College'}
+          collegeLogoUrl={event.college?.logo_url}
           tenantSlug={event.college?.slug}
           branches={academic.branches}
           semesters={academic.semesters}

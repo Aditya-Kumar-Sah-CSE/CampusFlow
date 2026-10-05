@@ -38,6 +38,7 @@ interface Props {
   event: CollegeEvent;
   collegeName: string;
   tenantSlug?: string;
+  collegeLogoUrl?: string | null;
   branches?: Branch[];
   semesters?: Semester[];
 }
@@ -45,6 +46,7 @@ interface Props {
 export function EventRegistrationForm({
   event,
   collegeName,
+  collegeLogoUrl,
   tenantSlug,
   branches: initialBranches,
   semesters: initialSemesters,
@@ -119,9 +121,10 @@ export function EventRegistrationForm({
       const isPaid = Boolean(details.isPaid || (details.totalPaidAmount && details.totalPaidAmount > 0));
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: collegeName || college?.name,
-        collegeLogoUrl: college?.logo_url,
-        collegeCode: college?.code,
+        collegeName: collegeName || college?.name || 'Bhagalpur College of Engineering',
+        collegeLogoUrl: collegeLogoUrl || college?.logo_url,
+        collegeCode: college?.code || '108',
+        collegeSlug: tenantSlug || college?.slug || 'bce-bgp',
         venue: event.venue,
         participantName: details.fullName,
         email: details.email,

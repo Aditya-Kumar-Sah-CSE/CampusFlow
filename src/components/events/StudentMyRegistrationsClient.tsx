@@ -20,6 +20,7 @@ import {
   Clock,
   Lock,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -33,6 +34,7 @@ import { ManageTeamModal } from './ManageTeamModal';
 import { FindTeamModal } from './FindTeamModal';
 import { EditEventPassModal } from './EditEventPassModal';
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
+import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
 import { getMyJoinRequestsAction } from '@/app/events/join-requests/actions';
 
@@ -40,16 +42,33 @@ interface Props {
   event: CollegeEvent;
   initialSession: EventSessionPayload | null;
   initialPrograms: StudentProgramRegistrationItem[];
+  collegeLogoUrl?: string | null;
+  collegeName?: string | null;
+  tenantSlug?: string;
 }
 
 export function StudentMyRegistrationsClient({
   event,
   initialSession,
   initialPrograms,
+  collegeLogoUrl,
+  collegeName,
+  tenantSlug,
 }: Props) {
   const [session, setSession] = useState<EventSessionPayload | null>(initialSession);
   const [programs, setPrograms] = useState<StudentProgramRegistrationItem[]>(initialPrograms);
   const [selectedTeamProgram, setSelectedTeamProgram] = useState<StudentProgramRegistrationItem | null>(null);
+
+  const college = (event as any).college;
+  const effectiveCollegeLogo = resolveCollegeLogoUrl({
+    collegeLogoUrl: collegeLogoUrl || college?.logo_url,
+    collegeCode: college?.code,
+    collegeSlug: tenantSlug || college?.slug,
+    collegeName: collegeName || college?.name,
+  });
+  const effectiveCollegeName = collegeName || college?.name || 'Bhagalpur College of Engineering';
+  const effectiveCollegeCode = college?.code || '108';
+  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bgp';
 
   // Login inputs
   const [loginRegNum, setLoginRegNum] = useState('');
@@ -115,12 +134,12 @@ export function StudentMyRegistrationsClient({
 
     setDownloadingPass(true);
     try {
-      const college = (event as any).college;
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
-        collegeName: college?.name,
-        collegeLogoUrl: college?.logo_url,
-        collegeCode: college?.code,
+        collegeName: effectiveCollegeName,
+        collegeLogoUrl: effectiveCollegeLogo,
+        collegeCode: effectiveCollegeCode,
+        collegeSlug: effectiveCollegeSlug,
         venue: event.venue,
         participantName: session.fullName,
         email: session.email,
@@ -326,11 +345,43 @@ export function StudentMyRegistrationsClient({
           <Ticket className="w-48 h-48" />
         </div>
 
-        <div className="relative z-10 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2.5">
-            <span className="text-xs font-bold text-blue-400 uppercase tracking-widest bg-blue-900/60 px-2.5 sm:px-3 py-1 rounded-full border border-blue-800">
-              Official Event Pass
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+            <div className="flex items-center gap-3">
+              {effectiveCollegeLogo ? (
+                <div className="w-11 h-11 rounded-full bg-white p-0.5 shadow-md border-2 border-emerald-500/50 flex items-center justify-center overflow-hidden shrink-0">
+                  <img
+                    src={effectiveCollegeLogo}
+                    alt={effectiveCollegeName || 'College Logo'}
+                    crossOrigin="anonymous"
+                    className="w-full h-full object-contain rounded-full"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/images/colleges/bce-bgp.png';
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-slate-800 border-2 border-emerald-500/50 flex items-center justify-center font-black text-xs text-emerald-400 shrink-0">
+                  {(effectiveCollegeCode || effectiveCollegeSlug || 'BCE').slice(0, 3).toUpperCase()}
+                </div>
+              )}
+
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Official Event Pass Verified</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {effectiveCollegeSlug ? `/${effectiveCollegeSlug}` : 'EVENT_REGISTRATIONS'}
+                  </span>
+                </div>
+                {effectiveCollegeName && (
+                  <div className="text-xs font-semibold text-slate-300 mt-0.5">
+                    {effectiveCollegeName}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <button

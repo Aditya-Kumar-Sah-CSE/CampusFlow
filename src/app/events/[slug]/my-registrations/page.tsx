@@ -53,6 +53,9 @@ export default async function StudentMyRegistrationsPage({ params }: Props) {
           event={event}
           initialSession={session}
           initialPrograms={initialPrograms}
+          collegeLogoUrl={event.college?.logo_url}
+          collegeName={event.college?.name}
+          tenantSlug={event.college?.slug}
         />
       </main>
 

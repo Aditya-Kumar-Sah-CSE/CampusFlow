@@ -74,6 +74,7 @@ export default async function TenantEventRegisterPage({ params }: Props) {
         <EventRegistrationForm
           event={event}
           collegeName={tenant.name}
+          collegeLogoUrl={tenant.logo}
           tenantSlug={tenant.slug}
           branches={academic.branches}
           semesters={academic.semesters}
