@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { getPublicActiveFormsAction } from '@/app/feedback/actions';
-import { School, ArrowLeft, GraduationCap } from 'lucide-react';
+import { School, ArrowLeft, GraduationCap, ExternalLink } from 'lucide-react';
 
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
@@ -44,7 +44,7 @@ export default async function FeedbackPortalPage() {
   const cookieStore = await cookies();
   const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
 
-  let collegeQuery = supabase.from('colleges').select('id, name, code, slug, logo_url');
+  let collegeQuery = supabase.from('colleges').select('id, name, code, slug, logo_url, website_url');
   if (activeTenantId) {
     collegeQuery = collegeQuery.eq('id', activeTenantId);
   } else {
@@ -146,9 +146,34 @@ export default async function FeedbackPortalPage() {
       <footer className="bg-bce-navy text-slate-400 text-xs py-4 px-2.5 sm:px-4 sm:py-6 border-t border-bce-cobalt/30 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
           <div>
-            <span>{collegeName} · {brand.displayName} · Official Student Evaluation Portal</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {activeCollege?.website_url ? (
+                <a
+                  href={activeCollege.website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-slate-200 hover:text-amber-400 hover:underline inline-flex items-center gap-1 transition-colors"
+                  title={`Visit Official Website of ${collegeName}`}
+                >
+                  <span>{collegeName}</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
+                </a>
+              ) : (
+                <span className="font-bold text-slate-200">{collegeName}</span>
+              )}
+              <span>· {brand.displayName} · Official Student Evaluation Portal</span>
+            </div>
             <div className="text-[11px] text-slate-400 mt-1">
-              Designed & Developed by{' '}
+              <Link
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-slate-200 hover:text-amber-300 hover:underline transition-colors"
+                title="Open CampusFlow Main Website"
+              >
+                CampusFlow
+              </Link>
+              {' '}• Designed & Developed by{' '}
               <a
                 href="https://portfolio-two-ashen-zseywond41.vercel.app/"
                 target="_blank"

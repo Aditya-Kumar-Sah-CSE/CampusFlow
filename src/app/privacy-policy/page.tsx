@@ -386,8 +386,44 @@ export default function PrivacyPolicyPage() {
       <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-6 px-4 mt-auto">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
-            <p className="font-semibold text-slate-700">CampusFlow</p>
+            <Link
+              href="/"
+              className="font-bold text-slate-800 hover:text-blue-600 hover:underline transition-colors block"
+              title="CampusFlow Main Portal"
+            >
+              CampusFlow
+            </Link>
             <p className="text-[11px] text-slate-500">Campus Management Platform</p>
+            <p className="text-[11px] text-slate-500 mt-1">
+              Designed & Developed by{' '}
+              <a
+                href="https://portfolio-two-ashen-zseywond41.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+              >
+                Aditya Kumar Sah
+              </a>
+              {' '}•{' '}
+              <a
+                href="https://portfolio-two-ashen-zseywond41.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-slate-600 hover:underline transition-colors"
+              >
+                Developer Portfolio
+              </a>
+              {' '}under the guidance of{' '}
+              <a
+                href="https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+              >
+                Dr. Abhinav Kumar
+              </a>
+              {' '}(Assistant Professor)
+            </p>
           </div>
           <div className="flex items-center gap-4 text-[11px] text-slate-500">
             <Link href="/privacy-policy" className="font-bold text-slate-900">

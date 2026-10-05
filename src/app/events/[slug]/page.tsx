@@ -8,6 +8,7 @@ import { getCurrentEventSession } from '@/lib/events/event-session';
 import { getSmallEventById } from '@/config/events';
 import { SmallEventDetailView } from '@/components/events/SmallEventDetailView';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { EventStudentIdentityCard } from '@/components/events/EventStudentIdentityCard';
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
 import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
@@ -69,11 +70,12 @@ export default async function PublicEventPage({ params }: Props) {
             backHref="/events"
           />
         </main>
-        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-          <div className="max-w-6xl mx-auto px-4">
-            <p>&copy; {new Date().getFullYear()} CampusFlow. All rights reserved.</p>
-          </div>
-        </footer>
+        <CollegePublicFooter
+          collegeName={institutionDisplayName}
+          collegeSlug={smallEvent.institutionId}
+          variant="light"
+          className="mt-12"
+        />
       </div>
     );
   }
@@ -325,11 +327,14 @@ export default async function PublicEventPage({ params }: Props) {
         )}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-8 sm:mt-12">
-        <div className="max-w-5xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {event.college?.name || 'College'}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={tenant?.name || event.college?.name}
+        collegeShortName={tenant?.shortName || event.college?.code}
+        collegeSlug={tenant?.slug || event.college?.slug}
+        websiteUrl={tenant?.websiteUrl || event.college?.website_url}
+        variant="light"
+        className="mt-8 sm:mt-12"
+      />
     </div>
   );
 }

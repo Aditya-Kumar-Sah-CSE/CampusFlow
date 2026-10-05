@@ -53,6 +53,7 @@ export interface CollegeEvent {
     slug: string;
     code?: string;
     logo_url?: string | null;
+    website_url?: string | null;
   };
 }
 

@@ -5,6 +5,7 @@ import { getPublicProgramBySlug } from '@/lib/events/programs-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
 import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { ProgramRegistrationClient } from '@/components/events/programs/ProgramRegistrationClient';
 import {
   ArrowLeft,
@@ -201,11 +202,14 @@ export default async function PublicProgramDetailsPage({ params }: Props) {
         )}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {event.college?.name || 'College'}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={event.college?.name}
+        collegeShortName={event.college?.code}
+        collegeSlug={event.college?.slug}
+        websiteUrl={event.college?.website_url}
+        variant="light"
+        className="mt-12"
+      />
     </div>
   );
 }

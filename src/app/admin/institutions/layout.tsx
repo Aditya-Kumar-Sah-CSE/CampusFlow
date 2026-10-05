@@ -119,7 +119,18 @@ export default async function AdminInstitutionsLayout({
       {/* Admin Footer */}
       <footer className="bg-white border-t border-slate-200 py-4 px-3 sm:px-4 text-center text-xs text-slate-500 mt-auto w-full min-w-0">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>CampusFlow — Campus Management Platform • Super Admin Console</span>
+          <span>
+            <Link
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-slate-700 hover:text-blue-600 hover:underline transition-colors"
+              title="Open CampusFlow Main Website"
+            >
+              CampusFlow
+            </Link>
+            {' '}— Campus Management Platform • Super Admin Console
+          </span>
           <span className="truncate max-w-full">
             Authenticated as: <strong className="text-slate-700 font-mono">{adminEmail}</strong>
           </span>

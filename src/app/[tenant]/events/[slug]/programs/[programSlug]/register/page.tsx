@@ -6,6 +6,7 @@ import { getPublicProgramBySlug } from '@/lib/events/programs-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
 import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { ProgramRegistrationClient } from '@/components/events/programs/ProgramRegistrationClient';
 import { ArrowLeft, Ticket } from 'lucide-react';
 
@@ -63,11 +64,14 @@ export default async function TenantProgramRegisterPage({ params }: Props) {
         />
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {tenant.name}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={tenant.name}
+        collegeShortName={tenant.shortName}
+        collegeSlug={tenant.slug}
+        websiteUrl={tenant.websiteUrl}
+        variant="light"
+        className="mt-12"
+      />
     </div>
   );
 }

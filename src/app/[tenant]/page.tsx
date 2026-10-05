@@ -9,6 +9,7 @@ import { PublicEventCard } from '@/components/events/PublicEventCard';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
 import { School, UserCheck, ArrowRight, ExternalLink, Ticket, Calendar } from 'lucide-react';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import type { Branch, AcademicYear, Semester } from '@/types/database';
 import type { CollegeEvent } from '@/types/events';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
@@ -197,50 +198,15 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-8 sm:mt-12 py-5 sm:py-8 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-4 space-y-2">
-          <p className="font-medium text-slate-700">
-            {tenant.name} ({tenant.shortName})
-          </p>
-          <p>
-            CampusFlow · Campus Management Platform
-          </p>
-          <p className="text-[11px] text-slate-500">PWA Installations: {pwaInstallCount}</p>
-          <p className="text-[11px] text-slate-500">
-            Designed & Developed by{' '}
-            <a
-              href="https://portfolio-two-ashen-zseywond41.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
-            >
-              Aditya Kumar Sah
-            </a>
-            {' '}•{' '}
-            <a
-              href="https://portfolio-two-ashen-zseywond41.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-400 hover:text-slate-600 hover:underline transition-colors"
-            >
-              Developer Portfolio
-            </a>
-            {' '}under the guidance of{' '}
-            <a
-              href="https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 hover:underline font-medium transition-colors"
-            >
-              Dr. Abhinav Kumar
-            </a>
-            {' '}(Assistant Professor)
-          </p>
-          <p className="text-[11px] text-slate-400">
-            Powered by CampusFlow · Secure Tenant: <code className="text-slate-600 font-mono">{tenant.slug}</code>
-          </p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={tenant.name}
+        collegeShortName={tenant.shortName}
+        collegeSlug={tenant.slug}
+        websiteUrl={tenant.websiteUrl}
+        pwaInstallCount={pwaInstallCount}
+        variant="light"
+        className="mt-8 sm:mt-12"
+      />
     </div>
   );
 }

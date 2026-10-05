@@ -6,6 +6,7 @@ import { getPublicProgramBySlug } from '@/lib/events/programs-service';
 import { getCurrentEventSession } from '@/lib/events/event-session';
 import { ProgramRegistrationForm } from '@/components/events/programs/ProgramRegistrationForm';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { ArrowLeft, Trophy, Users, User, IndianRupee, Clock, Ticket } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -150,11 +151,14 @@ export default async function PublicProgramPage({ params }: Props) {
         )}
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-5xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {tenant.name}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={tenant.name}
+        collegeShortName={tenant.shortName}
+        collegeSlug={tenant.slug}
+        websiteUrl={tenant.websiteUrl}
+        variant="light"
+        className="mt-12"
+      />
     </div>
   );
 }

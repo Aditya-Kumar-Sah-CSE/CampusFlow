@@ -30,6 +30,7 @@ export interface PublicFormSummary {
     code: string;
     slug?: string;
     logo_url?: string | null;
+    website_url?: string | null;
   };
   faculty?: {
     id: string;
@@ -344,7 +345,7 @@ export async function getPublicFeedbackFormByIdAction(
         google_form_url,
         published_at,
         closed_at,
-        college:colleges(id, name, code, slug, logo_url),
+        college:colleges(id, name, code, slug, logo_url, website_url),
         faculty:faculties(id, name, department, designation),
         subject:subjects(id, name, code),
         academic_year:academic_years(id, name),

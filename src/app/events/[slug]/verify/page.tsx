@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getPublicEventBySlugGlobal } from '@/lib/events/service';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 import { EventPassVerificationClient } from '@/components/events/EventPassVerificationClient';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,11 +50,14 @@ export default async function EventPassVerifyPage({ params, searchParams }: Prop
         />
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {collegeName}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={event.college?.name || collegeName}
+        collegeShortName={event.college?.code}
+        collegeSlug={event.college?.slug}
+        websiteUrl={event.college?.website_url}
+        variant="light"
+        className="mt-12"
+      />
     </div>
   );
 }

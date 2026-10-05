@@ -197,21 +197,21 @@ export async function getPublicEventBySlug(
  */
 export async function getPublicEventBySlugGlobal(
   slugOrId: string
-): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; code?: string; logo_url?: string | null } }) | null> {
+): Promise<(CollegeEvent & { college: { id: string; name: string; slug: string; code?: string; logo_url?: string | null; website_url?: string | null } }) | null> {
   if (!slugOrId) return null;
   const db = await getDb();
   const clean = normalizeEventSlug(slugOrId);
 
   let { data, error } = await db
     .from('events')
-    .select('*, college:colleges(id, name, slug, code, logo_url)')
+    .select('*, college:colleges(id, name, slug, code, logo_url, website_url)')
     .eq('slug', clean)
     .maybeSingle();
 
   if (!data && isUuid(slugOrId)) {
     const res = await db
       .from('events')
-      .select('*, college:colleges(id, name, slug, code, logo_url)')
+      .select('*, college:colleges(id, name, slug, code, logo_url, website_url)')
       .eq('id', slugOrId.trim())
       .maybeSingle();
     data = res.data;

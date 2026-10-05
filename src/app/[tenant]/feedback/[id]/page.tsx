@@ -3,7 +3,7 @@ import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicFeedbackFormByIdAction } from '@/app/feedback/actions';
 import { PublicFeedbackCard } from '@/components/public/PublicFeedbackCard';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
-import { School, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
+import { School, ArrowLeft, ArrowRight, AlertCircle, ExternalLink } from 'lucide-react';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
 export const dynamic = 'force-dynamic';
@@ -130,9 +130,34 @@ export default async function TenantDirectFeedbackPage({
       <footer className="bg-slate-900 text-slate-400 text-xs py-6 px-4 border-t border-slate-800 mt-auto">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
           <div>
-            <span>{tenant.name} ({tenant.shortName}) • Official Student Evaluation Portal</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {tenant.websiteUrl ? (
+                <a
+                  href={tenant.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-slate-200 hover:text-amber-400 hover:underline inline-flex items-center gap-1 transition-colors"
+                  title={`Visit Official Website of ${tenant.name}`}
+                >
+                  <span>{tenant.name} ({tenant.shortName})</span>
+                  <ExternalLink className="w-3 h-3 text-slate-400 shrink-0" />
+                </a>
+              ) : (
+                <span className="font-bold text-slate-200">{tenant.name} ({tenant.shortName})</span>
+              )}
+              <span>• Official Student Evaluation Portal</span>
+            </div>
             <div className="text-[11px] text-slate-400 mt-1">
-              Designed & Developed by{' '}
+              <Link
+                href="/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-slate-200 hover:text-amber-300 hover:underline transition-colors"
+                title="Open CampusFlow Main Website"
+              >
+                CampusFlow
+              </Link>
+              {' '}• Designed & Developed by{' '}
               <a
                 href="https://portfolio-two-ashen-zseywond41.vercel.app/"
                 target="_blank"

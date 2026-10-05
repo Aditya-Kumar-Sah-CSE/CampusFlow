@@ -13,6 +13,7 @@ import { PublicEventDetailClient } from '@/components/events/PublicEventDetailCl
 import { ProgramCategorySection } from '@/components/events/programs/ProgramCategorySection';
 import { PublicParticipantsList } from '@/components/events/programs/PublicParticipantsList';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { ArrowLeft } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -60,11 +61,14 @@ export default async function PublicEventDetailPage({ params }: Props) {
         </main>
 
         {/* Footer */}
-        <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-          <div className="max-w-5xl mx-auto px-4">
-            <p>&copy; {new Date().getFullYear()} {tenant.name}. All rights reserved.</p>
-          </div>
-        </footer>
+        <CollegePublicFooter
+          collegeName={tenant.name}
+          collegeShortName={tenant.shortName}
+          collegeSlug={tenant.slug}
+          websiteUrl={tenant.websiteUrl}
+          variant="light"
+          className="mt-12"
+        />
       </div>
     );
   }
@@ -144,11 +148,14 @@ export default async function PublicEventDetailPage({ params }: Props) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-5xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {tenant.name}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={tenant.name}
+        collegeShortName={tenant.shortName}
+        collegeSlug={tenant.slug}
+        websiteUrl={tenant.websiteUrl}
+        variant="light"
+        className="mt-12"
+      />
     </div>
   );
 }

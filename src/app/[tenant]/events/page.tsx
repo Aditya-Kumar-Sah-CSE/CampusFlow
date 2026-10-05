@@ -5,6 +5,7 @@ import { getEventsForTenant } from '@/config/events';
 import { SmallEventCard } from '@/components/events/SmallEventCard';
 import { PublicEventCard } from '@/components/events/PublicEventCard';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { Calendar, ArrowLeft, Ticket } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -94,11 +95,14 @@ export default async function PublicTenantEventsPage({ params }: Props) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-8 sm:mt-12">
-        <div className="max-w-6xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} {tenant.name}. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter
+        collegeName={tenant.name}
+        collegeShortName={tenant.shortName}
+        collegeSlug={tenant.slug}
+        websiteUrl={tenant.websiteUrl}
+        variant="light"
+        className="mt-8 sm:mt-12"
+      />
     </div>
   );
 }

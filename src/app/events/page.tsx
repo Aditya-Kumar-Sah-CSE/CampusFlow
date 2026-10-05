@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
+import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { getSmallEventsGroupedByInstitution } from '@/config/events';
 import { SmallEventCard } from '@/components/events/SmallEventCard';
 import { Calendar, MapPin, Ticket, ArrowRight, Sparkles, Building2 } from 'lucide-react';
@@ -197,11 +198,7 @@ export default async function PublicEventsDirectoryPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-12">
-        <div className="max-w-6xl mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} CampusFlow. All rights reserved.</p>
-        </div>
-      </footer>
+      <CollegePublicFooter variant="light" className="mt-12" />
     </div>
   );
 }
