@@ -223,6 +223,39 @@ export async function getPublicEventBySlugGlobal(
 }
 
 /**
+ * Fetch more published events for the given college (excluding current event).
+ * Used by custom completion experience to show real upcoming campus events.
+ */
+export async function getMorePublishedEventsForCollege(
+  collegeId: string,
+  excludeEventId?: string,
+  limit: number = 4
+): Promise<CollegeEvent[]> {
+  if (!collegeId) return [];
+  const db = await getDb();
+
+  let query = db
+    .from('events')
+    .select('id, college_id, title, slug, description, venue, start_at, end_at, registration_deadline, registration_label, payment_required, payment_amount, college:colleges(id, name, slug, code, logo_url)')
+    .eq('college_id', collegeId)
+    .eq('status', 'PUBLISHED')
+    .order('start_at', { ascending: true })
+    .limit(limit);
+
+  if (excludeEventId) {
+    query = query.neq('id', excludeEventId);
+  }
+
+  const { data, error } = await query;
+  if (error || !data) {
+    console.error('[GET_MORE_PUBLISHED_EVENTS_ERROR]', error);
+    return [];
+  }
+
+  return (data || []).map(enrichEventWithGoogleMetadata);
+}
+
+/**
  * Fetch registrations for an event with comprehensive filters
  */
 export async function getEventRegistrations(params: {

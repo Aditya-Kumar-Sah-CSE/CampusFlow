@@ -29,7 +29,13 @@ import {
   resolveCurrentEventRegistrationAction,
   logoutFromEventAction,
   getEventAcademicMastersAction,
+  getMorePublishedEventsForCollegeAction,
 } from '@/app/admin/events/event-registration-actions';
+import {
+  SuccessState,
+  MoreEvents,
+  CompletionFooter,
+} from '@/components/completion';
 import type { CollegeEvent } from '@/types/events';
 import type { Branch, Semester } from '@/types/database';
 import { formatOrdinal } from '@/lib/events/academic-formatter';
@@ -102,6 +108,21 @@ export function EventRegistrationForm({
   const [successRegNumber, setSuccessRegNumber] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
+  const [moreEvents, setMoreEvents] = useState<CollegeEvent[]>([]);
+
+  useEffect(() => {
+    if (successRegNumber && event.college_id) {
+      getMorePublishedEventsForCollegeAction(event.college_id, event.id, 4)
+        .then((evts) => {
+          if (evts && Array.isArray(evts)) {
+            setMoreEvents(evts as CollegeEvent[]);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load more events:', err);
+        });
+    }
+  }, [successRegNumber, event.college_id, event.id]);
 
   const handleDownloadPass = async (details: {
     fullName: string;
@@ -407,84 +428,58 @@ export function EventRegistrationForm({
   // VIEW 2: SUCCESS VIEW (Just Registered)
   // ============================================================
   if (successRegNumber) {
+    const moreActionHref = tenantSlug ? `/${tenantSlug}/events` : '/events';
+
     return (
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xl p-4 sm:p-8 md:p-10 w-full max-w-xl mx-auto space-y-5 sm:space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shrink-0">
-          <CheckCircle className="w-8 h-8 sm:w-9 sm:h-9" />
-        </div>
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-4 sm:p-8 md:p-10 w-full max-w-xl mx-auto space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
+        <SuccessState
+          type="event"
+          title="Registration Successful"
+          subtitle={`Your registration for ${event.title} has been submitted successfully.`}
+          entityTitle={event.title}
+          collegeName={collegeName}
+          collegeSlug={tenantSlug}
+          registrationNumber={successRegNumber}
+          myRegistrationsPath={myRegistrationsPath}
+          moreActionHref={moreActionHref}
+          onDownloadPass={() =>
+            handleDownloadPass({
+              fullName: fullName.trim(),
+              studentId: studentId.trim().toUpperCase(),
+              email: email.trim().toLowerCase(),
+              registrationNumber: successRegNumber,
+              mobile: mobile.trim(),
+              branch: branch.trim(),
+              semester: semester.trim(),
+            })
+          }
+          isDownloadingPass={downloadingPass}
+        />
 
-        <div className="space-y-2 min-w-0">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 break-words">
-            Registration Confirmed!
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            You are now successfully registered for <span className="font-semibold text-slate-900">{event.title}</span> at {collegeName}.
-          </p>
-        </div>
-
-        {/* Big Registration Number Card */}
-        <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-2 shadow-inner min-w-0">
-          <div className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-widest">
-            Your Event Registration Number
-          </div>
-          <div className="text-xl sm:text-3xl font-mono font-black text-amber-400 tracking-wider break-all">
-            {successRegNumber}
-          </div>
-          <p className="text-[11px] text-slate-400">
-            This registration number is your permanent event identity. Use it alongside your registered email to join programs.
-          </p>
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-            <button
-              onClick={() => handleCopy(successRegNumber)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copied ? 'Copied to Clipboard!' : 'Copy Registration Number'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                handleDownloadPass({
-                  fullName: fullName.trim(),
-                  studentId: studentId.trim().toUpperCase(),
-                  email: email.trim().toLowerCase(),
-                  registrationNumber: successRegNumber,
-                  mobile: mobile.trim(),
-                  branch: branch.trim(),
-                  semester: semester.trim(),
-                })
-              }
-              disabled={downloadingPass}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-500/40 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {downloadingPass ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-emerald-400" />
-              )}
-              <span>Download Pass (PNG)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-4 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
+        {/* Action to explore specific programs in this event */}
+        <div className="pt-1">
           <Link
             href={`${eventDetailPath}#programs`}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 text-center"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs sm:text-sm border border-blue-200 transition-colors"
           >
-            <Ticket className="w-4 h-4 shrink-0" />
+            <Ticket className="w-4 h-4" />
             <span>Choose Program to Join</span>
-            <ArrowRight className="w-4 h-4 shrink-0" />
-          </Link>
-          <Link
-            href={myRegistrationsPath}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center text-center"
-          >
-            <span>View My Registrations</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
+
+        {/* Real Published More Events for the current college */}
+        <MoreEvents
+          events={moreEvents}
+          collegeSlug={tenantSlug}
+          collegeName={collegeName}
+        />
+
+        {/* Subtle attribution footer */}
+        <CompletionFooter
+          collegeName={collegeName}
+          collegeSlug={tenantSlug}
+        />
       </div>
     );
   }

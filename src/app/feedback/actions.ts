@@ -680,3 +680,52 @@ export async function getActiveBranchesAction(collegeId?: string): Promise<{
     return { success: false, branches: [], error: message };
   }
 }
+
+/**
+ * Fetch more published feedback forms for the given college (excluding current form).
+ * Used by custom completion experience to show real additional evaluations.
+ */
+export async function getMorePublishedFormsForCollegeAction(
+  collegeId: string,
+  excludeFormId?: string,
+  limit: number = 4
+): Promise<PublicFormSummary[]> {
+  try {
+    if (!collegeId || !isValidUUID(collegeId)) return [];
+    const supabase = await getPublicDb();
+
+    let query = supabase
+      .from('feedback_forms')
+      .select(`
+        id,
+        title,
+        description,
+        form_type,
+        status,
+        google_form_url,
+        published_at,
+        closed_at,
+        college:colleges(id, name, code, slug, logo_url),
+        faculty:faculties(id, name, department, designation),
+        subject:subjects(id, name, code),
+        academic_year:academic_years(id, name),
+        branch:branches(id, name, code),
+        semester:semesters(id, name, semester_number)
+      `)
+      .eq('college_id', collegeId)
+      .eq('status', 'PUBLISHED')
+      .order('published_at', { ascending: false })
+      .limit(limit);
+
+    if (excludeFormId && isValidUUID(excludeFormId)) {
+      query = query.neq('id', excludeFormId);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data as unknown as PublicFormSummary[];
+  } catch (err) {
+    console.error('[GET_MORE_PUBLISHED_FORMS]', err);
+    return [];
+  }
+}

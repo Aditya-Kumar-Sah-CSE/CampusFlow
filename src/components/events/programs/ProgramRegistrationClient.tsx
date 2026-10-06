@@ -10,7 +10,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Copy,
   ArrowRight,
   Ticket,
   QrCode,
@@ -35,7 +34,13 @@ import {
   submitPaymentReferenceAction,
   logoutFromEventAction,
   getEventAcademicMastersAction,
+  getMorePublishedEventsForCollegeAction,
 } from '@/app/admin/events/event-registration-actions';
+import {
+  SuccessState,
+  MoreEvents,
+  CompletionFooter,
+} from '@/components/completion';
 import { FindTeamModal } from '@/components/events/FindTeamModal';
 
 export interface VerifiedParticipant {
@@ -177,8 +182,22 @@ export function ProgramRegistrationClient({
     teamId?: string;
     paymentStatus?: string;
   } | null>(null);
-  const [copied, setCopied] = useState(false);
   const [isFindTeamOpen, setIsFindTeamOpen] = useState(false);
+  const [moreEvents, setMoreEvents] = useState<CollegeEvent[]>([]);
+
+  useEffect(() => {
+    if (successResult && event.college_id) {
+      getMorePublishedEventsForCollegeAction(event.college_id, event.id, 4)
+        .then((evts) => {
+          if (evts && Array.isArray(evts)) {
+            setMoreEvents(evts as CollegeEvent[]);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load more events:', err);
+        });
+    }
+  }, [successResult, event.college_id, event.id]);
 
   // Resolve full details and check duplicate if already logged in on mount
   useEffect(() => {
@@ -501,80 +520,51 @@ export function ProgramRegistrationClient({
     }
   };
 
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
   // ============================================================
   // VIEW A: SUCCESS CONFIRMATION
   // ============================================================
   if (successResult) {
+    const collegeName = event.college?.name || 'Institution';
+    const moreActionHref = tenantSlug ? `/${tenantSlug}/events` : '/events';
+
     return (
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-emerald-200/90 shadow-xl p-4 sm:p-8 md:p-10 max-w-xl w-full mx-auto space-y-5 sm:space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shrink-0">
-          <CheckCircle2 className="w-8 h-8 sm:w-9 sm:h-9" />
-        </div>
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-4 sm:p-8 md:p-10 max-w-xl w-full mx-auto space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
+        <SuccessState
+          type="event"
+          title="Registration Successful"
+          subtitle={`Your registration for ${program.name} has been submitted successfully.`}
+          entityTitle={program.name}
+          collegeName={collegeName}
+          collegeSlug={tenantSlug}
+          registrationNumber={successResult.registrationNumber}
+          teamId={successResult.teamId}
+          myRegistrationsPath={myRegistrationsPath}
+          moreActionHref={moreActionHref}
+        />
 
-        <div className="space-y-1.5 min-w-0">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 break-words">
-            Registration Successful!
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600">
-            You are officially registered for <span className="font-semibold text-slate-900">{program.name}</span> in {event.title}.
-          </p>
-        </div>
-
-        {/* Credentials Card */}
-        <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 text-white space-y-3 shadow-inner min-w-0">
-          <div className="space-y-1 min-w-0">
-            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-              Program Registration Number
-            </div>
-            <div className="text-xl sm:text-2xl font-mono font-black text-amber-400 break-all">
-              {successResult.registrationNumber}
-            </div>
-          </div>
-
-          {successResult.teamId && (
-            <div className="pt-2 border-t border-slate-800 space-y-1 min-w-0">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-                Team Identifier
-              </div>
-              <div className="text-base font-mono font-bold text-emerald-400 break-all">
-                {successResult.teamId}
-              </div>
-            </div>
-          )}
-
-          <div className="pt-2">
-            <button
-              onClick={() => handleCopy(successResult.registrationNumber)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copied ? 'Copied to Clipboard!' : 'Copy Registration Number'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-2 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
-          <Link
-            href={myRegistrationsPath}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 text-center"
-          >
-            <span>View My Registrations</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+        {/* Back to main event overview */}
+        <div className="pt-1">
           <Link
             href={basePath}
-            className="w-full sm:flex-1 py-2.5 sm:py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm transition-colors flex items-center justify-center text-center"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors"
           >
-            <span>Back to Event</span>
+            <span>Back to Event Schedule</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
+
+        {/* Real Published More Events for the current college */}
+        <MoreEvents
+          events={moreEvents}
+          collegeSlug={tenantSlug}
+          collegeName={collegeName}
+        />
+
+        {/* Subtle attribution footer */}
+        <CompletionFooter
+          collegeName={collegeName}
+          collegeSlug={tenantSlug}
+        />
       </div>
     );
   }

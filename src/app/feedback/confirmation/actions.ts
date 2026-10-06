@@ -7,7 +7,12 @@ import { appUrl } from '@/lib/config/app';
 
 export interface VerifiedConfirmationData {
   isValid: boolean;
+  formId?: string;
   formTitle: string;
+  collegeId?: string;
+  collegeName?: string;
+  collegeSlug?: string;
+  collegeLogoUrl?: string | null;
   academicYear: string;
   branch: string;
   semester: string;
@@ -49,6 +54,8 @@ export async function getConfirmationByTokenAction(
       form:feedback_forms(
         id,
         title,
+        college_id,
+        college:colleges(id, name, slug, code, logo_url),
         branch:branches(name),
         semester:semesters(name),
         academic_year:academic_years(name)
@@ -67,7 +74,12 @@ export async function getConfirmationByTokenAction(
 
   return {
     isValid: true,
+    formId: form.id,
     formTitle: form.title,
+    collegeId: form.college?.id || form.college_id,
+    collegeName: form.college?.name || 'Institution',
+    collegeSlug: form.college?.slug || '',
+    collegeLogoUrl: form.college?.logo_url || null,
     academicYear: form.academic_year?.name || 'Academic Session',
     branch: form.branch?.name || 'Department',
     semester: form.semester?.name || 'Semester',
@@ -118,6 +130,8 @@ export async function verifyStudentSubmissionAction(params: {
       form:feedback_forms(
         id,
         title,
+        college_id,
+        college:colleges(id, name, slug, code, logo_url),
         branch:branches(name),
         semester:semesters(name),
         academic_year:academic_years(name)
@@ -152,7 +166,12 @@ export async function verifyStudentSubmissionAction(params: {
     token,
     data: {
       isValid: true,
+      formId: form.id,
       formTitle: form.title,
+      collegeId: form.college?.id || form.college_id,
+      collegeName: form.college?.name || 'Institution',
+      collegeSlug: form.college?.slug || '',
+      collegeLogoUrl: form.college?.logo_url || null,
       academicYear: form.academic_year?.name || 'Academic Session',
       branch: form.branch?.name || 'Department',
       semester: form.semester?.name || 'Semester',
@@ -163,6 +182,39 @@ export async function verifyStudentSubmissionAction(params: {
       downloadUrl,
       emailStatus: rec.email_status || 'PENDING',
     },
+  };
+}
+
+/**
+ * Fetch form details and college branding for direct completion landing
+ */
+export async function getFormContextAction(formId: string): Promise<{
+  formId: string;
+  formTitle: string;
+  collegeId: string;
+  collegeName: string;
+  collegeSlug: string;
+  collegeLogoUrl: string | null;
+} | null> {
+  if (!formId) return null;
+  const supabase = createAdminClient();
+  if (!supabase) return null;
+
+  const { data: form } = await supabase
+    .from('feedback_forms')
+    .select('id, title, college_id, college:colleges(id, name, slug, code, logo_url)')
+    .eq('id', formId)
+    .maybeSingle();
+
+  if (!form) return null;
+  const col: any = form.college;
+  return {
+    formId: form.id,
+    formTitle: form.title,
+    collegeId: form.college_id,
+    collegeName: col?.name || 'Institution',
+    collegeSlug: col?.slug || '',
+    collegeLogoUrl: col?.logo_url || null,
   };
 }
 

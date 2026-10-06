@@ -45,6 +45,7 @@ import type { SheetEventRegistrationInput, EventLoginInput } from '@/types/event
 import type { Branch, Semester } from '@/types/database';
 import { checkIsRegistrationOpen } from '@/lib/events/registration-status';
 import { getEventWithCollege } from '@/lib/events/event-context';
+import { getMorePublishedEventsForCollege } from '@/lib/events/service';
 
 // ============================================================
 // HELPERS
@@ -2273,6 +2274,23 @@ export async function updateStudentEventRegistrationAction(input: {
       success: false,
       error: (err as Error).message || 'Failed to update pass details. Please try again.',
     };
+  }
+}
+
+/**
+ * Server action to fetch more published events for the current college.
+ * Used by custom completion experience.
+ */
+export async function getMorePublishedEventsForCollegeAction(
+  collegeId: string,
+  excludeEventId?: string,
+  limit: number = 4
+) {
+  try {
+    return await getMorePublishedEventsForCollege(collegeId, excludeEventId, limit);
+  } catch (err) {
+    console.error('[GET_MORE_PUBLISHED_EVENTS_ACTION_ERROR]', err);
+    return [];
   }
 }
 
