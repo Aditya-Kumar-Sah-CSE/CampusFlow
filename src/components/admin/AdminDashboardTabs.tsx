@@ -8,6 +8,7 @@ import { OverviewTab, type DashboardCounts } from './tabs/OverviewTab';
 import { AdminMobileNav } from './AdminMobileNav';
 import { GoogleConnectionCard } from './GoogleConnectionCard';
 import { LandingPageSettingsCard } from './LandingPageSettingsCard';
+import { DataBackupCard } from './DataBackupCard';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -689,17 +690,26 @@ export function AdminDashboardTabs({
             </div>
 
             {activeCollegeId ? (
-              <GoogleConnectionCard
-                collegeId={activeCollegeId}
-                collegeName={activeCollegeName || 'Your Institution'}
-                status={{
-                  connected: Boolean(googleStatus?.connected),
-                  status: googleStatus?.status || 'NOT_CONNECTED',
-                  accountEmail: googleStatus?.accountEmail,
-                  accountName: googleStatus?.accountName,
-                  connectedAt: googleStatus?.connectedAt,
-                }}
-              />
+              <div className="space-y-6">
+                <GoogleConnectionCard
+                  collegeId={activeCollegeId}
+                  collegeName={activeCollegeName || 'Your Institution'}
+                  status={{
+                    connected: Boolean(googleStatus?.connected),
+                    status: googleStatus?.status || 'NOT_CONNECTED',
+                    accountEmail: googleStatus?.accountEmail,
+                    accountName: googleStatus?.accountName,
+                    connectedAt: googleStatus?.connectedAt,
+                  }}
+                />
+                <DataBackupCard
+                  collegeId={activeCollegeId}
+                  collegeName={activeCollegeName || 'Your Institution'}
+                  isSuperAdmin={isSuperAdmin}
+                  googleConnected={Boolean(googleStatus?.connected)}
+                  googleAccountEmail={googleStatus?.accountEmail}
+                />
+              </div>
             ) : (
               <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-amber-900 text-xs space-y-2">
                 <p className="font-bold text-sm">No Active Institution Selected</p>
@@ -797,6 +807,17 @@ export function AdminDashboardTabs({
                 </div>
               </div>
             </div>
+
+            {/* Production Data Backup Section */}
+            {activeCollegeId && (
+              <DataBackupCard
+                collegeId={activeCollegeId}
+                collegeName={activeCollegeName || 'Active Institution'}
+                isSuperAdmin={isSuperAdmin}
+                googleConnected={Boolean(googleStatus?.connected)}
+                googleAccountEmail={googleStatus?.accountEmail}
+              />
+            )}
 
             {/* Public Landing Page Display Management for Super Admin */}
             {isSuperAdmin && activeCollegeId && activeCollegeSlug && (

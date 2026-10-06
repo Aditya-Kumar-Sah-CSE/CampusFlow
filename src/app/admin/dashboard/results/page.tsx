@@ -38,20 +38,20 @@ export default async function AdminResultsHubPage() {
   let formsQuery = supabase
     .from('feedback_forms')
     .select(`
-      *,
-      faculty:faculties(*),
-      subject:subjects(*),
-      academic_year:academic_years(*),
-      branch:branches(*),
-      semester:semesters(*)
+      id, title, status, form_type, response_count, slug, published_at, closed_at, created_at, academic_year_id, branch_id, semester_id, faculty_id, subject_id, college_id,
+      faculty:faculties(id, name, department),
+      subject:subjects(id, name, code),
+      academic_year:academic_years(id, name),
+      branch:branches(id, name, code),
+      semester:semesters(id, name, semester_number)
     `)
     .order('created_at', { ascending: false });
 
-  let yearQuery = supabase.from('academic_years').select('*').order('name', { ascending: false });
+  let yearQuery = supabase.from('academic_years').select('id, name, is_active').order('name', { ascending: false });
   let branchQuery = supabase.from('branches').select('id, name, code, is_active').eq('is_active', true).order('name', { ascending: true });
-  let semesterQuery = supabase.from('semesters').select('*').order('semester_number', { ascending: true });
-  let facultyQuery = supabase.from('faculties').select('*').order('name', { ascending: true });
-  let subjectQuery = supabase.from('subjects').select('*').order('name', { ascending: true });
+  let semesterQuery = supabase.from('semesters').select('id, name, year_number, semester_number, is_active').order('semester_number', { ascending: true });
+  let facultyQuery = supabase.from('faculties').select('id, name, employee_id, department, designation, is_active').order('name', { ascending: true });
+  let subjectQuery = supabase.from('subjects').select('id, name, code, branch_id, semester_id, is_active').order('name', { ascending: true });
 
   if (session.activeCollegeId) {
     formsQuery = formsQuery.eq('college_id', session.activeCollegeId);
@@ -120,7 +120,7 @@ export default async function AdminResultsHubPage() {
       semesters={(semesters || []) as Semester[]}
       faculties={(faculties || []) as Faculty[]}
       subjects={(subjects || []) as Subject[]}
-      forms={(forms || []) as FeedbackForm[]}
+      forms={(forms || []) as unknown as FeedbackForm[]}
     />
   );
 }
