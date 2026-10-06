@@ -3,7 +3,19 @@
 import { getAdminSession, resolveAuthorizedCollegeId } from '@/lib/auth/admin-auth';
 import { executeCollegeBackup, verifyExistingCollegeBackup, getCollegeBackupState } from '@/lib/backup/backup-service';
 import { isCollegeGoogleConfigured, getCollegeGoogleConnectionMetadata } from '@/lib/google/auth';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { BackupExecutionResult, BackupVerificationResult, CollegeBackupState } from '@/types/backup';
+
+export interface LiveCollegeEntityCounts {
+  faculties: number;
+  subjects: number;
+  branches: number;
+  semesters: number;
+  academicYears: number;
+  assignments: number;
+  feedbackForms: number;
+  events: number;
+}
 
 export interface CollegeBackupStateResponse {
   success: boolean;
@@ -14,6 +26,7 @@ export interface CollegeBackupStateResponse {
   googleConnected: boolean;
   googleAccountEmail?: string | null;
   canManageBackup: boolean;
+  liveCounts?: LiveCollegeEntityCounts;
 }
 
 /**
@@ -48,10 +61,55 @@ export async function getCollegeBackupStateAction(
     };
   }
 
-  const [state, googleConnected, googleMeta] = await Promise.all([
+  const supabase = createAdminClient();
+
+  const [state, googleConnected, googleMeta, liveCountsRes] = await Promise.all([
     getCollegeBackupState(authorizedCollegeId),
     isCollegeGoogleConfigured(authorizedCollegeId),
     getCollegeGoogleConnectionMetadata(authorizedCollegeId),
+    (async (): Promise<LiveCollegeEntityCounts> => {
+      if (!supabase) {
+        return {
+          faculties: 0,
+          subjects: 0,
+          branches: 0,
+          semesters: 0,
+          academicYears: 0,
+          assignments: 0,
+          feedbackForms: 0,
+          events: 0,
+        };
+      }
+      const [
+        { count: facCount },
+        { count: subCount },
+        { count: brCount },
+        { count: semCount },
+        { count: yrCount },
+        { count: asgCount },
+        { count: fbCount },
+        { count: evCount },
+      ] = await Promise.all([
+        supabase.from('faculties').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('subjects').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('branches').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('semesters').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('academic_years').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('faculty_subject_assignments').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('feedback_forms').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+        supabase.from('events').select('*', { count: 'exact', head: true }).eq('college_id', authorizedCollegeId),
+      ]);
+      return {
+        faculties: facCount || 0,
+        subjects: subCount || 0,
+        branches: brCount || 0,
+        semesters: semCount || 0,
+        academicYears: yrCount || 0,
+        assignments: asgCount || 0,
+        feedbackForms: fbCount || 0,
+        events: evCount || 0,
+      };
+    })(),
   ]);
 
   const canManageBackup =
@@ -67,6 +125,7 @@ export async function getCollegeBackupStateAction(
     googleConnected,
     googleAccountEmail: googleMeta?.accountEmail || null,
     canManageBackup,
+    liveCounts: liveCountsRes,
   };
 }
 
@@ -147,6 +206,11 @@ export async function verifyCollegeBackupAction(
       isVerified: false,
       status: 'FAILED',
       errors: ['Unauthorized.'],
+      totalSupabase: 0,
+      totalDrive: 0,
+      totalMissing: 0,
+      totalDuplicates: 0,
+      totalUnexpected: 0,
       details: {},
     };
   }
@@ -159,6 +223,11 @@ export async function verifyCollegeBackupAction(
       isVerified: false,
       status: 'FAILED',
       errors: [err.message || 'Unable to determine the active institution.'],
+      totalSupabase: 0,
+      totalDrive: 0,
+      totalMissing: 0,
+      totalDuplicates: 0,
+      totalUnexpected: 0,
       details: {},
     };
   }

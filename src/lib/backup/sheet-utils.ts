@@ -323,3 +323,170 @@ export async function syncSpreadsheetTab(
     total: rows.length,
   };
 }
+
+/**
+ * Resolves or creates the primary Academic Structure spreadsheet for an institution.
+ * Strictly avoids duplicate spreadsheets by searching for existing sheets matching
+ * "{College Name} - Academic Structure" or legacy "CampusFlow - Academic Structure".
+ */
+export async function getOrCreateAcademicSpreadsheet(
+  drive: any,
+  sheets: any,
+  folderId: string,
+  collegeName: string,
+  collegeCode?: string
+): Promise<{ spreadsheetId: string; spreadsheetUrl: string; isNew: boolean }> {
+  const desiredTitle = `${collegeName.trim()} - Academic Structure`;
+
+  try {
+    // List all spreadsheets directly inside the Academic Structure folder
+    const listRes = await drive.files.list({
+      q: `'${folderId}' in parents and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+      fields: 'files(id, name, webViewLink, modifiedTime)',
+      pageSize: 20,
+    });
+
+    const files = listRes.data.files || [];
+
+    if (files.length > 0) {
+      // Find candidate matching desired title or variations
+      let match = files.find((f: any) => f.name?.toLowerCase().trim() === desiredTitle.toLowerCase());
+
+      if (!match) {
+        // Fallback checks: collegeCode, CampusFlow, or contains 'Academic Structure'
+        const codeTitle = collegeCode ? `${collegeCode.trim()} - Academic Structure`.toLowerCase() : null;
+        match = files.find((f: any) => {
+          const fn = f.name?.toLowerCase().trim() || '';
+          return (
+            (codeTitle && fn === codeTitle) ||
+            fn === 'campusflow - academic structure' ||
+            fn.includes('academic structure')
+          );
+        });
+      }
+
+      if (match?.id) {
+        // If title doesn't match desiredTitle, rename it for consistency
+        if (match.name?.trim() !== desiredTitle) {
+          try {
+            await sheets.spreadsheets.batchUpdate({
+              spreadsheetId: match.id,
+              requestBody: {
+                requests: [
+                  {
+                    updateSpreadsheetProperties: {
+                      properties: { title: desiredTitle },
+                      fields: 'title',
+                    },
+                  },
+                ],
+              },
+            });
+          } catch {
+            // Renaming error is non-fatal
+          }
+        }
+
+        return {
+          spreadsheetId: match.id,
+          spreadsheetUrl: match.webViewLink || `https://docs.google.com/spreadsheets/d/${match.id}/edit`,
+          isNew: false,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`[SheetUtils] Search notice for Academic Structure sheet in folder [${folderId}]:`, err);
+  }
+
+  // Create new spreadsheet
+  const created = await getOrCreateSpreadsheetInFolder(
+    drive,
+    sheets,
+    folderId,
+    desiredTitle,
+    'College Profile'
+  );
+
+  return {
+    spreadsheetId: created.spreadsheetId,
+    spreadsheetUrl: created.spreadsheetUrl,
+    isNew: true,
+  };
+}
+
+/**
+ * Removes extraneous default sheet (e.g. 'Sheet1') if other named tabs exist.
+ */
+export async function removeDefaultSheetIfExtraneous(sheets: any, spreadsheetId: string): Promise<void> {
+  try {
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets(properties(sheetId,title))',
+    });
+    const allSheets = meta.data.sheets || [];
+    if (allSheets.length > 1) {
+      const sheet1 = allSheets.find((s: any) => s.properties?.title === 'Sheet1');
+      if (sheet1?.properties?.sheetId !== undefined) {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                deleteSheet: {
+                  sheetId: sheet1.properties.sheetId,
+                },
+              },
+            ],
+          },
+        });
+      }
+    }
+  } catch {
+    // Non-fatal if sheet1 does not exist
+  }
+}
+
+/**
+ * Reorders tabs in the spreadsheet to match the desired canonical order.
+ */
+export async function reorderSpreadsheetTabs(
+  sheets: any,
+  spreadsheetId: string,
+  orderedTabNames: string[]
+): Promise<void> {
+  try {
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: 'sheets(properties(sheetId,title,index))',
+    });
+    const allSheets = meta.data.sheets || [];
+    const requests: any[] = [];
+
+    orderedTabNames.forEach((targetTitle, targetIndex) => {
+      const found = allSheets.find(
+        (s: any) => s.properties?.title?.toLowerCase() === targetTitle.toLowerCase()
+      );
+      if (found && found.properties?.sheetId !== undefined && found.properties?.index !== targetIndex) {
+        requests.push({
+          updateSheetProperties: {
+            properties: {
+              sheetId: found.properties.sheetId,
+              index: targetIndex,
+            },
+            fields: 'index',
+          },
+        });
+      }
+    });
+
+    if (requests.length > 0) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests },
+      });
+    }
+  } catch (err) {
+    console.warn('[SheetUtils] Tab reorder notice:', err);
+  }
+}
+

@@ -1,4 +1,10 @@
-import { getOrCreateSpreadsheetInFolder, syncSpreadsheetTab, type SpreadsheetSyncStats } from './sheet-utils';
+import {
+  getOrCreateAcademicSpreadsheet,
+  syncSpreadsheetTab,
+  removeDefaultSheetIfExtraneous,
+  reorderSpreadsheetTabs,
+  type SpreadsheetSyncStats,
+} from './sheet-utils';
 
 export interface AcademicBackupResult {
   spreadsheetId: string;
@@ -20,9 +26,19 @@ export interface AcademicBackupResult {
 }
 
 /**
- * Backs up Academic Structure (Colleges, Years, Branches, Semesters, Faculties, Subjects, Assignments)
- * to a dedicated Google Spreadsheet inside the "Academic Structure" folder.
- * Preserves stable IDs and human-readable names.
+ * Backs up Academic Structure (Colleges, Faculty, Subjects, Branches, Semesters, Academic Years, Assignments)
+ * to a single dedicated Google Spreadsheet "[College Name] - Academic Structure" inside the "Academic Structure" folder.
+ * 
+ * Canonical Tab Order:
+ * 1. College Profile
+ * 2. Faculty
+ * 3. Subjects
+ * 4. Branches
+ * 5. Semesters
+ * 6. Academic Years
+ * 7. Faculty Subject Assignments
+ * 
+ * Strictly non-destructive. Re-uses existing spreadsheets and avoids duplicate spreadsheet creation.
  */
 export async function backupAcademicStructure(params: {
   supabase: any;
@@ -70,32 +86,17 @@ export async function backupAcademicStructure(params: {
   const semesterMap = new Map<string, string>();
   (semesters || []).forEach((s: any) => semesterMap.set(s.id, s.name));
 
-  // 2. Locate or create "{College Name} - Academic Structure" Spreadsheet
-  // First check if a sheet with {College Name} - Academic Structure exists, then fallback to CampusFlow - Academic Structure
-  let spreadsheetId: string;
-  let spreadsheetUrl: string;
+  // 2. Locate or create "[College Name] - Academic Structure" Spreadsheet (reusing existing if present)
+  const academicSheet = await getOrCreateAcademicSpreadsheet(
+    drive,
+    sheets,
+    academicFolderId,
+    college.name,
+    college.code
+  );
 
-  try {
-    const res = await getOrCreateSpreadsheetInFolder(
-      drive,
-      sheets,
-      academicFolderId,
-      `${college.name} - Academic Structure`,
-      'College Profile'
-    );
-    spreadsheetId = res.spreadsheetId;
-    spreadsheetUrl = res.spreadsheetUrl;
-  } catch {
-    const resFallback = await getOrCreateSpreadsheetInFolder(
-      drive,
-      sheets,
-      academicFolderId,
-      'CampusFlow - Academic Structure',
-      'College Profile'
-    );
-    spreadsheetId = resFallback.spreadsheetId;
-    spreadsheetUrl = resFallback.spreadsheetUrl;
-  }
+  const spreadsheetId = academicSheet.spreadsheetId;
+  const spreadsheetUrl = academicSheet.spreadsheetUrl;
 
   let totalExported = 0;
   let totalCreated = 0;
@@ -145,58 +146,7 @@ export async function backupAcademicStructure(params: {
   const s1 = await syncSpreadsheetTab(sheets, spreadsheetId, 'College Profile', collegeHeaders, collegeRows);
   trackStats(s1);
 
-  // 4. Tab 2: Academic Years
-  const yearHeaders = ['Academic Year ID', 'College ID', 'Academic Year Name', 'Status', 'Created At', 'Updated At'];
-  const yearRows = (years || []).map((y: any) => [
-    y.id,
-    y.college_id,
-    y.name,
-    y.is_active ? 'ACTIVE' : 'INACTIVE',
-    y.created_at,
-    y.updated_at,
-  ]);
-  const s2 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Academic Years', yearHeaders, yearRows);
-  trackStats(s2);
-
-  // 5. Tab 3: Branches
-  const branchHeaders = ['Branch ID', 'College ID', 'Branch Code', 'Branch Name', 'Status', 'Created At', 'Updated At'];
-  const branchRows = (branches || []).map((b: any) => [
-    b.id,
-    b.college_id,
-    b.code,
-    b.name,
-    b.is_active ? 'ACTIVE' : 'INACTIVE',
-    b.created_at,
-    b.updated_at,
-  ]);
-  const s3 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Branches', branchHeaders, branchRows);
-  trackStats(s3);
-
-  // 6. Tab 4: Semesters
-  const semesterHeaders = [
-    'Semester ID',
-    'College ID',
-    'Semester Number',
-    'Year Number',
-    'Semester Name',
-    'Status',
-    'Created At',
-    'Updated At',
-  ];
-  const semesterRows = (semesters || []).map((s: any) => [
-    s.id,
-    s.college_id,
-    s.semester_number,
-    s.year_number,
-    s.name,
-    s.is_active ? 'ACTIVE' : 'INACTIVE',
-    s.created_at,
-    s.updated_at,
-  ]);
-  const s4 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Semesters', semesterHeaders, semesterRows);
-  trackStats(s4);
-
-  // 7. Tab 5: Faculty (Supports BCE-BGP 32 faculty members)
+  // 4. Tab 2: Faculty (Supports dynamic faculty count, e.g. BCE-BGP 32)
   const facultyHeaders = [
     'Faculty ID',
     'Faculty Name',
@@ -219,10 +169,10 @@ export async function backupAcademicStructure(params: {
     f.created_at,
     f.updated_at,
   ]);
-  const s5 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Faculty', facultyHeaders, facultyRows);
-  trackStats(s5);
+  const s2 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Faculty', facultyHeaders, facultyRows);
+  trackStats(s2);
 
-  // 8. Tab 6: Subjects (Supports BCE-BGP 45 subjects)
+  // 5. Tab 3: Subjects (Supports dynamic subject count, e.g. BCE-BGP 45)
   const subjectHeaders = [
     'Subject ID',
     'Subject Code',
@@ -253,7 +203,58 @@ export async function backupAcademicStructure(params: {
       sub.updated_at,
     ];
   });
-  const s6 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Subjects', subjectHeaders, subjectRows);
+  const s3 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Subjects', subjectHeaders, subjectRows);
+  trackStats(s3);
+
+  // 6. Tab 4: Branches
+  const branchHeaders = ['Branch ID', 'College ID', 'Branch Code', 'Branch Name', 'Status', 'Created At', 'Updated At'];
+  const branchRows = (branches || []).map((b: any) => [
+    b.id,
+    b.college_id,
+    b.code,
+    b.name,
+    b.is_active ? 'ACTIVE' : 'INACTIVE',
+    b.created_at,
+    b.updated_at,
+  ]);
+  const s4 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Branches', branchHeaders, branchRows);
+  trackStats(s4);
+
+  // 7. Tab 5: Semesters
+  const semesterHeaders = [
+    'Semester ID',
+    'College ID',
+    'Semester Number',
+    'Year Number',
+    'Semester Name',
+    'Status',
+    'Created At',
+    'Updated At',
+  ];
+  const semesterRows = (semesters || []).map((s: any) => [
+    s.id,
+    s.college_id,
+    s.semester_number,
+    s.year_number,
+    s.name,
+    s.is_active ? 'ACTIVE' : 'INACTIVE',
+    s.created_at,
+    s.updated_at,
+  ]);
+  const s5 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Semesters', semesterHeaders, semesterRows);
+  trackStats(s5);
+
+  // 8. Tab 6: Academic Years
+  const yearHeaders = ['Academic Year ID', 'College ID', 'Academic Year Name', 'Status', 'Created At', 'Updated At'];
+  const yearRows = (years || []).map((y: any) => [
+    y.id,
+    y.college_id,
+    y.name,
+    y.is_active ? 'ACTIVE' : 'INACTIVE',
+    y.created_at,
+    y.updated_at,
+  ]);
+  const s6 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Academic Years', yearHeaders, yearRows);
   trackStats(s6);
 
   // 9. Tab 7: Faculty Subject Assignments
@@ -295,6 +296,18 @@ export async function backupAcademicStructure(params: {
   ]);
   const s7 = await syncSpreadsheetTab(sheets, spreadsheetId, 'Faculty Subject Assignments', assignHeaders, assignRows);
   trackStats(s7);
+
+  // 10. Clean up extraneous default 'Sheet1' and ensure canonical tab order
+  await removeDefaultSheetIfExtraneous(sheets, spreadsheetId);
+  await reorderSpreadsheetTabs(sheets, spreadsheetId, [
+    'College Profile',
+    'Faculty',
+    'Subjects',
+    'Branches',
+    'Semesters',
+    'Academic Years',
+    'Faculty Subject Assignments',
+  ]);
 
   return {
     spreadsheetId,

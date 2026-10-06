@@ -398,6 +398,8 @@ async function runBackupWithLock(
       recordsExported: backupResult.totalExported,
       recordsCreated: backupResult.totalCreated,
       recordsUpdated: backupResult.totalUpdated,
+      recordsMissing: backupResult.verification.totalMissing,
+      recordsDuplicate: backupResult.verification.totalDuplicates,
       tableCounts: backupResult.tableCounts,
       driveUrls: {
         institutionFolder: backupResult.hierarchy.institutionFolderUrl,
@@ -408,6 +410,8 @@ async function runBackupWithLock(
       },
       durationMs,
       error: backupResult.verification.errors.length > 0 ? backupResult.verification.errors.join('; ') : undefined,
+      verification: backupResult.verification,
+      cleanupReport: backupResult.hierarchy.cleanupReport,
     };
   } catch (err: any) {
     const durationMs = Date.now() - startTime;
@@ -473,6 +477,11 @@ export async function verifyExistingCollegeBackup(collegeId: string): Promise<Ba
       isVerified: false,
       status: 'FAILED',
       errors: ['Supabase admin client unavailable.'],
+      totalSupabase: 0,
+      totalDrive: 0,
+      totalMissing: 0,
+      totalDuplicates: 0,
+      totalUnexpected: 0,
       details: {},
     };
   }
@@ -483,6 +492,11 @@ export async function verifyExistingCollegeBackup(collegeId: string): Promise<Ba
       isVerified: false,
       status: 'FAILED',
       errors: ['No existing backup spreadsheet found. Please run "Backup Now" first.'],
+      totalSupabase: 0,
+      totalDrive: 0,
+      totalMissing: 0,
+      totalDuplicates: 0,
+      totalUnexpected: 0,
       details: {},
     };
   }

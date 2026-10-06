@@ -54,6 +54,38 @@ export interface CollegeBackupState {
   updated_at: string;
 }
 
+export interface DriveCleanupReport {
+  migratedFilesCount: number;
+  removedFoldersCount: number;
+  preservedFoldersCount: number;
+  logs: string[];
+}
+
+export interface BackupVerificationEntityDetail {
+  supabaseCount: number;
+  driveCount: number;
+  uniqueDriveCount: number;
+  match: boolean;
+  missingCount: number;
+  duplicateCount: number;
+  unexpectedCount: number;
+  missingIds?: string[];
+  duplicateIds?: string[];
+  unexpectedIds?: string[];
+}
+
+export interface BackupVerificationResult {
+  isVerified: boolean;
+  status: BackupVerificationStatus;
+  errors: string[];
+  totalSupabase: number;
+  totalDrive: number;
+  totalMissing: number;
+  totalDuplicates: number;
+  totalUnexpected: number;
+  details: Record<string, BackupVerificationEntityDetail>;
+}
+
 export interface BackupExecutionResult {
   success: boolean;
   backupId?: string;
@@ -62,6 +94,10 @@ export interface BackupExecutionResult {
   recordsExported: number;
   recordsCreated: number;
   recordsUpdated: number;
+  recordsSkipped?: number;
+  recordsMissing?: number;
+  recordsDuplicate?: number;
+  recordsFailed?: number;
   tableCounts: Record<string, number>;
   driveUrls: {
     institutionFolder?: string;
@@ -72,19 +108,6 @@ export interface BackupExecutionResult {
   };
   durationMs: number;
   error?: string;
-}
-
-export interface BackupVerificationResult {
-  isVerified: boolean;
-  status: BackupVerificationStatus;
-  errors: string[];
-  details: Record<
-    string,
-    {
-      supabaseCount: number;
-      driveCount: number;
-      match: boolean;
-      missingIds?: string[];
-    }
-  >;
+  verification?: BackupVerificationResult;
+  cleanupReport?: DriveCleanupReport;
 }

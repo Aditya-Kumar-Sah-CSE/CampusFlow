@@ -1,5 +1,5 @@
 import { getOrCreateDriveFolder } from '@/lib/google/feedback-drive';
-import type { CollegeBackupState } from '@/types/backup';
+import type { CollegeBackupState, DriveCleanupReport } from '@/types/backup';
 
 export interface CollegeDriveHierarchy {
   rootFolderId: string;
@@ -24,6 +24,11 @@ export interface CollegeDriveHierarchy {
   manifestsFolderUrl: string;
   auditExportsFolderId: string;
   auditExportsFolderUrl: string;
+  // Subfolders under Academic Structure
+  collegeProfileFolderId?: string;
+  facultyAssignmentsFolderId?: string;
+  subjectsBranchesFolderId?: string;
+  academicYearsSemestersFolderId?: string;
   // Backwards-compatible aliases
   backupFolderId: string;
   backupFolderUrl: string;
@@ -35,6 +40,7 @@ export interface CollegeDriveHierarchy {
   billingFolderUrl: string;
   systemFolderId: string;
   systemFolderUrl: string;
+  cleanupReport?: DriveCleanupReport;
 }
 
 /**
@@ -133,7 +139,139 @@ export async function ensureSubFolders(
 }
 
 /**
- * Ensures the production Google Drive directory hierarchy for an institution.
+ * Safely migrates files from redundant old folders under Academic Structure
+ * into the consolidated target subfolders, and removes empty redundant folders.
+ * Strictly non-destructive: only deletes folders that are verified 100% empty.
+ */
+export async function cleanupAcademicDriveStructure(
+  drive: any,
+  academicFolderId: string,
+  targetMap: Map<string, string>
+): Promise<DriveCleanupReport> {
+  const logs: string[] = [];
+  let migratedFilesCount = 0;
+  let removedFoldersCount = 0;
+  let preservedFoldersCount = 0;
+
+  try {
+    const listRes = await drive.files.list({
+      q: `'${academicFolderId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: 'files(id, name)',
+      pageSize: 100,
+    });
+
+    const subfolders = listRes.data.files || [];
+
+    // Map old fragmented folder names to their consolidated target folder key
+    const redundantFolderToTargetKey: Record<string, string> = {
+      'faculty': 'faculty & assignments',
+      'faculties': 'faculty & assignments',
+      'faculty subject assignments': 'faculty & assignments',
+      'subjects': 'subjects & branches',
+      'branches': 'subjects & branches',
+      'academic years': 'academic years & semesters',
+      'semesters': 'academic years & semesters',
+    };
+
+    for (const folder of subfolders) {
+      const lowerName = folder.name?.toLowerCase().trim() || '';
+      const targetKey = redundantFolderToTargetKey[lowerName];
+
+      if (!targetKey) {
+        // Not a redundant folder (e.g. 'college profile', 'faculty & assignments', etc.)
+        continue;
+      }
+
+      const targetFolderId = targetMap.get(targetKey);
+      if (!targetFolderId) {
+        logs.push(`[DriveCleanup] Target folder for "${folder.name}" (${targetKey}) not found in map. Skipping.`);
+        preservedFoldersCount++;
+        continue;
+      }
+
+      // Check all files/subfolders inside this redundant folder
+      const filesRes = await drive.files.list({
+        q: `'${folder.id}' in parents and trashed = false`,
+        fields: 'files(id, name, mimeType)',
+        pageSize: 100,
+      });
+
+      const files = filesRes.data.files || [];
+
+      // If files exist, safely migrate them into the target folder
+      if (files.length > 0) {
+        logs.push(`[DriveCleanup] Found ${files.length} file(s) in redundant folder "${folder.name}". Migrating to "${targetKey}"...`);
+
+        for (const file of files) {
+          try {
+            await drive.files.update({
+              fileId: file.id,
+              addParents: targetFolderId,
+              removeParents: folder.id,
+              fields: 'id, parents',
+            });
+            migratedFilesCount++;
+            logs.push(`[DriveCleanup] Migrated file "${file.name}" (${file.id}) from "${folder.name}".`);
+          } catch (moveErr: any) {
+            logs.push(`[DriveCleanup] Warning migrating file "${file.name}" (${file.id}): ${moveErr.message}`);
+          }
+        }
+      }
+
+      // Verify the folder is genuinely empty before deletion
+      const verifyRes = await drive.files.list({
+        q: `'${folder.id}' in parents and trashed = false`,
+        fields: 'files(id, name)',
+        pageSize: 10,
+      });
+
+      const remainingItems = verifyRes.data.files || [];
+      if (remainingItems.length === 0) {
+        try {
+          await drive.files.update({
+            fileId: folder.id,
+            requestBody: { trashed: true },
+          });
+          removedFoldersCount++;
+          logs.push(`[DriveCleanup] Safely removed empty redundant folder "${folder.name}" (${folder.id}).`);
+        } catch (delErr: any) {
+          logs.push(`[DriveCleanup] Error removing empty folder "${folder.name}": ${delErr.message}`);
+          preservedFoldersCount++;
+        }
+      } else {
+        logs.push(`[DriveCleanup] Preserved folder "${folder.name}" (${folder.id}) because it still contains ${remainingItems.length} item(s).`);
+        preservedFoldersCount++;
+      }
+    }
+  } catch (err: any) {
+    logs.push(`[DriveCleanup] Notice during academic structure folder cleanup: ${err.message}`);
+  }
+
+  return {
+    migratedFilesCount,
+    removedFoldersCount,
+    preservedFoldersCount,
+    logs,
+  };
+}
+
+/**
+ * Ensures the clean, minimal, production-ready Google Drive directory hierarchy for an institution.
+ * 
+ * Target Structure:
+ * CampusFlow/
+ * └── [College Name]/
+ *     ├── Academic Structure/
+ *     │   ├── College Profile
+ *     │   ├── Faculty & Assignments
+ *     │   ├── Subjects & Branches
+ *     │   └── Academic Years & Semesters
+ *     │
+ *     ├── Feedback Forms/
+ *     ├── Events/
+ *     ├── Reports/
+ *     └── Backup/
+ * 
  * Strictly non-destructive. Re-uses existing folders and avoids duplicate folder creation.
  */
 export async function ensureCollegeBackupStructure(
@@ -162,7 +300,7 @@ export async function ensureCollegeBackupStructure(
     'Global Backups',
   ]);
 
-  // 3. Institution: {College Name} (e.g. Bhagalpur College of Engineering)
+  // 3. Institution: [College Name] (e.g. Bhagalpur College of Engineering)
   const instFolder = await resolveFolder(
     drive,
     cleanInstName,
@@ -170,59 +308,61 @@ export async function ensureCollegeBackupStructure(
     cachedState?.drive_institution_folder_id
   );
 
-  // 4. Top-level category folders under {College Name}
+  // 4. Top-level category folders under [College Name]
+  // Target: Academic Structure, Feedback Forms, Events, Reports, Backup
   const instSubFolders = await ensureSubFolders(drive, instFolder.id, [
     'Academic Structure',
-    'Feedback',
+    'Feedback Forms',
     'Events',
     'Reports',
-    'System Backups',
-    'Billing',
+    'Backup',
   ]);
 
-  // Academic Structure
+  // Academic Structure folder
   const academicFolderId =
     instSubFolders.get('academic structure') ||
     (await resolveFolder(drive, 'Academic Structure', instFolder.id)).id;
 
-  // Feedback (with backward compatibility for 'Feedback Forms')
+  // Feedback Forms folder (with backward compatibility for 'Feedback')
   const feedbackFolderId =
-    instSubFolders.get('feedback') ||
     instSubFolders.get('feedback forms') ||
-    (await resolveFolder(drive, 'Feedback', instFolder.id)).id;
+    instSubFolders.get('feedback') ||
+    (await resolveFolder(drive, 'Feedback Forms', instFolder.id)).id;
 
-  // Events
+  // Events folder
   const eventsFolderId =
     instSubFolders.get('events') ||
     (await resolveFolder(drive, 'Events', instFolder.id)).id;
 
-  // Reports
+  // Reports folder
   const reportsFolderId =
     instSubFolders.get('reports') ||
     (await resolveFolder(drive, 'Reports', instFolder.id)).id;
 
-  // System Backups (with backward compatibility for 'Backup')
+  // Backup folder (with backward compatibility for 'System Backups')
   const systemBackupsFolderId =
-    instSubFolders.get('system backups') ||
     instSubFolders.get('backup') ||
-    (await resolveFolder(drive, 'System Backups', instFolder.id)).id;
+    instSubFolders.get('system backups') ||
+    (await resolveFolder(drive, 'Backup', instFolder.id)).id;
 
-  // Billing (optional)
+  // Billing folder (preserved for backward compatibility)
   const billingFolderId =
     instSubFolders.get('billing') ||
     (await resolveFolder(drive, 'Billing', instFolder.id)).id;
 
-  // 5. Populate subfolders within each category
-  const [, , , , systemSubs] = await Promise.all([
-    ensureSubFolders(drive, academicFolderId, [
-      'College Profile',
-      'Academic Years',
-      'Branches',
-      'Semesters',
-      'Faculty',
-      'Subjects',
-      'Faculty Subject Assignments',
-    ]),
+  // 5. Minimal, consolidated subfolders under Academic Structure
+  const academicSubs = await ensureSubFolders(drive, academicFolderId, [
+    'College Profile',
+    'Faculty & Assignments',
+    'Subjects & Branches',
+    'Academic Years & Semesters',
+  ]);
+
+  // Run cleanup & migration of old fragmented folders under Academic Structure
+  const cleanupReport = await cleanupAcademicDriveStructure(drive, academicFolderId, academicSubs);
+
+  // 6. Populate subfolders within other categories
+  const [, , , systemSubs] = await Promise.all([
     ensureSubFolders(drive, feedbackFolderId, [
       'Feedback Forms',
       'Response Backups',
@@ -284,6 +424,11 @@ export async function ensureCollegeBackupStructure(
     manifestsFolderUrl: `https://drive.google.com/drive/folders/${manifestsFolderId}`,
     auditExportsFolderId,
     auditExportsFolderUrl: `https://drive.google.com/drive/folders/${auditExportsFolderId}`,
+    // Specific Academic Structure subfolders
+    collegeProfileFolderId: academicSubs.get('college profile'),
+    facultyAssignmentsFolderId: academicSubs.get('faculty & assignments'),
+    subjectsBranchesFolderId: academicSubs.get('subjects & branches'),
+    academicYearsSemestersFolderId: academicSubs.get('academic years & semesters'),
     // Backwards-compatible aliases
     backupFolderId: systemBackupsFolderId,
     backupFolderUrl: `https://drive.google.com/drive/folders/${systemBackupsFolderId}`,
@@ -295,6 +440,7 @@ export async function ensureCollegeBackupStructure(
     billingFolderUrl: `https://drive.google.com/drive/folders/${billingFolderId}`,
     systemFolderId: systemBackupsFolderId,
     systemFolderUrl: `https://drive.google.com/drive/folders/${systemBackupsFolderId}`,
+    cleanupReport,
   };
 }
 
