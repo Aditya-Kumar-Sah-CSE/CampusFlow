@@ -264,6 +264,98 @@ export async function getExistingSheetResponseIds(
 }
 
 /**
+ * Scans the Google Sheet, identifies duplicate rows (e.g. identical registration number, identical email, or identical student name),
+ * and deletes duplicate rows using batchUpdate deleteDimension so only unique student submissions remain.
+ */
+export async function cleanDuplicateRowsFromSheet(
+  spreadsheetId: string,
+  collegeId: string
+): Promise<{ removedCount: number }> {
+  try {
+    return await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+      const meta = await sheets.spreadsheets.get({ spreadsheetId });
+      const firstSheet = meta.data.sheets?.[0];
+      const sheetTitle = firstSheet?.properties?.title || 'Form Responses 1';
+      const sheetTabId = firstSheet?.properties?.sheetId || 0;
+
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `'${sheetTitle}'!A1:ZZ`,
+      });
+
+      const allRows = res.data.values || [];
+      if (allRows.length <= 2) {
+        return { removedCount: 0 };
+      }
+
+      const headers = (allRows[0] || []).map(h => String(h || '').trim().toLowerCase());
+      const regIdx = headers.findIndex(h => h.includes('registration') || h.includes('reg') || h.includes('roll'));
+      const nameIdx = headers.findIndex(h => h.includes('student name') || (h.includes('name') && !h.includes('faculty') && !h.includes('subject')));
+      const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('username'));
+
+      const seenKeys = new Set<string>();
+      const duplicateRowIndices: number[] = [];
+
+      for (let i = 1; i < allRows.length; i++) {
+        const row = allRows[i];
+        const reg = regIdx !== -1 && row[regIdx] ? String(row[regIdx]).trim().toLowerCase() : '';
+        const name = nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim().toLowerCase() : '';
+        const email = emailIdx !== -1 && row[emailIdx] ? String(row[emailIdx]).trim().toLowerCase() : '';
+
+        let key = '';
+        if (reg) {
+          key = `reg:${reg}`;
+        } else if (name && email) {
+          key = `name_email:${name}:${email}`;
+        } else if (name) {
+          key = `name:${name}`;
+        } else if (email) {
+          key = `email:${email}`;
+        } else {
+          key = `row:${row.slice(0, 10).join('|')}`;
+        }
+
+        if (seenKeys.has(key)) {
+          duplicateRowIndices.push(i);
+        } else {
+          seenKeys.add(key);
+        }
+      }
+
+      if (duplicateRowIndices.length === 0) {
+        return { removedCount: 0 };
+      }
+
+      // Group contiguous descending row deletions or individual row deletions
+      // Sorting descending ensures removing a row does not change indices of earlier rows
+      const requests = [...duplicateRowIndices]
+        .sort((a, b) => b - a)
+        .map(idx => ({
+          deleteDimension: {
+            range: {
+              sheetId: sheetTabId,
+              dimension: 'ROWS',
+              startIndex: idx,
+              endIndex: idx + 1,
+            },
+          },
+        }));
+
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests },
+      });
+
+      return { removedCount: duplicateRowIndices.length };
+    });
+  } catch (err) {
+    console.warn('[cleanDuplicateRowsFromSheet] Notice during duplicate row cleanup:', err);
+    return { removedCount: 0 };
+  }
+}
+
+
+/**
  * Fetches a single response row by responseId from the authoritative Google Sheet
  */
 export async function fetchSingleResponseFromSheet(

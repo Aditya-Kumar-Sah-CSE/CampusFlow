@@ -145,6 +145,7 @@ export function normalizeSheetRows(
 
   const mapping = detectColumnMapping(headers);
   const results: CanonicalResponseRow[] = [];
+  const seenSignatures = new Set<string>();
 
   rawRows.forEach((row, rowIdx) => {
     // Check if row is completely empty
@@ -195,6 +196,29 @@ export function normalizeSheetRows(
 
     // A row is considered a valid response if at least one parameter was answered
     const isValid = validRatingsCount > 0;
+
+    // Deduplicate student submissions — strictly ONE valid submission per student per evaluation
+    const ratingValuesStr = Object.entries(ratings)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join(',');
+
+    let studentKey = '';
+    const reg = (registrationNumber || '').trim().toLowerCase();
+    const name = (studentName || '').trim().toLowerCase();
+
+    if (reg) {
+      studentKey = `reg:${reg}`;
+    } else if (name) {
+      studentKey = `name:${name}`;
+    } else {
+      studentKey = `ratings:${ratingValuesStr}`;
+    }
+
+    if (seenSignatures.has(studentKey)) {
+      return; // Skip duplicate submission for the same student
+    }
+    seenSignatures.add(studentKey);
 
     results.push({
       timestamp,
@@ -301,6 +325,7 @@ export function normalizeSheetRowsForSpecificGrid(
 ): CanonicalResponseRow[] {
   const mapping = detectColumnMapping(headers);
   const results: CanonicalResponseRow[] = [];
+  const seenSignatures = new Set<string>();
 
   rawRows.forEach((row, rowIdx) => {
     if (!row || row.length === 0 || row.every(cell => !cell || !cell.trim())) {
@@ -349,6 +374,29 @@ export function normalizeSheetRowsForSpecificGrid(
     }
 
     const isValid = validRatingsCount > 0;
+
+    // Deduplicate student submissions — strictly ONE valid submission per student per evaluation
+    const ratingValuesStr = Object.entries(ratings)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join(',');
+
+    let studentKey = '';
+    const reg = (registrationNumber || '').trim().toLowerCase();
+    const name = (studentName || '').trim().toLowerCase();
+
+    if (reg) {
+      studentKey = `reg:${reg}`;
+    } else if (name) {
+      studentKey = `name:${name}`;
+    } else {
+      studentKey = `ratings:${ratingValuesStr}`;
+    }
+
+    if (seenSignatures.has(studentKey)) {
+      return; // Skip duplicate submission for the same student
+    }
+    seenSignatures.add(studentKey);
 
     results.push({
       timestamp,

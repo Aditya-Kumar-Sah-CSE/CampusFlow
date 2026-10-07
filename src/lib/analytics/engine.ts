@@ -116,15 +116,19 @@ export function countUniqueStudentResponses(responses: CanonicalResponseRow[]): 
       continue;
     }
 
-    // 2. Stable identifier from registrationNumber or studentName + timestamp if available
-    const regOrName = (r.registrationNumber || r.studentName || '').trim().toLowerCase();
-    const ts = (r.timestamp || '').trim();
-    if (regOrName && ts) {
-      uniqueIds.add(`${ts}_${regOrName}`);
+    // 2. Stable identifier from registrationNumber or studentName
+    const reg = (r.registrationNumber || '').trim().toLowerCase();
+    const name = (r.studentName || '').trim().toLowerCase();
+    if (reg) {
+      uniqueIds.add(`reg_${reg}`);
+      continue;
+    }
+    if (name) {
+      uniqueIds.add(`name_${name}`);
       continue;
     }
 
-    // 3. Fallback to responseId (which for multi-grids contains row-${rowIdx + 1}, identical for all grids in the same row)
+    // 3. Fallback to responseId or timestamp
     const fallback = (r.responseId || r.timestamp || '').trim();
     if (fallback) {
       uniqueIds.add(fallback);

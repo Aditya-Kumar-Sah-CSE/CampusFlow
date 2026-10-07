@@ -1,6 +1,6 @@
 import type { forms_v1 } from 'googleapis';
 import { executeWithCollegeGoogleOAuthRetry } from './auth';
-import { appendResponsesToSheet, getExistingSheetResponseIds } from './sheets';
+import { appendResponsesToSheet, getExistingSheetResponseIds, cleanDuplicateRowsFromSheet } from './sheets';
 import { BCE_FEEDBACK_PARAMETERS } from './template';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession } from '@/lib/auth/admin-auth';
@@ -160,6 +160,9 @@ export async function syncFormResponsesToSheet(params: {
         let sheetHeaders: string[] = [];
         let sheetDataRows: any[][] = [];
         try {
+          // 1. Proactively purge any duplicate rows previously appended to the sheet
+          await cleanDuplicateRowsFromSheet(resolvedSheetId, collegeId);
+
           const meta = await sheets.spreadsheets.get({ spreadsheetId: resolvedSheetId });
           const sheetTitle = meta.data.sheets?.[0]?.properties?.title || 'Form Responses';
           const sheetDataRes = await sheets.spreadsheets.values.get({
@@ -240,17 +243,40 @@ export async function syncFormResponsesToSheet(params: {
     }
 
     // 4. Check which responses are already recorded in the Google Sheet
-    const existingIds = await getExistingSheetResponseIds(resolvedSheetId, collegeId);
+    // Build authoritative identity sets from existing sheet rows
+    const lowerHeaders = sheetHeaders.map(h => h.toLowerCase());
+    const tsIdx = lowerHeaders.findIndex(h => h.includes('timestamp') || h === 'date' || h === 'time');
+    const respIdIdx = lowerHeaders.findIndex(h => h.includes('response id') || (h === 'id' && !h.includes('student')));
+    const emailIdx = lowerHeaders.findIndex(h => h.includes('email') || h.includes('username'));
+    const nameIdx = lowerHeaders.findIndex(h => h.includes('student name') || (h.includes('name') && !h.includes('faculty') && !h.includes('subject')));
+    const regIdx = lowerHeaders.findIndex(h => h.includes('registration') || h.includes('reg') || h.includes('roll'));
+
+    const existingSheetRegNos = new Set<string>();
+    const existingSheetNames = new Set<string>();
+    const existingSheetEmails = new Set<string>();
+    const existingSheetRespIds = new Set<string>();
+
+    sheetDataRows.forEach(row => {
+      const rId = String((respIdIdx !== -1 ? row[respIdIdx] : '') || '').trim();
+      if (rId) existingSheetRespIds.add(rId);
+
+      const rReg = String((regIdx !== -1 ? row[regIdx] : '') || '').trim().toLowerCase();
+      if (rReg) existingSheetRegNos.add(rReg);
+
+      const rName = String((nameIdx !== -1 ? row[nameIdx] : '') || '').trim().toLowerCase();
+      if (rName) existingSheetNames.add(rName);
+
+      const rEmail = String((emailIdx !== -1 ? row[emailIdx] : '') || '').trim().toLowerCase();
+      if (rEmail) existingSheetEmails.add(rEmail);
+    });
+
     const rowsToAppend: (string | number)[][] = [];
 
     for (const resp of allResponses) {
       const responseId = resp.responseId || '';
-      if (existingIds.has(responseId)) {
-        continue; // Already synced
-      }
-
-      const timestamp = resp.lastSubmittedTime || resp.createTime || new Date().toISOString();
-      let email = resp.respondentEmail || '';
+      const studentName = ((studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || '').trim();
+      const regNo = ((regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || '').trim();
+      let email = (resp.respondentEmail || '').trim();
       if (!email && resp.answers) {
         for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
           const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
@@ -260,8 +286,28 @@ export async function syncFormResponsesToSheet(params: {
           }
         }
       }
-      const studentName = (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || '';
-      const regNo = (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || '';
+
+      const regLower = regNo.toLowerCase();
+      const nameLower = studentName.toLowerCase();
+      const emailLower = email.toLowerCase();
+
+      // Check if this response is ALREADY present in the Google Sheet:
+      // A. Explicit response ID match
+      // B. Student registration number match (strictly 1 submission per student)
+      // C. Student name + email match
+      // D. Native Google Forms destination linking already captured all responses
+      const alreadyInSheet =
+        (responseId && existingSheetRespIds.has(responseId)) ||
+        (regLower && existingSheetRegNos.has(regLower)) ||
+        (nameLower && emailLower && existingSheetNames.has(nameLower) && existingSheetEmails.has(emailLower)) ||
+        (nameLower && existingSheetNames.has(nameLower) && !regLower) ||
+        (sheetDataRows.length >= allResponses.length && allResponses.length > 0);
+
+      if (alreadyInSheet) {
+        continue; // Already recorded in the Google Sheet — DO NOT APPEND!
+      }
+
+      const timestamp = resp.lastSubmittedTime || resp.createTime || new Date().toISOString();
       const comments = (commentsQuestionId && resp.answers?.[commentsQuestionId]?.textAnswers?.answers?.[0]?.value) || '';
 
       const singleAnswerRow: string[] = new Array(8).fill('N/A');
@@ -320,7 +366,10 @@ export async function syncFormResponsesToSheet(params: {
 
         rowsToAppend.push(row);
         sheetDataRows.push(row);
-        existingIds.add(responseId);
+        if (responseId) existingSheetRespIds.add(responseId);
+        if (regLower) existingSheetRegNos.add(regLower);
+        if (nameLower) existingSheetNames.add(nameLower);
+        if (emailLower) existingSheetEmails.add(emailLower);
       } else {
         // Fallback row layout
         const fallbackRow = [
@@ -334,11 +383,14 @@ export async function syncFormResponsesToSheet(params: {
         ];
         rowsToAppend.push(fallbackRow);
         sheetDataRows.push(fallbackRow);
-        existingIds.add(responseId);
+        if (responseId) existingSheetRespIds.add(responseId);
+        if (regLower) existingSheetRegNos.add(regLower);
+        if (nameLower) existingSheetNames.add(nameLower);
+        if (emailLower) existingSheetEmails.add(emailLower);
       }
     }
 
-    // 4. Append new response rows to the sheet
+    // 4. Append new response rows to the sheet ONLY if missing
     if (rowsToAppend.length > 0) {
       await appendResponsesToSheet(resolvedSheetId, rowsToAppend, collegeId);
     }
@@ -353,118 +405,168 @@ export async function syncFormResponsesToSheet(params: {
         const formTitle = formRecord.title || 'Faculty Feedback Form';
         const baseUrl = APP_URL;
 
-          // Consolidate response items to track from Forms API + Sheet Rows
-          interface TrackingMetadata {
-            responseId: string;
-            timestamp: string;
-            email: string;
-            studentName: string | null;
-            registrationNumber: string | null;
-          }
-          const trackingMap = new Map<string, TrackingMetadata>();
+        // Deduplicate and sanitize Supabase feedback_response_records
+        // 1. Purge any historical duplicate records for this form
+        const { data: existingAllDbRecs } = await supabase
+          .from('feedback_response_records')
+          .select('id, registration_number, student_name, student_email, google_response_id')
+          .eq('form_id', formUuid)
+          .order('submitted_at', { ascending: true });
 
-          // Add from Forms API
-          for (const resp of allResponses) {
-            const responseId = resp.responseId;
-            if (!responseId) continue;
-            let respEmail = resp.respondentEmail || '';
-            if (!respEmail && resp.answers) {
-              for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
-                const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
-                if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-                  respEmail = val;
+        if (existingAllDbRecs && existingAllDbRecs.length > 1) {
+          const seenDbKeys = new Set<string>();
+          const duplicateDbIds: string[] = [];
+
+          for (const dRec of existingAllDbRecs) {
+            const reg = (dRec.registration_number || '').trim().toLowerCase();
+            const name = (dRec.student_name || '').trim().toLowerCase();
+            const email = (dRec.student_email || '').trim().toLowerCase();
+            const key = reg ? `reg:${reg}` : name ? `name:${name}` : email ? `email:${email}` : dRec.google_response_id;
+            if (seenDbKeys.has(key)) {
+              duplicateDbIds.push(dRec.id);
+            } else {
+              seenDbKeys.add(key);
+            }
+          }
+
+          if (duplicateDbIds.length > 0) {
+            await supabase.from('feedback_response_records').delete().in('id', duplicateDbIds);
+          }
+        }
+
+        // 2. Build unique tracking items prioritizing sheet rows (which contain student email)
+        interface TrackingMetadata {
+          responseId: string;
+          timestamp: string;
+          email: string;
+          studentName: string | null;
+          registrationNumber: string | null;
+        }
+        const trackingMap = new Map<string, TrackingMetadata>();
+        const seenStudentKeys = new Set<string>();
+
+        // Process Sheet Data Rows first (has actual student email from form sheet)
+        if (sheetHeaders.length > 0 && sheetDataRows.length > 0) {
+          sheetDataRows.forEach((row, rowIndex) => {
+            let rId = String((respIdIdx !== -1 ? row[respIdIdx] : '') || '').trim();
+            if (!rId) {
+              rId = `row-${rowIndex + 2}`;
+            }
+            let rowEmail = String((emailIdx !== -1 ? row[emailIdx] : '') || '').trim();
+            if (!rowEmail) {
+              for (const cell of row) {
+                const s = String(cell || '').trim();
+                if (s && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
+                  rowEmail = s;
                   break;
                 }
               }
             }
+            const studentName = nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : null;
+            const registrationNumber = regIdx !== -1 && row[regIdx] ? String(row[regIdx]).trim() : null;
+
+            const regLower = (registrationNumber || '').toLowerCase();
+            const nameLower = (studentName || '').toLowerCase();
+            const emailLower = rowEmail.toLowerCase();
+            const studentKey = regLower ? `reg:${regLower}` : nameLower ? `name:${nameLower}` : emailLower ? `email:${emailLower}` : rId;
+
+            if (!seenStudentKeys.has(studentKey)) {
+              seenStudentKeys.add(studentKey);
+              trackingMap.set(rId, {
+                responseId: rId,
+                timestamp: String((tsIdx !== -1 ? row[tsIdx] : '') || new Date().toISOString()),
+                email: rowEmail,
+                studentName,
+                registrationNumber,
+              });
+            }
+          });
+        }
+
+        // Process Forms API responses
+        for (const resp of allResponses) {
+          const responseId = resp.responseId;
+          if (!responseId) continue;
+          let respEmail = (resp.respondentEmail || '').trim();
+          if (!respEmail && resp.answers) {
+            for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
+              const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
+              if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                respEmail = val;
+                break;
+              }
+            }
+          }
+          const studentName = (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || null;
+          const registrationNumber = (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || null;
+
+          const regLower = (registrationNumber || '').toLowerCase();
+          const nameLower = (studentName || '').toLowerCase();
+          const emailLower = respEmail.toLowerCase();
+          const studentKey = regLower ? `reg:${regLower}` : nameLower ? `name:${nameLower}` : emailLower ? `email:${emailLower}` : responseId;
+
+          if (!seenStudentKeys.has(studentKey)) {
+            seenStudentKeys.add(studentKey);
             trackingMap.set(responseId, {
               responseId,
               timestamp: resp.lastSubmittedTime || resp.createTime || new Date().toISOString(),
               email: respEmail,
-              studentName: (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || null,
-              registrationNumber: (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || null,
+              studentName,
+              registrationNumber,
             });
           }
+        }
 
-          // Add from Sheet Data Rows
-          if (sheetHeaders.length > 0 && sheetDataRows.length > 0) {
-            const lowerHeaders = sheetHeaders.map(h => h.toLowerCase());
-            const tsIdx = lowerHeaders.findIndex(h => h.includes('timestamp') || h === 'date');
-            const respIdIdx = lowerHeaders.findIndex(h => h.includes('response id') || (h === 'id' && !h.includes('student')));
-            const emailIdx = lowerHeaders.findIndex(h => h.includes('email'));
-            const nameIdx = lowerHeaders.findIndex(h => h.includes('student name') || (h.includes('name') && !h.includes('faculty') && !h.includes('subject')));
-            const regIdx = lowerHeaders.findIndex(h => h.includes('registration') || h.includes('reg no'));
+        for (const item of trackingMap.values()) {
+          const responseId = item.responseId;
+          const regNo = item.registrationNumber;
+          const email = item.email;
 
-            sheetDataRows.forEach((row, rowIndex) => {
-              let rId = String((respIdIdx !== -1 ? row[respIdIdx] : '') || '').trim();
-              if (!rId) {
-                // For native Google Sheets linked to forms that don't have a dedicated "Response ID" column
-                rId = `row-${rowIndex + 2}`;
-              }
-              let rowEmail = String((emailIdx !== -1 ? row[emailIdx] : '') || '').trim();
-              if (!rowEmail) {
-                for (const cell of row) {
-                  const s = String(cell || '').trim();
-                  if (s && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
-                    rowEmail = s;
-                    break;
-                  }
-                }
-              }
-              if (!trackingMap.has(rId)) {
-                trackingMap.set(rId, {
-                  responseId: rId,
-                  timestamp: String((tsIdx !== -1 ? row[tsIdx] : '') || new Date().toISOString()),
-                  email: rowEmail,
-                  studentName: nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : null,
-                  registrationNumber: regIdx !== -1 && row[regIdx] ? String(row[regIdx]).trim() : null,
-                });
-              }
-            });
+          // Check if already in feedback_response_records by google_response_id OR registration_number
+          let checkQuery = supabase
+            .from('feedback_response_records')
+            .select('id, confirmation_email_sent_at, email_status')
+            .eq('form_id', formUuid);
+
+          if (regNo) {
+            checkQuery = checkQuery.or(`google_response_id.eq.${responseId},registration_number.eq.${regNo}`);
+          } else if (email) {
+            checkQuery = checkQuery.or(`google_response_id.eq.${responseId},student_email.ilike.${email}`);
+          } else {
+            checkQuery = checkQuery.eq('google_response_id', responseId);
           }
 
-          for (const item of trackingMap.values()) {
-            const responseId = item.responseId;
+          const { data: existingRec } = await checkQuery.limit(1).maybeSingle();
 
-            // Check if already in feedback_response_records
-            const { data: existingRec } = await supabase
-              .from('feedback_response_records')
-              .select('id, confirmation_email_sent_at, email_status')
-              .eq('form_id', formUuid)
-              .eq('google_response_id', responseId)
-              .maybeSingle();
+          if (existingRec) {
+            // Already tracked; do not duplicate record or email
+            continue;
+          }
 
-            if (existingRec) {
-              // Already tracked; do not duplicate record or email
-              continue;
-            }
+          const timestamp = item.timestamp;
+          const studentName = item.studentName;
 
-            const timestamp = item.timestamp;
-            const email = item.email;
-            const studentName = item.studentName;
-            const regNo = item.registrationNumber;
+          // Insert response record with mandatory institutional tenant boundary (college_id)
+          const { data: newRec, error: insertError } = await supabase
+            .from('feedback_response_records')
+            .insert({
+              college_id: collegeId,
+              form_id: formUuid,
+              google_response_id: responseId,
+              student_email: email,
+              student_name: studentName,
+              registration_number: regNo,
+              submitted_at: timestamp,
+              synced_at: new Date().toISOString(),
+              email_status: 'PENDING',
+            })
+            .select('id')
+            .maybeSingle();
 
-            // Insert response record with mandatory institutional tenant boundary (college_id)
-            const { data: newRec, error: insertError } = await supabase
-              .from('feedback_response_records')
-              .insert({
-                college_id: collegeId,
-                form_id: formUuid,
-                google_response_id: responseId,
-                student_email: email,
-                student_name: studentName,
-                registration_number: regNo,
-                submitted_at: timestamp,
-                synced_at: new Date().toISOString(),
-                email_status: 'PENDING',
-              })
-              .select('id')
-              .maybeSingle();
-
-            if (insertError) {
-              console.warn(`[Sync] Failed to insert feedback_response_record for ${responseId}:`, insertError.message);
-              continue;
-            }
+          if (insertError) {
+            console.warn(`[Sync] Failed to insert feedback_response_record for ${responseId}:`, insertError.message);
+            continue;
+          }
 
             // If verified email is present, dispatch confirmation email
             if (email && email.includes('@') && newRec?.id) {

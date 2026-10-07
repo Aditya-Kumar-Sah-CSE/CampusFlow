@@ -104,14 +104,16 @@ export async function verifyStudentSubmissionAction(params: {
 }): Promise<{ success: boolean; data?: VerifiedConfirmationData; token?: string; message: string }> {
   const { formId, email } = params;
 
-  if (!formId || !email || !email.includes('@')) {
+  const rawQuery = (email || '').trim();
+  if (!formId || !rawQuery) {
     return {
       success: false,
-      message: 'Please provide a valid feedback form and student email.',
+      message: 'Please provide a feedback form and your registered email or university registration number.',
     };
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedQuery = rawQuery.toLowerCase();
+  const isEmail = rawQuery.includes('@');
   const supabase = createAdminClient();
   if (!supabase) {
     return {
@@ -134,62 +136,45 @@ export async function verifyStudentSubmissionAction(params: {
     }
   }
 
-  // 2. Query existing verified record
-  let { data: rec } = await supabase
-    .from('feedback_response_records')
-    .select(`
-      id,
-      google_response_id,
-      student_email,
-      student_name,
-      registration_number,
-      submitted_at,
-      email_status,
-      form:feedback_forms(
+  const buildQuery = () => {
+    let q = supabase
+      .from('feedback_response_records')
+      .select(`
         id,
-        title,
-        college_id,
-        college:colleges(id, name, slug, code, logo_url),
-        branch:branches(name),
-        semester:semesters(name),
-        academic_year:academic_years(name)
-      )
-    `)
-    .eq('form_id', resolvedFormId)
-    .ilike('student_email', normalizedEmail)
-    .order('submitted_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+        google_response_id,
+        student_email,
+        student_name,
+        registration_number,
+        submitted_at,
+        email_status,
+        form:feedback_forms(
+          id,
+          title,
+          college_id,
+          college:colleges(id, name, slug, code, logo_url),
+          branch:branches(name),
+          semester:semesters(name),
+          academic_year:academic_years(name)
+        )
+      `)
+      .eq('form_id', resolvedFormId);
+
+    if (isEmail) {
+      q = q.ilike('student_email', normalizedQuery);
+    } else {
+      q = q.or(`registration_number.eq.${rawQuery},registration_number.ilike.${normalizedQuery}`);
+    }
+    return q.order('submitted_at', { ascending: false }).limit(1);
+  };
+
+  // 2. Query existing verified record
+  let { data: rec } = await buildQuery().maybeSingle();
 
   // 3. If not found in DB yet, trigger instant on-demand sync with Google Forms
   if (!rec) {
     try {
       await syncFormResponsesToSheet({ formId: resolvedFormId, skipAuthCheck: true });
-      const { data: retryRec } = await supabase
-        .from('feedback_response_records')
-        .select(`
-          id,
-          google_response_id,
-          student_email,
-          student_name,
-          registration_number,
-          submitted_at,
-          email_status,
-          form:feedback_forms(
-            id,
-            title,
-            college_id,
-            college:colleges(id, name, slug, code, logo_url),
-            branch:branches(name),
-            semester:semesters(name),
-            academic_year:academic_years(name)
-          )
-        `)
-        .eq('form_id', resolvedFormId)
-        .ilike('student_email', normalizedEmail)
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: retryRec } = await buildQuery().maybeSingle();
       rec = retryRec;
     } catch (syncErr) {
       console.warn('[verifyStudentSubmissionAction] On-demand sync attempt notice:', syncErr);
@@ -227,9 +212,9 @@ export async function verifyStudentSubmissionAction(params: {
     if (recentUnboundRec && recentUnboundRec.form) {
       await supabase
         .from('feedback_response_records')
-        .update({ student_email: normalizedEmail })
+        .update({ student_email: normalizedQuery })
         .eq('id', recentUnboundRec.id);
-      recentUnboundRec.student_email = normalizedEmail;
+      recentUnboundRec.student_email = normalizedQuery;
       rec = recentUnboundRec;
     }
   }
