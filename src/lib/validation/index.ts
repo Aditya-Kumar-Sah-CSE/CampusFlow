@@ -83,7 +83,13 @@ export const facultySchema = z.object({
  */
 export const subjectSchema = z.object({
   name: z.string().trim().min(2, 'Subject name required').max(150),
-  code: z.string().trim().min(2, 'Subject code required').max(30),
+  code: z
+    .string()
+    .trim()
+    .min(1, 'Subject code required')
+    .max(50)
+    .regex(/^[A-Za-z0-9_&/().+ -]+$/, 'Subject code can only contain alphanumeric characters, hyphens, underscores, or symbols (&, /, ., (), +)')
+    .transform(val => val.toUpperCase()),
   branch_id: z.string().uuid('Branch must be selected').optional().nullable(),
   semester_id: z.string().uuid('Semester must be selected').optional().nullable(),
   is_active: z.boolean().default(true),
@@ -99,7 +105,7 @@ export const branchSchema = z.object({
     .trim()
     .min(1, 'Branch code must be at least 1 character')
     .max(50)
-    .regex(/^[A-Za-z0-9_-]+$/, 'Branch code can only contain alphanumeric characters, hyphens, or underscores')
+    .regex(/^[A-Za-z0-9_&/().+ -]+$/, 'Branch code can only contain alphanumeric characters, hyphens, underscores, or symbols (&, /, ., (), +)')
     .transform(val => val.toUpperCase()),
   is_active: z.boolean().default(true),
 });
