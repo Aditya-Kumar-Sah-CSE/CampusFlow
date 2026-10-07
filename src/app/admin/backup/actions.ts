@@ -2,9 +2,10 @@
 
 import { getAdminSession, resolveAuthorizedCollegeId } from '@/lib/auth/admin-auth';
 import { executeCollegeBackup, verifyExistingCollegeBackup, getCollegeBackupState } from '@/lib/backup/backup-service';
-import { isCollegeGoogleConfigured, getCollegeGoogleConnectionMetadata } from '@/lib/google/auth';
+import { isCollegeGoogleConfigured, getCollegeGoogleConnectionMetadata, executeWithCollegeGoogleOAuthRetry } from '@/lib/google/auth';
+import { ensureCollegeDriveHierarchy } from '@/lib/google/backup/drive-backup';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { BackupExecutionResult, BackupVerificationResult, CollegeBackupState } from '@/types/backup';
+import type { BackupExecutionResult, BackupVerificationResult, CollegeBackupState, DriveCleanupReport } from '@/types/backup';
 
 export interface LiveCollegeEntityCounts {
   faculties: number;
@@ -233,4 +234,59 @@ export async function verifyCollegeBackupAction(
   }
 
   return verifyExistingCollegeBackup(authorizedCollegeId);
+}
+
+/**
+ * Explicitly cleans up redundant, obsolete, and empty folders in Google Drive for the authorized college.
+ * Safely migrates files and trashes only verified 100% empty folders.
+ */
+export async function cleanupCollegeDriveFoldersAction(
+  targetCollegeId?: string
+): Promise<{
+  success: boolean;
+  error?: string;
+  report?: DriveCleanupReport;
+}> {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return {
+      success: false,
+      error: 'Unauthorized.',
+    };
+  }
+
+  let authorizedCollegeId: string;
+  try {
+    authorizedCollegeId = await resolveAuthorizedCollegeId(session, targetCollegeId);
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Unable to determine the active institution.',
+    };
+  }
+
+  const supabase = createAdminClient();
+  if (!supabase) {
+    return { success: false, error: 'Database client unavailable.' };
+  }
+
+  const { data: college } = await supabase
+    .from('colleges')
+    .select('name')
+    .eq('id', authorizedCollegeId)
+    .single();
+
+  if (!college) {
+    return { success: false, error: 'College not found.' };
+  }
+
+  const state = await getCollegeBackupState(authorizedCollegeId);
+
+  return executeWithCollegeGoogleOAuthRetry(authorizedCollegeId, async ({ drive }) => {
+    const hierarchy = await ensureCollegeDriveHierarchy(drive, college.name, state);
+    return {
+      success: true,
+      report: hierarchy.cleanupReport,
+    };
+  });
 }

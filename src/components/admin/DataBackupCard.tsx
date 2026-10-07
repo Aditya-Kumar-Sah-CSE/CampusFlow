@@ -16,11 +16,13 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from 'lucide-react';
 import {
   getCollegeBackupStateAction,
   runCollegeBackupAction,
   verifyCollegeBackupAction,
+  cleanupCollegeDriveFoldersAction,
   type LiveCollegeEntityCounts,
 } from '@/app/admin/backup/actions';
 import type {
@@ -54,6 +56,7 @@ export function DataBackupCard({
   const [liveCounts, setLiveCounts] = useState<LiveCollegeEntityCounts | null>(initialLiveCounts || null);
   const [isPending, startTransition] = useTransition();
   const [isVerifying, startVerifyTransition] = useTransition();
+  const [isCleaning, startCleanTransition] = useTransition();
   const [showCleanupLogs, setShowCleanupLogs] = useState(false);
   const [resultMessage, setResultMessage] = useState<{
     type: 'success' | 'warning' | 'error';
@@ -159,6 +162,37 @@ export function DataBackupCard({
           type: 'error',
           title: 'Verification Failed',
           text: err.message || 'Verification check failed to execute.',
+        });
+      }
+    });
+  };
+
+  const handleCleanupDrive = () => {
+    if (!collegeId) return;
+    setResultMessage(null);
+
+    startCleanTransition(async () => {
+      try {
+        const res = await cleanupCollegeDriveFoldersAction(collegeId);
+        if (res.success && res.report) {
+          setResultMessage({
+            type: 'success',
+            title: 'Drive Structure Cleaned Successfully',
+            text: `Drive cleanup complete: ${res.report.removedFoldersCount} redundant empty folder(s) safely removed, ${res.report.migratedFilesCount} file(s) safely migrated.`,
+            executionResult: { cleanupReport: res.report } as any,
+          });
+        } else {
+          setResultMessage({
+            type: 'error',
+            title: 'Cleanup Notice',
+            text: res.error || 'Drive cleanup could not be completed.',
+          });
+        }
+      } catch (err: any) {
+        setResultMessage({
+          type: 'error',
+          title: 'Cleanup Error',
+          text: err.message || 'An error occurred during Drive cleanup.',
         });
       }
     });
@@ -552,11 +586,23 @@ export function DataBackupCard({
             <button
               type="button"
               onClick={handleVerifyBackup}
-              disabled={isPending || isVerifying || !state?.drive_academic_sheet_id}
+              disabled={isPending || isVerifying || isCleaning || !state?.drive_academic_sheet_id}
               className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
             >
               <ShieldCheck className={`w-3.5 h-3.5 ${isVerifying ? 'animate-spin' : 'text-emerald-600'}`} />
               {isVerifying ? 'Verifying Records...' : 'Verify Backup'}
+            </button>
+
+            {/* Clean Empty & Redundant Drive Folders Button */}
+            <button
+              type="button"
+              onClick={handleCleanupDrive}
+              disabled={isPending || isVerifying || isCleaning || !googleConnected}
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-medium text-xs hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+              title="Safely remove redundant empty folders in Google Drive"
+            >
+              <Trash2 className={`w-3.5 h-3.5 ${isCleaning ? 'animate-spin text-amber-600' : 'text-slate-500'}`} />
+              {isCleaning ? 'Cleaning Folders...' : 'Clean Empty Folders'}
             </button>
           </div>
 
