@@ -1,49 +1,79 @@
 /**
- * BCE FACULTY FEEDBACK PORTAL — GOOGLE APPS SCRIPT CONNECTOR
+ * CAMPUSFLOW — GOOGLE APPS SCRIPT CONNECTOR
  * 
- * Purpose: Provides native Form → Sheet destination linking and
- * official post-submission confirmation message configuration:
- * - FormApp.setDestination(FormApp.DestinationType.SPREADSHEET, sheetId)
- * - FormApp.setConfirmationMessage(confirmationMessage)
- * - FormApp.setShowLinkToRespondAgain(true)
+ * Account Runner: iambestadi@gmail.com
+ * Platform: CampusFlow
+ * Developer: Aditya Kumar Sah (under the guidance of Dr. Avinav)
  * 
- * Deployment:
- * 1. Create a new Apps Script project at https://script.google.com
- * 2. Paste this code into Code.gs
- * 3. Deploy > New Deployment > Web app:
- *    - Execute as: Me (your Google account)
- *    - Who has access: Anyone (or restricted with secret token)
- * 4. Copy the Web App URL and add to your .env.local:
+ * Purpose:
+ * 1. Provides native Form → Sheet destination linking (FormApp.setDestination).
+ * 2. Sets official branded CampusFlow post-submission confirmation message.
+ * 3. Enables "Submit another response" on all generated forms.
+ * 4. Provides standalone 1-click functions to update active or existing Google Forms.
+ * 
+ * ============================================================================
+ * HOW TO DEPLOY AS A WEB APP (UNDER iambestadi@gmail.com):
+ * ============================================================================
+ * 1. Open https://script.google.com with iambestadi@gmail.com.
+ * 2. Create a New Project named "CampusFlow Connector".
+ * 3. Paste this entire file into Code.gs and save (Ctrl+S).
+ * 4. Click Deploy > New deployment.
+ * 5. Select type: "Web app".
+ *    - Description: "CampusFlow Connector v2.0"
+ *    - Execute as: "Me (iambestadi@gmail.com)"
+ *    - Who has access: "Anyone"
+ * 6. Click "Deploy", review and grant permissions.
+ * 7. Copy the Web App URL (starts with https://script.google.com/macros/s/.../exec).
+ * 8. Set in CampusFlow .env.local and Vercel Environment Variables:
  *    GOOGLE_APPS_SCRIPT_URL="https://script.google.com/macros/s/.../exec"
- *    GOOGLE_APPS_SCRIPT_SECRET="your-chosen-secret"
+ *    GOOGLE_APPS_SCRIPT_RUNNER_EMAIL="iambestadi@gmail.com"
+ * 
+ * ============================================================================
+ * HOW TO RETROACTIVELY FIX EXISTING GOOGLE FORMS (1-CLICK IN APPS SCRIPT):
+ * ============================================================================
+ * OPTION A — Inside the Google Form itself:
+ *   1. Open your Google Form in edit mode (e.g., Dr. Abha Kumari's Chemistry Form).
+ *   2. Click the three dots (More) in the top-right corner > "Script editor".
+ *   3. Paste this code and save.
+ *   4. In the function dropdown at the top, select "updateActiveFormConfirmation".
+ *   5. Click "Run". Authorize when prompted. Done!
+ * 
+ * OPTION B — By Form ID or URL:
+ *   1. In script.google.com, open "manualUpdateSingleForm" at the bottom of this file.
+ *   2. Paste your Google Form ID or full edit URL in TARGET_FORM_ID_OR_URL.
+ *   3. Select "manualUpdateSingleForm" and click "Run".
+ * 
+ * OPTION C — Update ALL Forms in your Google Drive at once:
+ *   1. Select "updateAllFeedbackFormsInDrive" from the function dropdown.
+ *   2. Click "Run". It will scan your Drive and update every feedback form automatically!
  */
 
 var CANONICAL_DEFAULT_CONFIRMATION_MESSAGE = [
   'Your response has been recorded.',
   '',
-  'More Feedback Forms',
+  '==============================================',
+  'VIEW YOUR OFFICIAL SUBMISSION RECEIPT & MORE FORMS:',
+  'https://143campusflow.vercel.app/feedback/confirmation',
+  '==============================================',
   '',
-  'Need to access more academic feedback forms?',
+  'Access More Feedback Forms for Your Institution:',
+  'https://143campusflow.vercel.app/feedback',
   '',
-  'Visit:',
-  'https://143campusflow.vercel.app/',
-  '',
-  'Developer: Aditya Kumar Sah',
-  '',
-  'Portfolio:',
-  'https://portfolio-two-ashen-zseywond41.vercel.app/'
+  'CampusFlow',
+  'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
 ].join('\n');
 
+/**
+ * Web App POST endpoint — called programmatically by CampusFlow Next.js server.
+ */
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000); // 10s timeout
     
-    var data;
+    var data = {};
     if (e && e.postData && e.postData.contents) {
       data = JSON.parse(e.postData.contents);
-    } else {
-      data = {};
     }
     
     // Optional secret check
@@ -97,12 +127,17 @@ function doPost(e) {
   }
 }
 
+/**
+ * Web App GET endpoint — diagnostic and status check.
+ */
 function doGet(e) {
   return ContentService.createTextOutput(
     JSON.stringify({
       status: 'active',
-      service: 'BCE Faculty Feedback Portal Apps Script Connector',
-      version: '1.1.0'
+      service: 'CampusFlow Google Apps Script Connector',
+      version: '2.0.0',
+      runnerEmail: 'iambestadi@gmail.com',
+      attribution: 'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
     })
   ).setMimeType(ContentService.MimeType.JSON);
 }
@@ -147,4 +182,152 @@ function configureFormConfirmation(formId, confirmationMessage) {
     confirmationConfigured: true,
     message: 'Google Form confirmation message and respond-again link successfully configured.'
   };
+}
+
+// ============================================================================
+// DIRECT / STANDALONE UTILITIES (RUN DIRECTLY IN APPS SCRIPT CONSOLE)
+// ============================================================================
+
+/**
+ * RUN THIS from inside a Google Form (Extensions > Apps Script)
+ * to instantly update the currently open form!
+ */
+function updateActiveFormConfirmation() {
+  try {
+    var form = FormApp.getActiveForm();
+    if (!form) {
+      Logger.log('ERROR: No active form found. If running as standalone script, use updateFormConfirmationById().');
+      return;
+    }
+    
+    var formId = form.getId();
+    var formTitle = form.getTitle();
+    
+    // Dynamic URL with form ID
+    var customMsg = [
+      'Your response has been recorded.',
+      '',
+      '==============================================',
+      'VIEW YOUR OFFICIAL SUBMISSION RECEIPT & MORE FORMS:',
+      'https://143campusflow.vercel.app/feedback/confirmation?formId=' + formId,
+      '==============================================',
+      '',
+      'Access More Feedback Forms for Your Institution:',
+      'https://143campusflow.vercel.app/feedback',
+      '',
+      'CampusFlow',
+      'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+    ].join('\n');
+    
+    form.setConfirmationMessage(customMsg);
+    form.setShowLinkToRespondAgain(true);
+    
+    Logger.log('SUCCESS! Form "' + formTitle + '" (ID: ' + formId + ') has been configured with the CampusFlow confirmation message.');
+  } catch (err) {
+    Logger.log('ERROR in updateActiveFormConfirmation: ' + err.toString());
+  }
+}
+
+/**
+ * Updates a form by Form ID or Form URL.
+ */
+function updateFormConfirmationByIdOrUrl(idOrUrl, customMessage) {
+  var formId = idOrUrl;
+  
+  // Extract ID if a full URL was provided
+  if (idOrUrl.indexOf('http') === 0) {
+    var match = idOrUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) {
+      formId = match[1];
+    }
+  }
+  
+  var form = FormApp.openById(formId);
+  var formTitle = form.getTitle();
+  
+  var msg = customMessage;
+  if (!msg) {
+    msg = [
+      'Your response has been recorded.',
+      '',
+      '==============================================',
+      'VIEW YOUR OFFICIAL SUBMISSION RECEIPT & MORE FORMS:',
+      'https://143campusflow.vercel.app/feedback/confirmation?formId=' + formId,
+      '==============================================',
+      '',
+      'Access More Feedback Forms for Your Institution:',
+      'https://143campusflow.vercel.app/feedback',
+      '',
+      'CampusFlow',
+      'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+    ].join('\n');
+  }
+  
+  form.setConfirmationMessage(msg);
+  form.setShowLinkToRespondAgain(true);
+  
+  Logger.log('SUCCESS! Updated Form "' + formTitle + '" [ID: ' + formId + ']');
+  return { formId: formId, title: formTitle, success: true };
+}
+
+/**
+ * Manual runner helper — change the string below and click Run!
+ */
+function manualUpdateSingleForm() {
+  // PASTE YOUR FORM ID OR FULL URL HERE (e.g. Dr. Abha Kumari's Chemistry Form):
+  var TARGET_FORM_ID_OR_URL = 'PASTE_YOUR_FORM_ID_OR_URL_HERE';
+  
+  if (TARGET_FORM_ID_OR_URL === 'PASTE_YOUR_FORM_ID_OR_URL_HERE') {
+    Logger.log('Please replace TARGET_FORM_ID_OR_URL with your actual Google Form ID or edit URL.');
+    return;
+  }
+  
+  updateFormConfirmationByIdOrUrl(TARGET_FORM_ID_OR_URL);
+}
+
+/**
+ * Scans Google Drive for ALL feedback forms and updates their confirmation messages in bulk!
+ */
+function updateAllFeedbackFormsInDrive() {
+  var files = DriveApp.searchFiles("mimeType = 'application/vnd.google-apps.form'");
+  var count = 0;
+  var updated = [];
+
+  Logger.log('Starting scan of Google Forms in Google Drive...');
+
+  while (files.hasNext()) {
+    var file = files.next();
+    var title = file.getName();
+    var id = file.getId();
+
+    try {
+      var form = FormApp.openById(id);
+      
+      var customMsg = [
+        'Your response has been recorded.',
+        '',
+        '==============================================',
+        'VIEW YOUR OFFICIAL SUBMISSION RECEIPT & MORE FORMS:',
+        'https://143campusflow.vercel.app/feedback/confirmation?formId=' + id,
+        '==============================================',
+        '',
+        'Access More Feedback Forms for Your Institution:',
+        'https://143campusflow.vercel.app/feedback',
+        '',
+        'CampusFlow',
+        'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+      ].join('\n');
+
+      form.setConfirmationMessage(customMsg);
+      form.setShowLinkToRespondAgain(true);
+
+      count++;
+      updated.push(title + ' (' + id + ')');
+      Logger.log('[' + count + '] Updated: ' + title);
+    } catch (e) {
+      Logger.log('Skipping ' + title + ' (' + id + '): ' + e.message);
+    }
+  }
+
+  Logger.log('COMPLETED! Successfully updated ' + count + ' Google Forms.');
 }

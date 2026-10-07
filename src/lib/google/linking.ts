@@ -23,7 +23,7 @@ export interface ConfigurationResult {
  */
 async function ensureWriterAccess(fileId: string, collegeId: string): Promise<void> {
   const runnerEmail =
-    process.env.GOOGLE_APPS_SCRIPT_RUNNER_EMAIL || 'iamsmartlearner4@gmail.com';
+    process.env.GOOGLE_APPS_SCRIPT_RUNNER_EMAIL || 'iambestadi@gmail.com';
   if (!runnerEmail || !fileId || !collegeId) return;
 
   try {

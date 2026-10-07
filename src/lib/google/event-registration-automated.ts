@@ -13,6 +13,7 @@ import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getColumnLetter } from './sheets';
 import { linkFormToSpreadsheet } from './linking';
+import { getEventRegistrationConfirmationMessage } from './template';
 import { APP_URL, appUrl } from '@/lib/config/app';
 import type {
   GoogleRegistrationStatus,
@@ -804,8 +805,9 @@ export async function createOrUpdateEventResponseSpreadsheet(params: {
   existingSpreadsheetId?: string | null;
   targetFolderId?: string | null;
   formId?: string | null;
+  confirmationMessage?: string;
 }): Promise<{ spreadsheetId: string; spreadsheetUrl: string }> {
-  const { collegeId, eventTitle, existingSpreadsheetId, targetFolderId, formId } = params;
+  const { collegeId, eventTitle, existingSpreadsheetId, targetFolderId, formId, confirmationMessage } = params;
 
   return executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets, drive }) => {
     const sheetTitle = `${eventTitle.trim()} - Responses`;
@@ -924,7 +926,7 @@ export async function createOrUpdateEventResponseSpreadsheet(params: {
     // 6. Attempt Google Apps Script linking if available
     if (formId) {
       try {
-        await linkFormToSpreadsheet(formId, spreadsheetId, undefined, collegeId);
+        await linkFormToSpreadsheet(formId, spreadsheetId, confirmationMessage, collegeId);
       } catch (linkErr) {
         console.warn('[AutoRegSheet] Form to sheet linking notice:', linkErr);
       }
@@ -1230,12 +1232,18 @@ export async function setupAutomatedEventRegistration(params: {
     });
 
     // 6. Create or Update Response Spreadsheet
+    const confirmationMessage = getEventRegistrationConfirmationMessage(
+      eventTitle,
+      eventSlug,
+      tenantSlug
+    );
     const responseSheet = await createOrUpdateEventResponseSpreadsheet({
       collegeId,
       eventTitle,
       existingSpreadsheetId,
       targetFolderId: driveFolder.folderId,
       formId: googleForm.formId,
+      confirmationMessage,
     });
 
     const resources: GoogleRegistrationResources = {

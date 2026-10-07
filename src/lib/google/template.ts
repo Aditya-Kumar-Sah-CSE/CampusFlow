@@ -121,6 +121,36 @@ Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav`;
 
 export const FORM_CONFIRMATION_MESSAGE = getFormConfirmationMessage();
 
+/**
+ * Event registration confirmation message configured via Apps Script.
+ */
+export function getEventRegistrationConfirmationMessage(
+  eventName?: string,
+  eventSlug?: string,
+  tenantSlug?: string
+): string {
+  const portalUrl = getTenantPortalUrl(tenantSlug);
+  const successUrl = eventSlug
+    ? (tenantSlug ? `${APP_URL}/${tenantSlug}/events/${eventSlug}/success` : `${APP_URL}/events/${eventSlug}/success`)
+    : `${APP_URL}/events`;
+  return `Registration Successful!
+
+Your registration for ${eventName || 'the event'} has been submitted successfully.
+
+==============================================
+VIEW YOUR REGISTRATION CONFIRMATION:
+${successUrl}
+==============================================
+
+Explore More Campus Events:
+${portalUrl}
+
+CampusFlow
+Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav`;
+}
+
+export const EVENT_CONFIRMATION_MESSAGE = getEventRegistrationConfirmationMessage();
+
 export const STUDENT_IDENTIFIER_FIELDS = [
   {
     id: 'student_name',
