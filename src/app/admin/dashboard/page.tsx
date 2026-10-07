@@ -42,9 +42,23 @@ export default async function AdminDashboardPage() {
   const yearQuery = supabase.from('academic_years').select('id, name, is_active, created_at').eq('college_id', targetCollegeId).order('name', { ascending: false });
   const branchQuery = supabase.from('branches').select('id, name, code, is_active, created_at').eq('college_id', targetCollegeId).order('name', { ascending: true });
   const semesterQuery = supabase.from('semesters').select('id, name, year_number, semester_number, is_active, created_at').eq('college_id', targetCollegeId).order('semester_number', { ascending: true });
-  const facultyQuery = supabase.from('faculties').select('id, name, employee_id, department, designation, is_active, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('name', { ascending: true }).range(0, 19);
-  const subjectQuery = supabase.from('subjects').select('id, name, code, semester_id, branch_id, is_active, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('code', { ascending: true }).range(0, 19);
-  const assignQuery = supabase.from('faculty_subject_assignments').select('id, faculty_id, subject_id, academic_year_id, branch_id, semester_id, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 19);
+  const facultyQuery = supabase.from('faculties').select('id, name, employee_id, department, designation, is_active, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('name', { ascending: true });
+  const subjectQuery = supabase.from('subjects').select('id, name, code, semester_id, branch_id, is_active, created_at, branch:branches(id, name, code), semester:semesters(id, name)', { count: 'exact' }).eq('college_id', targetCollegeId).order('code', { ascending: true });
+  const assignQuery = supabase.from('faculty_subject_assignments').select(`
+    id,
+    faculty_id,
+    subject_id,
+    academic_year_id,
+    branch_id,
+    semester_id,
+    is_active,
+    created_at,
+    faculty:faculties(id, name, department),
+    subject:subjects(id, name, code),
+    academic_year:academic_years(id, name),
+    branch:branches(id, name, code),
+    semester:semesters(id, name)
+  `, { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 19);
   const formQuery = supabase.from('feedback_forms').select('id, title, form_type, status, slug, academic_year_id, branch_id, semester_id, faculty_id, subject_id, response_count, created_at, published_at, closed_at, google_form_url, google_sheet_url, public_url', { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 49);
   const auditQuery = adminDb.from('audit_logs').select('id, college_id, actor_user_id, actor_email, action, entity_type, entity_id, details, metadata, created_at').eq('college_id', targetCollegeId).order('created_at', { ascending: false }).limit(20);
   const activeFacultyCountQuery = supabase.from('faculties').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
@@ -198,9 +212,9 @@ export default async function AdminDashboardPage() {
         academicYears={(academicYears as AcademicYear[]) || []}
         branches={(branches as Branch[]) || []}
         semesters={(semesters as Semester[]) || []}
-        faculties={(faculties as Faculty[]) || []}
-        subjects={(subjects as Subject[]) || []}
-        assignments={(assignments as FacultySubjectAssignment[]) || []}
+        faculties={(faculties as unknown as Faculty[]) || []}
+        subjects={(subjects as unknown as Subject[]) || []}
+        assignments={(assignments as unknown as FacultySubjectAssignment[]) || []}
         adminRequests={resolvedAdminRequests}
         adminsList={resolvedAdminsList}
         feedbackForms={(feedbackForms as FeedbackForm[]) || []}

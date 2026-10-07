@@ -94,10 +94,15 @@ export function AcademicManagementTab({
     [branchList]
   );
 
+  // Master lists for complete institution coverage (all 32+ faculties & 45+ subjects)
+  // decoupled from table pagination/search states so assignments & dropdowns never lose data
+  const [allFaculties, setAllFaculties] = useState<Faculty[]>(initialFaculties);
+  const [allSubjects, setAllSubjects] = useState<Subject[]>(initialSubjects);
+
   // -------------------------------------------------------------
   // 1. FACULTIES STATE & PAGINATION
   // -------------------------------------------------------------
-  const [facultyList, setFacultyList] = useState<Faculty[]>(initialFaculties);
+  const [facultyList, setFacultyList] = useState<Faculty[]>(initialFaculties.slice(0, 20));
   const [facultyTotal, setFacultyTotal] = useState<number>(initialFacultyTotal ?? initialFaculties.length);
   const [facultyPage, setFacultyPage] = useState<number>(1);
   const [facultyPageSize, setFacultyPageSize] = useState<number>(20);
@@ -151,7 +156,7 @@ export function AcademicManagementTab({
   // -------------------------------------------------------------
   // 2. SUBJECTS STATE & PAGINATION
   // -------------------------------------------------------------
-  const [subjectList, setSubjectList] = useState<Subject[]>(initialSubjects);
+  const [subjectList, setSubjectList] = useState<Subject[]>(initialSubjects.slice(0, 20));
   const [subjectTotal, setSubjectTotal] = useState<number>(initialSubjectTotal ?? initialSubjects.length);
   const [subjectPage, setSubjectPage] = useState<number>(1);
   const [subjectPageSize, setSubjectPageSize] = useState<number>(20);
@@ -222,9 +227,12 @@ export function AcademicManagementTab({
     academicYears.find((y) => y.is_active)?.id || academicYears[0]?.id || ''
   );
   const [assignBranchId, setAssignBranchId] = useState(
-    branches.find((b) => b.is_active)?.id || branches[0]?.id || ''
+    initialSubjects[0]?.branch_id || branches.find((b) => b.is_active)?.id || branches[0]?.id || ''
   );
-  const [assignSemesterId, setAssignSemesterId] = useState(semesters[0]?.id || '');
+  const [assignSemesterId, setAssignSemesterId] = useState(
+    initialSubjects[0]?.semester_id || semesters[0]?.id || ''
+  );
+  const [filterAssignSubjectsByBranchSem, setFilterAssignSubjectsByBranchSem] = useState<boolean>(false);
 
   const loadAssignments = useCallback(async () => {
     setAssignLoading(true);
@@ -249,26 +257,50 @@ export function AcademicManagementTab({
     }
   }, [loadAssignments, assignYearFilter, assignBranchFilter, assignSemesterFilter, assignPage, assignPageSize]);
 
-  // Options for SearchableSelect
+  // Options for SearchableSelect (built from complete master lists, always accessible)
   const facultyOptions = useMemo(
     () =>
-      facultyList.map((f) => ({
+      allFaculties.map((f) => ({
         id: f.id,
         label: f.name,
-        sublabel: f.department || 'General',
+        sublabel: [f.department, f.designation].filter(Boolean).join(' • ') || 'General',
       })),
-    [facultyList]
+    [allFaculties]
   );
 
-  const subjectOptions = useMemo(
-    () =>
-      subjectList.map((s) => ({
+  const subjectOptions = useMemo(() => {
+    let list = allSubjects;
+    if (filterAssignSubjectsByBranchSem) {
+      list = allSubjects.filter((s) => {
+        const matchesBranch = !s.branch_id || !assignBranchId || s.branch_id === assignBranchId;
+        const matchesSemester = !s.semester_id || !assignSemesterId || s.semester_id === assignSemesterId;
+        return matchesBranch && matchesSemester;
+      });
+    }
+    return list.map((s) => {
+      const branchCode = s.branch?.code || branchList.find((b) => b.id === s.branch_id)?.code || 'Common/All';
+      const semName = s.semester?.name || semesterList.find((sem) => sem.id === s.semester_id)?.name || '';
+      const details = [s.code, branchCode, semName].filter(Boolean).join(' • ');
+      return {
         id: s.id,
         label: s.name,
-        sublabel: s.code,
-      })),
-    [subjectList]
-  );
+        sublabel: details,
+      };
+    });
+  }, [allSubjects, filterAssignSubjectsByBranchSem, assignBranchId, assignSemesterId, branchList, semesterList]);
+
+  const handleAssignSubjectSelect = (subId: string) => {
+    setAssignSubjectId(subId);
+    const selectedSub = allSubjects.find((s) => s.id === subId);
+    if (selectedSub) {
+      if (selectedSub.branch_id) {
+        setAssignBranchId(selectedSub.branch_id);
+      }
+      if (selectedSub.semester_id) {
+        setAssignSemesterId(selectedSub.semester_id);
+      }
+    }
+  };
 
   // 4. Year & Branch forms
   const [yearName, setYearName] = useState('');
@@ -317,8 +349,10 @@ export function AcademicManagementTab({
     setBranchList(branches);
     setYearList(academicYears);
     setSemesterList(semesters);
-    setFacultyList(initialFaculties);
-    setSubjectList(initialSubjects);
+    setAllFaculties(initialFaculties);
+    setAllSubjects(initialSubjects);
+    setFacultyList(initialFaculties.slice(0, facultyPageSize));
+    setSubjectList(initialSubjects.slice(0, subjectPageSize));
     setAssignmentList(initialAssignments);
     setFacultyTotal(initialFacultyTotal ?? initialFaculties.length);
     setSubjectTotal(initialSubjectTotal ?? initialSubjects.length);
@@ -326,7 +360,7 @@ export function AcademicManagementTab({
     setFacultyPage(1);
     setSubjectPage(1);
     setAssignPage(1);
-  }, [branches, academicYears, semesters, initialFaculties, initialSubjects, initialAssignments, initialFacultyTotal, initialSubjectTotal, initialAssignmentTotal, activeCollegeId]);
+  }, [branches, academicYears, semesters, initialFaculties, initialSubjects, initialAssignments, initialFacultyTotal, initialSubjectTotal, initialAssignmentTotal, activeCollegeId, facultyPageSize, subjectPageSize]);
 
   // -------------------------------------------------------------
   // HANDLERS (With immediate local state updates)
@@ -346,6 +380,7 @@ export function AcademicManagementTab({
       });
       if (res.success && res.faculty) {
         setMessage({ type: 'success', text: `Faculty ${facName} added successfully.` });
+        setAllFaculties((prev) => [res.faculty as Faculty, ...prev]);
         setFacultyList((prev) => [res.faculty as Faculty, ...prev]);
         setFacultyTotal((prev) => prev + 1);
         setFacName('');
@@ -359,6 +394,9 @@ export function AcademicManagementTab({
   const handleToggleFacultyActive = (f: Faculty) => {
     const nextActive = !f.is_active;
     // Optimistic update
+    setAllFaculties((prev) =>
+      prev.map((item) => (item.id === f.id ? { ...item, is_active: nextActive } : item))
+    );
     setFacultyList((prev) =>
       prev.map((item) => (item.id === f.id ? { ...item, is_active: nextActive } : item))
     );
@@ -374,6 +412,9 @@ export function AcademicManagementTab({
       });
       if (!res.success) {
         // Rollback
+        setAllFaculties((prev) =>
+          prev.map((item) => (item.id === f.id ? { ...item, is_active: f.is_active } : item))
+        );
         setFacultyList((prev) =>
           prev.map((item) => (item.id === f.id ? { ...item, is_active: f.is_active } : item))
         );
@@ -386,7 +427,9 @@ export function AcademicManagementTab({
     if (!confirm(`Are you sure you want to delete faculty member ${name}?`)) return;
     setMessage(null);
 
+    const prevMaster = [...allFaculties];
     const prevList = [...facultyList];
+    setAllFaculties((prev) => prev.filter((item) => item.id !== id));
     setFacultyList((prev) => prev.filter((item) => item.id !== id));
     setFacultyTotal((prev) => Math.max(0, prev - 1));
 
@@ -395,6 +438,7 @@ export function AcademicManagementTab({
       if (res.success) {
         setMessage({ type: 'success', text: `Faculty ${name} deleted successfully.` });
       } else {
+        setAllFaculties(prevMaster);
         setFacultyList(prevList);
         setFacultyTotal((prev) => prev + 1);
         setMessage({ type: 'error', text: res.error || 'Failed to delete faculty.' });
@@ -416,7 +460,9 @@ export function AcademicManagementTab({
       });
       if (res.success && res.subject) {
         setMessage({ type: 'success', text: `Subject ${subName} (${subCode}) added successfully.` });
-        setSubjectList((prev) => [res.subject as Subject, ...prev]);
+        const newSub = res.subject as Subject;
+        setAllSubjects((prev) => [newSub, ...prev]);
+        setSubjectList((prev) => [newSub, ...prev]);
         setSubjectTotal((prev) => prev + 1);
         setSubName('');
         setSubCode('');
@@ -428,6 +474,9 @@ export function AcademicManagementTab({
 
   const handleToggleSubjectActive = (s: Subject) => {
     const nextActive = !s.is_active;
+    setAllSubjects((prev) =>
+      prev.map((item) => (item.id === s.id ? { ...item, is_active: nextActive } : item))
+    );
     setSubjectList((prev) =>
       prev.map((item) => (item.id === s.id ? { ...item, is_active: nextActive } : item))
     );
@@ -442,6 +491,9 @@ export function AcademicManagementTab({
         collegeId: activeCollegeId,
       });
       if (!res.success) {
+        setAllSubjects((prev) =>
+          prev.map((item) => (item.id === s.id ? { ...item, is_active: s.is_active } : item))
+        );
         setSubjectList((prev) =>
           prev.map((item) => (item.id === s.id ? { ...item, is_active: s.is_active } : item))
         );
@@ -454,7 +506,9 @@ export function AcademicManagementTab({
     if (!confirm(`Are you sure you want to delete subject ${name}?`)) return;
     setMessage(null);
 
+    const prevMaster = [...allSubjects];
     const prevList = [...subjectList];
+    setAllSubjects((prev) => prev.filter((item) => item.id !== id));
     setSubjectList((prev) => prev.filter((item) => item.id !== id));
     setSubjectTotal((prev) => Math.max(0, prev - 1));
 
@@ -463,6 +517,7 @@ export function AcademicManagementTab({
       if (res.success) {
         setMessage({ type: 'success', text: `Subject ${name} deleted successfully.` });
       } else {
+        setAllSubjects(prevMaster);
         setSubjectList(prevList);
         setSubjectTotal((prev) => prev + 1);
         setMessage({ type: 'error', text: res.error || 'Failed to delete subject.' });
@@ -490,16 +545,16 @@ export function AcademicManagementTab({
       if (res.success && res.assignment) {
         setMessage({ type: 'success', text: 'Faculty assignment created successfully.' });
         // Enhance with relations for instant display
-        const faculty = facultyList.find((f) => f.id === assignFacultyId);
-        const subject = subjectList.find((s) => s.id === assignSubjectId);
+        const faculty = allFaculties.find((f) => f.id === assignFacultyId);
+        const subject = allSubjects.find((s) => s.id === assignSubjectId);
         const year = yearList.find((y) => y.id === assignYearId);
         const branch = branchList.find((b) => b.id === assignBranchId);
         const semester = semesterList.find((s) => s.id === assignSemesterId);
 
         const newObj = {
           ...res.assignment,
-          faculty,
-          subject,
+          faculty: faculty || { id: assignFacultyId, name: 'Faculty' },
+          subject: subject || { id: assignSubjectId, name: 'Subject' },
           academic_year: year,
           branch,
           semester,
@@ -625,19 +680,18 @@ export function AcademicManagementTab({
           type: 'success',
           text: `Faculty "${editFacName.trim()}" updated successfully.`,
         });
+        const updatedFac = {
+          name: editFacName.trim(),
+          department: editFacDept.trim(),
+          designation: editFacDesig.trim(),
+          employee_id: editFacEmpId.trim() || null,
+          is_active: editFacActive,
+        };
+        setAllFaculties((prev) =>
+          prev.map((f) => (f.id === editingFaculty.id ? { ...f, ...updatedFac } : f))
+        );
         setFacultyList((prev) =>
-          prev.map((f) =>
-            f.id === editingFaculty.id
-              ? {
-                  ...f,
-                  name: editFacName.trim(),
-                  department: editFacDept.trim(),
-                  designation: editFacDesig.trim(),
-                  employee_id: editFacEmpId.trim() || null,
-                  is_active: editFacActive,
-                }
-              : f
-          )
+          prev.map((f) => (f.id === editingFaculty.id ? { ...f, ...updatedFac } : f))
         );
         setEditingFaculty(null);
       } else {
@@ -673,19 +727,18 @@ export function AcademicManagementTab({
           type: 'success',
           text: `Subject "${editSubName.trim()}" (${editSubCode.trim().toUpperCase()}) updated successfully.`,
         });
+        const updatedSub = {
+          name: editSubName.trim(),
+          code: editSubCode.trim().toUpperCase(),
+          branch_id: editSubBranchId || null,
+          semester_id: editSubSemesterId || null,
+          is_active: editSubActive,
+        };
+        setAllSubjects((prev) =>
+          prev.map((s) => (s.id === editingSubject.id ? { ...s, ...updatedSub } : s))
+        );
         setSubjectList((prev) =>
-          prev.map((s) =>
-            s.id === editingSubject.id
-              ? {
-                  ...s,
-                  name: editSubName.trim(),
-                  code: editSubCode.trim().toUpperCase(),
-                  branch_id: editSubBranchId || null,
-                  semester_id: editSubSemesterId || null,
-                  is_active: editSubActive,
-                }
-              : s
-          )
+          prev.map((s) => (s.id === editingSubject.id ? { ...s, ...updatedSub } : s))
         );
         setEditingSubject(null);
       } else {
@@ -723,8 +776,8 @@ export function AcademicManagementTab({
           type: 'success',
           text: `Assignment updated successfully.`,
         });
-        const faculty = facultyList.find((f) => f.id === editAssignFacultyId);
-        const subject = subjectList.find((s) => s.id === editAssignSubjectId);
+        const faculty = allFaculties.find((f) => f.id === editAssignFacultyId);
+        const subject = allSubjects.find((s) => s.id === editAssignSubjectId);
         const year = yearList.find((y) => y.id === editAssignYearId);
         const branch = branchList.find((b) => b.id === editAssignBranchId);
         const semester = semesterList.find((s) => s.id === editAssignSemesterId);
@@ -1625,13 +1678,23 @@ export function AcademicManagementTab({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Subject</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-600">Subject</label>
+                  <button
+                    type="button"
+                    onClick={() => setFilterAssignSubjectsByBranchSem((prev) => !prev)}
+                    className="text-[11px] text-bce-cobalt hover:underline cursor-pointer font-medium"
+                    title={filterAssignSubjectsByBranchSem ? `Show all ${allSubjects.length} subjects` : 'Show only subjects matching selected branch & semester'}
+                  >
+                    {filterAssignSubjectsByBranchSem ? `Show all (${allSubjects.length})` : 'Filter by Branch/Sem'}
+                  </button>
+                </div>
                 <SearchableSelect
                   options={subjectOptions}
                   value={assignSubjectId}
-                  onChange={setAssignSubjectId}
+                  onChange={handleAssignSubjectSelect}
                   placeholder="Choose subject..."
-                  searchPlaceholder="Search subject by code or title..."
+                  searchPlaceholder="Search subject by code, name, branch or sem..."
                   required
                 />
               </div>
@@ -1786,8 +1849,8 @@ export function AcademicManagementTab({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {assignmentList.map((a) => {
-                      const faculty = a.faculty || facultyList.find((f) => f.id === a.faculty_id);
-                      const subject = a.subject || subjectList.find((s) => s.id === a.subject_id);
+                      const faculty = a.faculty || allFaculties.find((f) => f.id === a.faculty_id);
+                      const subject = a.subject || allSubjects.find((s) => s.id === a.subject_id);
                       const year = a.academic_year || yearList.find((y) => y.id === a.academic_year_id);
                       const branch = a.branch || branchList.find((b) => b.id === a.branch_id);
                       return (
@@ -1869,7 +1932,7 @@ export function AcademicManagementTab({
                       required
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
                     >
-                      {facultyList.map((f) => (
+                      {allFaculties.map((f) => (
                         <option key={f.id} value={f.id}>
                           {f.name} ({f.department || 'General'})
                         </option>
@@ -1883,11 +1946,19 @@ export function AcademicManagementTab({
                     </label>
                     <select
                       value={editAssignSubjectId}
-                      onChange={(e) => setEditAssignSubjectId(e.target.value)}
+                      onChange={(e) => {
+                        const newSubId = e.target.value;
+                        setEditAssignSubjectId(newSubId);
+                        const sub = allSubjects.find((s) => s.id === newSubId);
+                        if (sub) {
+                          if (sub.branch_id) setEditAssignBranchId(sub.branch_id);
+                          if (sub.semester_id) setEditAssignSemesterId(sub.semester_id);
+                        }
+                      }}
                       required
                       className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
                     >
-                      {subjectList.map((s) => (
+                      {allSubjects.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name} ({s.code})
                         </option>

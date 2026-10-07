@@ -77,20 +77,20 @@ export function SearchableSelect({
     [options, value]
   );
 
-  // Filtered options (capped at 25 for blazing DOM performance)
+  // Filtered options (supports multi-term search and displays all items up to 250)
   const filteredOptions = useMemo(() => {
-    if (!debouncedSearch.trim()) {
-      return options.slice(0, 25);
+    const q = searchTerm.toLowerCase().trim();
+    if (!q) {
+      return options.length <= 250 ? options : options.slice(0, 250);
     }
-    const q = debouncedSearch.toLowerCase().trim();
-    return options
-      .filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(q) ||
-          (opt.sublabel && opt.sublabel.toLowerCase().includes(q))
-      )
-      .slice(0, 25);
-  }, [options, debouncedSearch]);
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const filtered = options.filter((opt) => {
+      const label = opt.label.toLowerCase();
+      const sublabel = (opt.sublabel || '').toLowerCase();
+      return tokens.every((token) => label.includes(token) || sublabel.includes(token));
+    });
+    return filtered.length <= 250 ? filtered : filtered.slice(0, 250);
+  }, [options, searchTerm]);
 
   const handleSelect = (id: string) => {
     onChange(id);
@@ -200,9 +200,9 @@ export function SearchableSelect({
               })
             )}
 
-            {options.length > 25 && !debouncedSearch && (
+            {options.length > 250 && !searchTerm && (
               <div className="px-3 py-1.5 text-[10px] text-slate-400 text-center bg-slate-50 rounded mt-1">
-                Type to search all {options.length} items
+                Showing first 250 of {options.length} items. Type to search all.
               </div>
             )}
           </div>
