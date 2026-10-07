@@ -88,17 +88,17 @@ DECLARE
     v_new_id UUID;
 BEGIN
     -- 1. Exclusively lock rows for this user & platform to prevent concurrent race conditions
-    PERFORM 1 FROM public.admin_sessions
-    WHERE user_id = p_user_id AND platform = p_platform AND revoked_at IS NULL
+    PERFORM 1 FROM public.admin_sessions AS s
+    WHERE s.user_id = p_user_id AND s.platform = p_platform AND s.revoked_at IS NULL
     FOR UPDATE;
 
     -- 2. Revoke any existing active session for this user on this platform
-    UPDATE public.admin_sessions
+    UPDATE public.admin_sessions AS s
     SET revoked_at = timezone('utc'::text, now()),
         revoke_reason = 'SUPERSEDED_BY_NEW_LOGIN'
-    WHERE user_id = p_user_id
-      AND platform = p_platform
-      AND revoked_at IS NULL;
+    WHERE s.user_id = p_user_id
+      AND s.platform = p_platform
+      AND s.revoked_at IS NULL;
       
     GET DIAGNOSTICS v_revoked = ROW_COUNT;
 
