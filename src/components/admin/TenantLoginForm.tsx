@@ -51,7 +51,7 @@ export function TenantLoginForm({
     : '';
 
   let initialError = queryError || '';
-  if (queryReason === 'another_browser') {
+  if (queryReason === 'another_browser' || queryReason === 'session-revoked' || queryReason === 'revoked') {
     initialError = 'Your session ended because this account was signed in from another browser.';
   } else if (queryReason === 'another_device') {
     initialError = 'Your session ended because this account was signed in from another device.';
@@ -59,7 +59,12 @@ export function TenantLoginForm({
 
   // Clear local Supabase auth state if arriving from a force-logout revocation
   useEffect(() => {
-    if (queryReason === 'another_browser' || queryReason === 'another_device') {
+    if (
+      queryReason === 'another_browser' ||
+      queryReason === 'session-revoked' ||
+      queryReason === 'revoked' ||
+      queryReason === 'another_device'
+    ) {
       supabase.auth.signOut().catch(() => {});
     }
   }, [queryReason, supabase]);

@@ -61,7 +61,12 @@ export function isSuperAdmin(
  */
 export async function getAdminSession(
   client?: any,
-  options?: { cookieTenantId?: string }
+  options?: {
+    cookieTenantId?: string;
+    currentSessionId?: string;
+    currentPlatform?: AdminPlatform;
+    isLoginVerification?: boolean;
+  }
 ): Promise<AdminSession> {
   const supabase = client || (await createClient());
 
@@ -232,9 +237,9 @@ export async function getAdminSession(
   }
 
   // 5. Validate single-concurrent-session policy
-  const sessionId = cookieStore?.get(ADMIN_SESSION_COOKIE)?.value || null;
+  const sessionId = options?.currentSessionId || cookieStore?.get(ADMIN_SESSION_COOKIE)?.value || null;
   const platformCookie = cookieStore?.get(ADMIN_PLATFORM_COOKIE)?.value || null;
-  const platform = detectPlatform(null, platformCookie, null, null);
+  const platform = options?.currentPlatform || detectPlatform(null, platformCookie, null, null);
 
   let sessionRevoked = false;
   let sessionRevokedReason: string | null = null;
@@ -254,8 +259,8 @@ export async function getAdminSession(
         sessionRevokedReason = check.reason || 'REVOKED';
         sessionRevokedPlatform = check.platform || platform;
       }
-    } else {
-      // No session cookie present. Check if another active session already exists in DB.
+    } else if (!options?.isLoginVerification) {
+      // No session cookie present and not in login verification. Check if another active session already exists in DB.
       const activeSessions = await getActiveAdminSessions(userId);
       const existing = platform === 'ANDROID' ? activeSessions.androidSession : activeSessions.webSession;
       if (existing) {
@@ -328,7 +333,7 @@ export async function requireAdminSession(options?: {
 
   if (session.sessionRevoked) {
     const isAndroid = session.sessionRevokedPlatform === 'ANDROID';
-    const reasonParam = isAndroid ? 'another_device' : 'another_browser';
+    const reasonParam = isAndroid ? 'another_device' : 'session-revoked';
     redirect(`/admin/login?reason=${reasonParam}`);
   }
 

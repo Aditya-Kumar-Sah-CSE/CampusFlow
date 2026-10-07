@@ -60,7 +60,11 @@ export async function POST(request: Request) {
       establishedSessionId = claimResult.sessionId;
     }
 
-    const session = await getAdminSession();
+    const session = await getAdminSession(supabase, {
+      currentSessionId: establishedSessionId || undefined,
+      currentPlatform: platform,
+      isLoginVerification: !!body.isLogin,
+    });
 
     if (session.sessionRevoked) {
       return NextResponse.json(
