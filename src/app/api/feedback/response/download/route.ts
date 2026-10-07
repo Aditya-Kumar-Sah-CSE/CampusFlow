@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
 
   let verifiedFormId: string | null = null;
   let verifiedResponseId: string | null = null;
+  let verifiedEmail: string | null = null;
   let adminUserId: string | null = null;
 
   // 1. Verify Student Token
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
     if (payload) {
       verifiedFormId = payload.formId;
       verifiedResponseId = payload.responseId;
+      verifiedEmail = payload.email || null;
     }
   }
 
@@ -100,7 +102,7 @@ export async function GET(req: NextRequest) {
     });
     if (!isSuperAdmin) {
       const { data: hasMembership } = await supabase
-        .from('college_admins')
+        .from('college_memberships')
         .select('id')
         .eq('user_id', adminUserId)
         .eq('college_id', form.college_id)
@@ -123,37 +125,54 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Connected Google Sheet not found for this form', { status: 404 });
   }
 
-  // 4. Fetch the authoritative raw response row from Google Sheet
-  const sheetData = await fetchSingleResponseFromSheet(sheetId, verifiedResponseId, form.college_id);
-  if (!sheetData) {
-    return new NextResponse('Response record not found in authoritative Google Sheet', { status: 404 });
-  }
+  // 4. Resolve response record from DB as primary fallback
+  const { data: rec } = await supabase
+    .from('feedback_response_records')
+    .select('*')
+    .eq('form_id', verifiedFormId)
+    .eq('google_response_id', verifiedResponseId)
+    .maybeSingle();
 
-  const { headers, row } = sheetData;
+  // Fetch the authoritative raw response row from Google Sheet
+  const sheetData = await fetchSingleResponseFromSheet(
+    sheetId,
+    verifiedResponseId,
+    form.college_id,
+    {
+      studentEmail: rec?.student_email || verifiedEmail,
+      registrationNumber: rec?.registration_number,
+      timestamp: rec?.submitted_at,
+    }
+  );
+
+  const headers = sheetData?.headers || [];
+  const row = sheetData?.row || [];
 
   // Extract base student columns
-  let studentName: string | null = null;
-  let registrationNumber: string | null = null;
-  let studentEmail = '';
-  let submittedAt: string | null = null;
+  let studentName: string | null = rec?.student_name || null;
+  let registrationNumber: string | null = rec?.registration_number || null;
+  let studentEmail = rec?.student_email || verifiedEmail || '';
+  let submittedAt: string | null = rec?.submitted_at || null;
   let generalFeedback: string | null = null;
 
-  headers.forEach((h, idx) => {
-    const lower = h.toLowerCase();
-    const val = row[idx] || '';
+  if (headers.length > 0 && row.length > 0) {
+    headers.forEach((h, idx) => {
+      const lower = h.toLowerCase();
+      const val = row[idx] || '';
 
-    if (lower.includes('timestamp') || lower === 'date' || lower === 'time') {
-      submittedAt = val;
-    } else if (lower.includes('email') || lower.includes('username')) {
-      studentEmail = val;
-    } else if (lower.includes('student name') || (lower.includes('name') && !lower.includes('faculty') && !lower.includes('subject'))) {
-      studentName = val;
-    } else if (lower.includes('registration') || lower.includes('reg') || lower.includes('roll')) {
-      registrationNumber = val;
-    } else if (lower.includes('general feedback') || lower.includes('suggestion') || lower.includes('comment')) {
-      generalFeedback = val;
-    }
-  });
+      if (lower.includes('timestamp') || lower === 'date' || lower === 'time') {
+        if (val) submittedAt = val;
+      } else if (lower.includes('email') || lower.includes('username')) {
+        if (val) studentEmail = val;
+      } else if (lower.includes('student name') || (lower.includes('name') && !lower.includes('faculty') && !lower.includes('subject'))) {
+        if (val) studentName = val;
+      } else if (lower.includes('registration') || lower.includes('reg') || lower.includes('roll')) {
+        if (val) registrationNumber = val;
+      } else if (lower.includes('general feedback') || lower.includes('suggestion') || lower.includes('comment')) {
+        if (val) generalFeedback = val;
+      }
+    });
+  }
 
   // Extract faculty evaluations
   const facultyEvaluations: StudentResponsePDFData['facultyEvaluations'] = [];

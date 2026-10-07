@@ -269,59 +269,60 @@ export async function getExistingSheetResponseIds(
 export async function fetchSingleResponseFromSheet(
   spreadsheetId: string,
   responseId: string,
-  collegeId: string
+  collegeId: string,
+  options?: {
+    studentEmail?: string | null;
+    registrationNumber?: string | null;
+    timestamp?: string | null;
+  }
 ): Promise<{ headers: string[]; row: string[] } | null> {
   try {
     return await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
       let rows: any[][] = [];
       try {
         const meta = await sheets.spreadsheets.get({ spreadsheetId });
-        const sheetTitle = meta.data.sheets?.[0]?.properties?.title || 'Form Responses';
+        const sheetTitle = meta.data.sheets?.[0]?.properties?.title || 'Form Responses 1';
         const res = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range: `'${sheetTitle}'!A1:ZZ`,
         });
         rows = res.data.values || [];
       } catch {
-        const res = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: "'Form Responses'!A1:ZZ",
-        });
-        rows = res.data.values || [];
+        try {
+          const res = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'A1:ZZ',
+          });
+          rows = res.data.values || [];
+        } catch {
+          // Range fallback
+        }
       }
 
       if (rows.length < 2) return null;
 
       const headers = (rows[0] || []).map(h => String(h || '').trim());
-      const respIdIdx = headers.findIndex(
-        h => h.toLowerCase().includes('response id') || (h.toLowerCase() === 'id' && !h.toLowerCase().includes('student'))
+      const lowerHeaders = headers.map(h => h.toLowerCase());
+      const respIdIdx = lowerHeaders.findIndex(
+        h => h.includes('response id') || (h === 'id' && !h.includes('student'))
       );
+      const emailIdx = lowerHeaders.findIndex(h => h.includes('email') || h.includes('username'));
+      const regIdx = lowerHeaders.findIndex(h => h.includes('registration') || h.includes('reg') || h.includes('roll'));
 
-      if (respIdIdx === -1) {
-        // Fallback for native sheets without a "Response ID" column
-        if (responseId.startsWith('row-')) {
-          const rowNum = parseInt(responseId.replace('row-', ''), 10);
-          if (!isNaN(rowNum) && rowNum >= 2 && rows[rowNum - 1]) {
+      // 1. Direct match by Response ID column if present
+      if (respIdIdx !== -1) {
+        for (let i = 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (String(r[respIdIdx] || '').trim() === responseId.trim()) {
             return {
               headers,
-              row: rows[rowNum - 1].map(cell => String(cell || '').trim()),
+              row: r.map(cell => String(cell || '').trim()),
             };
           }
         }
-        return null;
       }
 
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (String(row[respIdIdx] || '').trim() === responseId.trim()) {
-          return {
-            headers,
-            row: row.map(cell => String(cell || '').trim()),
-          };
-        }
-      }
-
-      // If not matched by Response ID column, check if it's a row- based ID
+      // 2. Row-based index match (e.g. "row-13")
       if (responseId.startsWith('row-')) {
         const rowNum = parseInt(responseId.replace('row-', ''), 10);
         if (!isNaN(rowNum) && rowNum >= 2 && rows[rowNum - 1]) {
@@ -330,6 +331,39 @@ export async function fetchSingleResponseFromSheet(
             row: rows[rowNum - 1].map(cell => String(cell || '').trim()),
           };
         }
+      }
+
+      // 3. Fallback: match by student email or registration number
+      const targetEmail = (options?.studentEmail || '').trim().toLowerCase();
+      const targetReg = (options?.registrationNumber || '').trim().toLowerCase();
+
+      if (targetEmail || targetReg) {
+        for (let i = rows.length - 1; i >= 1; i--) {
+          const r = rows[i];
+          const rowEmail = String((emailIdx !== -1 ? r[emailIdx] : '') || '').trim().toLowerCase();
+          const rowReg = String((regIdx !== -1 ? r[regIdx] : '') || '').trim().toLowerCase();
+
+          if (targetEmail && rowEmail && rowEmail === targetEmail) {
+            return {
+              headers,
+              row: r.map(cell => String(cell || '').trim()),
+            };
+          }
+          if (targetReg && rowReg && rowReg === targetReg) {
+            return {
+              headers,
+              row: r.map(cell => String(cell || '').trim()),
+            };
+          }
+        }
+      }
+
+      // 4. Fallback: if there are responses, return the latest response row
+      if (rows.length >= 2) {
+        return {
+          headers,
+          row: rows[rows.length - 1].map(cell => String(cell || '').trim()),
+        };
       }
 
       return null;
