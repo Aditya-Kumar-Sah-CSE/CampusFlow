@@ -4,10 +4,13 @@
  * Dynamically branded per college tenant.
  */
 
+import fs from 'fs';
+import path from 'path';
 import PDFDocument from 'pdfkit';
 import { FormAnalyticsReport, AggregatedAnalyticsReport } from './types';
 import { calculatePerformanceGrade } from './engine';
 import { CollegeBranding, DEFAULT_BRANDING } from '@/lib/tenant/branding';
+import { BCE_BGP_LOGO_DATA_URI } from '@/lib/events/college-logos';
 
 // Palette Tokens
 const COLORS = {
@@ -36,25 +39,89 @@ function streamToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
 const logoBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-async function fetchLogoBuffer(url?: string | null): Promise<Buffer | null> {
-  if (!url || typeof url !== 'string' || !url.startsWith('http')) return null;
-
-  const cached = logoBufferCache.get(url);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.buffer;
+/**
+ * Resolves synchronous local or embedded fallback logo buffer
+ */
+function resolveDefaultLogoBuffer(brand?: CollegeBranding | null): Buffer | null {
+  // 1. Local file matching brand.slug
+  if (brand?.slug) {
+    const slugPng = path.join(process.cwd(), 'public', 'images', 'colleges', `${brand.slug}.png`);
+    if (fs.existsSync(slugPng)) {
+      try { return fs.readFileSync(slugPng); } catch {}
+    }
+    const slugJpg = path.join(process.cwd(), 'public', 'images', 'colleges', `${brand.slug}.jpg`);
+    if (fs.existsSync(slugJpg)) {
+      try { return fs.readFileSync(slugJpg); } catch {}
+    }
   }
 
+  // 2. Default BCE local asset
+  const bcePath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
+  if (fs.existsSync(bcePath)) {
+    try { return fs.readFileSync(bcePath); } catch {}
+  }
+
+  // 3. Built-in BCE base64 logo data URI (guarantees 100% reliability in serverless/offline environments)
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const ab = await res.arrayBuffer();
-    const buffer = Buffer.from(ab);
-    logoBufferCache.set(url, { buffer, timestamp: Date.now() });
-    return buffer;
-  } catch (err) {
-    console.warn('[PDF] Failed to load logo from URL:', url, err);
-    return null;
+    const base64 = BCE_BGP_LOGO_DATA_URI.split(',')[1];
+    if (base64) return Buffer.from(base64, 'base64');
+  } catch {}
+
+  return null;
+}
+
+/**
+ * Fetches or resolves institution logo buffer (handles Data URI, local static files, remote URLs, and institutional fallbacks)
+ */
+async function fetchLogoBuffer(
+  url?: string | null,
+  brand?: CollegeBranding | null
+): Promise<Buffer | null> {
+  // 1. Data URI
+  if (url && typeof url === 'string' && url.startsWith('data:image/')) {
+    try {
+      const base64Data = url.split(',')[1];
+      if (base64Data) return Buffer.from(base64Data, 'base64');
+    } catch (e) {
+      console.warn('[PDF] Failed to parse data URI logo:', e);
+    }
   }
+
+  // 2. Local relative file (e.g. /images/colleges/bce-bgp.png)
+  if (url && typeof url === 'string' && url.startsWith('/')) {
+    try {
+      const cleanPath = url.replace(/^\//, '');
+      const localPath = path.join(process.cwd(), 'public', cleanPath);
+      if (fs.existsSync(localPath)) {
+        return fs.readFileSync(localPath);
+      }
+    } catch (e) {
+      console.warn('[PDF] Failed to read local logo path:', url, e);
+    }
+  }
+
+  // 3. Remote HTTP/S URL
+  if (url && typeof url === 'string' && url.startsWith('http')) {
+    const cached = logoBufferCache.get(url);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return cached.buffer;
+    }
+
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        const ab = await res.arrayBuffer();
+        const buffer = Buffer.from(ab);
+        logoBufferCache.set(url, { buffer, timestamp: Date.now() });
+        return buffer;
+      }
+    } catch (err) {
+      console.warn('[PDF] Failed to load logo from URL:', url, err);
+    }
+  }
+
+  // 4. Fallback based on institution slug/code or default BCE logo
+  return resolveDefaultLogoBuffer(brand);
 }
 
 /**
@@ -82,18 +149,33 @@ function drawHeader(
   const logoY = 38;
   const logoSize = 48;
 
-  if (logoBuffer) {
+  const activeLogoBuffer = logoBuffer || resolveDefaultLogoBuffer(brand);
+
+  if (activeLogoBuffer) {
     try {
-      doc.image(logoBuffer, logoX, logoY, {
+      doc.image(activeLogoBuffer, logoX, logoY, {
         fit: [logoSize, logoSize],
         align: 'center',
         valign: 'center',
       });
     } catch (e) {
       console.warn('[PDF] Failed to draw logo image:', e);
+      // Fallback emblem with institution code if image fails
+      doc
+        .roundedRect(logoX, logoY, logoSize, logoSize, 6)
+        .fillAndStroke(COLORS.bgLight, COLORS.border);
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(10)
+        .fillColor(primaryColor)
+        .text((brand.code || 'COL').slice(0, 4), logoX, logoY + 18, {
+          width: logoSize,
+          align: 'center',
+        });
     }
   } else {
-    // Elegant fallback emblem with institution code
+    // Fallback emblem with institution code
     doc
       .roundedRect(logoX, logoY, logoSize, logoSize, 6)
       .fillAndStroke(COLORS.bgLight, COLORS.border);
@@ -411,7 +493,7 @@ export async function generateIndividualFacultyPDF(
   const contentWidth = pageWidth - margin * 2;
 
   // Fetch top-left logo buffer
-  const logoBuffer = await fetchLogoBuffer(brand.logoUrl);
+  const logoBuffer = await fetchLogoBuffer(brand.logoUrl, brand);
 
   // Page 1 Header
   drawHeader(doc, 'Faculty Feedback Evaluation Report', brand, logoBuffer);
@@ -717,7 +799,7 @@ export async function generateOverallFeedbackPDF(
   const contentWidth = pageWidth - margin * 2;
 
   // Fetch top-left logo buffer
-  const logoBuffer = await fetchLogoBuffer(brand.logoUrl);
+  const logoBuffer = await fetchLogoBuffer(brand.logoUrl, brand);
 
   // Header
   drawHeader(doc, 'Institutional Feedback Analytics Report', brand, logoBuffer);
@@ -994,7 +1076,7 @@ export async function generateSemesterComparativePDF(
   let currentPage = 1;
 
   // Fetch top-left logo buffer
-  const logoBuffer = await fetchLogoBuffer(brand.logoUrl);
+  const logoBuffer = await fetchLogoBuffer(brand.logoUrl, brand);
 
   // Header
   drawHeader(doc, 'Semester Feedback Comparative Evaluation Report', brand, logoBuffer);
@@ -1415,7 +1497,7 @@ export async function generateStudentResponsePDF(
   let currentPage = 1;
 
   // Fetch top-left logo buffer
-  const logoBuffer = await fetchLogoBuffer(brand.logoUrl);
+  const logoBuffer = await fetchLogoBuffer(brand.logoUrl, brand);
 
   // Header
   drawHeader(doc, 'Student Feedback Submission Record', brand, logoBuffer);

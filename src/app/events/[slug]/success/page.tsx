@@ -47,6 +47,7 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
     <CompletionPage
       collegeName={college?.name}
       collegeSlug={college?.slug}
+      collegeCode={college?.code}
       collegeLogoUrl={college?.logo_url}
     >
       <SuccessState
@@ -56,6 +57,7 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
         entityTitle={event.title}
         collegeName={college?.name}
         collegeSlug={college?.slug}
+        collegeCode={college?.code}
         registrationNumber={registrationNumber}
         teamId={teamId}
         myRegistrationsPath={myRegistrationsPath}

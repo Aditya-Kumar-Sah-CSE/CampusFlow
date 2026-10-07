@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   User,
   Mail,
@@ -57,6 +58,8 @@ export function EventRegistrationForm({
   branches: initialBranches,
   semesters: initialSemesters,
 }: Props) {
+  const router = useRouter();
+
   // Navigation helpers
   const eventDetailPath = tenantSlug ? `/${tenantSlug}/events/${event.slug}` : `/events/${event.slug}`;
   const myRegistrationsPath = tenantSlug ? `/${tenantSlug}/events/${event.slug}/my-registrations` : `/events/${event.slug}/my-registrations`;
@@ -240,6 +243,10 @@ export function EventRegistrationForm({
 
       if (res.success && res.registrationNumber) {
         setSuccessRegNumber(res.registrationNumber);
+        const successUrl = tenantSlug
+          ? `/${tenantSlug}/events/${event.slug}/success?reg=${encodeURIComponent(res.registrationNumber)}`
+          : `/events/${event.slug}/success?reg=${encodeURIComponent(res.registrationNumber)}`;
+        router.push(successUrl);
       } else {
         setErrorMsg(res.error || 'Registration failed. Please try again.');
       }

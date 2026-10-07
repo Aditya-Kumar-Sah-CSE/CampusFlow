@@ -12,6 +12,7 @@ export interface VerifiedConfirmationData {
   collegeId?: string;
   collegeName?: string;
   collegeSlug?: string;
+  collegeCode?: string;
   collegeLogoUrl?: string | null;
   academicYear: string;
   branch: string;
@@ -79,6 +80,7 @@ export async function getConfirmationByTokenAction(
     collegeId: form.college?.id || form.college_id,
     collegeName: form.college?.name || 'Institution',
     collegeSlug: form.college?.slug || '',
+    collegeCode: form.college?.code || '',
     collegeLogoUrl: form.college?.logo_url || null,
     academicYear: form.academic_year?.name || 'Academic Session',
     branch: form.branch?.name || 'Department',
@@ -171,6 +173,7 @@ export async function verifyStudentSubmissionAction(params: {
       collegeId: form.college?.id || form.college_id,
       collegeName: form.college?.name || 'Institution',
       collegeSlug: form.college?.slug || '',
+      collegeCode: form.college?.code || '',
       collegeLogoUrl: form.college?.logo_url || null,
       academicYear: form.academic_year?.name || 'Academic Session',
       branch: form.branch?.name || 'Department',
@@ -194,6 +197,7 @@ export async function getFormContextAction(formId: string): Promise<{
   collegeId: string;
   collegeName: string;
   collegeSlug: string;
+  collegeCode?: string;
   collegeLogoUrl: string | null;
 } | null> {
   if (!formId) return null;
@@ -214,7 +218,38 @@ export async function getFormContextAction(formId: string): Promise<{
     collegeId: form.college_id,
     collegeName: col?.name || 'Institution',
     collegeSlug: col?.slug || '',
+    collegeCode: col?.code || '',
     collegeLogoUrl: col?.logo_url || null,
+  };
+}
+
+/**
+ * Fetch college details and branding for tenant-directed completion landing
+ */
+export async function getTenantContextAction(tenantSlug: string): Promise<{
+  collegeId: string;
+  collegeName: string;
+  collegeSlug: string;
+  collegeCode?: string;
+  collegeLogoUrl: string | null;
+} | null> {
+  if (!tenantSlug) return null;
+  const supabase = createAdminClient();
+  if (!supabase) return null;
+
+  const { data: col } = await supabase
+    .from('colleges')
+    .select('id, name, slug, code, logo_url')
+    .eq('slug', tenantSlug)
+    .maybeSingle();
+
+  if (!col) return null;
+  return {
+    collegeId: col.id,
+    collegeName: col.name,
+    collegeSlug: col.slug,
+    collegeCode: col.code,
+    collegeLogoUrl: col.logo_url || null,
   };
 }
 

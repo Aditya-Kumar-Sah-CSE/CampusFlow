@@ -693,7 +693,7 @@ export async function provisionGoogleFormAndSheetAction(params: {
     googleSheetResult = sheetResult;
 
     // Link Form to Sheet
-    const confirmationMessage = getFormConfirmationMessage(targetCollegeSlug);
+    const confirmationMessage = getFormConfirmationMessage(targetCollegeSlug, draftRecord?.id);
     const linkingResult = await linkFormToSpreadsheet(
       googleFormResult.formId,
       googleSheetResult.spreadsheetId,

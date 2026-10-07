@@ -27,12 +27,13 @@ export interface CollegeBranding {
  * Safe generic fallback — never references any specific institution.
  */
 export const DEFAULT_BRANDING: CollegeBranding = {
-  name: 'CampusFlow',
-  code: '',
-  slug: 'institution',
-  primaryColor: '#0B192C',
-  secondaryColor: '#1E3E62',
-  accentColor: '#F6995C',
+  name: 'Bhagalpur College of Engineering',
+  code: '108',
+  slug: 'bce-bgp',
+  logoUrl: '/images/colleges/bce-bgp.png',
+  primaryColor: '#1B365D',
+  secondaryColor: '#334155',
+  accentColor: '#2563EB',
 };
 
 /**
@@ -69,7 +70,7 @@ export async function getCollegeBranding(collegeId: string): Promise<CollegeBran
       tagline: data.tagline || undefined,
       establishedYear: data.established_year || undefined,
       affiliatedUniversity: data.affiliated_university || undefined,
-      logoUrl: data.logo_url || undefined,
+      logoUrl: data.logo_url || (data.code === '108' || data.slug === 'bce-bgp' ? '/images/colleges/bce-bgp.png' : DEFAULT_BRANDING.logoUrl),
       primaryColor: data.primary_color || DEFAULT_BRANDING.primaryColor,
       secondaryColor: data.secondary_color || DEFAULT_BRANDING.secondaryColor,
       accentColor: data.accent_color || DEFAULT_BRANDING.accentColor,

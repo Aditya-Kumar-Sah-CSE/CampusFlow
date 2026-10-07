@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   X,
   CheckCircle,
@@ -417,6 +418,14 @@ export function StudentRegistrationModal({
             )}
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+              {registrationId && (
+                <Link
+                  href={tenantSlug ? `/${tenantSlug}/events/${event.slug}/success?reg=${encodeURIComponent(registrationId)}` : `/events/${event.slug}/success?reg=${encodeURIComponent(registrationId)}`}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-sm text-center active:scale-[0.98]"
+                >
+                  View Confirmation & Pass &rarr;
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -424,14 +433,14 @@ export function StudentRegistrationModal({
                   const el = document.getElementById('programs-section');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs text-center"
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm text-center active:scale-[0.98]"
               >
-                Join Event Programs &rarr;
+                Join Event Programs
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors text-center"
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors text-center active:scale-[0.98]"
               >
                 Close
               </button>

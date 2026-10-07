@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { PublicFormSummary } from '@/app/feedback/actions';
 import {
   ExternalLink,
@@ -12,6 +13,7 @@ import {
   User,
   ShieldCheck,
   Sparkles,
+  ArrowRight,
 } from 'lucide-react';
 import { ExternalActionLink } from '@/components/ui/ExternalActionLink';
 
@@ -23,6 +25,7 @@ interface Props {
 
 export function PublicFeedbackCard({ form, isClosed }: boolean extends never ? any : Props) {
   const [copied, setCopied] = useState(false);
+  const [hasOpenedForm, setHasOpenedForm] = useState(false);
 
   const directLink = typeof window !== 'undefined'
     ? `${window.location.origin}/feedback/${form.id}`
@@ -156,6 +159,7 @@ export function PublicFeedbackCard({ form, isClosed }: boolean extends never ? a
             <ExternalActionLink
               href={form.google_form_url}
               openingText="Opening Form..."
+              onClick={() => setHasOpenedForm(true)}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-gradient-to-r from-bce-cobalt to-indigo-600 hover:from-bce-navy hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg active:scale-98"
             >
               <span>Open Feedback Form</span>
@@ -166,6 +170,35 @@ export function PublicFeedbackCard({ form, isClosed }: boolean extends never ? a
               Google Form responder URL is not available. Please contact administration.
             </div>
           )}
+        </div>
+
+        {/* Dynamic banner after opening form */}
+        {hasOpenedForm && (
+          <div className="p-3.5 bg-indigo-50/90 border border-indigo-200/90 rounded-xl text-xs text-indigo-950 flex flex-col sm:flex-row items-center justify-between gap-2.5 animate-fade-in">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-ping" />
+              <span className="font-medium text-slate-700">Form opened in new tab. Finished submitting your response?</span>
+            </div>
+            <Link
+              href={`/feedback/confirmation?formId=${form.id}${form.college?.slug ? `&tenant=${form.college.slug}` : ''}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition-colors shrink-0 shadow-sm active:scale-[0.98]"
+            >
+              <span>View Confirmation & More Forms</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
+        {/* Post-submission helper to return to custom completion experience */}
+        <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+          <span className="text-center sm:text-left">Finished submitting your response on Google Forms?</span>
+          <Link
+            href={`/feedback/confirmation?formId=${form.id}${form.college?.slug ? `&tenant=${form.college.slug}` : ''}`}
+            className="font-bold text-indigo-600 hover:text-indigo-800 transition-colors inline-flex items-center gap-1 shrink-0"
+          >
+            <span>View Submission Receipt & More Forms</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
     </div>

@@ -23,6 +23,7 @@ export interface SuccessStateProps {
   subtitle?: string;
   collegeName?: string;
   collegeSlug?: string;
+  collegeCode?: string;
   entityTitle?: string; // Form title or Event name
   registrationNumber?: string;
   teamId?: string;
@@ -81,13 +82,13 @@ export function SuccessState({
     : `Your registration for ${entityTitle || 'the event'} has been submitted successfully.`);
 
   return (
-    <div className="w-full text-center space-y-6 motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-300">
-      {/* Success Icon */}
-      <div className="relative inline-flex items-center justify-center">
+    <div className="w-full text-center space-y-6">
+      {/* Success Icon with pop animation */}
+      <div className="relative inline-flex items-center justify-center animate-success-pop">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border-2 border-emerald-200/90 shadow-sm shadow-emerald-500/10">
-          <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-500" />
+          <CheckCircle2 className="w-9 h-9 sm:w-11 sm:h-11 text-emerald-500 animate-badge-pulse" />
         </div>
-        <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+        <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm">
           <Sparkles className="w-3.5 h-3.5" />
         </div>
       </div>
@@ -103,7 +104,7 @@ export function SuccessState({
       </div>
 
       {/* Clean Minimal Submission Card */}
-      <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 text-left max-w-lg mx-auto space-y-3.5 shadow-xs">
+      <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 text-left max-w-lg mx-auto space-y-3.5 shadow-sm">
         {/* Entity Title & College */}
         <div className="flex items-start justify-between gap-3 border-b border-slate-200/70 pb-3">
           <div className="min-w-0">
@@ -140,7 +141,7 @@ export function SuccessState({
             <button
               type="button"
               onClick={() => handleCopy(registrationNumber)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition-colors shrink-0 cursor-pointer active:scale-95 focus:outline-none focus:ring-2 focus:ring-amber-400"
             >
               <Copy className="w-3.5 h-3.5" />
               <span>{copied ? 'Copied!' : 'Copy'}</span>
@@ -184,7 +185,7 @@ export function SuccessState({
           {type === 'event' && myRegistrationsPath && (
             <Link
               href={myRegistrationsPath}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/50"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/50 active:scale-[0.98]"
             >
               <span>View My Registration</span>
               <ArrowRight className="w-4 h-4" />
@@ -194,7 +195,7 @@ export function SuccessState({
           {/* More Action Button */}
           <Link
             href={moreHref}
-            className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 ${
+            className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 active:scale-[0.98] ${
               type === 'feedback'
                 ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-600/50'
                 : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 focus:ring-slate-400'
@@ -207,7 +208,7 @@ export function SuccessState({
           {/* Go to CampusFlow Button */}
           <Link
             href={homePath}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
           >
             <Home className="w-4 h-4" />
             <span>Go to CampusFlow</span>

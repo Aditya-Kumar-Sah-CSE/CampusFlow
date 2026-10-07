@@ -45,6 +45,7 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
     <CompletionPage
       collegeName={tenant.name}
       collegeSlug={tenant.slug}
+      collegeCode={tenant.shortName || tenant.code}
       collegeLogoUrl={tenant.logo}
     >
       <SuccessState
@@ -54,6 +55,7 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
         entityTitle={event.title}
         collegeName={tenant.name}
         collegeSlug={tenant.slug}
+        collegeCode={tenant.shortName || tenant.code}
         registrationNumber={registrationNumber}
         teamId={teamId}
         myRegistrationsPath={myRegistrationsPath}

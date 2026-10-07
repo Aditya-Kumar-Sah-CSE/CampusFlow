@@ -100,22 +100,23 @@ export function getTenantPortalUrl(tenantSlug?: string): string {
  * Standard confirmation message configured via Apps Script.
  * Plain-text URLs ensure reliable rendering in native Google Forms confirmation screen.
  */
-export function getFormConfirmationMessage(tenantSlug?: string): string {
+export function getFormConfirmationMessage(tenantSlug?: string, formId?: string): string {
   const portalUrl = getTenantPortalUrl(tenantSlug);
+  const confirmationUrl = formId
+    ? `${APP_URL}/feedback/confirmation?formId=${formId}${tenantSlug ? `&tenant=${tenantSlug}` : ''}`
+    : (tenantSlug ? `${APP_URL}/feedback/confirmation?tenant=${tenantSlug}` : `${APP_URL}/feedback/confirmation`);
   return `Your response has been recorded.
 
-More Feedback Forms
+==============================================
+VIEW YOUR OFFICIAL SUBMISSION RECEIPT & MORE FORMS:
+${confirmationUrl}
+==============================================
 
-Need to access more academic feedback forms?
-
-Visit:
+Access More Feedback Forms for Your Institution:
 ${portalUrl}
 
-Designed & Developed by: Aditya Kumar Sah
-Developer Portfolio: ${ADITYA_PORTFOLIO_URL}
-
-Under the guidance of: Dr. Abhinav Kumar (Assistant Professor)
-Faculty Profile: ${DR_ABHINAV_KUMAR_PROFILE_URL}`;
+CampusFlow
+Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav`;
 }
 
 export const FORM_CONFIRMATION_MESSAGE = getFormConfirmationMessage();

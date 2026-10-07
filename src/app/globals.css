@@ -197,3 +197,71 @@ body {
   word-break: break-word;
 }
 
+/* ========================================================
+   CUSTOM COMPLETION / THANK-YOU EXPERIENCE ANIMATIONS
+   Lightweight, 60fps CSS animations with reduced-motion support
+   ======================================================== */
+
+@keyframes completionEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes successIconPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes successBadgePulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-completion-in {
+  animation: completionEntrance 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-success-pop {
+  animation: successIconPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-badge-pulse {
+  animation: successBadgePulse 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-completion-in,
+  .animate-success-pop,
+  .animate-badge-pulse {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+

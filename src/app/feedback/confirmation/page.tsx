@@ -23,6 +23,7 @@ import {
   verifyStudentSubmissionAction,
   resendConfirmationEmailAction,
   getFormContextAction,
+  getTenantContextAction,
   VerifiedConfirmationData,
 } from './actions';
 import { getMorePublishedFormsForCollegeAction, PublicFormSummary } from '@/app/feedback/actions';
@@ -37,14 +38,16 @@ function ConfirmationContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const formIdParam = searchParams.get('formId') || searchParams.get('form');
+  const tenantParam = searchParams.get('tenant');
 
   const [confirmationData, setConfirmationData] = useState<VerifiedConfirmationData | null>(null);
   const [formContext, setFormContext] = useState<{
-    formId: string;
+    formId?: string;
     formTitle: string;
     collegeId: string;
     collegeName: string;
     collegeSlug: string;
+    collegeCode?: string;
     collegeLogoUrl: string | null;
   } | null>(null);
   const [moreForms, setMoreForms] = useState<PublicFormSummary[]>([]);
@@ -111,6 +114,24 @@ function ConfirmationContent() {
               if (isMounted) setMoreForms(forms);
             }
           }
+        } else if (tenantParam) {
+          const tenantCtx = await getTenantContextAction(tenantParam);
+          if (isMounted && tenantCtx) {
+            setFormContext({
+              formTitle: 'Student Feedback',
+              collegeId: tenantCtx.collegeId,
+              collegeName: tenantCtx.collegeName,
+              collegeSlug: tenantCtx.collegeSlug,
+              collegeCode: tenantCtx.collegeCode,
+              collegeLogoUrl: tenantCtx.collegeLogoUrl,
+            });
+            const forms = await getMorePublishedFormsForCollegeAction(
+              tenantCtx.collegeId,
+              undefined,
+              4
+            );
+            if (isMounted) setMoreForms(forms);
+          }
         }
       } catch (err) {
         console.error('Failed to load feedback confirmation data:', err);
@@ -124,7 +145,7 @@ function ConfirmationContent() {
     return () => {
       isMounted = false;
     };
-  }, [token, formIdParam]);
+  }, [token, formIdParam, tenantParam]);
 
   const handleManualLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +193,7 @@ function ConfirmationContent() {
 
   const activeCollegeName = confirmationData?.collegeName || formContext?.collegeName;
   const activeCollegeSlug = confirmationData?.collegeSlug || formContext?.collegeSlug;
+  const activeCollegeCode = confirmationData?.collegeCode || formContext?.collegeCode;
   const activeCollegeLogo = confirmationData?.collegeLogoUrl || formContext?.collegeLogoUrl;
   const activeFormTitle = confirmationData?.formTitle || formContext?.formTitle;
 
@@ -179,6 +201,7 @@ function ConfirmationContent() {
     <CompletionPage
       collegeName={activeCollegeName}
       collegeSlug={activeCollegeSlug}
+      collegeCode={activeCollegeCode}
       collegeLogoUrl={activeCollegeLogo}
     >
       {loading ? (
@@ -198,8 +221,10 @@ function ConfirmationContent() {
             entityTitle={activeFormTitle}
             collegeName={activeCollegeName}
             collegeSlug={activeCollegeSlug}
+            collegeCode={activeCollegeCode}
             registrationNumber={confirmationData?.registrationNumber || undefined}
             submittedAt={confirmationData?.submittedAt || undefined}
+            moreActionHref={activeCollegeSlug ? `/${activeCollegeSlug}/feedback` : '/feedback'}
             onDownloadPdf={confirmationData?.downloadUrl ? handleDownloadPdf : undefined}
             isDownloadingPdf={isDownloadingPdf}
             hasDownloadUrl={Boolean(confirmationData?.downloadUrl)}

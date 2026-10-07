@@ -528,7 +528,7 @@ export function ProgramRegistrationClient({
     const moreActionHref = tenantSlug ? `/${tenantSlug}/events` : '/events';
 
     return (
-      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-4 sm:p-8 md:p-10 max-w-xl w-full mx-auto space-y-6 text-center animate-in fade-in zoom-in-95 duration-300">
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-sm p-4 sm:p-8 md:p-10 max-w-xl w-full mx-auto space-y-6 text-center animate-completion-in">
         <SuccessState
           type="event"
           title="Registration Successful"
@@ -536,6 +536,7 @@ export function ProgramRegistrationClient({
           entityTitle={program.name}
           collegeName={collegeName}
           collegeSlug={tenantSlug}
+          collegeCode={event.college?.code}
           registrationNumber={successResult.registrationNumber}
           teamId={successResult.teamId}
           myRegistrationsPath={myRegistrationsPath}
@@ -546,7 +547,7 @@ export function ProgramRegistrationClient({
         <div className="pt-1">
           <Link
             href={basePath}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors active:scale-[0.98]"
           >
             <span>Back to Event Schedule</span>
             <ArrowRight className="w-3.5 h-3.5" />
