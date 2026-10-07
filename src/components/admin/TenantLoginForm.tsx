@@ -69,18 +69,22 @@ export function TenantLoginForm({
     }
   }, [queryReason, supabase]);
 
-  // Detect Android TWA platform
+  // Detect Android TWA platform (strictly scoped to TWA, NOT regular mobile Chrome)
   const isAndroidClient =
     queryPlatform === 'android' ||
     (typeof window !== 'undefined' &&
       (window.location.search.includes('platform=android') ||
         window.location.search.includes('app_platform=android') ||
         document.referrer.startsWith('android-app://') ||
-        localStorage.getItem('cf_platform') === 'ANDROID'));
+        sessionStorage.getItem('cf_twa_session') === '1'));
 
   useEffect(() => {
-    if (isAndroidClient && typeof window !== 'undefined') {
-      localStorage.setItem('cf_platform', 'ANDROID');
+    if (typeof window !== 'undefined') {
+      // Eradicate legacy localStorage leak so regular mobile Chrome is never misidentified as Android App
+      localStorage.removeItem('cf_platform');
+      if (isAndroidClient) {
+        sessionStorage.setItem('cf_twa_session', '1');
+      }
     }
   }, [isAndroidClient]);
 

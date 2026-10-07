@@ -40,12 +40,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const platform = detectPlatform(
-      request.headers.get('x-client-platform'),
-      request.headers.get('cookie')?.includes(`${ADMIN_PLATFORM_COOKIE}=ANDROID`) ? 'ANDROID' : null,
-      request.headers.get('user-agent'),
-      body.platform
-    );
+    const platform = body.platform === 'ANDROID' || request.headers.get('x-client-platform') === 'ANDROID'
+      ? 'ANDROID'
+      : (body.isLogin ? 'WEB' : detectPlatform(
+          request.headers.get('x-client-platform'),
+          request.headers.get('cookie')?.includes(`${ADMIN_PLATFORM_COOKIE}=ANDROID`) ? 'ANDROID' : null,
+          request.headers.get('user-agent'),
+          body.platform
+        ));
 
     // If this is an explicit login or first verification, claim/create the single concurrent session
     let establishedSessionId: string | null = null;
