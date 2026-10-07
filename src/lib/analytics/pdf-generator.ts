@@ -536,15 +536,18 @@ export async function generateIndividualFacultyPDF(
   const boxWidth = (contentWidth - boxGap * 3) / 4;
   const boxHeight = 48;
 
-  // Box 1: Total Responses
+  // Box 1: Unique Students / Total Submissions
+  const isSemester = report.formType === 'SEMESTER_FEEDBACK';
+  const box1Label = isSemester ? 'UNIQUE STUDENTS' : (report.excludedCount ? 'INCLUDED STUDENTS' : 'UNIQUE STUDENTS');
   doc.rect(margin, currentY, boxWidth, boxHeight).fillAndStroke('#EFF6FF', '#BFDBFE');
-  doc.font('Helvetica').fontSize(7.5).fillColor('#1E40AF').text(report.excludedCount ? 'INCLUDED SUBMISSIONS' : 'TOTAL RESPONSES', margin, currentY + 8, { width: boxWidth, align: 'center' });
+  doc.font('Helvetica').fontSize(7.5).fillColor('#1E40AF').text(box1Label, margin, currentY + 8, { width: boxWidth, align: 'center' });
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#1E3A8A').text(String(report.includedCount ?? report.totalResponses), margin, currentY + 22, { width: boxWidth, align: 'center' });
 
-  // Box 2: Valid Responses
+  // Box 2: Total Evaluations / Submissions Evaluated
   const box2X = margin + boxWidth + boxGap;
+  const box2Label = isSemester ? 'TOTAL EVALUATIONS' : 'VALID SUBMISSIONS';
   doc.rect(box2X, currentY, boxWidth, boxHeight).fillAndStroke('#ECFDF5', '#A7F3D0');
-  doc.font('Helvetica').fontSize(7.5).fillColor('#065F46').text('VALID SUBMISSIONS', box2X, currentY + 8, { width: boxWidth, align: 'center' });
+  doc.font('Helvetica').fontSize(7.5).fillColor('#065F46').text(box2Label, box2X, currentY + 8, { width: boxWidth, align: 'center' });
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#064E3B').text(String(report.validResponses), box2X, currentY + 22, { width: boxWidth, align: 'center' });
 
   // Box 3: Overall Rating Score
