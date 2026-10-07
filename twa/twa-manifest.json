@@ -12,7 +12,7 @@
   "navigationDividerColorDark": "#00000000",
   "backgroundColor": "#0B192C",
   "enableNotifications": true,
-  "startUrl": "/",
+  "startUrl": "/?app_platform=android",
   "iconUrl": "https://143campusflow.vercel.app/icon-512.png",
   "maskableIconUrl": "https://143campusflow.vercel.app/icon-maskable.png",
   "appVersionName": "1.0.0",
@@ -40,7 +40,7 @@
     {
       "name": "Admin Console",
       "shortName": "Admin",
-      "url": "https://143campusflow.vercel.app/admin/login",
+      "url": "https://143campusflow.vercel.app/admin/login?platform=android",
       "chosenIconUrl": "https://143campusflow.vercel.app/icon-192.png"
     }
   ],

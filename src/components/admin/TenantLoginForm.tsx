@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
@@ -43,10 +43,41 @@ export function TenantLoginForm({
       ? redirectParam
       : '/admin/dashboard';
 
+  const queryReason = searchParams?.get('reason');
+  const queryPlatform = searchParams?.get('platform');
+
   const initialNotice = queryReset === 'success'
     ? 'Password reset successfully! Please sign in with your new password.'
     : '';
-  const initialError = queryError || '';
+
+  let initialError = queryError || '';
+  if (queryReason === 'another_browser') {
+    initialError = 'Your session ended because this account was signed in from another browser.';
+  } else if (queryReason === 'another_device') {
+    initialError = 'Your session ended because this account was signed in from another device.';
+  }
+
+  // Clear local Supabase auth state if arriving from a force-logout revocation
+  useEffect(() => {
+    if (queryReason === 'another_browser' || queryReason === 'another_device') {
+      supabase.auth.signOut().catch(() => {});
+    }
+  }, [queryReason, supabase]);
+
+  // Detect Android TWA platform
+  const isAndroidClient =
+    queryPlatform === 'android' ||
+    (typeof window !== 'undefined' &&
+      (window.location.search.includes('platform=android') ||
+        window.location.search.includes('app_platform=android') ||
+        document.referrer.startsWith('android-app://') ||
+        localStorage.getItem('cf_platform') === 'ANDROID'));
+
+  useEffect(() => {
+    if (isAndroidClient && typeof window !== 'undefined') {
+      localStorage.setItem('cf_platform', 'ANDROID');
+    }
+  }, [isAndroidClient]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,12 +110,18 @@ export function TenantLoginForm({
       }
 
       // 2. Validate session and tenant authorization server-side
+      const platformToSend = isAndroidClient ? 'ANDROID' : 'WEB';
       const verifyRes = await fetch('/api/admin/verify-session', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-platform': platformToSend,
+        },
         body: JSON.stringify({
           targetCollegeId: collegeId || undefined,
           targetCollegeSlug: collegeSlug || undefined,
+          platform: platformToSend,
+          isLogin: true,
         }),
       });
 

@@ -108,6 +108,11 @@ export async function middleware(request: NextRequest) {
       pathname.endsWith('/admin/signup');
 
     if (isLoginOrSignup && user) {
+      const reasonParam = request.nextUrl.searchParams.get('reason');
+      if (reasonParam) {
+        // Do not auto-redirect to dashboard when arriving due to session revocation/superseded login
+        return response;
+      }
       const redirectParam = request.nextUrl.searchParams.get('redirect');
       const dest = redirectParam && redirectParam.startsWith('/admin') ? redirectParam : '/admin/dashboard';
       return NextResponse.redirect(new URL(dest, request.url));

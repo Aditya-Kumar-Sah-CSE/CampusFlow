@@ -27,6 +27,7 @@ import {
 import type { Admin, AdminRequest } from '@/types/database';
 import { useHydrated, formatDateShort, formatTime } from '@/lib/hooks/use-hydrated';
 import { isPrimarySuperAdmin } from '@/lib/auth/admin-auth-shared';
+import { AdminSessionsCard } from '../AdminSessionsCard';
 
 interface Props {
   adminRequests: AdminRequest[];
@@ -316,6 +317,9 @@ export function AdminManagementTab({
           <span>{message.text}</span>
         </div>
       )}
+
+      {/* Active Device & Platform Sessions */}
+      <AdminSessionsCard />
 
       {/* 1. PENDING REQUESTS TABLE */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full min-w-0">

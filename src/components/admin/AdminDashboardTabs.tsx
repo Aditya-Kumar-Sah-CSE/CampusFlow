@@ -9,6 +9,7 @@ import { AdminMobileNav } from './AdminMobileNav';
 import { GoogleConnectionCard } from './GoogleConnectionCard';
 import { LandingPageSettingsCard } from './LandingPageSettingsCard';
 import { DataBackupCard } from './DataBackupCard';
+import { AdminSessionsCard } from './AdminSessionsCard';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -340,6 +341,7 @@ export function AdminDashboardTabs({
 
   const handleSignOut = async () => {
     try {
+      await fetch('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});
       await supabase.auth.signOut();
       router.push('/admin/login');
       router.refresh();
@@ -807,6 +809,9 @@ export function AdminDashboardTabs({
                 </div>
               </div>
             </div>
+
+            {/* Active Platform & Device Sessions Section */}
+            <AdminSessionsCard />
 
             {/* Production Data Backup Section */}
             {activeCollegeId && (

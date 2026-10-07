@@ -48,6 +48,35 @@ export interface AdminSession {
     email: string;
     user_metadata?: Record<string, any>;
   } | null;
+  /** Server-side single-concurrent-session identifier */
+  sessionId?: string | null;
+  /** Active session platform (WEB or ANDROID) */
+  platform?: AdminPlatform | null;
+  /** Set to true if a previous session was superseded or revoked */
+  sessionRevoked?: boolean;
+  /** Machine-readable revocation code */
+  sessionRevokedCode?: 'SESSION_REVOKED';
+  /** Revocation reason (e.g. SUPERSEDED_BY_NEW_LOGIN, USER_LOGOUT) */
+  sessionRevokedReason?: string | null;
+  /** The platform that experienced revocation */
+  sessionRevokedPlatform?: AdminPlatform | null;
+}
+
+export type AdminPlatform = 'WEB' | 'ANDROID';
+
+export interface AdminSessionRecord {
+  id: string;
+  userId: string;
+  platform: AdminPlatform;
+  sessionId: string;
+  deviceId?: string | null;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  createdAt: string;
+  lastSeenAt: string;
+  expiresAt?: string | null;
+  revokedAt?: string | null;
+  revokeReason?: string | null;
 }
 
 export interface CollegeAdminRequest {

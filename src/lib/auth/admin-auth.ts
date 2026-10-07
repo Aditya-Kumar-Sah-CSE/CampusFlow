@@ -6,7 +6,16 @@ import type {
   AdminCollegeMembership,
   CollegeRole,
   MembershipStatus,
+  AdminPlatform,
 } from '@/types/auth';
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_PLATFORM_COOKIE,
+  detectPlatform,
+  validateAdminSession,
+  createAdminSessionRecord,
+  getActiveAdminSessions,
+} from './session-service';
 
 // Re-export client-safe helpers so existing server-side imports continue to work
 export {
@@ -222,6 +231,48 @@ export async function getAdminSession(
     }
   }
 
+  // 5. Validate single-concurrent-session policy
+  const sessionId = cookieStore?.get(ADMIN_SESSION_COOKIE)?.value || null;
+  const platformCookie = cookieStore?.get(ADMIN_PLATFORM_COOKIE)?.value || null;
+  const platform = detectPlatform(null, platformCookie, null, null);
+
+  let sessionRevoked = false;
+  let sessionRevokedReason: string | null = null;
+  let sessionRevokedPlatform: AdminPlatform | null = null;
+  let activeSessionId = sessionId;
+
+  if (hasActiveAccess && userId) {
+    if (sessionId) {
+      const check = await validateAdminSession({
+        userId,
+        sessionId,
+        updateLastSeen: true,
+      });
+
+      if (!check.valid) {
+        sessionRevoked = true;
+        sessionRevokedReason = check.reason || 'REVOKED';
+        sessionRevokedPlatform = check.platform || platform;
+      }
+    } else {
+      // No session cookie present. Check if another active session already exists in DB.
+      const activeSessions = await getActiveAdminSessions(userId);
+      const existing = platform === 'ANDROID' ? activeSessions.androidSession : activeSessions.webSession;
+      if (existing) {
+        sessionRevoked = true;
+        sessionRevokedReason = 'SUPERSEDED_BY_NEW_LOGIN';
+        sessionRevokedPlatform = platform;
+      } else {
+        // First-time bootstrap for existing active admins
+        const claimed = await createAdminSessionRecord({
+          userId,
+          platform,
+        });
+        activeSessionId = claimed.sessionId;
+      }
+    }
+  }
+
   return {
     userId,
     email: userEmail,
@@ -230,13 +281,19 @@ export async function getAdminSession(
     colleges: authorizedColleges,
     activeCollegeId,
     activeCollege,
-    isAuthenticated: true,
-    isActive: hasActiveAccess,
+    isAuthenticated: !sessionRevoked,
+    isActive: hasActiveAccess && !sessionRevoked,
     isPending,
     isRejected,
     isSuperAdmin: isPlatformSuperAdmin,
-    isApproved: hasActiveAccess,
-    admin: hasActiveAccess
+    isApproved: hasActiveAccess && !sessionRevoked,
+    sessionId: activeSessionId,
+    platform,
+    sessionRevoked,
+    sessionRevokedCode: sessionRevoked ? 'SESSION_REVOKED' : undefined,
+    sessionRevokedReason: sessionRevoked ? sessionRevokedReason : undefined,
+    sessionRevokedPlatform: sessionRevoked ? sessionRevokedPlatform : undefined,
+    admin: hasActiveAccess && !sessionRevoked
       ? {
           id: userId,
           user_id: userId,
@@ -268,6 +325,12 @@ export async function requireAdminSession(options?: {
   const session = await getAdminSession(options?.client, {
     cookieTenantId: options?.cookieTenantId,
   });
+
+  if (session.sessionRevoked) {
+    const isAndroid = session.sessionRevokedPlatform === 'ANDROID';
+    const reasonParam = isAndroid ? 'another_device' : 'another_browser';
+    redirect(`/admin/login?reason=${reasonParam}`);
+  }
 
   if (!session.isAuthenticated) {
     redirect(options?.redirectTo || '/admin/login');
