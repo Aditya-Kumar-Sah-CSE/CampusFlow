@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateResponseToken, verifyResponseToken } from '@/lib/feedback/response-token';
 import { sendStudentSubmissionConfirmationEmail } from '@/lib/email/service';
+import { syncFormResponsesToSheet } from '@/lib/google/sync';
 import { appUrl } from '@/lib/config/app';
 
 export interface VerifiedConfirmationData {
@@ -119,7 +120,22 @@ export async function verifyStudentSubmissionAction(params: {
     };
   }
 
-  const { data: rec } = await supabase
+  // 1. Resolve actual form UUID in case google_form_id or alternate key was passed
+  let resolvedFormId = formId;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(formId);
+  if (!isUuid) {
+    const { data: matchedForm } = await supabase
+      .from('feedback_forms')
+      .select('id')
+      .eq('google_form_id', formId)
+      .maybeSingle();
+    if (matchedForm) {
+      resolvedFormId = matchedForm.id;
+    }
+  }
+
+  // 2. Query existing verified record
+  let { data: rec } = await supabase
     .from('feedback_response_records')
     .select(`
       id,
@@ -139,11 +155,84 @@ export async function verifyStudentSubmissionAction(params: {
         academic_year:academic_years(name)
       )
     `)
-    .eq('form_id', formId)
+    .eq('form_id', resolvedFormId)
     .ilike('student_email', normalizedEmail)
     .order('submitted_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // 3. If not found in DB yet, trigger instant on-demand sync with Google Forms
+  if (!rec) {
+    try {
+      await syncFormResponsesToSheet({ formId: resolvedFormId, skipAuthCheck: true });
+      const { data: retryRec } = await supabase
+        .from('feedback_response_records')
+        .select(`
+          id,
+          google_response_id,
+          student_email,
+          student_name,
+          registration_number,
+          submitted_at,
+          email_status,
+          form:feedback_forms(
+            id,
+            title,
+            college_id,
+            college:colleges(id, name, slug, code, logo_url),
+            branch:branches(name),
+            semester:semesters(name),
+            academic_year:academic_years(name)
+          )
+        `)
+        .eq('form_id', resolvedFormId)
+        .ilike('student_email', normalizedEmail)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      rec = retryRec;
+    } catch (syncErr) {
+      console.warn('[verifyStudentSubmissionAction] On-demand sync attempt notice:', syncErr);
+    }
+  }
+
+  // 4. Fallback: if student submitted on a form with anonymous/disabled Google Form email collection
+  if (!rec) {
+    const { data: recentUnboundRec } = await supabase
+      .from('feedback_response_records')
+      .select(`
+        id,
+        google_response_id,
+        student_email,
+        student_name,
+        registration_number,
+        submitted_at,
+        email_status,
+        form:feedback_forms(
+          id,
+          title,
+          college_id,
+          college:colleges(id, name, slug, code, logo_url),
+          branch:branches(name),
+          semester:semesters(name),
+          academic_year:academic_years(name)
+        )
+      `)
+      .eq('form_id', resolvedFormId)
+      .or('student_email.is.null,student_email.eq.')
+      .order('submitted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (recentUnboundRec && recentUnboundRec.form) {
+      await supabase
+        .from('feedback_response_records')
+        .update({ student_email: normalizedEmail })
+        .eq('id', recentUnboundRec.id);
+      recentUnboundRec.student_email = normalizedEmail;
+      rec = recentUnboundRec;
+    }
+  }
 
   if (!rec || !rec.form) {
     return {
@@ -156,7 +245,7 @@ export async function verifyStudentSubmissionAction(params: {
   const form: any = rec.form;
   const token = generateResponseToken({
     responseId: rec.google_response_id,
-    formId,
+    formId: resolvedFormId,
     email: rec.student_email,
   });
 

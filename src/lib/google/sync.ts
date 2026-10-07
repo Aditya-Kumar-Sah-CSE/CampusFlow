@@ -250,7 +250,16 @@ export async function syncFormResponsesToSheet(params: {
       }
 
       const timestamp = resp.lastSubmittedTime || resp.createTime || new Date().toISOString();
-      const email = resp.respondentEmail || '';
+      let email = resp.respondentEmail || '';
+      if (!email && resp.answers) {
+        for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
+          const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
+          if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+            email = val;
+            break;
+          }
+        }
+      }
       const studentName = (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || '';
       const regNo = (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || '';
       const comments = (commentsQuestionId && resp.answers?.[commentsQuestionId]?.textAnswers?.answers?.[0]?.value) || '';
@@ -358,10 +367,20 @@ export async function syncFormResponsesToSheet(params: {
           for (const resp of allResponses) {
             const responseId = resp.responseId;
             if (!responseId) continue;
+            let respEmail = resp.respondentEmail || '';
+            if (!respEmail && resp.answers) {
+              for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
+                const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
+                if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                  respEmail = val;
+                  break;
+                }
+              }
+            }
             trackingMap.set(responseId, {
               responseId,
               timestamp: resp.lastSubmittedTime || resp.createTime || new Date().toISOString(),
-              email: resp.respondentEmail || '',
+              email: respEmail,
               studentName: (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || null,
               registrationNumber: (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || null,
             });
@@ -382,11 +401,21 @@ export async function syncFormResponsesToSheet(params: {
                 // For native Google Sheets linked to forms that don't have a dedicated "Response ID" column
                 rId = `row-${rowIndex + 2}`;
               }
+              let rowEmail = String((emailIdx !== -1 ? row[emailIdx] : '') || '').trim();
+              if (!rowEmail) {
+                for (const cell of row) {
+                  const s = String(cell || '').trim();
+                  if (s && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
+                    rowEmail = s;
+                    break;
+                  }
+                }
+              }
               if (!trackingMap.has(rId)) {
                 trackingMap.set(rId, {
                   responseId: rId,
                   timestamp: String((tsIdx !== -1 ? row[tsIdx] : '') || new Date().toISOString()),
-                  email: String((emailIdx !== -1 ? row[emailIdx] : '') || '').trim(),
+                  email: rowEmail,
                   studentName: nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : null,
                   registrationNumber: regIdx !== -1 && row[regIdx] ? String(row[regIdx]).trim() : null,
                 });
