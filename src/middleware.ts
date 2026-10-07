@@ -109,8 +109,10 @@ export async function middleware(request: NextRequest) {
 
     if (isLoginOrSignup && user) {
       const reasonParam = request.nextUrl.searchParams.get('reason');
-      if (reasonParam) {
-        // Do not auto-redirect to dashboard when arriving due to session revocation/superseded login
+      const hasAdminSessionCookie = request.cookies.has('cf_admin_session_id');
+
+      // If arriving with a reason OR if the single-session cookie is absent, allow login screen
+      if (reasonParam || !hasAdminSessionCookie) {
         return response;
       }
       const redirectParam = request.nextUrl.searchParams.get('redirect');

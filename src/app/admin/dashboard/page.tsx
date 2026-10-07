@@ -24,6 +24,12 @@ export const revalidate = 0;
 export default async function AdminDashboardPage() {
   const session = await getAdminSession();
 
+  if (session.sessionRevoked) {
+    const isAndroid = session.sessionRevokedPlatform === 'ANDROID';
+    const reasonParam = isAndroid ? 'another_device' : 'session-revoked';
+    redirect(`/admin/login?reason=${reasonParam}`);
+  }
+
   if (!session.isAuthenticated) {
     redirect('/admin/login');
   }
