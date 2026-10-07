@@ -45,7 +45,7 @@ interface Props {
   feedbackForms: FeedbackForm[];
   auditLogs: AuditLog[];
   isSuperAdmin: boolean;
-  onNavigateTab: (tab: string) => void;
+  onNavigateTab: (tab: string, subtab?: string) => void;
   counts?: DashboardCounts;
 }
 
@@ -88,6 +88,7 @@ export function OverviewTab({
       icon: Users,
       color: 'from-blue-600 to-indigo-600',
       tab: 'academic',
+      subtab: 'faculties',
     },
     {
       title: 'Subjects',
@@ -96,6 +97,7 @@ export function OverviewTab({
       icon: BookOpen,
       color: 'from-violet-600 to-purple-600',
       tab: 'academic',
+      subtab: 'subjects',
     },
     {
       title: 'Branches / Depts',
@@ -104,6 +106,7 @@ export function OverviewTab({
       icon: Layers,
       color: 'from-emerald-600 to-teal-600',
       tab: 'academic',
+      subtab: 'branches',
     },
     {
       title: 'Academic Years',
@@ -112,6 +115,7 @@ export function OverviewTab({
       icon: Calendar,
       color: 'from-amber-500 to-orange-600',
       tab: 'academic',
+      subtab: 'years',
     },
     {
       title: 'Faculty Assignments',
@@ -120,6 +124,7 @@ export function OverviewTab({
       icon: GraduationCap,
       color: 'from-cyan-600 to-blue-600',
       tab: 'academic',
+      subtab: 'assignments',
     },
     {
       title: 'Feedback Forms',
@@ -128,6 +133,7 @@ export function OverviewTab({
       icon: FileSpreadsheet,
       color: 'from-pink-600 to-rose-600',
       tab: 'forms',
+      subtab: undefined,
     },
     {
       title: 'Pending Admin Requests',
@@ -136,6 +142,7 @@ export function OverviewTab({
       icon: Clock,
       color: pendingRequestsCount > 0 ? 'from-amber-500 to-red-500' : 'from-slate-600 to-slate-700',
       tab: 'admins',
+      subtab: undefined,
       alert: pendingRequestsCount > 0,
     },
     {
@@ -145,6 +152,7 @@ export function OverviewTab({
       icon: Activity,
       color: 'from-slate-700 to-slate-800',
       tab: 'audit',
+      subtab: undefined,
     },
   ];
 
@@ -182,7 +190,7 @@ export function OverviewTab({
           return (
             <button
               key={idx}
-              onClick={() => onNavigateTab(item.tab)}
+              onClick={() => onNavigateTab(item.tab, item.subtab)}
               className="text-left bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group w-full min-w-0"
             >
               <div className="flex items-start justify-between gap-1.5 min-w-0 w-full">
@@ -225,7 +233,7 @@ export function OverviewTab({
 
           <div className="space-y-2.5 pt-1">
             <button
-              onClick={() => onNavigateTab('academic')}
+              onClick={() => onNavigateTab('academic', 'faculties')}
               className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors flex items-center justify-between gap-2 min-h-[44px]"
             >
               <div className="min-w-0 flex-1">
@@ -236,7 +244,7 @@ export function OverviewTab({
             </button>
 
             <button
-              onClick={() => onNavigateTab('academic')}
+              onClick={() => onNavigateTab('academic', 'assignments')}
               className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors flex items-center justify-between gap-2 min-h-[44px]"
             >
               <div className="min-w-0 flex-1">

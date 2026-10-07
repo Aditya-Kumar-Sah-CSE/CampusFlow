@@ -31,6 +31,7 @@ import {
   FileSpreadsheet,
   Loader2,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface Props {
@@ -192,6 +193,13 @@ export function ResultsDashboardClient({
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/admin/dashboard"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-bold rounded-xl transition-all border border-slate-200 shadow-2xs cursor-pointer select-none"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Dashboard</span>
+            </Link>
             <button
               type="button"
               onClick={handleDownloadScopePdf}

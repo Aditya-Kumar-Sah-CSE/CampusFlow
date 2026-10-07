@@ -38,6 +38,7 @@ export async function middleware(request: NextRequest) {
     'privacy-policy',
     'terms-of-service',
     'google63a0b427ff26a6fc.html',
+    'overview',
   ];
   if (firstSegment && !reservedPrefixes.includes(firstSegment) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(firstSegment)) {
     requestHeaders.set('x-tenant-slug', firstSegment);
@@ -95,7 +96,8 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/admin/dashboard')) {
       if (!user) {
         const loginUrl = new URL('/admin/login', request.url);
-        loginUrl.searchParams.set('redirect', pathname);
+        const fullPath = request.nextUrl.pathname + (request.nextUrl.search || '');
+        loginUrl.searchParams.set('redirect', fullPath);
         return NextResponse.redirect(loginUrl);
       }
     }

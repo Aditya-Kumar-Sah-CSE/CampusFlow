@@ -94,7 +94,7 @@ export default async function AdminInstitutionsLayout({
 
             {/* Back to Dashboard Link */}
             <Link
-              href="/admin/dashboard"
+              href="/admin/dashboard?tab=institutions"
               className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-amber-300 bg-slate-800/90 hover:bg-slate-800 hover:text-amber-200 border border-amber-500/30 transition-colors"
               title="Return to Main Dashboard"
             >

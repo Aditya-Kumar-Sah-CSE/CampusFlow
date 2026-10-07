@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   createAcademicYearAction,
   updateAcademicYearAction,
@@ -52,6 +53,23 @@ import type {
 import { PaginationControl } from '@/components/ui/PaginationControl';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
+export type AcademicSubTab =
+  | 'faculties'
+  | 'subjects'
+  | 'assignments'
+  | 'years'
+  | 'branches'
+  | 'semesters';
+
+const VALID_ACADEMIC_SUBTABS: AcademicSubTab[] = [
+  'faculties',
+  'subjects',
+  'assignments',
+  'years',
+  'branches',
+  'semesters',
+];
+
 interface Props {
   academicYears: AcademicYear[];
   branches: Branch[];
@@ -63,6 +81,7 @@ interface Props {
   initialSubjectTotal?: number;
   initialAssignmentTotal?: number;
   activeCollegeId?: string;
+  initialSubTab?: string;
 }
 
 export function AcademicManagementTab({
@@ -76,10 +95,58 @@ export function AcademicManagementTab({
   initialSubjectTotal,
   initialAssignmentTotal,
   activeCollegeId,
+  initialSubTab,
 }: Props) {
-  const [activeSubTab, setActiveSubTab] = useState<
-    'faculties' | 'subjects' | 'assignments' | 'years' | 'branches' | 'semesters'
-  >('faculties');
+  const searchParams = useSearchParams();
+
+  const getSubTabFromUrl = useCallback((): AcademicSubTab => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sub = urlParams.get('subtab');
+      if (sub && VALID_ACADEMIC_SUBTABS.includes(sub as AcademicSubTab)) {
+        return sub as AcademicSubTab;
+      }
+    }
+    const param = searchParams?.get('subtab');
+    if (param && VALID_ACADEMIC_SUBTABS.includes(param as AcademicSubTab)) {
+      return param as AcademicSubTab;
+    }
+    if (initialSubTab && VALID_ACADEMIC_SUBTABS.includes(initialSubTab as AcademicSubTab)) {
+      return initialSubTab as AcademicSubTab;
+    }
+    return 'faculties';
+  }, [searchParams, initialSubTab]);
+
+  const [activeSubTab, setActiveSubTab] = useState<AcademicSubTab>(getSubTabFromUrl);
+
+  const handleSubTabChange = useCallback((nextSubTab: AcademicSubTab) => {
+    setActiveSubTab(nextSubTab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'academic');
+      url.searchParams.set('subtab', nextSubTab);
+      window.history.pushState(null, '', url.toString());
+    }
+  }, []);
+
+  // Listen for browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const nextSub = getSubTabFromUrl();
+      setActiveSubTab(nextSub);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [getSubTabFromUrl]);
+
+  // Sync on searchParams update
+  useEffect(() => {
+    const nextSub = getSubTabFromUrl();
+    if (nextSub !== activeSubTab) {
+      setActiveSubTab(nextSub);
+    }
+  }, [getSubTabFromUrl, activeSubTab]);
+
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -960,7 +1027,7 @@ export function AcademicManagementTab({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveSubTab(tab.id as any)}
+              onClick={() => handleSubTabChange(tab.id as AcademicSubTab)}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 min-h-[40px] sm:min-h-[36px] ${
                 isActive
                   ? 'bg-bce-navy text-amber-400 shadow-sm'

@@ -21,7 +21,31 @@ import type {
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    tab?: string;
+    subtab?: string;
+    [key: string]: string | string[] | undefined;
+  }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const rawTab = typeof resolvedParams.tab === 'string' ? resolvedParams.tab.toLowerCase().trim() : undefined;
+  const rawSubTab = typeof resolvedParams.subtab === 'string' ? resolvedParams.subtab.toLowerCase().trim() : undefined;
+
+  // Route alias: if tab=results, redirect directly to the dedicated results route
+  if (rawTab === 'results') {
+    redirect('/admin/dashboard/results');
+  }
+
+  // Route alias: map sub-tabs or common aliases (students, attendance, etc.) to academic structure
+  const academicSubTabs = ['faculties', 'faculty', 'subjects', 'assignments', 'years', 'branches', 'semesters', 'students', 'attendance'];
+  if (rawTab && academicSubTabs.includes(rawTab)) {
+    const targetSub = (rawTab === 'faculty' || rawTab === 'students' || rawTab === 'attendance') ? 'faculties' : rawTab;
+    redirect(`/admin/dashboard?tab=academic&subtab=${targetSub}`);
+  }
+
   const session = await getAdminSession();
 
   if (session.sessionRevoked) {
@@ -236,6 +260,8 @@ export default async function AdminDashboardPage() {
         activeCollegeCode={session.activeCollege?.code || undefined}
         activeCollegeSlug={session.activeCollege?.slug || undefined}
         activeCollegeLogoUrl={session.activeCollege?.logoUrl || undefined}
+        initialTab={rawTab}
+        initialSubTab={rawSubTab}
         googleStatus={
           googleStatus
             ? {

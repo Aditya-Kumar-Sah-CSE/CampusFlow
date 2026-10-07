@@ -273,7 +273,7 @@ export default async function FeedbackFormsPage({
 
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/dashboard"
+            href="/admin/dashboard?tab=forms"
             className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100 hover:border-slate-400 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 shadow-2xs hover:shadow-xs cursor-pointer select-none"
           >
             ← Admin Console
