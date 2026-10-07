@@ -146,7 +146,7 @@ export async function ensureSubFolders(
 export async function cleanupAcademicDriveStructure(
   drive: any,
   academicFolderId: string,
-  targetMap: Map<string, string>
+  _targetMap?: Map<string, string>
 ): Promise<DriveCleanupReport> {
   const logs: string[] = [];
   let migratedFilesCount = 0;
@@ -162,34 +162,8 @@ export async function cleanupAcademicDriveStructure(
 
     const subfolders = listRes.data.files || [];
 
-    // Map old fragmented folder names to their consolidated target folder key
-    const redundantFolderToTargetKey: Record<string, string> = {
-      'faculty': 'faculty & assignments',
-      'faculties': 'faculty & assignments',
-      'faculty subject assignments': 'faculty & assignments',
-      'subjects': 'subjects & branches',
-      'branches': 'subjects & branches',
-      'academic years': 'academic years & semesters',
-      'semesters': 'academic years & semesters',
-    };
-
     for (const folder of subfolders) {
-      const lowerName = folder.name?.toLowerCase().trim() || '';
-      const targetKey = redundantFolderToTargetKey[lowerName];
-
-      if (!targetKey) {
-        // Not a redundant folder (e.g. 'college profile', 'faculty & assignments', etc.)
-        continue;
-      }
-
-      const targetFolderId = targetMap.get(targetKey);
-      if (!targetFolderId) {
-        logs.push(`[DriveCleanup] Target folder for "${folder.name}" (${targetKey}) not found in map. Skipping.`);
-        preservedFoldersCount++;
-        continue;
-      }
-
-      // Check all files/subfolders inside this redundant folder
+      // Check all files/subfolders inside this subfolder
       const filesRes = await drive.files.list({
         q: `'${folder.id}' in parents and trashed = false`,
         fields: 'files(id, name, mimeType)',
@@ -198,20 +172,20 @@ export async function cleanupAcademicDriveStructure(
 
       const files = filesRes.data.files || [];
 
-      // If files exist, safely migrate them into the target folder
+      // If files exist, safely migrate them into academicFolderId root
       if (files.length > 0) {
-        logs.push(`[DriveCleanup] Found ${files.length} file(s) in redundant folder "${folder.name}". Migrating to "${targetKey}"...`);
+        logs.push(`[DriveCleanup] Found ${files.length} file(s) in subfolder "${folder.name}". Migrating to Academic Structure root...`);
 
         for (const file of files) {
           try {
             await drive.files.update({
               fileId: file.id,
-              addParents: targetFolderId,
+              addParents: academicFolderId,
               removeParents: folder.id,
               fields: 'id, parents',
             });
             migratedFilesCount++;
-            logs.push(`[DriveCleanup] Migrated file "${file.name}" (${file.id}) from "${folder.name}".`);
+            logs.push(`[DriveCleanup] Migrated file "${file.name}" (${file.id}) to Academic Structure.`);
           } catch (moveErr: any) {
             logs.push(`[DriveCleanup] Warning migrating file "${file.name}" (${file.id}): ${moveErr.message}`);
           }
@@ -222,7 +196,7 @@ export async function cleanupAcademicDriveStructure(
       const verifyRes = await drive.files.list({
         q: `'${folder.id}' in parents and trashed = false`,
         fields: 'files(id, name)',
-        pageSize: 10,
+        pageSize: 5,
       });
 
       const remainingItems = verifyRes.data.files || [];
@@ -233,7 +207,7 @@ export async function cleanupAcademicDriveStructure(
             requestBody: { trashed: true },
           });
           removedFoldersCount++;
-          logs.push(`[DriveCleanup] Safely removed empty redundant folder "${folder.name}" (${folder.id}).`);
+          logs.push(`[DriveCleanup] Safely removed empty subfolder "${folder.name}" (${folder.id}).`);
         } catch (delErr: any) {
           logs.push(`[DriveCleanup] Error removing empty folder "${folder.name}": ${delErr.message}`);
           preservedFoldersCount++;
@@ -453,6 +427,90 @@ export async function cleanupCollegeDriveStructure(params: {
     report.logs.push(`[DriveCleanup] Notice during top-level folder cleanup: ${topErr.message}`);
   }
 
+  // Step 4: Clean up legacy folders and organize loose spreadsheets in Backup folder
+  if (backupFolderId) {
+    try {
+      // 4a. Check for legacy 'Snapshots' folder (empty)
+      const snapRes = await drive.files.list({
+        q: `'${backupFolderId}' in parents and name = 'Snapshots' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: 'files(id, name)',
+      });
+      for (const snap of (snapRes.data.files || [])) {
+        const snapItems = await drive.files.list({ q: `'${snap.id}' in parents and trashed = false`, fields: 'files(id)' });
+        if (!snapItems.data.files || snapItems.data.files.length === 0) {
+          await drive.files.update({ fileId: snap.id, requestBody: { trashed: true } });
+          report.removedFoldersCount++;
+          report.logs.push(`[DriveCleanup] Removed empty legacy folder "${snap.name}" (${snap.id}).`);
+        }
+      }
+
+      // 4b. Consolidate legacy 'Manifests' into 'Backup Manifests'
+      const manRes = await drive.files.list({
+        q: `'${backupFolderId}' in parents and name = 'Manifests' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: 'files(id, name)',
+      });
+      const backupManRes = await drive.files.list({
+        q: `'${backupFolderId}' in parents and name = 'Backup Manifests' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: 'files(id, name)',
+      });
+      const targetManFolderId = backupManRes.data.files?.[0]?.id;
+
+      for (const man of (manRes.data.files || [])) {
+        const items = await drive.files.list({ q: `'${man.id}' in parents and trashed = false`, fields: 'files(id, name)' });
+        if (items.data.files && items.data.files.length > 0 && targetManFolderId) {
+          for (const item of items.data.files) {
+            await drive.files.update({
+              fileId: item.id,
+              addParents: targetManFolderId,
+              removeParents: man.id,
+              fields: 'id, parents',
+            });
+            report.migratedFilesCount++;
+            report.logs.push(`[DriveCleanup] Migrated "${item.name}" from Manifests to Backup Manifests.`);
+          }
+        }
+        await drive.files.update({ fileId: man.id, requestBody: { trashed: true } });
+        report.removedFoldersCount++;
+        report.logs.push(`[DriveCleanup] Removed legacy folder "${man.name}" (${man.id}).`);
+      }
+
+      // 4c. Move loose spreadsheets in Backup into their respective subfolders
+      const auditExportsFolderId = (await drive.files.list({
+        q: `'${backupFolderId}' in parents and name = 'Audit Exports' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: 'files(id)',
+      })).data.files?.[0]?.id;
+
+      const looseFiles = await drive.files.list({
+        q: `'${backupFolderId}' in parents and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+        fields: 'files(id, name)',
+      });
+
+      for (const file of (looseFiles.data.files || [])) {
+        if (file.name.includes('Audit Logs') && auditExportsFolderId) {
+          await drive.files.update({
+            fileId: file.id,
+            addParents: auditExportsFolderId,
+            removeParents: backupFolderId,
+            fields: 'id, parents',
+          });
+          report.migratedFilesCount++;
+          report.logs.push(`[DriveCleanup] Organized loose spreadsheet "${file.name}" into Audit Exports.`);
+        } else if ((file.name.includes('Backup Manifest') || file.name.includes('Billing Backup')) && targetManFolderId) {
+          await drive.files.update({
+            fileId: file.id,
+            addParents: targetManFolderId,
+            removeParents: backupFolderId,
+            fields: 'id, parents',
+          });
+          report.migratedFilesCount++;
+          report.logs.push(`[DriveCleanup] Organized loose spreadsheet "${file.name}" into Backup Manifests.`);
+        }
+      }
+    } catch (backupCleanupErr: any) {
+      report.logs.push(`[DriveCleanup] Notice during Backup folder cleanup: ${backupCleanupErr.message}`);
+    }
+  }
+
   return report;
 }
 
@@ -551,13 +609,8 @@ export async function ensureCollegeBackupStructure(
     instSubFolders.get('billing') ||
     (await resolveFolder(drive, 'Billing', instFolder.id)).id;
 
-  // 5. Minimal, consolidated subfolders under Academic Structure
-  const academicSubs = await ensureSubFolders(drive, academicFolderId, [
-    'College Profile',
-    'Faculty & Assignments',
-    'Subjects & Branches',
-    'Academic Years & Semesters',
-  ]);
+  // 5. Academic Structure: unified master spreadsheet (no redundant subfolders)
+  const academicSubs = new Map<string, string>();
 
   // Run deep cleanup & migration of old fragmented folders across Drive
   const cleanupReport = await cleanupCollegeDriveStructure({

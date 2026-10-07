@@ -54,11 +54,42 @@ export async function getCollegeBackupState(collegeId: string): Promise<CollegeB
       .eq('college_id', collegeId)
       .maybeSingle();
 
-    if (error && (error.code === '42P01' || error.message.includes('does not exist'))) {
-      return null;
+    if (!error && data) {
+      return data as CollegeBackupState;
     }
 
-    return (data as CollegeBackupState) || null;
+    // Fail-soft fallback: If table does not exist or has no record yet, synthesize from latest audit_logs
+    const { data: latestLog } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('college_id', collegeId)
+      .in('action', ['BACKUP_COMPLETED', 'BACKUP_FAILED'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (latestLog) {
+      const isSuccess = latestLog.action === 'BACKUP_COMPLETED';
+      const isVerified = Boolean(latestLog.details?.includes('Verification: VERIFIED'));
+      const isMismatch = Boolean(latestLog.details?.includes('Verification: MISMATCH'));
+      const matchRecords = latestLog.details?.match(/(\d+)\s+records processed/);
+      const totalRecords = matchRecords ? parseInt(matchRecords[1], 10) : 0;
+
+      return {
+        college_id: collegeId,
+        last_backup_id: latestLog.entity_id || null,
+        last_backup_at: latestLog.created_at,
+        last_successful_backup_at: isSuccess ? latestLog.created_at : null,
+        last_backup_status: isSuccess ? 'SUCCESS' : 'FAILED',
+        last_verification_status: isVerified ? 'VERIFIED' : (isMismatch ? 'MISMATCH' : 'UNVERIFIED'),
+        total_records_backed_up: totalRecords,
+        last_error: isSuccess ? null : latestLog.details,
+        created_at: latestLog.created_at,
+        updated_at: latestLog.created_at,
+      } as CollegeBackupState;
+    }
+
+    return null;
   } catch {
     return null;
   }
