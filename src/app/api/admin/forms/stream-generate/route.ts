@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       await sendEvent({
         status: 'COMPLETED',
         stepNumber: 5,
-        message: 'Google Form and response Sheet successfully generated!',
+        message: 'Google Form and response Sheet successfully generated & organized in Google Drive!',
         form: provRes.form,
       });
     } catch (err: unknown) {

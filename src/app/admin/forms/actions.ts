@@ -21,6 +21,10 @@ import { linkFormToSpreadsheet } from '@/lib/google/linking';
 import { syncFormResponsesToSheet } from '@/lib/google/sync';
 import { getFormConfirmationMessage } from '@/lib/google/template';
 import {
+  organizeFormAndSheetInDrive,
+  organizeAllCollegeFeedbackFormsInDrive,
+} from '@/lib/google/feedback-drive';
+import {
   generateFeedbackFormTitle,
   generateFeedbackFormDescription,
   generateSemesterFormTitle,
@@ -625,10 +629,10 @@ export async function provisionGoogleFormAndSheetAction(params: {
   const adminEmail = session.admin?.email || session.user?.email || '';
   const supabase = params.client || (await getAdminDb());
 
-  // Authoritatively lookup draft form to extract institution
+  // Authoritatively lookup draft form to extract institution & academic session
   const { data: draftRecord, error: draftFetchErr } = await supabase
     .from('feedback_forms')
-    .select('id, college_id, college:colleges(id, slug)')
+    .select('id, college_id, academic_year_id, academic_year:academic_years(id, name), college:colleges(id, name, slug)')
     .eq('id', params.draftFormId)
     .maybeSingle();
 
@@ -696,6 +700,40 @@ export async function provisionGoogleFormAndSheetAction(params: {
       confirmationMessage,
       targetCollegeId
     );
+
+    // Organize Google Form & Sheet into Drive session hierarchy
+    // (CampusFlow / <Institution> / Feedback Forms / <Academic Year (e.g. 2026-2027)> / <Form Title> /)
+    let driveOrganizationResult: { formFolderId?: string; formFolderUrl?: string; sessionFolderId?: string } | null = null;
+    try {
+      const academicYearObj = (draftRecord as any)?.academic_year;
+      let academicYearName = Array.isArray(academicYearObj) ? academicYearObj[0]?.name : academicYearObj?.name;
+      if (!academicYearName && (draftRecord as any)?.academic_year_id) {
+        const { data: yr } = await supabase
+          .from('academic_years')
+          .select('name')
+          .eq('id', (draftRecord as any).academic_year_id)
+          .maybeSingle();
+        academicYearName = yr?.name;
+      }
+      academicYearName = academicYearName || 'General Session';
+
+      const collegeName =
+        (Array.isArray(collegeObj) ? collegeObj[0]?.name : collegeObj?.name) ||
+        session.colleges?.find((c) => c.collegeId === targetCollegeId)?.name ||
+        session.activeCollege?.name ||
+        'Institution';
+
+      driveOrganizationResult = await organizeFormAndSheetInDrive({
+        collegeId: targetCollegeId,
+        collegeName,
+        academicYearName,
+        formTitle: params.title,
+        googleFormId: googleFormResult.formId,
+        googleSheetId: googleSheetResult.spreadsheetId,
+      });
+    } catch (driveErr: any) {
+      console.warn('[provisionGoogleFormAndSheetAction] Drive folder organization notice:', driveErr?.message || driveErr);
+    }
 
     // If multi-faculty items exist, save to feedback_form_items junction table
     if (params.items && params.items.length > 0) {
@@ -787,6 +825,22 @@ export async function provisionGoogleFormAndSheetAction(params: {
           destinationType: linkingResult.destinationType,
         }
       ),
+      ...(driveOrganizationResult?.formFolderId
+        ? [
+            logAuditAction(
+              supabase,
+              { adminId, email: adminEmail },
+              'FORM_DRIVE_ORGANIZED',
+              'feedback_forms',
+              googleFormResult.formId,
+              `Organized Google Form and Sheet into Drive session folder`,
+              {
+                formFolderId: driveOrganizationResult.formFolderId,
+                formFolderUrl: driveOrganizationResult.formFolderUrl,
+              }
+            ),
+          ]
+        : []),
     ]);
 
     try {
@@ -809,6 +863,7 @@ export async function provisionGoogleFormAndSheetAction(params: {
         response_destination_type: linkingResult.destinationType,
       },
       destinationType: linkingResult.destinationType,
+      driveFolderUrl: driveOrganizationResult?.formFolderUrl,
       message: `Google Form successfully created in DRAFT state. Response destination: ${
         linkingResult.destinationType === 'NATIVE_SHEET'
           ? 'Native Google Form Destination (Google Apps Script)'
@@ -1162,5 +1217,26 @@ export async function deleteFeedbackFormAction(formId: string) {
     success: true,
     message: `Form "${form.title}" deleted successfully.`,
   };
+}
+
+/**
+ * Admin action to reorganize all college feedback forms and sheets
+ * into their respective academic session folders in Google Drive.
+ */
+export async function organizeAllFormsInDriveAction() {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized. Active admin session required.' };
+  }
+  const collegeId = session.activeCollege?.collegeId || session.colleges?.[0]?.collegeId;
+  if (!collegeId) {
+    return { success: false, error: 'No active institution found in session.' };
+  }
+  try {
+    const result = await organizeAllCollegeFeedbackFormsInDrive(collegeId);
+    return result;
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to organize forms in Google Drive.' };
+  }
 }
 

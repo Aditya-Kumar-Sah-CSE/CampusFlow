@@ -54,9 +54,6 @@ export async function getOrCreateDriveFolder(
   };
 }
 
-/**
- * Moves a file (Form or Sheet) into a designated Google Drive folder.
- */
 export async function moveDriveFileToFolder(
   drive: any,
   fileId: string,
@@ -65,7 +62,11 @@ export async function moveDriveFileToFolder(
   if (!fileId || !targetFolderId) return;
   try {
     const fileInfo = await drive.files.get({ fileId, fields: 'parents' });
-    const prevParents = (fileInfo.data.parents || []).join(',');
+    const currentParents: string[] = fileInfo.data.parents || [];
+    if (currentParents.includes(targetFolderId)) {
+      return; // Already in destination folder
+    }
+    const prevParents = currentParents.join(',');
     await drive.files.update({
       fileId,
       addParents: targetFolderId,
@@ -75,6 +76,64 @@ export async function moveDriveFileToFolder(
   } catch (moveErr: any) {
     console.warn(`[FeedbackDrive] Move warning for file [${fileId}]:`, moveErr?.message || moveErr);
   }
+}
+
+/**
+ * Automatically places a newly provisioned Google Form and response Google Sheet
+ * into the institutional folder hierarchy in Google Drive:
+ * CampusFlow / <College Name> / Feedback Forms / <Academic Year Name> / <Form Title> /
+ */
+export async function organizeFormAndSheetInDrive(params: {
+  collegeId: string;
+  collegeName: string;
+  academicYearName: string;
+  formTitle: string;
+  googleFormId?: string | null;
+  googleSheetId?: string | null;
+}): Promise<{
+  formFolderId: string;
+  formFolderUrl: string;
+  sessionFolderId: string;
+  sessionFolderUrl: string;
+}> {
+  const { collegeId, collegeName, academicYearName, formTitle, googleFormId, googleSheetId } = params;
+
+  return executeWithCollegeGoogleOAuthRetry(collegeId, async ({ drive }) => {
+    // 1. Root: CampusFlow
+    const campusFlowFolder = await getOrCreateDriveFolder(drive, 'CampusFlow');
+
+    // 2. Institution Level: <Institution Name>
+    const cleanInstName = collegeName.trim() || 'Institution';
+    const institutionFolder = await getOrCreateDriveFolder(drive, cleanInstName, campusFlowFolder.id);
+
+    // 3. Feedback Forms Level
+    const feedbackRootFolder = await getOrCreateDriveFolder(drive, 'Feedback Forms', institutionFolder.id);
+
+    // 4. Session Level: e.g. 2026-2027
+    const sessionClean = (academicYearName || 'General Session').trim().replace(/[/\\?%*:|"<>]/g, '-');
+    const sessionFolder = await getOrCreateDriveFolder(drive, sessionClean, feedbackRootFolder.id);
+
+    // 5. Form Level: <Form Title>
+    const cleanTitle = (formTitle || 'Feedback Form').trim().replace(/[/\\?%*:|"<>]/g, '—').slice(0, 100);
+    const formFolder = await getOrCreateDriveFolder(drive, cleanTitle, sessionFolder.id);
+
+    // 6. Move Form into folder
+    if (googleFormId) {
+      await moveDriveFileToFolder(drive, googleFormId, formFolder.id);
+    }
+
+    // 7. Move Sheet into folder
+    if (googleSheetId) {
+      await moveDriveFileToFolder(drive, googleSheetId, formFolder.id);
+    }
+
+    return {
+      formFolderId: formFolder.id,
+      formFolderUrl: formFolder.url,
+      sessionFolderId: sessionFolder.id,
+      sessionFolderUrl: sessionFolder.url,
+    };
+  });
 }
 
 export interface FeedbackDriveHierarchyResult {
