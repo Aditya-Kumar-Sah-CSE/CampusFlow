@@ -198,6 +198,7 @@ function NavDropdown({
     <div ref={containerRef} className="relative inline-block shrink-0">
       <button
         type="button"
+        suppressHydrationWarning
         onClick={onToggle}
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -235,6 +236,7 @@ function NavDropdown({
                 key={item.id}
                 type="button"
                 role="menuitem"
+                suppressHydrationWarning
                 onClick={() => {
                   item.onClick();
                   onClose();
@@ -328,14 +330,7 @@ export function AdminDashboardTabs({
 }: Props) {
   const searchParams = useSearchParams();
 
-  const getTabFromUrl = useCallback((): AdminTab => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get('tab');
-      if (tabParam && VALID_TABS.includes(tabParam as AdminTab)) {
-        return tabParam as AdminTab;
-      }
-    }
+  const resolveTab = useCallback((): AdminTab => {
     const param = searchParams?.get('tab');
     if (param && VALID_TABS.includes(param as AdminTab)) {
       return param as AdminTab;
@@ -346,7 +341,7 @@ export function AdminDashboardTabs({
     return 'overview';
   }, [searchParams, initialTab]);
 
-  const [activeTab, setActiveTab] = useState<AdminTab>(getTabFromUrl);
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => resolveTab());
 
   const handleSelectTab = useCallback((nextTab: AdminTab, nextSubTab?: string) => {
     setActiveTab(nextTab);
@@ -370,21 +365,31 @@ export function AdminDashboardTabs({
   // Listen for browser Back/Forward (popstate)
   useEffect(() => {
     const handlePopState = () => {
-      const targetTab = getTabFromUrl();
-      setActiveTab(targetTab);
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam && VALID_TABS.includes(tabParam as AdminTab)) {
+        setActiveTab(tabParam as AdminTab);
+      } else {
+        setActiveTab(resolveTab());
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [getTabFromUrl]);
+  }, [resolveTab]);
 
-  // Sync when searchParams change
+  // Sync when searchParams change or on client navigation
   useEffect(() => {
-    const targetTab = getTabFromUrl();
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const targetTab = (tabParam && VALID_TABS.includes(tabParam as AdminTab))
+      ? (tabParam as AdminTab)
+      : resolveTab();
+
     if (targetTab !== activeTab) {
       setActiveTab(targetTab);
     }
-  }, [getTabFromUrl, activeTab]);
+  }, [resolveTab, activeTab, searchParams]);
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isNavigatingToResults, setIsNavigatingToResults] = useState(false);
@@ -550,6 +555,8 @@ export function AdminDashboardTabs({
           return (
             <button
               key={tab.id}
+              type="button"
+              suppressHydrationWarning
               onClick={() => {
                 handleSelectTab(tab.id);
                 setOpenDropdown(null);
@@ -623,6 +630,8 @@ export function AdminDashboardTabs({
               return (
                 <button
                   key={sub.id}
+                  type="button"
+                  suppressHydrationWarning
                   onClick={() => handleSelectTab(sub.id)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap cursor-pointer select-none ${
                     isCurrent

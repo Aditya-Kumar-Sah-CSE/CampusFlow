@@ -24,8 +24,10 @@ export function AdminHeaderSignOut() {
 
   return (
     <button
+      type="button"
       onClick={handleSignOut}
       disabled={loading}
+      suppressHydrationWarning
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 transition-colors disabled:opacity-50"
       title="Sign Out"
     >

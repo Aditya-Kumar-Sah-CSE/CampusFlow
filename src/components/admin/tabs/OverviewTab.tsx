@@ -175,6 +175,8 @@ export function OverviewTab({
             </div>
           </div>
           <button
+            type="button"
+            suppressHydrationWarning
             onClick={() => onNavigateTab('admins')}
             className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs rounded-xl shadow-xs transition-colors shrink-0 self-start sm:self-auto cursor-pointer"
           >
@@ -190,6 +192,8 @@ export function OverviewTab({
           return (
             <button
               key={idx}
+              type="button"
+              suppressHydrationWarning
               onClick={() => onNavigateTab(item.tab, item.subtab)}
               className="text-left bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col justify-between group w-full min-w-0"
             >
@@ -233,6 +237,8 @@ export function OverviewTab({
 
           <div className="space-y-2.5 pt-1">
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => onNavigateTab('academic', 'faculties')}
               className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors flex items-center justify-between gap-2 min-h-[44px]"
             >
@@ -244,6 +250,8 @@ export function OverviewTab({
             </button>
 
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => onNavigateTab('academic', 'assignments')}
               className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors flex items-center justify-between gap-2 min-h-[44px]"
             >
@@ -255,6 +263,8 @@ export function OverviewTab({
             </button>
 
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => onNavigateTab('forms')}
               className="w-full text-left p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-colors flex items-center justify-between gap-2 min-h-[44px]"
             >
@@ -275,6 +285,8 @@ export function OverviewTab({
               <span className="truncate">Recent Administrative Activity</span>
             </h3>
             <button
+              type="button"
+              suppressHydrationWarning
               onClick={() => onNavigateTab('audit')}
               className="text-xs font-semibold text-bce-cobalt hover:underline self-start sm:self-auto shrink-0"
             >

@@ -71,6 +71,7 @@ export function TenantSwitcher({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPending}
+        suppressHydrationWarning
         className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-white text-xs border border-amber-500/40 shadow-xs transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-400"
         title="Switch Active Institution"
       >
@@ -118,6 +119,7 @@ export function TenantSwitcher({
                   <button
                     key={col.collegeId}
                     type="button"
+                    suppressHydrationWarning
                     onClick={() => handleSelectCollege(col.collegeId)}
                     className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/80 transition-colors ${
                       isActive ? 'bg-slate-700/50 text-amber-300 font-medium' : 'text-slate-200'

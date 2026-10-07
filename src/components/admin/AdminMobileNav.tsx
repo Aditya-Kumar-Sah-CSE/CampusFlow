@@ -112,6 +112,8 @@ export function AdminMobileNav({
     <>
       {/* Mobile Hamburger Trigger Button */}
       <button
+        type="button"
+        suppressHydrationWarning
         onClick={() => setIsOpen(true)}
         className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none transition-colors"
         aria-label="Open mobile admin navigation"
@@ -156,6 +158,8 @@ export function AdminMobileNav({
             </div>
           </div>
           <button
+            type="button"
+            suppressHydrationWarning
             onClick={() => setIsOpen(false)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
             aria-label="Close navigation"
@@ -200,6 +204,8 @@ export function AdminMobileNav({
                   return (
                     <button
                       key={item.id}
+                      type="button"
+                      suppressHydrationWarning
                       onClick={() => handleTabClick(item.id)}
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         isActive
@@ -250,6 +256,8 @@ export function AdminMobileNav({
         {/* Drawer Footer Actions */}
         <div className="p-4 border-t border-bce-cobalt/60 bg-slate-950/60">
           <button
+            type="button"
+            suppressHydrationWarning
             onClick={() => {
               setIsOpen(false);
               onSignOut();

@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body suppressHydrationWarning className="min-h-screen flex flex-col antialiased bg-slate-50 text-slate-900 overflow-x-hidden selection:bg-amber-400/30 selection:text-slate-900">
         <GlobalNavigationProgress />
         <GlobalInteractionEffects />
