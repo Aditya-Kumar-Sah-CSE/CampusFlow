@@ -236,7 +236,7 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
             {/* Drawer Footer */}
             <div className="p-4 border-t border-slate-100 bg-slate-50/60 text-[10px] text-slate-400 text-center space-y-1">
               <p className="font-semibold text-slate-600">{brand.displayName}</p>
-              <p>Designed &amp; Developed by Aditya Kumar Sah</p>
+              <p>Designed and developed by Mr. Aditya Kumar Sah</p>
             </div>
           </aside>
         </div>

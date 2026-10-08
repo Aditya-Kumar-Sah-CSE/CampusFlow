@@ -3,7 +3,7 @@
  * 
  * Account Runner: iambestadi@gmail.com
  * Platform: CampusFlow
- * Developer: Aditya Kumar Sah (under the guidance of Dr. Avinav)
+ * Developer: Mr. Aditya Kumar Sah (under the guidance of Dr. Avinav (Assistant Professor))
  * 
  * Purpose:
  * 1. Provides native Form → Sheet destination linking (FormApp.setDestination).
@@ -60,7 +60,7 @@ var CANONICAL_DEFAULT_CONFIRMATION_MESSAGE = [
   'https://143campusflow.vercel.app/feedback',
   '',
   'CampusFlow',
-  'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+  'Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)'
 ].join('\n');
 
 /**
@@ -137,7 +137,7 @@ function doGet(e) {
       service: 'CampusFlow Google Apps Script Connector',
       version: '2.0.0',
       runnerEmail: 'iambestadi@gmail.com',
-      attribution: 'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+      attribution: 'Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)'
     })
   ).setMimeType(ContentService.MimeType.JSON);
 }
@@ -216,7 +216,7 @@ function updateActiveFormConfirmation() {
       'https://143campusflow.vercel.app/feedback',
       '',
       'CampusFlow',
-      'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+      'Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)'
     ].join('\n');
     
     form.setConfirmationMessage(customMsg);
@@ -259,7 +259,7 @@ function updateFormConfirmationByIdOrUrl(idOrUrl, customMessage) {
       'https://143campusflow.vercel.app/feedback',
       '',
       'CampusFlow',
-      'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+      'Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)'
     ].join('\n');
   }
   
@@ -315,7 +315,7 @@ function updateAllFeedbackFormsInDrive() {
         'https://143campusflow.vercel.app/feedback',
         '',
         'CampusFlow',
-        'Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav'
+        'Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)'
       ].join('\n');
 
       form.setConfirmationMessage(customMsg);

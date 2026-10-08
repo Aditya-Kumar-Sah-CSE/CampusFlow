@@ -188,14 +188,14 @@ export default async function DirectFeedbackPage({
               >
                 CampusFlow
               </Link>
-              {' '}• Designed & Developed by{' '}
+              {' '}• Designed and developed by{' '}
               <a
                 href="https://portfolio-two-ashen-zseywond41.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-amber-400 hover:underline font-medium"
               >
-                Aditya Kumar Sah
+                Mr. Aditya Kumar Sah
               </a>
               {' '}•{' '}
               <a
@@ -213,7 +213,7 @@ export default async function DirectFeedbackPage({
                 rel="noopener noreferrer"
                 className="text-amber-400 hover:underline font-medium"
               >
-                Dr. Abhinav Kumar
+                Dr. Avinav
               </a>
               {' '}(Assistant Professor)
             </div>

@@ -11,6 +11,7 @@ import { FormAnalyticsReport, AggregatedAnalyticsReport } from './types';
 import { calculatePerformanceGrade } from './engine';
 import { CollegeBranding, DEFAULT_BRANDING } from '@/lib/tenant/branding';
 import { BCE_BGP_LOGO_DATA_URI } from '@/lib/events/college-logos';
+import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
 
 // Palette Tokens
 const COLORS = {
@@ -248,8 +249,8 @@ function drawHeader(
  */
 function drawFooter(doc: PDFKit.PDFDocument, pageNum: number, totalPages: number, branding?: CollegeBranding) {
   const margin = 36;
-  const pageWidth = 595.28;
-  const pageHeight = 841.89; // A4 height
+  const pageWidth = doc.page.width || 595.28;
+  const pageHeight = doc.page.height || 841.89; // A4 height
 
   // Temporarily set bottom margin to 0 so PDFKit won't trigger autoPageBreak when drawing in footer area
   const originalBottomMargin = doc.page.margins.bottom;
@@ -258,8 +259,8 @@ function drawFooter(doc: PDFKit.PDFDocument, pageNum: number, totalPages: number
   doc
     .strokeColor(COLORS.border)
     .lineWidth(0.5)
-    .moveTo(margin, pageHeight - 42)
-    .lineTo(pageWidth - margin, pageHeight - 42)
+    .moveTo(margin, pageHeight - 44)
+    .lineTo(pageWidth - margin, pageHeight - 44)
     .stroke();
 
   const brand = branding || DEFAULT_BRANDING;
@@ -272,7 +273,7 @@ function drawFooter(doc: PDFKit.PDFDocument, pageNum: number, totalPages: number
     .text(
       footerText,
       margin,
-      pageHeight - 34,
+      pageHeight - 36,
       { width: pageWidth - margin * 2 - 60, align: 'left' }
     );
 
@@ -280,10 +281,16 @@ function drawFooter(doc: PDFKit.PDFDocument, pageNum: number, totalPages: number
     .font('Helvetica')
     .fontSize(8)
     .fillColor(COLORS.textMuted)
-    .text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin - 60, pageHeight - 34, {
+    .text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin - 60, pageHeight - 36, {
       width: 60,
       align: 'right',
     });
+
+  renderPdfAttributionFooter(doc, pageHeight - 22, {
+    fontSize: 6.8,
+    textColor: COLORS.textMuted,
+    linkColor: COLORS.accent,
+  });
 
   doc.page.margins.bottom = originalBottomMargin;
 }

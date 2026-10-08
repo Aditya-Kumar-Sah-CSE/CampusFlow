@@ -86,14 +86,14 @@ export const PUBLIC_FEEDBACK_PORTAL_URL =
   process.env.NEXT_PUBLIC_APP_URL || CANONICAL_PUBLIC_PORTAL_URL;
 
 export const ADITYA_PORTFOLIO_URL = 'https://portfolio-two-ashen-zseywond41.vercel.app/';
-export const DR_ABHINAV_KUMAR_PROFILE_URL = 'https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/';
+export const DR_AVINAV_PORTFOLIO_URL = 'https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/';
+export const DR_ABHINAV_KUMAR_PROFILE_URL = DR_AVINAV_PORTFOLIO_URL;
 
 /**
  * Returns dynamic tenant-aware portal link (e.g. https://.../bce-bgp or https://.../gec-gaya)
  */
 export function getTenantPortalUrl(tenantSlug?: string): string {
   return tenantSlug ? appUrl(tenantSlug) : APP_URL;
-
 }
 
 /**
@@ -116,7 +116,7 @@ Access More Feedback Forms for Your Institution:
 ${portalUrl}
 
 CampusFlow
-Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav`;
+Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)`;
 }
 
 export const FORM_CONFIRMATION_MESSAGE = getFormConfirmationMessage();
@@ -146,7 +146,7 @@ Explore More Campus Events:
 ${portalUrl}
 
 CampusFlow
-Designed and developed by Aditya Kumar Sah under the guidance of Dr. Avinav`;
+Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)`;
 }
 
 export const EVENT_CONFIRMATION_MESSAGE = getEventRegistrationConfirmationMessage();

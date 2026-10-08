@@ -32,10 +32,24 @@ export function CompletionFooter({ collegeName, collegeSlug, className = '' }: P
         {/* Required Professional Attribution (Subtle and Unobtrusive) */}
         <p className="text-[11px] leading-relaxed text-slate-400 font-normal">
           Designed and developed by{' '}
-          <span className="font-medium text-slate-600">Aditya Kumar Sah</span>
+          <a
+            href="https://portfolio-two-ashen-zseywond41.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-slate-600 hover:text-blue-600 underline decoration-slate-300 transition-colors"
+          >
+            Mr. Aditya Kumar Sah
+          </a>
           <br className="sm:hidden" />
           {' '}under the guidance of{' '}
-          <span className="font-medium text-slate-600">Dr. Avinav</span>
+          <a
+            href="https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-slate-600 hover:text-blue-600 underline decoration-slate-300 transition-colors"
+          >
+            Dr. Avinav (Assistant Professor)
+          </a>
         </p>
 
         {/* System copyright */}

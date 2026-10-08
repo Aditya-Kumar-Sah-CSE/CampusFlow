@@ -335,14 +335,14 @@ export default function ServicesPage() {
             </Link>
             <p className="text-[11px] text-slate-500">Campus Management Platform</p>
             <p className="text-[11px] text-slate-500 mt-1">
-              Designed &amp; Developed by{' '}
+              Designed and developed by{' '}
               <a
                 href="https://portfolio-two-ashen-zseywond41.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
               >
-                Aditya Kumar Sah
+                Mr. Aditya Kumar Sah
               </a>{' '}
               •{' '}
               <a
@@ -360,7 +360,7 @@ export default function ServicesPage() {
                 rel="noopener noreferrer"
                 className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
               >
-                Dr. Abhinav Kumar
+                Dr. Avinav
               </a>{' '}
               (Assistant Professor)
             </p>

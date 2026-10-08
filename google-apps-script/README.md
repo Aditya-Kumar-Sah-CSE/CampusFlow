@@ -2,7 +2,7 @@
 
 **Runner Account**: `iambestadi@gmail.com`  
 **Platform**: CampusFlow  
-**Developer**: Aditya Kumar Sah (under the guidance of Dr. Avinav)
+**Developer**: Mr. Aditya Kumar Sah (under the guidance of Dr. Avinav (Assistant Professor))
 
 ---
 

@@ -99,14 +99,14 @@ export function CollegePublicFooter({
         {/* Designed & Developed Line */}
         {showDesignedBy && (
           <p className="text-[11px] leading-relaxed">
-            Designed &amp; Developed by{' '}
+            Designed and developed by{' '}
             <a
               href="https://portfolio-two-ashen-zseywond41.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className={`transition-colors ${authorLinkClass}`}
             >
-              Aditya Kumar Sah
+              Mr. Aditya Kumar Sah
             </a>
             {' '}•{' '}
             <a
@@ -124,7 +124,7 @@ export function CollegePublicFooter({
               rel="noopener noreferrer"
               className={`transition-colors ${authorLinkClass}`}
             >
-              Dr. Abhinav Kumar
+              Dr. Avinav
             </a>
             {' '}(Assistant Professor)
           </p>

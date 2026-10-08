@@ -25,6 +25,7 @@ import type {
 import PDFDocument from 'pdfkit';
 import { streamToBuffer, fetchLogoBuffer, PDF_COLORS, formatDateTime } from '@/lib/events/event-pdf-reports';
 import { generateRegistrationNumber } from '@/lib/events/program-registrations-service';
+import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
 
 // ============================================================
 // CONSTANTS & SCHEMAS
@@ -1812,15 +1813,21 @@ export async function generateGoogleEventParticipantPdf(params: {
     .text('4. This registration pass was issued digitally via CampusFlow and recorded in the official Google registry.', 50, y + 56);
 
   // Footer
-  y = 780;
+  y = 776;
   doc.moveTo(40, y).lineTo(40 + contentWidth, y).strokeColor(PDF_COLORS.borderLight).stroke();
   doc.font('Helvetica')
-    .fontSize(7.5)
+    .fontSize(7)
     .fillColor(PDF_COLORS.slateMuted)
     .text(`CampusFlow Event Management • ${collegeCode} • Generated on ${new Date().toLocaleDateString('en-IN')}`, 40, y + 6, {
       width: contentWidth,
       align: 'center',
     });
+
+  renderPdfAttributionFooter(doc, y + 17, {
+    fontSize: 6.8,
+    textColor: PDF_COLORS.slateMuted,
+    linkColor: PDF_COLORS.secondary,
+  });
 
   doc.end();
 

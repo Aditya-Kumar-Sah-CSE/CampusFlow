@@ -211,14 +211,14 @@ export default async function AdminDashboardLayout({
             >
               CampusFlow
             </Link>
-            {' '}• Designed & Developed by{' '}
+            {' '}• Designed and developed by{' '}
             <a
               href="https://portfolio-two-ashen-zseywond41.vercel.app/"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-bce-cobalt hover:underline"
             >
-              Aditya Kumar Sah
+              Mr. Aditya Kumar Sah
             </a>
             {' '}under the guidance of{' '}
             <a
@@ -227,7 +227,7 @@ export default async function AdminDashboardLayout({
               rel="noopener noreferrer"
               className="font-medium text-bce-cobalt hover:underline"
             >
-              Dr. Abhinav Kumar
+              Dr. Avinav
             </a>
             {' '}(Assistant Professor)
           </span>
