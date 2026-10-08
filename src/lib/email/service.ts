@@ -2,6 +2,7 @@
  * Student Response Confirmation Email Service
  * Manages automated dispatch of submission receipts with secure response download links.
  * Explicitly tracks states: PENDING, SENT, FAILED, EMAIL_NOT_CONFIGURED.
+ * Supports: Brevo API (v3), Resend API, SendGrid, and custom SMTP.
  */
 
 export interface SendConfirmationEmailParams {
@@ -25,9 +26,10 @@ export interface EmailDeliveryResult {
 
 export function isEmailConfigured(): boolean {
   return Boolean(
-    (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS) ||
+    process.env.BREVO_API_KEY ||
     process.env.RESEND_API_KEY ||
-    process.env.SENDGRID_API_KEY
+    process.env.SENDGRID_API_KEY ||
+    (process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS)
   );
 }
 
@@ -66,12 +68,12 @@ export async function sendStudentSubmissionConfirmationEmail(
   // Check if provider is configured
   if (!isEmailConfigured()) {
     console.info(
-      `[EmailService] Email provider not configured (SMTP/Resend/SendGrid credentials missing in environment). State: EMAIL_NOT_CONFIGURED for ${studentEmail}`
+      `[EmailService] Email provider not configured (Brevo/Resend/SMTP credentials missing in environment). State: EMAIL_NOT_CONFIGURED for ${studentEmail}`
     );
     return {
       status: 'EMAIL_NOT_CONFIGURED',
       sentAt: null,
-      error: 'SMTP/Email service credentials are not configured in server environment',
+      error: 'Brevo/SMTP/Email service credentials are not configured in server environment',
     };
   }
 
@@ -109,7 +111,60 @@ ${institutionName || 'CampusFlow'}
 CampusFlow
 `.trim();
 
-  // If Resend API Key is available, dispatch via Resend HTTPS API
+  // 1. Brevo HTTPS API v3 (Primary when BREVO_API_KEY is configured)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_FROM || 'iambestadi@gmail.com';
+      const senderName = process.env.BREVO_SENDER_NAME || 'CampusFlow';
+
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: {
+            name: senderName,
+            email: senderEmail,
+          },
+          to: [
+            {
+              email: studentEmail,
+              name: studentName || 'Student',
+            },
+          ],
+          subject,
+          textContent,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`[EmailService] Brevo API error: ${errorText}`);
+        return {
+          status: 'FAILED',
+          sentAt: null,
+          error: `Brevo error: ${errorText}`,
+        };
+      }
+
+      return {
+        status: 'SENT',
+        sentAt: new Date().toISOString(),
+      };
+    } catch (err: any) {
+      console.error('[EmailService] Brevo dispatch failed:', err);
+      return {
+        status: 'FAILED',
+        sentAt: null,
+        error: err.message || 'Network error dispatching Brevo email',
+      };
+    }
+  }
+
+  // 2. Resend HTTPS API (Alternative)
   if (process.env.RESEND_API_KEY) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -141,7 +196,7 @@ CampusFlow
         sentAt: new Date().toISOString(),
       };
     } catch (err: any) {
-      console.error('[EmailService] Dispatch failed:', err);
+      console.error('[EmailService] Resend dispatch failed:', err);
       return {
         status: 'FAILED',
         sentAt: null,
@@ -150,7 +205,7 @@ CampusFlow
     }
   }
 
-  // Fallback for custom SMTP if nodemailer is available or fallback to EMAIL_NOT_CONFIGURED
+  // 3. Fallback for custom SMTP if nodemailer is available or fallback to EMAIL_NOT_CONFIGURED
   return {
     status: 'EMAIL_NOT_CONFIGURED',
     sentAt: null,
