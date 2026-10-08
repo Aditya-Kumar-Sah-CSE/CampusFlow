@@ -143,9 +143,6 @@ export default async function AdminDashboardPage({
   // Resolve admin user profiles from auth.users (strictly replacing legacy admins table)
   let resolvedAdminsList: Admin[] = [];
   try {
-    const { data: usersData } = await adminDb.auth.admin.listUsers();
-    const userMap = new Map((usersData?.users || []).map((u: any) => [u.id, u]));
-
     // 1. Fetch active platform admins to identify all current Super Admins
     const { data: platformAdmins } = await adminDb
       .from('platform_admins')
@@ -155,6 +152,28 @@ export default async function AdminDashboardPage({
     const activePlatformAdminMap = new Map(
       (platformAdmins || []).map((pa: any) => [pa.user_id, pa])
     );
+
+    // 2. Fetch user profiles strictly scoped to the active college admins and platform admins
+    const targetAdminUserIds = Array.from(
+      new Set([
+        ...(adminsList || []).map((m: any) => m.user_id),
+        ...(platformAdmins || []).map((pa: any) => pa.user_id),
+      ])
+    ).filter(Boolean);
+
+    const userMap = new Map<string, any>();
+    if (targetAdminUserIds.length > 0) {
+      const userResponses = await Promise.all(
+        targetAdminUserIds.map((uid) =>
+          adminDb.auth.admin.getUserById(uid).then((res: any) => res.data?.user).catch(() => null)
+        )
+      );
+      for (const u of userResponses) {
+        if (u && u.id) {
+          userMap.set(u.id, u);
+        }
+      }
+    }
 
     // 2. Resolve college membership admins
     if (adminsList && adminsList.length > 0) {

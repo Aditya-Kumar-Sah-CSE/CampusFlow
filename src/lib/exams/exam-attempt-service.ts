@@ -53,8 +53,8 @@ export async function getStudentAvailableExams(params: {
       *,
       branches:exam_branches(branch_id, branch:branches(id, name, code)),
       subjects:exam_subjects(subject_id, subject:subjects(id, name, code)),
-      academic_session:academic_years(id, year_range, name),
-      semester:semesters(id, number, name)
+      academic_session:academic_years(id, name),
+      semester:semesters(id, name, semester_number)
     `)
     .eq('college_id', params.collegeId)
     .in('status', ['PUBLISHED', 'ACTIVE'])
@@ -98,8 +98,8 @@ export async function getPublicExamDetails(examId: string): Promise<Exam> {
       *,
       branches:exam_branches(branch_id, branch:branches(id, name, code)),
       subjects:exam_subjects(subject_id, subject:subjects(id, name, code)),
-      academic_session:academic_years(id, year_range, name),
-      semester:semesters(id, number, name),
+      academic_session:academic_years(id, name),
+      semester:semesters(id, name, semester_number),
       college:colleges(id, name, code, logo_url)
     `)
     .eq('id', examId)
@@ -562,21 +562,26 @@ export async function submitExamAttempt(
   // 6. Run authoritative evaluation engine
   const evaluation = evaluateExamSubmission(exam, questions, submittedAnswers);
 
-  // 7. Persist individual answer grades into exam_answers table
-  for (const evaluated of evaluation.evaluated_answers) {
-    await db
+  // 7. Persist individual answer grades into exam_answers table (bulk upsert)
+  if (evaluation.evaluated_answers.length > 0) {
+    const answeredAt = new Date().toISOString();
+    const answersPayload = evaluation.evaluated_answers.map((evaluated) => ({
+      attempt_id: attempt.id,
+      question_id: evaluated.question_id,
+      selected_option_id: evaluated.selected_option_id,
+      is_correct: evaluated.is_correct,
+      marks_awarded: evaluated.marks_awarded,
+      answered_at: answeredAt,
+    }));
+
+    const { error: upsertErr } = await db
       .from('exam_answers')
-      .upsert(
-        {
-          attempt_id: attempt.id,
-          question_id: evaluated.question_id,
-          selected_option_id: evaluated.selected_option_id,
-          is_correct: evaluated.is_correct,
-          marks_awarded: evaluated.marks_awarded,
-          answered_at: new Date().toISOString(),
-        },
-        { onConflict: 'attempt_id,question_id' }
-      );
+      .upsert(answersPayload, { onConflict: 'attempt_id,question_id' });
+
+    if (upsertErr) {
+      console.error('Error bulk updating exam answers:', upsertErr);
+      throw new Error('Failed to record evaluated answers.');
+    }
   }
 
   // 8. Update attempt record with authoritative score and status
@@ -636,7 +641,7 @@ export async function getAttemptResult(attemptId: string): Promise<ExamAttemptRe
     .select(`
       *,
       branch:branches(id, name, code),
-      semester:semesters(id, number, name),
+      semester:semesters(id, name, semester_number),
       college:colleges(id, name, code, logo_url)
     `)
     .eq('id', attemptId)
@@ -652,8 +657,8 @@ export async function getAttemptResult(attemptId: string): Promise<ExamAttemptRe
       *,
       branches:exam_branches(branch_id, branch:branches(id, name, code)),
       subjects:exam_subjects(subject_id, subject:subjects(id, name, code)),
-      academic_session:academic_years(id, year_range, name),
-      semester:semesters(id, number, name)
+      academic_session:academic_years(id, name),
+      semester:semesters(id, name, semester_number)
     `)
     .eq('id', attempt.exam_id)
     .single();

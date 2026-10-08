@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `inline; filename="CampusFlow-Exam-Scorecard-${attemptId.slice(0, 8)}.pdf"`,
-        'Cache-Control': 'no-store, max-age=0',
+        'Cache-Control': 'private, max-age=3600, stale-while-revalidate=86400',
       },
     });
   } catch (error: any) {

@@ -25,5 +25,11 @@ export async function POST(request: NextRequest) {
     console.error('[PWA] Could not record installation:', error.message);
     return NextResponse.json({ error: 'Could not record installation.' }, { status: 400 });
   }
+
+  try {
+    const { revalidateTag } = await import('next/cache');
+    revalidateTag(`pwa_install_count_${body.collegeId}`);
+  } catch {}
+
   return NextResponse.json({ success: true });
 }

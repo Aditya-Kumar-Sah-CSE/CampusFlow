@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -58,8 +59,10 @@ export function isSuperAdmin(
 /**
  * Resolves the authenticated multi-tenant admin session.
  * Canonical identity is strictly auth.uid() / user.id.
+ * Wrapped in React.cache to eliminate duplicate auth and membership round-trips
+ * when called across layout, metadata, and page in the same request.
  */
-export async function getAdminSession(
+export const getAdminSession = cache(async function getAdminSession(
   client?: any,
   options?: {
     cookieTenantId?: string;
@@ -314,7 +317,7 @@ export async function getAdminSession(
       user_metadata: user.user_metadata,
     },
   };
-}
+});
 
 /**
  * Server-side protection helper for Server Components, Server Actions, and Route Handlers.

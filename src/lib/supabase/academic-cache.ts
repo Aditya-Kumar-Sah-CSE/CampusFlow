@@ -1,8 +1,15 @@
 import { unstable_cache } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { AcademicYear, Branch, Semester } from '@/types/database';
 
 export const ACADEMIC_CACHE_TAG = 'academic_masters';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
+
+const publicClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 /**
  * Lean select schemas for reference tables
@@ -32,7 +39,7 @@ export function getCachedAcademicMasters(collegeId?: string) {
 
   return unstable_cache(
     async () => {
-      const supabase = await createClient();
+      const supabase = publicClient;
 
       const [
         { data: years },

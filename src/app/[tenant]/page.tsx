@@ -14,8 +14,7 @@ import type { Branch, AcademicYear, Semester } from '@/types/database';
 import type { CollegeEvent } from '@/types/events';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60;
 
 interface TenantPageProps {
   params: Promise<{

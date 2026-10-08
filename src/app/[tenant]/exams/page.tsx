@@ -6,7 +6,7 @@ import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { ArrowLeft } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{

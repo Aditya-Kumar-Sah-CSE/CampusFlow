@@ -30,14 +30,28 @@ function streamToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   });
 }
 
+const logoBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>();
+const LOGO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
 /**
  * Fetches logo buffer handling Data URI, local static file, and fallbacks.
  */
 async function fetchCollegeLogoBuffer(logoUrl?: string | null): Promise<Buffer | null> {
+  if (logoUrl) {
+    const cached = logoBufferCache.get(logoUrl);
+    if (cached && Date.now() - cached.timestamp < LOGO_CACHE_TTL) {
+      return cached.buffer;
+    }
+  }
+
   if (logoUrl && logoUrl.startsWith('data:image/')) {
     try {
       const base64Data = logoUrl.split(',')[1];
-      if (base64Data) return Buffer.from(base64Data, 'base64');
+      if (base64Data) {
+        const buf = Buffer.from(base64Data, 'base64');
+        logoBufferCache.set(logoUrl, { buffer: buf, timestamp: Date.now() });
+        return buf;
+      }
     } catch {}
   }
 
@@ -45,7 +59,9 @@ async function fetchCollegeLogoBuffer(logoUrl?: string | null): Promise<Buffer |
     try {
       const localPath = path.join(process.cwd(), 'public', logoUrl.replace(/^\//, ''));
       if (fs.existsSync(localPath)) {
-        return fs.readFileSync(localPath);
+        const buf = fs.readFileSync(localPath);
+        logoBufferCache.set(logoUrl, { buffer: buf, timestamp: Date.now() });
+        return buf;
       }
     } catch {}
   }
@@ -55,7 +71,9 @@ async function fetchCollegeLogoBuffer(logoUrl?: string | null): Promise<Buffer |
       const res = await fetch(logoUrl, { signal: AbortSignal.timeout(3500) });
       if (res.ok) {
         const ab = await res.arrayBuffer();
-        return Buffer.from(ab);
+        const buf = Buffer.from(ab);
+        logoBufferCache.set(logoUrl, { buffer: buf, timestamp: Date.now() });
+        return buf;
       }
     } catch {}
   }
@@ -440,7 +458,7 @@ export async function generateExamRosterPdf(examId: string, collegeId: string): 
     .font('Helvetica')
     .fontSize(7.5)
     .fillColor(COLORS.textMuted)
-    .text(`Exam: ${exam.title} (${exam.exam_code}) • Session: ${exam.academic_session?.year_range || 'N/A'} • Generated: ${new Date().toLocaleString()}`, headerLeft, 62);
+    .text(`Exam: ${exam.title} (${exam.exam_code}) • Session: ${(exam.academic_session as any)?.name || (exam.academic_session as any)?.year_range || 'N/A'} • Generated: ${new Date().toLocaleString()}`, headerLeft, 62);
 
   let curY = 82;
   doc.strokeColor(COLORS.border).lineWidth(0.5).moveTo(margin, curY).lineTo(pageWidth - margin, curY).stroke();

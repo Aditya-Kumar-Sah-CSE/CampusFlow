@@ -517,109 +517,109 @@ export async function syncFormResponsesToSheet(params: {
           }
         }
 
+        // Build fast in-memory lookup sets from existing records to eliminate N+1 database queries
+        const existingRespIdSet = new Set<string>();
+        const existingRegNoSet = new Set<string>();
+        const existingEmailSet = new Set<string>();
+
+        for (const dRec of existingAllDbRecs || []) {
+          if (dRec.google_response_id) existingRespIdSet.add(dRec.google_response_id.trim());
+          if (dRec.registration_number) existingRegNoSet.add(dRec.registration_number.trim().toLowerCase());
+          if (dRec.student_email) existingEmailSet.add(dRec.student_email.trim().toLowerCase());
+        }
+
+        const itemsToInsert: any[] = [];
         for (const item of trackingMap.values()) {
           const responseId = item.responseId;
-          const regNo = item.registrationNumber;
-          const email = item.email;
+          const regNo = item.registrationNumber ? item.registrationNumber.trim().toLowerCase() : null;
+          const email = item.email ? item.email.trim().toLowerCase() : null;
 
-          // Check if already in feedback_response_records by google_response_id OR registration_number
-          let checkQuery = supabase
+          const isExisting =
+            existingRespIdSet.has(responseId) ||
+            Boolean(regNo && existingRegNoSet.has(regNo)) ||
+            Boolean(email && existingEmailSet.has(email));
+
+          if (isExisting) {
+            continue;
+          }
+
+          // Mark in sets to prevent intra-batch duplicates
+          existingRespIdSet.add(responseId);
+          if (regNo) existingRegNoSet.add(regNo);
+          if (email) existingEmailSet.add(email);
+
+          itemsToInsert.push({
+            college_id: collegeId,
+            form_id: formUuid,
+            google_response_id: responseId,
+            student_email: item.email || null,
+            student_name: item.studentName || null,
+            registration_number: item.registrationNumber || null,
+            submitted_at: item.timestamp,
+            synced_at: new Date().toISOString(),
+            email_status: 'PENDING',
+          });
+        }
+
+        // Batch insert all new records in a single database operation
+        let insertedRecords: any[] = [];
+        if (itemsToInsert.length > 0) {
+          const { data: insertedData, error: batchErr } = await supabase
             .from('feedback_response_records')
-            .select('id, confirmation_email_sent_at, email_status')
-            .eq('form_id', formUuid);
+            .insert(itemsToInsert)
+            .select('id, google_response_id, student_email, student_name, registration_number, submitted_at');
 
-          if (regNo) {
-            checkQuery = checkQuery.or(`google_response_id.eq.${responseId},registration_number.eq.${regNo}`);
-          } else if (email) {
-            checkQuery = checkQuery.or(`google_response_id.eq.${responseId},student_email.ilike.${email}`);
+          if (batchErr) {
+            console.warn('[Sync] Batch insert notice:', batchErr.message);
           } else {
-            checkQuery = checkQuery.eq('google_response_id', responseId);
+            insertedRecords = insertedData || [];
           }
+        }
 
-          const { data: existingRec } = await checkQuery.limit(1).maybeSingle();
+        // Dispatch confirmation emails only for newly inserted student responses
+        for (const newRec of insertedRecords) {
+          const email = newRec.student_email;
+          if (email && email.includes('@') && newRec.id) {
+            try {
+              const token = generateResponseToken({
+                responseId: newRec.google_response_id,
+                formId: formUuid,
+                email,
+              });
+              const downloadUrl = `${baseUrl}/api/feedback/response/download?token=${encodeURIComponent(token)}`;
 
-          if (existingRec) {
-            // Already tracked; do not duplicate record or email
-            continue;
-          }
+              const emailRes = await sendStudentSubmissionConfirmationEmail({
+                studentEmail: email,
+                studentName: newRec.student_name,
+                registrationNumber: newRec.registration_number,
+                formTitle,
+                academicYear: academicYearName,
+                branch: branchName,
+                semester: semesterName,
+                submittedAt: newRec.submitted_at,
+                downloadUrl,
+              });
 
-          const timestamp = item.timestamp;
-          const studentName = item.studentName;
-
-          // Insert response record with mandatory institutional tenant boundary (college_id)
-          const { data: newRec, error: insertError } = await supabase
-            .from('feedback_response_records')
-            .insert({
-              college_id: collegeId,
-              form_id: formUuid,
-              google_response_id: responseId,
-              student_email: email,
-              student_name: studentName,
-              registration_number: regNo,
-              submitted_at: timestamp,
-              synced_at: new Date().toISOString(),
-              email_status: 'PENDING',
-            })
-            .select('id')
-            .maybeSingle();
-
-          if (insertError) {
-            console.warn(`[Sync] Failed to insert feedback_response_record for ${responseId}:`, insertError.message);
-            continue;
-          }
-
-            // If verified email is present, dispatch confirmation email
-            if (email && email.includes('@') && newRec?.id) {
-              try {
-                const token = generateResponseToken({
-                  responseId,
-                  formId: formUuid,
-                  email,
-                });
-                const downloadUrl = `${baseUrl}/api/feedback/response/download?token=${encodeURIComponent(token)}`;
-
-                const emailRes = await sendStudentSubmissionConfirmationEmail({
-                  studentEmail: email,
-                  studentName,
-                  registrationNumber: regNo,
-                  formTitle,
-                  academicYear: academicYearName,
-                  branch: branchName,
-                  semester: semesterName,
-                  submittedAt: timestamp,
-                  downloadUrl,
-                });
-
-                if (emailRes.status === 'SENT') {
-                  await supabase
-                    .from('feedback_response_records')
-                    .update({
-                      confirmation_email_sent_at: emailRes.sentAt,
-                      email_status: 'SENT',
-                      updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', newRec.id);
-                } else {
-                  await supabase
-                    .from('feedback_response_records')
-                    .update({
-                      email_status: emailRes.status,
-                      updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', newRec.id);
-                }
-              } catch (emailDispatchErr) {
-                console.error(`[Sync] Email delivery exception for ${email}:`, emailDispatchErr);
-                await supabase
-                  .from('feedback_response_records')
-                  .update({
-                    email_status: 'FAILED',
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', newRec.id);
-              }
+              await supabase
+                .from('feedback_response_records')
+                .update({
+                  confirmation_email_sent_at: emailRes.status === 'SENT' ? emailRes.sentAt : null,
+                  email_status: emailRes.status,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', newRec.id);
+            } catch (emailDispatchErr) {
+              console.error(`[Sync] Email delivery exception for ${email}:`, emailDispatchErr);
+              await supabase
+                .from('feedback_response_records')
+                .update({
+                  email_status: 'FAILED',
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', newRec.id);
             }
           }
+        }
 
           // Authoritative student submission count
           const authoritativeStudentCount = trackingMap.size;

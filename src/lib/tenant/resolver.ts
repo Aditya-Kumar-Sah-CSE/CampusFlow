@@ -65,14 +65,22 @@ export function createTenantContext(college: College, settings?: LandingPageSett
   };
 }
 
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
+
+const publicResolverClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
 /**
  * Cross-request cached lookup for college record by slug.
  * Tagged for on-demand invalidation when college settings change.
  * Uses public anon client (never service-role credentials) respecting RLS.
  */
 const fetchCollegeBySlugDirect = async (slug: string): Promise<College | null> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data, error } = await publicResolverClient
     .from('colleges')
     .select('*')
     .eq('slug', slug)

@@ -545,68 +545,115 @@ export async function registerStudentForEvent(
     }
   }
 
-  // 5. GOOGLE SHEETS IS THE ONLY SOURCE OF TRUTH FOR REGISTRATIONS
-  // Fail closed if Google Workspace is not connected
-  const { isCollegeGoogleConfigured } = await import('@/lib/google/auth');
-  const googleConnected = await isCollegeGoogleConfigured(input.college_id);
-  if (!googleConnected) {
-    return {
-      success: false,
-      error: 'Registration is temporarily unavailable because the college registration service is not connected.',
-    };
-  }
+  // 5. ATOMIC POSTGRESQL TRANSACTION (AUTHORITATIVE SOURCE OF TRUTH)
+  let registrationId: string | undefined;
+  let paymentStatus: EventPaymentStatus = event.payment_required ? 'PENDING' : 'NOT_REQUIRED';
 
-  try {
-    const {
-      getOrCreateEventRegistrationSpreadsheet,
-      appendEventRegistration,
-    } = await import('@/lib/google/event-registration-sheets');
+  const { data: rpcRes, error: rpcErr } = await db.rpc('register_for_event', {
+    p_event_id: event.id,
+    p_registration_number: cleanRegNum,
+    p_student_name: cleanName,
+    p_email: cleanEmail,
+    p_mobile: cleanMobile,
+    p_branch_id: input.branch_id || null,
+    p_semester_id: input.semester_id || null,
+    p_transaction_id: input.transaction_id || null,
+    p_payment_screenshot_url: input.payment_screenshot_url || null,
+  });
 
-    const spreadsheetId = await getOrCreateEventRegistrationSpreadsheet(
-      input.college_id,
-      event.id,
-      event.title
-    );
-
-    let finalBranch = input.branch_id || '';
-    let finalSemester = input.semester_id || '';
-    try {
-      const { resolveAcademicDisplayValues } = await import('@/lib/events/academic-resolver');
-      const academic = await resolveAcademicDisplayValues(input.college_id, finalBranch, finalSemester);
-      finalBranch = academic.branch;
-      finalSemester = academic.semester;
-    } catch {
-      // non-fatal
-    }
-
-    const result = await appendEventRegistration(
-      input.college_id,
-      spreadsheetId,
-      event.slug,
-      {
-        eventId: event.id,
-        fullName: cleanName,
-        studentId: cleanRegNum,
+  if (rpcErr) {
+    console.warn('[EVENT_REG_RPC_NOTICE]', rpcErr.message);
+    // Safe fallback to direct insert if RPC is unavailable or returns an error
+    const { data: directInsert, error: insertErr } = await db
+      .from('event_registrations')
+      .insert({
+        event_id: event.id,
+        college_id: input.college_id,
+        registration_number: cleanRegNum,
+        student_name: cleanName,
         email: cleanEmail,
         mobile: cleanMobile,
-        branch: finalBranch,
-        semester: finalSemester,
-        gender: '',
+        branch_id: input.branch_id || null,
+        semester_id: input.semester_id || null,
+        transaction_id: input.transaction_id || null,
+        payment_screenshot_url: input.payment_screenshot_url || null,
+        payment_status: paymentStatus,
+        registration_status: 'REGISTERED',
+      })
+      .select('id')
+      .single();
+
+    if (insertErr) {
+      if (insertErr.code === '23505') {
+        return { success: false, error: 'You are already registered for this event.' };
       }
-    );
-
-    const paymentStatus: EventPaymentStatus = event.payment_required ? 'PENDING' : 'NOT_REQUIRED';
-
-    return {
-      success: true,
-      registration_id: result.registrationNumber,
-      payment_status: paymentStatus,
-    };
-  } catch (sheetErr: any) {
-    console.error('[EVENT_REG_SHEET_ERROR]', sheetErr);
-    return {
-      success: false,
-      error: sheetErr.message || 'Registration is temporarily unavailable because the college registration service is not connected.',
-    };
+      return { success: false, error: insertErr.message || 'Failed to complete registration.' };
+    }
+    registrationId = directInsert?.id;
+  } else {
+    const resObj = typeof rpcRes === 'string' ? JSON.parse(rpcRes) : rpcRes;
+    if (!resObj.success) {
+      return { success: false, error: resObj.error || 'Registration failed.' };
+    }
+    registrationId = resObj.registration_id;
+    if (resObj.payment_status) {
+      paymentStatus = resObj.payment_status;
+    }
   }
+
+  // 6. ASYNCHRONOUS / RESILIENT GOOGLE SHEETS SYNCHRONIZATION
+  // Google Sheets serves as an institutional projection; PostgreSQL is the transactional source of truth.
+  // Sheets sync failure will NOT cause a valid student registration to fail.
+  try {
+    const { isCollegeGoogleConfigured } = await import('@/lib/google/auth');
+    const googleConnected = await isCollegeGoogleConfigured(input.college_id);
+    if (googleConnected) {
+      const {
+        getOrCreateEventRegistrationSpreadsheet,
+        appendEventRegistration,
+      } = await import('@/lib/google/event-registration-sheets');
+
+      const spreadsheetId = await getOrCreateEventRegistrationSpreadsheet(
+        input.college_id,
+        event.id,
+        event.title
+      );
+
+      let finalBranch = input.branch_id || '';
+      let finalSemester = input.semester_id || '';
+      try {
+        const { resolveAcademicDisplayValues } = await import('@/lib/events/academic-resolver');
+        const academic = await resolveAcademicDisplayValues(input.college_id, finalBranch, finalSemester);
+        finalBranch = academic.branch;
+        finalSemester = academic.semester;
+      } catch {
+        // non-fatal
+      }
+
+      await appendEventRegistration(
+        input.college_id,
+        spreadsheetId,
+        event.slug,
+        {
+          eventId: event.id,
+          fullName: cleanName,
+          studentId: cleanRegNum,
+          email: cleanEmail,
+          mobile: cleanMobile,
+          branch: finalBranch,
+          semester: finalSemester,
+          gender: '',
+        }
+      );
+    }
+  } catch (sheetErr: any) {
+    // Non-fatal notice: Logged, but does not abort the valid student registration
+    console.warn('[EVENT_REG_SHEET_SYNC_NOTICE]', sheetErr?.message || sheetErr);
+  }
+
+  return {
+    success: true,
+    registration_id: registrationId || cleanRegNum,
+    payment_status: paymentStatus,
+  };
 }
