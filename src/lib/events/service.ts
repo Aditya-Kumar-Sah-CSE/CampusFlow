@@ -150,7 +150,7 @@ const getCachedPublicTenantEvents = unstable_cache(
   },
   ['public_tenant_events_cache'],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ['events'],
   }
 );

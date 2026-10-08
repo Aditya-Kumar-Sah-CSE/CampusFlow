@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession, resolveAuthorizedCollegeId } from '@/lib/auth/admin-auth';
@@ -844,6 +844,7 @@ export async function provisionGoogleFormAndSheetAction(params: {
     ]);
 
     try {
+      revalidateTag('feedback_forms');
       revalidatePath('/admin/dashboard');
       revalidatePath('/admin/dashboard/forms');
       revalidatePath('/feedback');
@@ -1011,6 +1012,9 @@ export async function updateFormStatusAction(
     `Form "${form.title}" status changed from ${currentStatus} to ${newStatus}`
   );
 
+  try {
+    revalidateTag('feedback_forms');
+  } catch {}
   revalidatePath('/admin/dashboard');
   revalidatePath('/admin/dashboard/forms');
   revalidatePath(`/admin/dashboard/forms/${formId}`);
@@ -1209,6 +1213,9 @@ export async function deleteFeedbackFormAction(formId: string) {
   );
 
   // 4. Revalidate cache
+  try {
+    revalidateTag('feedback_forms');
+  } catch {}
   revalidatePath('/admin/dashboard');
   revalidatePath('/admin/dashboard/forms');
   revalidatePath('/feedback');

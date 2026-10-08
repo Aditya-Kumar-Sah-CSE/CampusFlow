@@ -654,7 +654,7 @@ const getCachedPublicActiveForms = unstable_cache(
   },
   ['public_active_feedback_forms_cache'],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ['feedback_forms'],
   }
 );

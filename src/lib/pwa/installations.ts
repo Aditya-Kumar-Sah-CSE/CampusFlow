@@ -39,7 +39,7 @@ const getCachedPwaInstallCount = unstable_cache(
   },
   ['pwa_install_count_cache'],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ['pwa_installations'],
   }
 );

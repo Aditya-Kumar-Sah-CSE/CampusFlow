@@ -10,7 +10,7 @@ import type { CollegeEvent } from '@/types/events';
 
 import { unstable_cache } from 'next/cache';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 async function fetchAllPublishedEventsDirect(): Promise<(CollegeEvent & { college?: { name: string; slug: string; code?: string; logo_url?: string | null } })[]> {
   try {
@@ -31,7 +31,7 @@ async function fetchAllPublishedEventsDirect(): Promise<(CollegeEvent & { colleg
 const getCachedAllPublishedEvents = unstable_cache(
   fetchAllPublishedEventsDirect,
   ['all_published_events_cache'],
-  { revalidate: 60, tags: ['events'] }
+  { revalidate: 300, tags: ['events'] }
 );
 
 async function getAllPublishedEvents() {

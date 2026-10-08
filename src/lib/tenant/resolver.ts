@@ -97,7 +97,7 @@ const getCachedCollegeBySlug = unstable_cache(
   },
   ['tenant_college_slug'],
   {
-    revalidate: 60, // 60s cache TTL
+    revalidate: 300, // 300s cache TTL
     tags: ['colleges'],
   }
 );
@@ -199,7 +199,7 @@ const fetchAllActiveCollegesDirect = async (): Promise<College[]> => {
 const getCachedAllActiveColleges = unstable_cache(
   fetchAllActiveCollegesDirect,
   ['all_active_colleges_cache'],
-  { revalidate: 60, tags: ['colleges'] }
+  { revalidate: 300, tags: ['colleges'] }
 );
 
 /**

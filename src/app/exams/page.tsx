@@ -1,27 +1,24 @@
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/supabase/env';
 import { getStudentAvailableExams } from '@/lib/exams/exam-attempt-service';
 import { PublicExamDiscovery } from '@/components/exams/PublicExamDiscovery';
 import { ArrowLeft } from 'lucide-react';
 
-export const revalidate = 60;
+export const revalidate = 300;
+
+const publicClient = createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 export default async function PublicExamsPage() {
-  const supabase = await createClient();
-  const cookieStore = await cookies();
-  const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
-
-  let collegeQuery = supabase
+  const supabase = publicClient;
+  const collegeQuery = supabase
     .from('colleges')
     .select('id, name, code, slug, logo_url')
-    .eq('is_active', true);
-
-  if (activeTenantId) {
-    collegeQuery = collegeQuery.eq('id', activeTenantId);
-  } else {
-    collegeQuery = collegeQuery.order('created_at', { ascending: true }).limit(1);
-  }
+    .eq('is_active', true)
+    .order('created_at', { ascending: true })
+    .limit(1);
 
   const { data: collegeData } = await collegeQuery.maybeSingle();
   const activeCollege = collegeData || {

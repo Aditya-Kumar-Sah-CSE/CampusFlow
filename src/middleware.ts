@@ -40,6 +40,10 @@ export async function middleware(request: NextRequest) {
     'terms-of-service',
     'google63a0b427ff26a6fc.html',
     'overview',
+    'about',
+    'services',
+    'feedback',
+    'exams',
   ];
   if (firstSegment && !reservedPrefixes.includes(firstSegment) && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(firstSegment)) {
     requestHeaders.set('x-tenant-slug', firstSegment);

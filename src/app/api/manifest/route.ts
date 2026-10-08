@@ -3,8 +3,7 @@ import { getTenantBySlug } from '@/lib/tenant/resolver';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 60;
+export const revalidate = 3600;
 
 function getIconMimeType(url: string): string {
   const cleanUrl = url.toLowerCase();
@@ -148,7 +147,7 @@ export async function GET(request?: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'application/manifest+json; charset=utf-8',
-            'Cache-Control': 'private, no-store',
+            'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
           },
         });
       }
@@ -236,7 +235,7 @@ export async function GET(request?: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'application/manifest+json; charset=utf-8',
-        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
       },
     });
   } catch (err: unknown) {

@@ -7,49 +7,33 @@ import { School, ArrowLeft, GraduationCap, ExternalLink } from 'lucide-react';
 
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
-import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/supabase/env';
 
-export const revalidate = 60;
+export const revalidate = 300;
+
+const publicClient = createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
-  const supabase = await createClient();
-
-  let collegeCode: string | null = null;
-
-  if (activeTenantId) {
-    const { data: college } = await supabase
-      .from('colleges')
-      .select('code')
-      .eq('id', activeTenantId)
-      .maybeSingle();
-    if (college) {
-      collegeCode = college.code;
-    }
-  }
-
   return {
-    title: getCampusFlowBrand({ code: collegeCode }).displayName,
-    description: getCampusFlowDescription({ code: collegeCode }),
-    openGraph: { title: getCampusFlowBrand({ code: collegeCode }).displayName },
-    twitter: { title: getCampusFlowBrand({ code: collegeCode }).displayName },
+    title: getCampusFlowBrand().displayName,
+    description: getCampusFlowDescription(),
+    openGraph: { title: getCampusFlowBrand().displayName },
+    twitter: { title: getCampusFlowBrand().displayName },
   };
 }
 
 export default async function FeedbackPortalPage() {
-  const supabase = await createClient();
-  const cookieStore = await cookies();
-  const activeTenantId = cookieStore.get('fms_active_tenant_id')?.value;
-
-  let collegeQuery = supabase.from('colleges').select('id, name, code, slug, logo_url, website_url');
-  if (activeTenantId) {
-    collegeQuery = collegeQuery.eq('id', activeTenantId);
-  } else {
-    collegeQuery = collegeQuery.eq('is_active', true).order('name', { ascending: true });
-  }
+  const supabase = publicClient;
+  const collegeQuery = supabase
+    .from('colleges')
+    .select('id, name, code, slug, logo_url, website_url')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
 
   // Fetch active academic masters, initial active forms, and active college branding
   const [

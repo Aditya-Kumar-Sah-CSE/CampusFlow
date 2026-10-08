@@ -4,7 +4,7 @@ import { getAllActiveColleges } from '@/lib/tenant/resolver';
 import { CollegeGrid } from '@/components/public/CollegeGrid';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'CampusFlow | Select Your College',

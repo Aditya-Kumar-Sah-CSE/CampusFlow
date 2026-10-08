@@ -72,7 +72,7 @@ export function getCachedAcademicMasters(collegeId?: string) {
     },
     [cacheKey],
     {
-      revalidate: 60,
+      revalidate: 300,
       tags: [cacheTag, ACADEMIC_CACHE_TAG],
     }
   )();

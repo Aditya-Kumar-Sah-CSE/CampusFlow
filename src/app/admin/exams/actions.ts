@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { assertExamFacultyAccess, getExamDbClient } from '@/lib/exams/exam-permission';
 import {
   getCollegeExams,
@@ -225,8 +225,12 @@ export async function createExamAction(
       created_by: session.userId,
     } as any);
 
+    try {
+      revalidateTag('exams');
+    } catch {}
     revalidatePath('/admin/dashboard/exams');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/exams');
     return { success: true, data: exam };
   } catch (error: any) {
     console.error('createExamAction error:', error);
@@ -245,8 +249,12 @@ export async function updateExamAction(
     const { authorizedCollegeId } = await assertExamFacultyAccess(collegeId);
     const exam = await updateExam(input.id, authorizedCollegeId, input as any);
 
+    try {
+      revalidateTag('exams');
+    } catch {}
     revalidatePath(`/admin/dashboard/exams/${input.id}`);
     revalidatePath('/admin/dashboard/exams');
+    revalidatePath('/exams');
     return { success: true, data: exam };
   } catch (error: any) {
     console.error('updateExamAction error:', error);
@@ -292,6 +300,9 @@ export async function publishExamAction(
       throw new Error(res.error || 'Failed to publish exam');
     }
 
+    try {
+      revalidateTag('exams');
+    } catch {}
     revalidatePath(`/admin/dashboard/exams/${examId}`);
     revalidatePath('/admin/dashboard/exams');
     revalidatePath('/exams');
@@ -322,6 +333,9 @@ export async function unpublishExamAction(
 
     const exam = await getExamById(examId, authorizedCollegeId);
 
+    try {
+      revalidateTag('exams');
+    } catch {}
     revalidatePath(`/admin/dashboard/exams/${examId}`);
     revalidatePath('/admin/dashboard/exams');
     revalidatePath('/exams');
@@ -346,6 +360,9 @@ export async function deleteOrArchiveExamAction(
       email: session.email,
     });
 
+    try {
+      revalidateTag('exams');
+    } catch {}
     revalidatePath('/admin/dashboard/exams');
     revalidatePath('/exams');
     return {

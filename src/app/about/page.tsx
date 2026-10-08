@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
-import { getAdminSession } from '@/lib/auth/admin-auth';
+import { APP_URL } from '@/lib/config/app';
 import {
   Building2,
   GraduationCap,
@@ -16,10 +16,7 @@ import {
   ArrowRight,
   Lock,
 } from 'lucide-react';
-import { APP_URL } from '@/lib/config/app';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'About CampusFlow | Digital Infrastructure for Institutions',
@@ -33,10 +30,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function AboutPage() {
-  const session = await getAdminSession().catch(() => null);
-  const activeCollege = session?.isAuthenticated ? session.activeCollege : null;
-
+export default function AboutPage() {
   const TENANT_DATA_POINTS = [
     { label: 'Academic Data', desc: 'Curriculum sessions, courses & levels', icon: Layers },
     { label: 'Users & Roles', desc: 'Admins, coordinators & faculties', icon: ShieldCheck },
@@ -113,25 +107,16 @@ export default async function AboutPage() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
       {/* 1. Global Navigation */}
-      <RootPublicNavbar tenantCode={activeCollege?.code} />
+      <RootPublicNavbar />
 
       {/* 2. Main Content */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-14">
         {/* HERO SECTION */}
         <section aria-labelledby="about-hero-title" className="text-center max-w-3xl mx-auto space-y-3 sm:space-y-4">
-          {activeCollege ? (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span>
-                Active Workspace: <strong className="font-bold">{activeCollege.name}</strong> ({activeCollege.code})
-              </span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
-              <Building2 className="w-3.5 h-3.5 text-slate-600" />
-              <span>Multi-Tenant Architecture</span>
-            </div>
-          )}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+            <Building2 className="w-3.5 h-3.5 text-slate-600" />
+            <span>Multi-Tenant Architecture</span>
+          </div>
 
           <h1
             id="about-hero-title"
@@ -157,22 +142,13 @@ export default async function AboutPage() {
               <span>Platform Services</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            {activeCollege ? (
-              <Link
-                href="/admin/dashboard"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-colors"
-              >
-                <span>Open Admin Console</span>
-              </Link>
-            ) : (
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-colors"
-              >
-                <Building2 className="w-4 h-4 text-slate-600" />
-                <span>Select Institution</span>
-              </Link>
-            )}
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-colors"
+            >
+              <Building2 className="w-4 h-4 text-slate-600" />
+              <span>Select Institution</span>
+            </Link>
           </div>
         </section>
 

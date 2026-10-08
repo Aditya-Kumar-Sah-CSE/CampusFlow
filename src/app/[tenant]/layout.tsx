@@ -1,8 +1,20 @@
 import type { Metadata, Viewport } from 'next';
-import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
+import { resolveTenantOrNotFound, getAllActiveColleges } from '@/lib/tenant/resolver';
 import { TenantProvider } from '@/components/tenant/TenantProvider';
 import { CollegePwaInstallPrompt } from '@/components/pwa/CollegePwaInstallPrompt';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
+
+export const preferredRegion = 'bom1';
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  try {
+    const colleges = await getAllActiveColleges();
+    return colleges.map((c) => ({ tenant: c.slug }));
+  } catch {
+    return [{ tenant: 'bce-bgp' }];
+  }
+}
 
 interface TenantLayoutProps {
   children: React.ReactNode;

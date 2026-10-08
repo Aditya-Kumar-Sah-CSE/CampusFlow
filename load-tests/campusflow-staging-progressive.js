@@ -119,12 +119,18 @@ function buildStagesConfig() {
     ];
   }
 
-  const targetVUs = STAGE_TARGETS[STAGE] || 250;
-  return [
-    { duration: '30s', target: targetVUs },             // Ramp-up
-    { duration: STAGE_DURATION, target: targetVUs },    // Stable plateau
-    { duration: '15s', target: 0 },                     // Graceful cooldown
-  ];
+  const targetVUs = parseInt(__ENV.TARGET_VUS || '', 10) || STAGE_TARGETS[STAGE] || 250;
+  const rampDuration = __ENV.RAMP_DURATION || '30s';
+  const cooldownDuration = __ENV.COOLDOWN_DURATION || '15s';
+  const stages = [];
+  if (rampDuration !== '0s') {
+    stages.push({ duration: rampDuration, target: targetVUs });
+  }
+  stages.push({ duration: STAGE_DURATION, target: targetVUs });
+  if (cooldownDuration !== '0s') {
+    stages.push({ duration: cooldownDuration, target: 0 });
+  }
+  return stages;
 }
 
 export const options = {

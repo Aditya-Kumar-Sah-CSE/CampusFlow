@@ -14,29 +14,24 @@ import type { Branch, AcademicYear, Semester } from '@/types/database';
 import type { CollegeEvent } from '@/types/events';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 interface TenantPageProps {
   params: Promise<{
     tenant: string;
   }>;
-  searchParams: Promise<{
-    page?: string;
-    search?: string;
-  }>;
 }
 
-export default async function TenantHomePage({ params, searchParams }: TenantPageProps) {
+export default async function TenantHomePage({ params }: TenantPageProps) {
   const { tenant: rawSlug } = await params;
   const t0 = performance.now();
   const tenant = await resolveTenantOrNotFound(rawSlug);
   const tTenant = (performance.now() - t0).toFixed(1);
   console.log(`[PERF] route=/[tenant] op=tenant_lookup duration_ms=${tTenant} success=true`);
 
-  // Read URL search params for initial page/search state
-  const sp = await searchParams;
-  const initialPage = Math.max(1, parseInt(sp.page || '1', 10) || 1);
-  const initialSearch = (sp.search || '').trim();
+  // Default page 1 for static/ISR pre-rendering; client-side component manages interactive pagination
+  const initialPage = 1;
+  const initialSearch = '';
 
   // Fetch only active modules based on persistent settings
   const PAGE_SIZE = 6;
@@ -46,7 +41,7 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
       ? getCachedAcademicMasters(tenant.collegeId)
       : Promise.resolve({ academicYears: [], branches: [], semesters: [] }),
     tenant.showFeedbacks
-      ? getPublicActiveFormsAction({ page: initialPage, pageSize: PAGE_SIZE, search: initialSearch || undefined, collegeId: tenant.collegeId })
+      ? getPublicActiveFormsAction({ page: initialPage, pageSize: PAGE_SIZE, collegeId: tenant.collegeId })
       : Promise.resolve({ success: true, forms: [], totalCount: 0, totalPages: 0, page: initialPage, pageSize: PAGE_SIZE }),
     tenant.showEvents
       ? getPublicTenantEvents(tenant.collegeId)

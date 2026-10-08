@@ -95,7 +95,7 @@ const getCachedStudentAvailableExams = unstable_cache(
   },
   ['student_available_exams_cache'],
   {
-    revalidate: 60,
+    revalidate: 300,
     tags: ['exams'],
   }
 );

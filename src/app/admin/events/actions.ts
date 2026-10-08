@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getAdminSession } from '@/lib/auth/admin-auth';
@@ -451,6 +451,10 @@ export async function createEventAction(
       `Created event "${cleanTitle}" with status ${data.status} (Registration: ${registrationType})`
     );
 
+    try {
+      revalidateTag('events');
+      revalidatePath('/events');
+    } catch {}
     revalidatePath('/admin/dashboard');
     return {
       success: true,
@@ -699,6 +703,10 @@ export async function updateEventAction(
       revalidatePath(`/admin/dashboard/events/${updates.slug}/edit`);
       revalidatePath(`/admin/dashboard/events/${updates.slug}/registrations`);
     }
+    try {
+      revalidateTag('events');
+      revalidatePath('/events');
+    } catch {}
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to update event.' };
@@ -757,6 +765,9 @@ export async function updateEventStatusAction(
     );
 
     revalidatePath('/admin/dashboard');
+    try {
+      revalidateTag('events');
+    } catch {}
     revalidatePath('/events');
     revalidatePath(`/admin/dashboard/events/${eventId}`);
     revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
@@ -930,6 +941,10 @@ export async function deleteEventAction(
       `Permanently deleted event "${existing.title}" and all associated data. Google cleanup: ${googleSummary}`
     );
 
+    try {
+      revalidateTag('events');
+      revalidatePath('/events');
+    } catch {}
     revalidatePath('/admin/dashboard');
     revalidatePath('/admin/dashboard/events');
     return { success: true, actionTaken: 'DELETED', googleCleanup: googleSummary };

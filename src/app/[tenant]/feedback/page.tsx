@@ -10,36 +10,31 @@ import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 interface TenantFeedbackPageProps {
   params: Promise<{
     tenant: string;
   }>;
-  searchParams: Promise<{
-    page?: string;
-    search?: string;
-  }>;
 }
 
-export default async function TenantFeedbackPortalPage({ params, searchParams }: TenantFeedbackPageProps) {
+export default async function TenantFeedbackPortalPage({ params }: TenantFeedbackPageProps) {
   const { tenant: rawSlug } = await params;
   const t0 = performance.now();
   const tenant = await resolveTenantOrNotFound(rawSlug);
   const tTenant = (performance.now() - t0).toFixed(1);
   console.log(`[PERF] route=/[tenant]/feedback op=tenant_lookup duration_ms=${tTenant} success=true`);
 
-  // Read URL search params for initial page/search state
-  const sp = await searchParams;
-  const initialPage = Math.max(1, parseInt(sp.page || '1', 10) || 1);
-  const initialSearch = (sp.search || '').trim();
+  // Default page 1 for static/ISR pre-rendering; client-side component manages interactive pagination
+  const initialPage = 1;
+  const initialSearch = '';
 
   // Fetch tenant-scoped academic masters and active forms
   const PAGE_SIZE = 6;
   const t1 = performance.now();
   const [{ academicYears, branches, semesters }, initialActiveForms, pwaInstallCount] = await Promise.all([
     getCachedAcademicMasters(tenant.collegeId),
-    getPublicActiveFormsAction({ page: initialPage, pageSize: PAGE_SIZE, search: initialSearch || undefined, collegeId: tenant.collegeId }),
+    getPublicActiveFormsAction({ page: initialPage, pageSize: PAGE_SIZE, collegeId: tenant.collegeId }),
     getPwaInstallCount(tenant.collegeId),
   ]);
   const tFeedback = (performance.now() - t1).toFixed(1);

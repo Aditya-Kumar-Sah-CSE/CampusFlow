@@ -6,7 +6,7 @@ import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { ArrowLeft } from 'lucide-react';
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 interface Props {
   params: Promise<{
