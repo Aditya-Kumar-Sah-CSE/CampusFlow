@@ -34,7 +34,7 @@ Production database:
 NOT USED (Strictly isolated; circuit breaker verified)
 
 Staging database:
-PENDING MANUAL PROVISIONING (<staging-project>.supabase.co)
+CONNECTED (https://ggisjcegbcvxwgczwdbd.supabase.co - schema migration pending)
 
 Staging deployment:
 PENDING VERCEL PREVIEW PROVISIONING
