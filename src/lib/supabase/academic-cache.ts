@@ -1,13 +1,11 @@
 import { unstable_cache } from 'next/cache';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { AcademicYear, Branch, Semester } from '@/types/database';
+import { getSupabaseUrl, getSupabaseAnonKey } from './env';
 
 export const ACADEMIC_CACHE_TAG = 'academic_masters';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
-
-const publicClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+const publicClient = createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

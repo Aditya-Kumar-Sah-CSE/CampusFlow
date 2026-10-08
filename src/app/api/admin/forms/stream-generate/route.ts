@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/supabase/env';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { assertFormGenerationAccess } from '@/lib/billing/access-control';
 import {
@@ -35,11 +36,8 @@ export async function POST(req: NextRequest) {
   const { data: { session: authSession } } = await sessionClient.auth.getSession();
   const accessToken = authSession?.access_token;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
-
   const authenticatedClient = accessToken
-    ? createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+    ? createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
         global: {
           headers: {
             Authorization: `Bearer ${accessToken}`,

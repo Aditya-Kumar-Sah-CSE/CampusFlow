@@ -66,11 +66,9 @@ export function createTenantContext(college: College, settings?: LandingPageSett
 }
 
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/supabase/env';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
-
-const publicResolverClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+const publicResolverClient = createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

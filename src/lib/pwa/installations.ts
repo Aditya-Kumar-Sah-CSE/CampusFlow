@@ -1,11 +1,9 @@
 import 'server-only';
 import { unstable_cache } from 'next/cache';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/supabase/env';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
-
-const publicClient = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+const publicClient = createSupabaseClient(getSupabaseUrl(), getSupabaseAnonKey(), {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

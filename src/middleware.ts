@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getSupabaseUrl, getSupabaseAnonKey } from '@/lib/supabase/env';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -66,10 +67,7 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = pathname.startsWith('/auth');
 
   if (isAdminRoute || isAuthRoute) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://txerarcajxjzxifanzxw.supabase.co';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_BaBiHYfqG1rIf0ns3b-alQ_fqNRPoHe';
-
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
       cookies: {
         getAll() {
           return request.cookies.getAll();
