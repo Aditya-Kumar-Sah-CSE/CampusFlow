@@ -58,3 +58,7 @@ next-env.d.ts
 /twa/manifest-checksum.txt
 /twa/store_icon.png
 
+# load tests
+/load-tests/reports/
+
+
