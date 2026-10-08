@@ -313,6 +313,7 @@ CREATE POLICY "Admins view and submit payment requests" ON public.college_paymen
     FOR SELECT TO authenticated
     USING (public.is_college_admin(auth.uid(), college_id));
 
+DROP POLICY IF EXISTS "Admins insert payment requests" ON public.college_payment_requests;
 CREATE POLICY "Admins insert payment requests" ON public.college_payment_requests
     FOR INSERT TO authenticated
     WITH CHECK (public.is_college_admin(auth.uid(), college_id));
