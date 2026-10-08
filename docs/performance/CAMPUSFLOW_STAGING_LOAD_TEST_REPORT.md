@@ -34,16 +34,29 @@ Production database:
 NOT USED (Strictly isolated; circuit breaker verified)
 
 Staging database:
-CONNECTED (https://ggisjcegbcvxwgczwdbd.supabase.co - schema migration pending)
+ACTIVE & POPULATED (https://ggisjcegbcvxwgczwdbd.supabase.co)
+- Schema: 24 migrations verified, 35 tables created, composite indexes active
+- RPCs: get_pwa_install_count verified (Status 200)
+- Anonymous RLS: verified (colleges, events, exams, feedback forms Status 200)
 
 Staging deployment:
-PENDING VERCEL PREVIEW PROVISIONING
+AWAITING VERCEL PREVIEW URL (Branch staging/load-test pushed to origin)
 
 Git branch:
 staging/load-test (Pushed to origin/staging/load-test)
 
 Data:
-Synthetic / isolated (Blueprint ready in scripts/seed-staging-synthetic.mjs)
+Synthetic / isolated (POPULATED via scripts/seed-staging-synthetic.mjs)
+- Colleges: 1 (BCE-BGP staging profile)
+- Academic Sessions: 3 (2024-25, 2025-26, 2026-27)
+- Branches: 5 (CSE, ECE, ME, CE, EE)
+- Semesters: 8 (Sem 1 through Sem 8)
+- Events: 3 published
+- Exams: 2 published
+- Questions: 4 MCQ questions with 16 options
+- Feedback Forms: 2 published
+- PWA Installations: 1 counter row
+- Real PII: ZERO (Strictly synthetic test values)
 
 Production circuit breaker:
 VERIFIED (campusflow.in and 143campusflow.vercel.app execution blocked)
