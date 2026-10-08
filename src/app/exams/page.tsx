@@ -5,7 +5,7 @@ import { getStudentAvailableExams } from '@/lib/exams/exam-attempt-service';
 import { PublicExamDiscovery } from '@/components/exams/PublicExamDiscovery';
 import { ArrowLeft } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function PublicExamsPage() {
   const supabase = await createClient();

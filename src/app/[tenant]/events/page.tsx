@@ -8,7 +8,7 @@ import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import { Calendar, ArrowLeft, Ticket } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{
@@ -18,12 +18,18 @@ interface Props {
 
 export default async function PublicTenantEventsPage({ params }: Props) {
   const { tenant: rawSlug } = await params;
+  const t0 = performance.now();
   const tenant = await resolveTenantOrNotFound(rawSlug);
+  const tTenant = (performance.now() - t0).toFixed(1);
+  console.log(`[PERF] route=/[tenant]/events op=tenant_lookup duration_ms=${tTenant} success=true`);
 
+  const t1 = performance.now();
   const [dbEvents, smallEvents] = await Promise.all([
     getPublicTenantEvents(tenant.collegeId).catch(() => []),
     Promise.resolve(getEventsForTenant(tenant.slug)),
   ]);
+  const tEvents = (performance.now() - t1).toFixed(1);
+  console.log(`[PERF] route=/[tenant]/events op=events_lookup duration_ms=${tEvents} success=true`);
 
   const totalCount = dbEvents.length + smallEvents.length;
 

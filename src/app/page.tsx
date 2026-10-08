@@ -4,8 +4,7 @@ import { getAllActiveColleges } from '@/lib/tenant/resolver';
 import { CollegeGrid } from '@/components/public/CollegeGrid';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: 'CampusFlow | Select Your College',

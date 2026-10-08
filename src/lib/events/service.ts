@@ -121,10 +121,12 @@ export async function getAdminEventById(
  */
 export const getAdminEventByIdOrSlug = getAdminEventById;
 
+import { unstable_cache } from 'next/cache';
+
 /**
- * Fetch published events for public tenant portal
+ * Fetch published events for public tenant portal (direct lookup).
  */
-export async function getPublicTenantEvents(collegeId: string): Promise<CollegeEvent[]> {
+async function fetchPublicTenantEventsDirect(collegeId: string): Promise<CollegeEvent[]> {
   const db = await getDb();
 
   const { data, error } = await db
@@ -140,6 +142,28 @@ export async function getPublicTenantEvents(collegeId: string): Promise<CollegeE
   }
 
   return (data || []).map(enrichEventWithGoogleMetadata);
+}
+
+const getCachedPublicTenantEvents = unstable_cache(
+  async (collegeId: string): Promise<CollegeEvent[]> => {
+    return fetchPublicTenantEventsDirect(collegeId);
+  },
+  ['public_tenant_events_cache'],
+  {
+    revalidate: 60,
+    tags: ['events'],
+  }
+);
+
+/**
+ * Fetch published events for public tenant portal with 60s cache.
+ */
+export async function getPublicTenantEvents(collegeId: string): Promise<CollegeEvent[]> {
+  try {
+    return await getCachedPublicTenantEvents(collegeId);
+  } catch {
+    return fetchPublicTenantEventsDirect(collegeId);
+  }
 }
 
 /**

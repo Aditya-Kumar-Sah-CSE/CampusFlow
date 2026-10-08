@@ -16,9 +16,15 @@ interface Props {
 
 export default async function PublicTenantExamsPage({ params }: Props) {
   const { tenant: rawSlug } = await params;
+  const t0 = performance.now();
   const tenant = await resolveTenantOrNotFound(rawSlug);
+  const tTenant = (performance.now() - t0).toFixed(1);
+  console.log(`[PERF] route=/[tenant]/exams op=tenant_lookup duration_ms=${tTenant} success=true`);
 
+  const t1 = performance.now();
   const exams = await getStudentAvailableExams({ collegeId: tenant.collegeId }).catch(() => []);
+  const tExams = (performance.now() - t1).toFixed(1);
+  console.log(`[PERF] route=/[tenant]/exams op=exams_lookup duration_ms=${tExams} success=true`);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">

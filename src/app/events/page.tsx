@@ -8,9 +8,11 @@ import { SmallEventCard } from '@/components/events/SmallEventCard';
 import { Calendar, MapPin, Ticket, ArrowRight, Sparkles, Building2 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 
-export const dynamic = 'force-dynamic';
+import { unstable_cache } from 'next/cache';
 
-async function getAllPublishedEvents(): Promise<(CollegeEvent & { college?: { name: string; slug: string; code?: string; logo_url?: string | null } })[]> {
+export const revalidate = 60;
+
+async function fetchAllPublishedEventsDirect(): Promise<(CollegeEvent & { college?: { name: string; slug: string; code?: string; logo_url?: string | null } })[]> {
   try {
     const supabase = createAdminClient() || await createClient();
     const { data, error } = await supabase
@@ -23,6 +25,20 @@ async function getAllPublishedEvents(): Promise<(CollegeEvent & { college?: { na
     return data as any;
   } catch {
     return [];
+  }
+}
+
+const getCachedAllPublishedEvents = unstable_cache(
+  fetchAllPublishedEventsDirect,
+  ['all_published_events_cache'],
+  { revalidate: 60, tags: ['events'] }
+);
+
+async function getAllPublishedEvents() {
+  try {
+    return await getCachedAllPublishedEvents();
+  } catch {
+    return fetchAllPublishedEventsDirect();
   }
 }
 

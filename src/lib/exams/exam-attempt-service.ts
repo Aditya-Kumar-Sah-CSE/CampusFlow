@@ -38,10 +38,12 @@ function seededShuffle<T>(array: T[], seedStr: string): T[] {
   return arr;
 }
 
+import { unstable_cache } from 'next/cache';
+
 /**
- * Retrieves exams available for a college and optionally filtered by branch and semester.
+ * Retrieves exams available for a college and optionally filtered by branch and semester (direct lookup).
  */
-export async function getStudentAvailableExams(params: {
+async function fetchStudentAvailableExamsDirect(params: {
   collegeId: string;
   branchId?: string;
   semesterId?: string;
@@ -85,6 +87,32 @@ export async function getStudentAvailableExams(params: {
   }
 
   return exams;
+}
+
+const getCachedStudentAvailableExams = unstable_cache(
+  async (collegeId: string, branchId?: string, semesterId?: string): Promise<Exam[]> => {
+    return fetchStudentAvailableExamsDirect({ collegeId, branchId, semesterId });
+  },
+  ['student_available_exams_cache'],
+  {
+    revalidate: 60,
+    tags: ['exams'],
+  }
+);
+
+/**
+ * Retrieves exams available for a college with 60s cache.
+ */
+export async function getStudentAvailableExams(params: {
+  collegeId: string;
+  branchId?: string;
+  semesterId?: string;
+}): Promise<Exam[]> {
+  try {
+    return await getCachedStudentAvailableExams(params.collegeId, params.branchId, params.semesterId);
+  } catch {
+    return fetchStudentAvailableExamsDirect(params);
+  }
 }
 
 /**

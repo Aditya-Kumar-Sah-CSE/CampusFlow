@@ -1,5 +1,6 @@
 'use server';
 
+import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Faculty, Subject, Branch } from '@/types/database';
@@ -514,7 +515,7 @@ export interface PublicActiveFormsResult {
  * Sorts newest published first.
  * Safe public projection: Zero credentials, private sheets, response records, or PII exposed.
  */
-export async function getPublicActiveFormsAction(params?: {
+async function fetchPublicActiveFormsDirect(params?: {
   page?: number;
   pageSize?: number;
   branchId?: string;
@@ -643,6 +644,42 @@ export async function getPublicActiveFormsAction(params?: {
       totalPages: 0,
       error: 'Unexpected error loading forms.',
     };
+  }
+}
+
+const getCachedPublicActiveForms = unstable_cache(
+  async (serializedParams: string): Promise<PublicActiveFormsResult> => {
+    const params = JSON.parse(serializedParams);
+    return fetchPublicActiveFormsDirect(params);
+  },
+  ['public_active_feedback_forms_cache'],
+  {
+    revalidate: 60,
+    tags: ['feedback_forms'],
+  }
+);
+
+/**
+ * Fetch all currently PUBLISHED / ACTIVE feedback forms with server-side pagination (60s cache).
+ */
+export async function getPublicActiveFormsAction(params?: {
+  page?: number;
+  pageSize?: number;
+  branchId?: string;
+  search?: string;
+  collegeId?: string;
+}): Promise<PublicActiveFormsResult> {
+  try {
+    const serialized = JSON.stringify({
+      page: params?.page || 1,
+      pageSize: params?.pageSize || 12,
+      branchId: params?.branchId || '',
+      search: (params?.search || '').trim(),
+      collegeId: params?.collegeId || '',
+    });
+    return await getCachedPublicActiveForms(serialized);
+  } catch {
+    return fetchPublicActiveFormsDirect(params);
   }
 }
 

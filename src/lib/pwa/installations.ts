@@ -30,6 +30,21 @@ async function fetchPwaInstallCountDirect(collegeId: string): Promise<number> {
 }
 
 /**
+ * Module-level cached lookup for PWA installations count.
+ * Defining at module scope ensures stable function identity in Next.js runtime.
+ */
+const getCachedPwaInstallCount = unstable_cache(
+  async (collegeId: string): Promise<number> => {
+    return fetchPwaInstallCountDirect(collegeId);
+  },
+  ['pwa_install_count_cache'],
+  {
+    revalidate: 60,
+    tags: ['pwa_installations'],
+  }
+);
+
+/**
  * Fetches the total distinct PWA installations count for an active college.
  * Cached server-side for 60 seconds with graceful fallback to 0.
  * Non-blocking, cookie-free, and safe for high-concurrency public browsing.
@@ -38,15 +53,9 @@ export async function getPwaInstallCount(collegeId: string): Promise<number> {
   if (!collegeId) return 0;
 
   try {
-    return await unstable_cache(
-      () => fetchPwaInstallCountDirect(collegeId),
-      [`pwa_install_count_${collegeId}`],
-      {
-        revalidate: 60,
-        tags: [`pwa_install_count_${collegeId}`],
-      }
-    )();
+    return await getCachedPwaInstallCount(collegeId);
   } catch {
     return fetchPwaInstallCountDirect(collegeId);
   }
 }
+

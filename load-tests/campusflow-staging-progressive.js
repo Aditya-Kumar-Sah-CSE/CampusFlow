@@ -41,6 +41,8 @@ import { Rate, Trend, Counter } from 'k6/metrics';
 const cfErrorRate = new Rate('cf_req_failed');
 const cfHttp5xxRate = new Rate('cf_http_5xx');
 const cfHttp4xxRate = new Rate('cf_http_4xx');
+const cfHttp429Rate = new Rate('cf_http_429');
+const cfHttp429Count = new Counter('cf_http_429_count');
 const portalPageDuration = new Trend('cf_portal_page_duration', true);
 const modulePageDuration = new Trend('cf_module_page_duration', true);
 const staticAssetDuration = new Trend('cf_static_asset_duration', true);
@@ -175,10 +177,15 @@ function recordResponseMetrics(res, trendMetric) {
   const isOk = res.status >= 200 && res.status < 400;
   const is5xx = res.status >= 500;
   const is4xx = res.status >= 400 && res.status < 500;
+  const is429 = res.status === 429;
 
   cfErrorRate.add(!isOk);
   cfHttp5xxRate.add(is5xx);
   cfHttp4xxRate.add(is4xx);
+  cfHttp429Rate.add(is429);
+  if (is429) {
+    cfHttp429Count.add(1);
+  }
 
   if (trendMetric) {
     trendMetric.add(res.timings.duration);

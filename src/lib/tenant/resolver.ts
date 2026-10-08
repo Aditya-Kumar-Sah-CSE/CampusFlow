@@ -137,7 +137,20 @@ export const getTenantBySlug = cache(
       return null;
     }
 
-    const landingSettings = await getCollegeLandingSettings(college.id);
+    let landingSettings: LandingPageSettings;
+    if (
+      college.show_feedbacks !== undefined &&
+      college.show_feedbacks !== null &&
+      college.show_events !== undefined &&
+      college.show_events !== null
+    ) {
+      landingSettings = {
+        showFeedbacks: college.show_feedbacks !== false,
+        showEvents: college.show_events !== false,
+      };
+    } else {
+      landingSettings = await getCollegeLandingSettings(college.id);
+    }
     return createTenantContext(college, landingSettings);
   }
 );
@@ -173,8 +186,7 @@ export async function resolveTenantOrNotFound(rawSlug: string): Promise<TenantCo
 export const requireTenant = resolveTenantOrNotFound;
 
 const fetchAllActiveCollegesDirect = async (): Promise<College[]> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data, error } = await publicResolverClient
     .from('colleges')
     .select('*')
     .eq('is_active', true)
@@ -204,7 +216,20 @@ export const getAllActiveColleges = cache(async (): Promise<TenantContext[]> => 
 
   return Promise.all(
     colleges.map(async (c) => {
-      const landingSettings = await getCollegeLandingSettings(c.id);
+      let landingSettings: LandingPageSettings;
+      if (
+        c.show_feedbacks !== undefined &&
+        c.show_feedbacks !== null &&
+        c.show_events !== undefined &&
+        c.show_events !== null
+      ) {
+        landingSettings = {
+          showFeedbacks: c.show_feedbacks !== false,
+          showEvents: c.show_events !== false,
+        };
+      } else {
+        landingSettings = await getCollegeLandingSettings(c.id);
+      }
       return createTenantContext(c, landingSettings);
     })
   );

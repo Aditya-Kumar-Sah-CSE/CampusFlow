@@ -28,7 +28,10 @@ interface TenantPageProps {
 
 export default async function TenantHomePage({ params, searchParams }: TenantPageProps) {
   const { tenant: rawSlug } = await params;
+  const t0 = performance.now();
   const tenant = await resolveTenantOrNotFound(rawSlug);
+  const tTenant = (performance.now() - t0).toFixed(1);
+  console.log(`[PERF] route=/[tenant] op=tenant_lookup duration_ms=${tTenant} success=true`);
 
   // Read URL search params for initial page/search state
   const sp = await searchParams;
@@ -37,6 +40,7 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
 
   // Fetch only active modules based on persistent settings
   const PAGE_SIZE = 6;
+  const t1 = performance.now();
   const [academicData, initialActiveForms, events, pwaInstallCount] = await Promise.all([
     tenant.showFeedbacks
       ? getCachedAcademicMasters(tenant.collegeId)
@@ -49,6 +53,8 @@ export default async function TenantHomePage({ params, searchParams }: TenantPag
       : Promise.resolve([] as CollegeEvent[]),
     getPwaInstallCount(tenant.collegeId),
   ]);
+  const tData = (performance.now() - t1).toFixed(1);
+  console.log(`[PERF] route=/[tenant] op=parallel_data_queries duration_ms=${tData} success=true`);
 
   const { academicYears, branches, semesters } = academicData;
   const hasNeitherModule = !tenant.showFeedbacks && !tenant.showEvents;

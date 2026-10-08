@@ -11,7 +11,7 @@ import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
