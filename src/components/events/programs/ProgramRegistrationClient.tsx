@@ -1234,9 +1234,11 @@ export function ProgramRegistrationClient({
                             >
                               <option value="">Select Semester (e.g. 4th Sem)</option>
                               {semesters.map((s) => {
-                                const semLabel = s.name.toLowerCase().startsWith('semester')
-                                  ? `${formatOrdinal(s.semester_number)} Semester`
-                                  : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`;
+                                const semLabel = s.semester_number
+                                  ? (s.name.toLowerCase().startsWith('semester')
+                                      ? `${formatOrdinal(s.semester_number)} Semester`
+                                      : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`)
+                                  : (s.display_name || s.name);
                                 return (
                                   <option key={s.id} value={semLabel}>
                                     {semLabel}

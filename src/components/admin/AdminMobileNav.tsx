@@ -19,6 +19,7 @@ import {
   Settings,
   Globe,
   Calendar,
+  FileCheck,
 } from 'lucide-react';
 import type { AdminTab } from './AdminDashboardTabs';
 
@@ -65,6 +66,7 @@ export function AdminMobileNav({
         { id: 'academic', label: 'Academic Structure', icon: GraduationCap },
         { id: 'forms', label: 'Feedback Forms', icon: FileSpreadsheet },
         { id: 'events', label: 'Events', icon: Calendar },
+        { id: 'exams', label: 'Exams & Tests', icon: FileCheck },
       ],
     },
     {

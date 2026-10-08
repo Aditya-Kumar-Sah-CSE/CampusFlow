@@ -12,6 +12,10 @@ import {
   updateSemesterAction,
   deleteSemesterAction,
   bulkSetupSemestersAction,
+  getAcademicProgrammesAction,
+  bulkSetupAcademicProgrammesAction,
+  createAcademicLevelAction,
+  updateAcademicLevelAction,
   createFacultyAction,
   updateFacultyAction,
   deleteFacultyAction,
@@ -41,15 +45,24 @@ import {
   X,
   Check,
   Zap,
+  CheckSquare,
+  Square,
+  Filter,
+  School,
+  Settings2,
+  ChevronDown,
 } from 'lucide-react';
 import type {
   AcademicYear,
   Branch,
   Semester,
+  AcademicProgramme,
+  AcademicLevel,
   Faculty,
   Subject,
   FacultySubjectAssignment,
 } from '@/types/database';
+import { PROGRAMME_PRESETS, ProgrammePreset } from '@/lib/academic/programme-service';
 import { PaginationControl } from '@/components/ui/PaginationControl';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 
@@ -408,11 +421,33 @@ export function AcademicManagementTab({
   const [editAssignSemesterId, setEditAssignSemesterId] = useState('');
   const [editAssignActive, setEditAssignActive] = useState(true);
 
-  // 5. Semester form & deletion state
-  const [semNumber, setSemNumber] = useState<number>(1);
-  const [semYear, setSemYear] = useState<number>(1);
-  const [semName, setSemName] = useState<string>('Semester 1');
+  // 5. Academic Programmes & Levels State
+  const [programmeList, setProgrammeList] = useState<AcademicProgramme[]>([]);
+  const [selectedPresets, setSelectedPresets] = useState<string[]>(['BTECH']);
+  const [showCustomPreset, setShowCustomPreset] = useState<boolean>(false);
+  const [customProgName, setCustomProgName] = useState<string>('');
+  const [customProgCode, setCustomProgCode] = useState<string>('');
+  const [customProgType, setCustomProgType] = useState<any>('UNDERGRADUATE');
+  const [customProgDuration, setCustomProgDuration] = useState<number>(4);
+  const [customProgLevelType, setCustomProgLevelType] = useState<any>('SEMESTER');
+  const [customProgHasBranches, setCustomProgHasBranches] = useState<boolean>(true);
+  const [customProgTotalLevels, setCustomProgTotalLevels] = useState<number>(8);
+
+  // Manual Add Level State
+  const [selectedProgIdForAdd, setSelectedProgIdForAdd] = useState<string>('');
+  const [levelNumber, setLevelNumber] = useState<number>(1);
+  const [levelYearNumber, setLevelYearNumber] = useState<number>(1);
+  const [levelName, setLevelName] = useState<string>('');
+
+  // Table Filters State
+  const [levelProgFilter, setLevelProgFilter] = useState<string>('ALL');
+  const [levelTypeFilter, setLevelTypeFilter] = useState<string>('ALL');
+  const [levelStatusFilter, setLevelStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [levelSearchQuery, setLevelSearchQuery] = useState<string>('');
   const [deletingSemester, setDeletingSemester] = useState<Semester | null>(null);
+
+  // Subject Form Programme Scope State
+  const [subProgId, setSubProgId] = useState<string>('ALL');
 
   // Sync state when props or activeCollegeId changes
   useEffect(() => {
@@ -431,6 +466,22 @@ export function AcademicManagementTab({
     setSubjectPage(1);
     setAssignPage(1);
   }, [branches, academicYears, semesters, initialFaculties, initialSubjects, initialAssignments, initialFacultyTotal, initialSubjectTotal, initialAssignmentTotal, activeCollegeId, facultyPageSize, subjectPageSize]);
+
+  // Load academic programmes for the active college
+  useEffect(() => {
+    async function loadProgrammes() {
+      const res = await getAcademicProgrammesAction(activeCollegeId);
+      if (res.success && res.programmes) {
+        setProgrammeList(res.programmes);
+        if (res.programmes.length > 0) {
+          setSelectedProgIdForAdd((prev) => prev || res.programmes[0].id);
+          const existingCodes = res.programmes.map((p) => p.code.toUpperCase());
+          setSelectedPresets((prev) => Array.from(new Set([...prev, ...existingCodes])));
+        }
+      }
+    }
+    loadProgrammes();
+  }, [activeCollegeId]);
 
   // -------------------------------------------------------------
   // HANDLERS (With immediate local state updates)
@@ -936,10 +987,12 @@ export function AcademicManagementTab({
     );
 
     startTransition(async () => {
-      const res = await updateSemesterAction(s.id, {
+      const res = await updateAcademicLevelAction(s.id, {
         name: s.name,
-        year_number: s.year_number,
-        semester_number: s.semester_number,
+        year_number: s.year_number || undefined,
+        semester_number: s.semester_number || undefined,
+        class_number: s.class_number || undefined,
+        level_number: s.level_number || undefined,
         is_active: nextActive,
         collegeId: activeCollegeId,
       });
@@ -947,49 +1000,79 @@ export function AcademicManagementTab({
         setSemesterList((prev) =>
           prev.map((item) => (item.id === s.id ? { ...item, is_active: s.is_active } : item))
         );
-        setMessage({ type: 'error', text: res.error || 'Failed to update semester.' });
+        setMessage({ type: 'error', text: res.error || 'Failed to update academic level.' });
       }
     });
   };
 
-  const handleCreateSemester = (e: React.FormEvent) => {
+  const handleCreateAcademicLevel = (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
+    const targetProg = programmeList.find((p) => p.id === selectedProgIdForAdd) || programmeList[0];
+    if (!targetProg) {
+      setMessage({ type: 'error', text: 'Please select an academic programme first.' });
+      return;
+    }
+
     startTransition(async () => {
-      const res = await createSemesterAction({
-        name: semName.trim(),
-        year_number: semYear,
-        semester_number: semNumber,
+      const isClass = targetProg.level_type === 'CLASS';
+      const autoName = levelName.trim() || (isClass ? `Class ${levelNumber}` : `Semester ${levelNumber}`);
+
+      const res = await createAcademicLevelAction({
+        programmeId: targetProg.id,
+        name: autoName,
+        levelNumber,
+        levelType: targetProg.level_type,
+        yearNumber: isClass ? levelNumber : levelYearNumber,
+        semesterNumber: isClass ? undefined : levelNumber,
+        classNumber: isClass ? levelNumber : undefined,
         is_active: true,
         collegeId: activeCollegeId,
       });
-      if (res.success && res.semester) {
-        setMessage({ type: 'success', text: `Semester ${res.semester.name} added successfully.` });
-        setSemesterList((prev) =>
-          [...prev, res.semester as Semester].sort((a, b) => a.semester_number - b.semester_number)
-        );
-        const nextNum = Math.min(8, semNumber + 1);
-        setSemNumber(nextNum);
-        setSemYear(Math.ceil(nextNum / 2));
-        setSemName(`Semester ${nextNum}`);
+
+      if (res.success && res.level) {
+        setMessage({ type: 'success', text: `Added ${res.level.name} to ${targetProg.name}.` });
+        setSemesterList((prev) => [...prev, res.level as Semester]);
+        setLevelNumber((prev) => prev + 1);
+        setLevelName('');
       } else {
-        setMessage({ type: 'error', text: res.error || 'Failed to add semester.' });
+        setMessage({ type: 'error', text: res.error || 'Failed to add academic level.' });
       }
     });
   };
 
-  const handleBulkSetupSemesters = (total: 6 | 8) => {
+  const handleBulkSetupProgrammes = () => {
+    if (selectedPresets.length === 0 && !showCustomPreset) {
+      setMessage({ type: 'error', text: 'Please select at least one academic programme preset.' });
+      return;
+    }
     setMessage(null);
     startTransition(async () => {
-      const res = await bulkSetupSemestersAction({ totalSemesters: total, collegeId: activeCollegeId });
-      if (res.success && res.semesters) {
+      const customPayload = showCustomPreset && customProgName.trim() && customProgCode.trim() ? {
+        name: customProgName.trim(),
+        code: customProgCode.trim().toUpperCase(),
+        programme_type: customProgType,
+        duration_years: Number(customProgDuration),
+        level_type: customProgLevelType,
+        has_branches: customProgHasBranches,
+        totalLevels: Number(customProgTotalLevels),
+      } : undefined;
+
+      const res = await bulkSetupAcademicProgrammesAction({
+        presetCodes: selectedPresets,
+        customProgramme: customPayload,
+        collegeId: activeCollegeId,
+      });
+
+      if (res.success && res.levels) {
         setMessage({
           type: 'success',
-          text: `Configured ${total}-semester curriculum structure successfully (${res.count} new semester(s) added).`,
+          text: `Configured programmes successfully! Added ${res.createdLevelsCount} new academic level(s).`,
         });
-        setSemesterList(res.semesters as Semester[]);
+        setSemesterList(res.levels as Semester[]);
+        if (res.programmes) setProgrammeList(res.programmes);
       } else {
-        setMessage({ type: 'error', text: res.error || 'Failed to setup semesters.' });
+        setMessage({ type: 'error', text: res.error || 'Failed to configure academic programmes.' });
       }
     });
   };
@@ -1002,16 +1085,45 @@ export function AcademicManagementTab({
       if (res.success) {
         setMessage({
           type: 'success',
-          text: `Semester "${deletingSemester.name}" deleted successfully.`,
+          text: `Academic level "${deletingSemester.name}" deleted successfully.`,
         });
         setSemesterList((prev) => prev.filter((s) => s.id !== deletingSemester.id));
         setDeletingSemester(null);
       } else {
-        setMessage({ type: 'error', text: res.error || 'Failed to delete semester.' });
+        setMessage({ type: 'error', text: res.error || 'Failed to delete academic level.' });
         setDeletingSemester(null);
       }
     });
   };
+
+  // Filtered Academic Levels
+  const filteredLevels = useMemo(() => {
+    return semesterList.filter((lev: any) => {
+      // Programme filter
+      if (levelProgFilter !== 'ALL') {
+        const progId = lev.programme_id || lev.programme?.id;
+        const progCode = lev.programme?.code;
+        if (progId !== levelProgFilter && progCode !== levelProgFilter) return false;
+      }
+      // Level type filter (SEMESTER, CLASS, CUSTOM)
+      if (levelTypeFilter !== 'ALL') {
+        const type = lev.level_type || (lev.class_number ? 'CLASS' : 'SEMESTER');
+        if (type !== levelTypeFilter) return false;
+      }
+      // Status filter
+      if (levelStatusFilter === 'ACTIVE' && !lev.is_active) return false;
+      if (levelStatusFilter === 'INACTIVE' && lev.is_active) return false;
+      // Search
+      if (levelSearchQuery.trim()) {
+        const q = levelSearchQuery.toLowerCase();
+        const mName = (lev.name || '').toLowerCase().includes(q);
+        const mProg = (lev.programme?.name || '').toLowerCase().includes(q);
+        const mCode = (lev.code || '').toLowerCase().includes(q);
+        return mName || mProg || mCode;
+      }
+      return true;
+    });
+  }, [semesterList, levelProgFilter, levelTypeFilter, levelStatusFilter, levelSearchQuery]);
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
@@ -1023,7 +1135,7 @@ export function AcademicManagementTab({
           { id: 'assignments', label: `Assignments (${assignTotal})`, icon: GraduationCap },
           { id: 'years', label: `Academic Years (${yearList.length})`, icon: Calendar },
           { id: 'branches', label: `Branches (${branchList.length})`, icon: Layers },
-          { id: 'semesters', label: `Semesters (${semesterList.length})`, icon: Building2 },
+          { id: 'semesters', label: `Academic Levels (${semesterList.length})`, icon: Layers },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -1412,37 +1524,89 @@ export function AcademicManagementTab({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch / Discipline</label>
-                <select
-                  value={subBranchId}
-                  onChange={(e) => setSubBranchId(e.target.value)}
-                  aria-label="Branch / Discipline"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
-                >
-                  <option value="">Common / All Branches</option>
-                  {activeBranches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {programmeList.length > 0 && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Academic Programme</label>
+                  <select
+                    value={subProgId}
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      setSubProgId(pId);
+                      const selectedProg = programmeList.find((p) => p.id === pId);
+                      if (selectedProg && !selectedProg.has_branches) {
+                        setSubBranchId('');
+                      }
+                      const firstMatching = semesterList.find(
+                        (s: any) => pId === 'ALL' || s.programme_id === pId || s.programme?.id === pId
+                      );
+                      if (firstMatching) setSubSemesterId(firstMatching.id);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  >
+                    <option value="ALL">All Programmes</option>
+                    {programmeList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.level_type === 'CLASS' ? 'School' : `${p.duration_years} Yrs`})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Semester</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Academic Level (Semester / Class)
+                </label>
                 <select
                   value={subSemesterId}
                   onChange={(e) => setSubSemesterId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
                 >
-                  <option value="">Any Semester</option>
-                  {semesterList.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
+                  <option value="">Any Academic Level</option>
+                  {semesterList
+                    .filter(
+                      (s: any) =>
+                        subProgId === 'ALL' ||
+                        s.programme_id === subProgId ||
+                        s.programme?.id === subProgId
+                    )
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.programme?.name ? `${s.programme.name} • ` : ''}
+                        {s.name}
+                      </option>
+                    ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch / Discipline</label>
+                {(() => {
+                  const currentProg = programmeList.find((p) => p.id === subProgId);
+                  const isBranchless = currentProg && !currentProg.has_branches;
+                  if (isBranchless) {
+                    return (
+                      <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 italic">
+                        Not Applicable ({currentProg.name} curriculum has no branches)
+                      </div>
+                    );
+                  }
+                  return (
+                    <select
+                      value={subBranchId}
+                      onChange={(e) => setSubBranchId(e.target.value)}
+                      aria-label="Branch / Discipline"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                    >
+                      <option value="">Common / All Branches</option>
+                      {activeBranches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.code})
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
 
               <button
@@ -2467,228 +2631,491 @@ export function AcademicManagementTab({
         </div>
       )}
 
-      {/* 6. SEMESTERS SUBTAB */}
+      {/* 6. ACADEMIC LEVELS SUBTAB */}
       {activeSubTab === 'semesters' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Quick Setup & Manual Add */}
+            {/* Left Column: Quick Multi-Select Setup & Manual Add Level */}
             <div className="space-y-6 lg:col-span-1">
-              {/* Quick Setup Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Quick Curriculum Setup</h4>
-                    <p className="text-[11px] text-slate-500">1-click standard semester generator</p>
+              {/* Quick Academic Setup Card */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                      <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Quick Academic Setup</h4>
+                      <p className="text-[11px] text-slate-500">Multi-select standard programme & level generator</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleBulkSetupSemesters(8)}
-                    disabled={isPending}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center justify-between transition-all disabled:opacity-50 shadow-xs group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-slate-800 group-hover:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-amber-400">8</span>
-                      <span>Setup 8 Semesters</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-normal">B.Tech / 4-Yr</span>
-                  </button>
+                {/* Multi-select presets list */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                    Supported Programmes
+                  </span>
 
-                  <button
-                    type="button"
-                    onClick={() => handleBulkSetupSemesters(6)}
-                    disabled={isPending}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold flex items-center justify-between transition-all disabled:opacity-50 group border border-slate-200 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-slate-200 group-hover:bg-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-700">6</span>
-                      <span>Setup 6 Semesters</span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 font-normal">Diploma / 3-Yr</span>
-                  </button>
+                  {[
+                    { code: 'BTECH', name: 'B.Tech', duration: '4 Years · 8 Semesters', badge: 'UG' },
+                    { code: 'MTECH', name: 'M.Tech', duration: '2 Years · 4 Semesters', badge: 'PG' },
+                    { code: 'BE', name: 'B.E.', duration: '4 Years · 8 Semesters', badge: 'UG' },
+                    { code: 'DIPLOMA', name: 'Diploma', duration: '3 Years · 6 Semesters', badge: 'DIPLOMA' },
+                    { code: 'SCHOOL', name: 'School', duration: 'Classes 1–12 (No Semesters)', badge: 'K-12' },
+                  ].map((preset) => {
+                    const isSelected = selectedPresets.includes(preset.code);
+                    const matchingProg = programmeList.find((p) => p.code.toUpperCase() === preset.code);
+                    const levelCount = matchingProg
+                      ? semesterList.filter((s: any) => s.programme_id === matchingProg.id || s.programme?.id === matchingProg.id).length
+                      : 0;
+
+                    return (
+                      <div
+                        key={preset.code}
+                        onClick={() => {
+                          setSelectedPresets((prev) =>
+                            isSelected ? prev.filter((c) => c !== preset.code) : [...prev, preset.code]
+                          );
+                        }}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-blue-50/70 border-bce-cobalt/40 shadow-2xs'
+                            : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // Controlled via parent div onClick
+                            className="w-4 h-4 rounded text-bce-cobalt focus:ring-bce-cobalt pointer-events-none"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">{preset.name}</span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200/80 text-slate-700">
+                                {preset.badge}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 block">{preset.duration}</span>
+                          </div>
+                        </div>
+
+                        {levelCount > 0 ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                            {levelCount} configured
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium">Ready</span>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Custom Programme Toggle */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomPreset(!showCustomPreset)}
+                      className="text-xs font-bold text-bce-cobalt hover:text-bce-navy flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{showCustomPreset ? 'Hide Custom Programme' : '+ Add Custom Programme'}</span>
+                    </button>
+
+                    {showCustomPreset && (
+                      <div className="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-150">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Programme Name</label>
+                            <input
+                              type="text"
+                              value={customProgName}
+                              onChange={(e) => setCustomProgName(e.target.value)}
+                              placeholder="e.g. B.Arch"
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Code</label>
+                            <input
+                              type="text"
+                              value={customProgCode}
+                              onChange={(e) => setCustomProgCode(e.target.value)}
+                              placeholder="e.g. BARCH"
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg uppercase font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Level Type</label>
+                            <select
+                              value={customProgLevelType}
+                              onChange={(e) => setCustomProgLevelType(e.target.value as any)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg"
+                            >
+                              <option value="SEMESTER">Semesters</option>
+                              <option value="CLASS">Classes (School)</option>
+                              <option value="CUSTOM">Custom Terms</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Total Levels</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="20"
+                              value={customProgTotalLevels}
+                              onChange={(e) => setCustomProgTotalLevels(Number(e.target.value) || 1)}
+                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="customProgBranches"
+                            checked={customProgHasBranches}
+                            onChange={(e) => setCustomProgHasBranches(e.target.checked)}
+                            className="w-3.5 h-3.5 rounded text-bce-cobalt"
+                          />
+                          <label htmlFor="customProgBranches" className="text-[11px] font-medium text-slate-700 cursor-pointer">
+                            Has branches / disciplines (e.g. CSE, ECE)
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed pt-1">
-                  Generates missing standard semesters along with academic year levels. Existing semesters are preserved.
+                <button
+                  type="button"
+                  onClick={handleBulkSetupProgrammes}
+                  disabled={isPending || (selectedPresets.length === 0 && !showCustomPreset)}
+                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98"
+                >
+                  {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />}
+                  <span>Apply & Generate Academic Levels</span>
+                </button>
+
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Generates all missing academic levels in ONE operation. Existing records are preserved without duplication. School uses Classes 1–12 without fake semesters.
                 </p>
               </div>
 
-              {/* Manual Add Semester Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
-                <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+              {/* Manual Add Academic Level Card */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Plus className="w-4 h-4 text-bce-cobalt" />
-                  <span>Add Single Semester</span>
+                  <span>Add Single Academic Level</span>
                 </h4>
-                <form onSubmit={handleCreateSemester} className="space-y-3">
+                <form onSubmit={handleCreateAcademicLevel} className="space-y-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Semester Number
+                      Academic Programme
                     </label>
                     <select
-                      value={semNumber}
+                      value={selectedProgIdForAdd}
                       onChange={(e) => {
-                        const num = Number(e.target.value);
-                        setSemNumber(num);
-                        setSemYear(Math.ceil(num / 2));
-                        setSemName(`Semester ${num}`);
+                        const pid = e.target.value;
+                        setSelectedProgIdForAdd(pid);
+                        const prog = programmeList.find((p) => p.id === pid);
+                        if (prog?.level_type === 'CLASS') {
+                          setLevelName(`Class ${levelNumber}`);
+                        } else {
+                          setLevelName(`Semester ${levelNumber}`);
+                        }
                       }}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
                     >
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                        <option key={n} value={n}>
-                          Semester {n} (Year {Math.ceil(n / 2)})
+                      {programmeList.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.level_type === 'CLASS' ? 'School Classes' : `${p.duration_years} Yrs`})
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Year Level
-                      </label>
-                      <select
-                        value={semYear}
-                        onChange={(e) => setSemYear(Number(e.target.value))}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
-                      >
-                        {[1, 2, 3, 4].map((y) => (
-                          <option key={y} value={y}>
-                            Year {y}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  {(() => {
+                    const currentProg = programmeList.find((p) => p.id === selectedProgIdForAdd) || programmeList[0];
+                    const isClass = currentProg?.level_type === 'CLASS';
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Display Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={semName}
-                        onChange={(e) => setSemName(e.target.value)}
-                        placeholder="e.g. Semester 1"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
-                      />
-                    </div>
-                  </div>
+                    if (isClass) {
+                      return (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Class Number
+                            </label>
+                            <select
+                              value={levelNumber}
+                              onChange={(e) => {
+                                const n = Number(e.target.value);
+                                setLevelNumber(n);
+                                setLevelName(`Class ${n}`);
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                            >
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((cn) => (
+                                <option key={cn} value={cn}>
+                                  Class {cn}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Display Name
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={levelName}
+                              onChange={(e) => setLevelName(e.target.value)}
+                              placeholder="e.g. Class 10"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Semester #
+                            </label>
+                            <select
+                              value={levelNumber}
+                              onChange={(e) => {
+                                const n = Number(e.target.value);
+                                setLevelNumber(n);
+                                setLevelYearNumber(Math.ceil(n / 2));
+                                setLevelName(`Semester ${n}`);
+                              }}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                            >
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((sn) => (
+                                <option key={sn} value={sn}>
+                                  Semester {sn}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Year Level
+                            </label>
+                            <select
+                              value={levelYearNumber}
+                              onChange={(e) => setLevelYearNumber(Number(e.target.value))}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                            >
+                              {[1, 2, 3, 4, 5].map((y) => (
+                                <option key={y} value={y}>
+                                  Year {y}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Display Name
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={levelName}
+                            onChange={(e) => setLevelName(e.target.value)}
+                            placeholder="e.g. Semester 1"
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                          />
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   <button
                     type="submit"
-                    disabled={isPending || !semName.trim()}
+                    disabled={isPending || !levelName.trim()}
                     className="w-full mt-2 bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold py-2.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                    <span>Add Semester</span>
+                    <span>Add Academic Level</span>
                   </button>
                 </form>
               </div>
             </div>
 
-            {/* Right Column: Semesters Table */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden lg:col-span-2 min-w-0">
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+            {/* Right Column: Configured Academic Levels Table with Filters */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden lg:col-span-2 min-w-0 flex flex-col">
+              <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900">Configured Semesters ({semesterList.length})</h4>
-                  <p className="text-[11px] text-slate-500">Active semesters available for subjects & feedback forms</p>
+                  <h4 className="text-sm font-bold text-slate-900">
+                    Configured Academic Levels ({filteredLevels.length})
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Levels available for subjects, feedback forms & examination scopes
+                  </p>
                 </div>
                 {semesterList.length > 0 && (
-                  <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
-                    {semesterList.filter((s) => s.is_active).length} Active
+                  <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full self-start sm:self-auto">
+                    {semesterList.filter((s) => s.is_active).length} Active of {semesterList.length}
                   </span>
                 )}
               </div>
 
-              {semesterList.length === 0 ? (
-                <div className="p-8 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 mx-auto flex items-center justify-center">
+              {/* Filters Bar */}
+              <div className="p-3.5 bg-slate-50/70 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <div>
+                  <select
+                    value={levelProgFilter}
+                    onChange={(e) => setLevelProgFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
+                  >
+                    <option value="ALL">All Programmes</option>
+                    {programmeList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <select
+                    value={levelTypeFilter}
+                    onChange={(e) => setLevelTypeFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
+                  >
+                    <option value="ALL">All Types</option>
+                    <option value="SEMESTER">Semesters</option>
+                    <option value="CLASS">School Classes</option>
+                  </select>
+                </div>
+
+                <div>
+                  <select
+                    value={levelStatusFilter}
+                    onChange={(e) => setLevelStatusFilter(e.target.value as any)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={levelSearchQuery}
+                      onChange={(e) => setLevelSearchQuery(e.target.value)}
+                      placeholder="Search level..."
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {filteredLevels.length === 0 ? (
+                <div className="p-8 text-center space-y-3 flex-1 flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
-                    <h5 className="text-sm font-bold text-slate-800">No Semesters Configured</h5>
+                    <h5 className="text-sm font-bold text-slate-800">No Academic Levels Found</h5>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                      Use the quick setup buttons on the left to instantly generate a 6 or 8 semester curriculum for this institution.
+                      Use the quick setup cards on the left to configure your college or school curriculum structure.
                     </p>
-                  </div>
-                  <div className="flex items-center justify-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => handleBulkSetupSemesters(8)}
-                      disabled={isPending}
-                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs cursor-pointer"
-                    >
-                      ⚡ Setup 8 Semesters
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBulkSetupSemesters(6)}
-                      disabled={isPending}
-                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-200 cursor-pointer"
-                    >
-                      ⚡ Setup 6 Semesters
-                    </button>
                   </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto min-w-0">
-                  <table className="w-full text-left text-xs min-w-[500px]">
+                <div className="overflow-x-auto min-w-0 flex-1">
+                  <table className="w-full text-left text-xs min-w-[550px]">
                     <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
                       <tr>
-                        <th className="px-5 py-3">Semester</th>
+                        <th className="px-5 py-3">Programme</th>
+                        <th className="px-5 py-3">Academic Level</th>
                         <th className="px-5 py-3">Year Level</th>
-                        <th className="px-5 py-3">Semester #</th>
+                        <th className="px-5 py-3">Type & #</th>
                         <th className="px-5 py-3">Status</th>
                         <th className="px-5 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {semesterList.map((s) => (
-                        <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-5 py-3 font-bold text-slate-800">{s.name}</td>
-                          <td className="px-5 py-3 text-slate-600">Year {s.year_number}</td>
-                          <td className="px-5 py-3 text-slate-600">Semester {s.semester_number}</td>
-                          <td className="px-5 py-3">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                                s.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
-                              }`}
-                            >
-                              {s.is_active ? 'ACTIVE' : 'INACTIVE'}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 text-right">
-                            <div className="inline-flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleToggleSemester(s)}
-                                className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                                  s.is_active
-                                    ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                                    : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                      {filteredLevels.map((lev: any) => {
+                        const isClass = lev.level_type === 'CLASS' || lev.class_number !== null;
+                        const progName = lev.programme?.name || 'B.Tech';
+                        const progType = lev.programme?.programme_type || (isClass ? 'SCHOOL' : 'UG');
+
+                        return (
+                          <tr key={lev.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-5 py-3">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-900">{progName}</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                  {isClass ? 'K-12' : progType === 'POSTGRADUATE' ? 'PG' : 'UG'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-3 font-bold text-slate-800">{lev.name}</td>
+                            <td className="px-5 py-3 text-slate-600">
+                              {isClass ? '—' : lev.year_number ? `Year ${lev.year_number}` : '—'}
+                            </td>
+                            <td className="px-5 py-3 text-slate-600">
+                              {isClass
+                                ? `Class ${lev.class_number || lev.level_number}`
+                                : `Sem ${lev.semester_number || lev.level_number}`}
+                            </td>
+                            <td className="px-5 py-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
+                                  lev.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
                                 }`}
                               >
-                                {s.is_active ? 'Deactivate' : 'Activate'}
-                              </button>
+                                {lev.is_active ? 'ACTIVE' : 'INACTIVE'}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3 text-right">
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleSemester(lev)}
+                                  className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                                    lev.is_active
+                                      ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                                      : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                                  }`}
+                                >
+                                  {lev.is_active ? 'Deactivate' : 'Activate'}
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => setDeletingSemester(s)}
-                                className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                                title="Delete Semester"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingSemester(lev)}
+                                  className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                  title="Delete Academic Level"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2696,14 +3123,14 @@ export function AcademicManagementTab({
             </div>
           </div>
 
-          {/* Delete Semester Confirmation Modal */}
+          {/* Delete Academic Level Confirmation Modal */}
           {deletingSemester && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
               <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
                 <div className="p-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between shrink-0">
                   <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
                     <AlertCircle className="w-4 h-4 text-rose-600" />
-                    <span>Confirm Semester Deletion</span>
+                    <span>Confirm Academic Level Deletion</span>
                   </h4>
                   <button
                     type="button"
@@ -2721,11 +3148,11 @@ export function AcademicManagementTab({
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 flex items-center justify-between">
                     <span>{deletingSemester.name}</span>
                     <span className="font-mono text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
-                      Year {deletingSemester.year_number} • Sem {deletingSemester.semester_number}
+                      {deletingSemester.programme?.name || 'Programme'} • Level {deletingSemester.level_number || deletingSemester.semester_number || deletingSemester.class_number}
                     </span>
                   </div>
                   <p className="text-rose-600 text-[11px] leading-relaxed">
-                    ⚠️ Deletion is permanently blocked if any subjects, teaching assignments, or feedback forms are currently linked to this semester.
+                    ⚠️ Deletion is permanently blocked if any course subjects, faculty teaching assignments, feedback forms, or exams are currently linked to this academic level.
                   </p>
                 </div>
 
@@ -2744,7 +3171,7 @@ export function AcademicManagementTab({
                     className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    <span>Delete Semester</span>
+                    <span>Delete Level</span>
                   </button>
                 </div>
               </div>

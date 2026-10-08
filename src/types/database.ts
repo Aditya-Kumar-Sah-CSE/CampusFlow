@@ -20,15 +20,50 @@ export interface Branch {
   updated_at?: string;
 }
 
-export interface Semester {
+export type AcademicProgrammeType =
+  | 'UNDERGRADUATE'
+  | 'POSTGRADUATE'
+  | 'DIPLOMA'
+  | 'SCHOOL'
+  | 'OTHER';
+
+export type AcademicLevelType = 'SEMESTER' | 'CLASS' | 'CUSTOM';
+
+export interface AcademicProgramme {
   id: string;
+  college_id: string;
   name: string;
-  year_number: number;
-  semester_number: number;
+  code: string;
+  programme_type: AcademicProgrammeType;
+  duration_years: number;
+  level_type: AcademicLevelType;
+  has_branches: boolean;
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+  levels_count?: number;
 }
+
+export interface Semester {
+  id: string;
+  college_id?: string;
+  programme_id?: string | null;
+  name: string;
+  code?: string | null;
+  level_number?: number;
+  level_type?: AcademicLevelType;
+  year_number?: number | null;
+  semester_number?: number | null;
+  class_number?: number | null;
+  display_name?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string;
+  // joined relations
+  programme?: AcademicProgramme | null;
+}
+
+export type AcademicLevel = Semester;
 
 export interface Faculty {
   id: string;

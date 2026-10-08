@@ -1,0 +1,114 @@
+import { redirect } from 'next/navigation';
+import { getAdminSession } from '@/lib/auth/admin-auth';
+import { getExamDbClient } from '@/lib/exams/exam-permission';
+import { getExamById } from '@/lib/exams/exam-service';
+import { CreateExamWizard } from '@/components/admin/exams/CreateExamWizard';
+
+export const dynamic = 'force-dynamic';
+
+interface Props {
+  params: Promise<{ id: string }>;
+}
+
+export default async function AdminEditExamPage({ params }: Props) {
+  const { id } = await params;
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    redirect('/admin/login');
+  }
+
+  const collegeId = session.activeCollegeId;
+  if (!collegeId) {
+    redirect('/admin/dashboard');
+  }
+
+  const exam = await getExamById(id, collegeId);
+  const db = await getExamDbClient();
+
+  const [
+    { data: sessions },
+    { data: progs },
+    { data: sems },
+    { data: branches },
+    { data: subjects },
+  ] = await Promise.all([
+    db
+      .from('academic_years')
+      .select('id, name, is_active')
+      .eq('college_id', collegeId)
+      .order('name', { ascending: false }),
+    db
+      .from('academic_programmes')
+      .select('id, name, code, programme_type, duration_years, level_type, has_branches, is_active')
+      .eq('college_id', collegeId)
+      .order('name', { ascending: true }),
+    db
+      .from('semesters')
+      .select(`
+        id, name, semester_number, year_number, level_type, level_number, class_number, display_name, programme_id, is_active,
+        programme:academic_programmes(id, name, code, programme_type, level_type, has_branches)
+      `)
+      .eq('college_id', collegeId)
+      .order('level_number', { ascending: true }),
+    db
+      .from('branches')
+      .select('id, name, code, is_active')
+      .eq('college_id', collegeId)
+      .order('name', { ascending: true }),
+    db
+      .from('subjects')
+      .select('id, name, code, branch_id, semester_id, is_active')
+      .eq('college_id', collegeId)
+      .order('name', { ascending: true }),
+  ]);
+
+  return (
+    <div className="py-2">
+      <CreateExamWizard
+        collegeId={collegeId}
+        initialExam={exam}
+        academicSessions={(sessions || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          is_active: Boolean(s.is_active),
+        }))}
+        programmes={(progs || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          code: p.code,
+          programme_type: p.programme_type,
+          level_type: p.level_type,
+          has_branches: Boolean(p.has_branches),
+          is_active: Boolean(p.is_active),
+        }))}
+        semesters={(sems || []).map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          display_name: s.display_name || s.name,
+          semester_number: s.semester_number,
+          year_number: s.year_number,
+          class_number: s.class_number,
+          level_number: s.level_number || s.semester_number || s.class_number,
+          level_type: s.level_type || (s.class_number ? 'CLASS' : 'SEMESTER'),
+          programme_id: s.programme_id,
+          programme: s.programme || null,
+          is_active: Boolean(s.is_active),
+        }))}
+        branches={(branches || []).map((b: any) => ({
+          id: b.id,
+          name: b.name,
+          code: b.code || '',
+          is_active: Boolean(b.is_active),
+        }))}
+        subjects={(subjects || []).map((sb: any) => ({
+          id: sb.id,
+          name: sb.name,
+          code: sb.code || '',
+          branch_id: sb.branch_id,
+          semester_id: sb.semester_id,
+          is_active: Boolean(sb.is_active),
+        }))}
+      />
+    </div>
+  );
+}

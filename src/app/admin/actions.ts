@@ -12,6 +12,12 @@ import {
 import { ACADEMIC_CACHE_TAG } from '@/lib/supabase/academic-cache';
 import { branchSchema, isValidUUID } from '@/lib/validation';
 import { deleteFeedbackFormAction as deleteFormInternal } from './forms/actions';
+import {
+  bulkSetupProgrammesAndLevels,
+  getCollegeAcademicProgrammes,
+  getCollegeAcademicLevels,
+  PROGRAMME_PRESETS,
+} from '@/lib/academic/programme-service';
 
 async function getAdminDb() {
   return createAdminClient() || await createClient();
@@ -1151,8 +1157,51 @@ export async function updateSemesterAction(
   return { success: true };
 }
 
-export async function bulkSetupSemestersAction(data: {
-  totalSemesters: 6 | 8;
+export async function getAcademicProgrammesAction(collegeId?: string) {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized.' };
+  }
+
+  let authorizedCollegeId: string;
+  try {
+    authorizedCollegeId = await resolveAuthorizedCollegeId(session, collegeId);
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Institution resolution failed.' };
+  }
+
+  try {
+    const programmes = await getCollegeAcademicProgrammes(authorizedCollegeId);
+    return { success: true, programmes };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to fetch academic programmes.' };
+  }
+}
+
+export async function getAcademicLevelsAction(collegeId?: string) {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized.' };
+  }
+
+  let authorizedCollegeId: string;
+  try {
+    authorizedCollegeId = await resolveAuthorizedCollegeId(session, collegeId);
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Institution resolution failed.' };
+  }
+
+  try {
+    const levels = await getCollegeAcademicLevels(authorizedCollegeId);
+    return { success: true, levels, semesters: levels };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to fetch academic levels.' };
+  }
+}
+
+export async function bulkSetupAcademicProgrammesAction(data: {
+  presetCodes: string[];
+  customProgramme?: any;
   collegeId?: string;
 }) {
   const session = await getAdminSession();
@@ -1164,72 +1213,31 @@ export async function bulkSetupSemestersAction(data: {
   try {
     authorizedCollegeId = await resolveAuthorizedCollegeId(session, data.collegeId);
   } catch (err: any) {
-    return { success: false, error: err.message || 'Unable to determine the active institution. Please select an institution and try again.' };
+    return { success: false, error: err.message || 'Unable to determine the active institution.' };
   }
 
-  const total = Number(data.totalSemesters);
-  if (total !== 6 && total !== 8) {
-    return { success: false, error: 'Standard curriculum structure only supports 6 or 8 semesters.' };
+  if (!data.presetCodes || data.presetCodes.length === 0) {
+    return { success: false, error: 'Please select at least one academic programme preset.' };
+  }
+
+  const res = await bulkSetupProgrammesAndLevels(
+    authorizedCollegeId,
+    data.presetCodes,
+    data.customProgramme
+  );
+
+  if (!res.success) {
+    return { success: false, error: res.error || 'Failed to configure academic programmes.' };
   }
 
   const supabase = await getAdminDb();
-
-  // Fetch existing semesters for this college
-  const { data: existingSemesters, error: fetchErr } = await supabase
-    .from('semesters')
-    .select('id, semester_number, name')
-    .eq('college_id', authorizedCollegeId);
-
-  if (fetchErr) {
-    return { success: false, error: fetchErr.message };
-  }
-
-  const existingMap = new Map((existingSemesters || []).map((s) => [s.semester_number, s]));
-  const toInsert: Array<{
-    college_id: string;
-    name: string;
-    year_number: number;
-    semester_number: number;
-    is_active: boolean;
-  }> = [];
-
-  for (let s = 1; s <= total; s++) {
-    if (!existingMap.has(s)) {
-      toInsert.push({
-        college_id: authorizedCollegeId,
-        name: `Semester ${s}`,
-        year_number: Math.ceil(s / 2),
-        semester_number: s,
-        is_active: true,
-      });
-    }
-  }
-
-  if (toInsert.length > 0) {
-    const { error: insertErr } = await supabase.from('semesters').insert(toInsert);
-    if (insertErr) {
-      return { success: false, error: insertErr.message };
-    }
-  }
-
-  // Fetch complete sorted list for this college
-  const { data: updatedList, error: listErr } = await supabase
-    .from('semesters')
-    .select('id, name, year_number, semester_number, is_active, created_at')
-    .eq('college_id', authorizedCollegeId)
-    .order('semester_number', { ascending: true });
-
-  if (listErr) {
-    return { success: false, error: listErr.message };
-  }
-
   await logAuditAction(
     supabase,
     { adminId: session.admin?.id, email: session.user?.email },
-    'BULK_SETUP_SEMESTERS',
-    'semesters',
+    'BULK_SETUP_ACADEMIC_PROGRAMMES',
+    'academic_programmes',
     authorizedCollegeId,
-    `Configured ${total}-semester curriculum pattern in institution ${authorizedCollegeId}`
+    `Configured programmes [${data.presetCodes.join(', ')}] with ${res.createdLevelsCount} new level(s) in institution ${authorizedCollegeId}`
   );
 
   revalidateTag(ACADEMIC_CACHE_TAG);
@@ -1237,7 +1245,213 @@ export async function bulkSetupSemestersAction(data: {
   revalidatePath('/admin/dashboard');
   revalidatePath('/');
 
-  return { success: true, count: toInsert.length, semesters: updatedList || [] };
+  return {
+    success: true,
+    createdProgrammesCount: res.createdProgrammesCount,
+    createdLevelsCount: res.createdLevelsCount,
+    programmes: res.programmes,
+    levels: res.levels,
+    semesters: res.levels,
+  };
+}
+
+/**
+ * Backward-compatible single or dual totalSemesters setup.
+ */
+export async function bulkSetupSemestersAction(data: {
+  totalSemesters: 6 | 8;
+  collegeId?: string;
+}) {
+  const code = data.totalSemesters === 6 ? 'DIPLOMA' : 'BTECH';
+  return bulkSetupAcademicProgrammesAction({
+    presetCodes: [code],
+    collegeId: data.collegeId,
+  });
+}
+
+export async function createAcademicLevelAction(data: {
+  programmeId: string;
+  name: string;
+  levelNumber?: number;
+  levelType?: string;
+  yearNumber?: number;
+  semesterNumber?: number;
+  classNumber?: number;
+  is_active?: boolean;
+  collegeId?: string;
+}) {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized.' };
+  }
+
+  let authorizedCollegeId: string;
+  try {
+    authorizedCollegeId = await resolveAuthorizedCollegeId(session, data.collegeId);
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Institution resolution failed.' };
+  }
+
+  const supabase = await getAdminDb();
+
+  // Validate programme belongs to this college
+  const { data: prog, error: progErr } = await supabase
+    .from('academic_programmes')
+    .select('id, name, code, level_type')
+    .eq('id', data.programmeId)
+    .eq('college_id', authorizedCollegeId)
+    .maybeSingle();
+
+  if (progErr || !prog) {
+    return { success: false, error: 'Selected academic programme not found or unauthorized.' };
+  }
+
+  const isClass = prog.level_type === 'CLASS' || data.levelType === 'CLASS';
+  const levelNum = Number(data.levelNumber || data.semesterNumber || data.classNumber || 1);
+  const name = data.name.trim() || (isClass ? `Class ${levelNum}` : `Semester ${levelNum}`);
+
+  // Check unique level number within this programme
+  const { data: existingLev } = await supabase
+    .from('semesters')
+    .select('id')
+    .eq('college_id', authorizedCollegeId)
+    .eq('programme_id', data.programmeId)
+    .eq('level_number', levelNum)
+    .maybeSingle();
+
+  if (existingLev) {
+    return {
+      success: false,
+      error: `${isClass ? 'Class' : 'Level'} ${levelNum} already exists in ${prog.name}.`,
+    };
+  }
+
+  const toInsert = {
+    college_id: authorizedCollegeId,
+    programme_id: data.programmeId,
+    name,
+    display_name: name,
+    code: isClass ? `CLS-${levelNum}` : `SEM-${levelNum}`,
+    level_number: levelNum,
+    class_number: isClass ? levelNum : null,
+    semester_number: isClass ? null : (data.semesterNumber ? Number(data.semesterNumber) : levelNum),
+    year_number: data.yearNumber ? Number(data.yearNumber) : (isClass ? levelNum : Math.ceil(levelNum / 2)),
+    level_type: isClass ? 'CLASS' : 'SEMESTER',
+    is_active: data.is_active !== undefined ? Boolean(data.is_active) : true,
+  };
+
+  const { data: newLevel, error: insertErr } = await supabase
+    .from('semesters')
+    .insert(toInsert)
+    .select(`
+      *,
+      programme:academic_programmes(id, name, code, programme_type, duration_years, level_type, has_branches, is_active)
+    `)
+    .single();
+
+  if (insertErr) {
+    return { success: false, error: insertErr.message };
+  }
+
+  await logAuditAction(
+    supabase,
+    { adminId: session.admin?.id, email: session.user?.email },
+    'CREATE_ACADEMIC_LEVEL',
+    'semesters',
+    newLevel.id,
+    `Created level ${newLevel.name} in programme ${prog.name} (${authorizedCollegeId})`
+  );
+
+  revalidateTag(ACADEMIC_CACHE_TAG);
+  revalidateTag(`academic_masters_${authorizedCollegeId}`);
+  revalidatePath('/admin/dashboard');
+  revalidatePath('/');
+
+  return { success: true, level: newLevel, semester: newLevel };
+}
+
+export async function updateAcademicLevelAction(
+  id: string,
+  data: {
+    name: string;
+    year_number?: number;
+    semester_number?: number;
+    class_number?: number;
+    level_number?: number;
+    is_active: boolean;
+    collegeId?: string;
+  }
+) {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized.' };
+  }
+
+  if (!isValidUUID(id)) {
+    return { success: false, error: 'Invalid academic level ID.' };
+  }
+
+  let authorizedCollegeId: string;
+  try {
+    authorizedCollegeId = await resolveAuthorizedCollegeId(session, data.collegeId);
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Institution resolution failed.' };
+  }
+
+  const supabase = await getAdminDb();
+  const { data: targetLevel, error: fetchErr } = await supabase
+    .from('semesters')
+    .select('id, college_id, programme_id, name')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !targetLevel) {
+    return { success: false, error: 'Academic level not found.' };
+  }
+
+  if (!session.isPlatformSuperAdmin && targetLevel.college_id !== authorizedCollegeId) {
+    return { success: false, error: 'Forbidden.' };
+  }
+
+  const effectiveCollegeId = targetLevel.college_id;
+
+  const updatePayload: any = {
+    name: data.name.trim(),
+    display_name: data.name.trim(),
+    is_active: data.is_active,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (data.year_number !== undefined) updatePayload.year_number = Number(data.year_number);
+  if (data.semester_number !== undefined) updatePayload.semester_number = Number(data.semester_number);
+  if (data.class_number !== undefined) updatePayload.class_number = Number(data.class_number);
+  if (data.level_number !== undefined) updatePayload.level_number = Number(data.level_number);
+
+  const { error: updateErr } = await supabase
+    .from('semesters')
+    .update(updatePayload)
+    .eq('id', id)
+    .eq('college_id', effectiveCollegeId);
+
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  await logAuditAction(
+    supabase,
+    { adminId: session.admin?.id, email: session.user?.email },
+    'UPDATE_ACADEMIC_LEVEL',
+    'semesters',
+    id,
+    `Updated academic level ${data.name} in institution ${effectiveCollegeId}`
+  );
+
+  revalidateTag(ACADEMIC_CACHE_TAG);
+  revalidateTag(`academic_masters_${effectiveCollegeId}`);
+  revalidatePath('/admin/dashboard');
+  revalidatePath('/');
+
+  return { success: true };
 }
 
 export async function deleteSemesterAction(id: string, targetCollegeId?: string) {
@@ -1313,7 +1527,21 @@ export async function deleteSemesterAction(id: string, targetCollegeId?: string)
   if (subCount && subCount > 0) {
     return {
       success: false,
-      error: `Cannot delete "${targetSem.name}": ${subCount} course subject(s) belong to this semester.`,
+      error: `Cannot delete "${targetSem.name}": ${subCount} course subject(s) belong to this academic level.`,
+    };
+  }
+
+  // 4. Dependency check: exams
+  const { count: examCount } = await supabase
+    .from('exams')
+    .select('id', { count: 'exact', head: true })
+    .eq('semester_id', id)
+    .eq('college_id', effectiveCollegeId);
+
+  if (examCount && examCount > 0) {
+    return {
+      success: false,
+      error: `Cannot delete "${targetSem.name}": ${examCount} exam(s) are configured for this academic level. Deactivate it instead.`,
     };
   }
 
@@ -1343,6 +1571,8 @@ export async function deleteSemesterAction(id: string, targetCollegeId?: string)
 
   return { success: true };
 }
+
+export const deleteAcademicLevelAction = deleteSemesterAction;
 
 // -------------------------------------------------------------
 // 5. FACULTIES CRUD

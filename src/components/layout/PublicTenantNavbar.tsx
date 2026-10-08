@@ -14,6 +14,7 @@ import {
   Building2,
   ChevronRight,
   Home,
+  GraduationCap,
 } from 'lucide-react';
 import type { TenantContext } from '@/types/tenant';
 import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
@@ -21,7 +22,7 @@ import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
 export interface PublicTenantNavbarProps {
   tenant: TenantContext;
-  currentPage?: 'home' | 'feedback' | 'feedback-detail' | 'events' | 'event-detail';
+  currentPage?: 'home' | 'feedback' | 'feedback-detail' | 'events' | 'event-detail' | 'exams' | 'exam-detail';
   backUrl?: string;
   backLabel?: string;
   hideAnonymousBadge?: boolean;
@@ -67,6 +68,7 @@ export function PublicTenantNavbar({
 
   const isFeedbackActive = currentPage === 'feedback' || currentPage === 'feedback-detail';
   const isEventsActive = currentPage === 'events' || currentPage === 'event-detail';
+  const isExamsActive = currentPage === 'exams' || currentPage === 'exam-detail';
   const brand = getCampusFlowBrand(tenant);
 
   return (
@@ -137,6 +139,18 @@ export function PublicTenantNavbar({
                 <span>Events</span>
               </Link>
             )}
+
+            <Link
+              href={`/${tenant.slug}/exams`}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
+                isExamsActive
+                  ? 'bg-bce-navy text-amber-300 border-bce-navy shadow-2xs'
+                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
+              <span>Exams</span>
+            </Link>
 
             <Link
               href={`/${tenant.slug}/admin/login`}
@@ -279,6 +293,23 @@ export function PublicTenantNavbar({
                     <ChevronRight className="w-4 h-4 text-slate-400" />
                   </Link>
                 )}
+
+                {/* Exams & Tests */}
+                <Link
+                  href={`/${tenant.slug}/exams`}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                    isExamsActive
+                      ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <GraduationCap className="w-4 h-4 text-amber-500" />
+                    <span>Examinations &amp; Tests</span>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+                </Link>
               </div>
 
               {/* Login Action Card */}

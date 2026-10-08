@@ -48,6 +48,16 @@ const nextConfig: NextConfig = {
       './node_modules/pdfkit/js/**/*.js',
       './node_modules/pdfkit/js/**/*.mjs',
     ],
+    '/api/exams/pdf/result': [
+      './node_modules/pdfkit/js/**/*.cjs',
+      './node_modules/pdfkit/js/**/*.js',
+      './node_modules/pdfkit/js/**/*.mjs',
+    ],
+    '/api/exams/pdf/roster': [
+      './node_modules/pdfkit/js/**/*.cjs',
+      './node_modules/pdfkit/js/**/*.js',
+      './node_modules/pdfkit/js/**/*.mjs',
+    ],
   },
 };
 
