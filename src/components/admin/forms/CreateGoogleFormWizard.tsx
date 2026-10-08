@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   AcademicYear,
   Branch,
@@ -40,6 +41,16 @@ interface Props {
   subjects: Subject[];
   assignments: FacultySubjectAssignment[];
   googleStatus: GoogleConfigStatus;
+  initialStep?: string | number;
+}
+
+function parseFormWizardStep(val: string | number | null | undefined): number {
+  if (val === null || val === undefined || val === '') return 1;
+  const num = typeof val === 'number' ? val : parseInt(val, 10);
+  if (!isNaN(num) && num >= 1 && num <= 6) {
+    return num;
+  }
+  return 1;
 }
 
 export function CreateGoogleFormWizard({
@@ -50,11 +61,58 @@ export function CreateGoogleFormWizard({
   subjects,
   assignments,
   googleStatus,
+  initialStep,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
+
+  const resolveCurrentStep = useCallback((): number => {
+    const fromParam = searchParams?.get('step');
+    if (fromParam) {
+      return parseFormWizardStep(fromParam);
+    }
+    if (initialStep) {
+      return parseFormWizardStep(initialStep);
+    }
+    return 1;
+  }, [searchParams, initialStep]);
 
   // Step state (1 to 6)
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentStep, setCurrentStep] = useState<number>(() => resolveCurrentStep());
+
+  const goToStep = useCallback((stepNum: number) => {
+    const clamped = Math.max(1, Math.min(6, stepNum));
+    setCurrentStep(clamped);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('step', String(clamped));
+      window.history.pushState(null, '', url.toString());
+    }
+  }, []);
+
+  // Listen for browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stepVal = urlParams.get('step');
+      if (stepVal) {
+        setCurrentStep(parseFormWizardStep(stepVal));
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Sync on searchParams update
+  useEffect(() => {
+    const fromParam = searchParams?.get('step');
+    if (fromParam) {
+      const parsed = parseFormWizardStep(fromParam);
+      if (parsed !== currentStep) {
+        setCurrentStep(parsed);
+      }
+    }
+  }, [searchParams, currentStep]);
 
   // Form selections
   const [academicYearId, setAcademicYearId] = useState<string>(
@@ -242,14 +300,14 @@ export function CreateGoogleFormWizard({
   const handleNext = () => {
     if (canGoToNext() && currentStep < 6) {
       setErrorMsg(null);
-      setCurrentStep(prev => prev + 1);
+      goToStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
       setErrorMsg(null);
-      setCurrentStep(prev => prev - 1);
+      goToStep(currentStep - 1);
     }
   };
 
@@ -630,14 +688,18 @@ export function CreateGoogleFormWizard({
                     const isCompleted = currentStep > s.num;
 
                     return (
-                      <div
+                      <button
                         key={s.num}
+                        type="button"
+                        onClick={() => {
+                          if (s.num < currentStep) goToStep(s.num);
+                        }}
                         className={`text-center p-2 rounded-xl border transition-all ${
                           isCurrent
-                            ? 'bg-bce-navy text-white border-bce-cobalt shadow-xs'
+                            ? 'bg-bce-navy text-white border-bce-cobalt shadow-xs cursor-default'
                             : isCompleted
-                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                            : 'bg-slate-50 text-slate-400 border-slate-200'
+                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100/60 cursor-pointer'
+                            : 'bg-slate-50 text-slate-400 border-slate-200 cursor-default opacity-70'
                         }`}
                       >
                         <div className="text-[10px] font-bold uppercase tracking-wider">
@@ -646,7 +708,7 @@ export function CreateGoogleFormWizard({
                         <div className="text-xs font-semibold truncate mt-0.5">
                           {s.label}
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

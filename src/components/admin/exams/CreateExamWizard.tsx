@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Calendar,
   Layers,
@@ -20,6 +20,7 @@ import {
   GraduationCap,
   School,
   Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 import { QuestionBuilder } from './QuestionBuilder';
 import {
@@ -85,9 +86,53 @@ interface CreateExamWizardProps {
   subjects: SubjectItem[];
   programmes?: ProgrammeItem[];
   initialExam?: Exam | null;
+  initialStep?: string | number;
 }
 
 type StepKey = 'session' | 'programme' | 'level' | 'branch' | 'config' | 'questions' | 'review';
+
+function parseExamStep(
+  val: string | number | null | undefined,
+  steps: { key: StepKey }[]
+): number {
+  if (val === null || val === undefined || val === '') return 1;
+  const num = typeof val === 'number' ? val : parseInt(val, 10);
+  if (!isNaN(num) && num >= 1 && num <= steps.length) {
+    return num;
+  }
+  if (typeof val === 'string') {
+    const lower = val.toLowerCase().trim();
+    const foundIdx = steps.findIndex((s) => s.key === lower);
+    if (foundIdx !== -1) return foundIdx + 1;
+  }
+  return 1;
+}
+
+interface ExamWizardDraft {
+  step?: number;
+  programmeId?: string;
+  semesterId?: string;
+  selectedBranchIds?: string[];
+  sessionId?: string;
+  selectedSubjectIds?: string[];
+  title?: string;
+  examCode?: string;
+  description?: string;
+  instructions?: string;
+  durationMinutes?: number;
+  passingPercentage?: number;
+  negativeMarkingEnabled?: boolean;
+  negativeMarks?: number;
+  maxAttempts?: number;
+  startAt?: string;
+  endAt?: string;
+  resultVisibility?: any;
+  randomizeQuestions?: boolean;
+  randomizeOptions?: boolean;
+  showCorrectAnswers?: boolean;
+  questions?: ExamQuestion[];
+  savedExamId?: string | null;
+}
 
 export function CreateExamWizard({
   collegeId,
@@ -97,8 +142,11 @@ export function CreateExamWizard({
   subjects,
   programmes,
   initialExam,
+  initialStep,
 }: CreateExamWizardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const storageKey = `cf_exam_create_draft_${collegeId}${initialExam?.id ? `_${initialExam.id}` : ''}`;
 
   // 1. Synthesize or use programmes
   const availableProgrammes: ProgrammeItem[] = (() => {
@@ -215,9 +263,57 @@ export function CreateExamWizard({
   ];
 
   // Wizard active step (1-indexed)
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const resolveCurrentStep = useCallback((): number => {
+    const fromParam = searchParams?.get('step');
+    if (fromParam) {
+      return parseExamStep(fromParam, STEPS);
+    }
+    if (initialStep) {
+      return parseExamStep(initialStep, STEPS);
+    }
+    return 1;
+  }, [searchParams, initialStep, STEPS]);
+
+  const [currentStep, setCurrentStep] = useState<number>(() => resolveCurrentStep());
   const currentStepConfig = STEPS[currentStep - 1] || STEPS[0];
   const currentStepKey = currentStepConfig.key;
+
+  const goToStep = useCallback(
+    (stepNum: number) => {
+      const clamped = Math.max(1, Math.min(STEPS.length, stepNum));
+      setCurrentStep(clamped);
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('step', String(clamped));
+        window.history.pushState(null, '', url.toString());
+      }
+    },
+    [STEPS.length]
+  );
+
+  // Browser Back/Forward navigation listener
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const stepVal = urlParams.get('step');
+      if (stepVal) {
+        setCurrentStep(parseExamStep(stepVal, STEPS));
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [STEPS]);
+
+  // Sync on searchParams update
+  useEffect(() => {
+    const fromParam = searchParams?.get('step');
+    if (fromParam) {
+      const parsed = parseExamStep(fromParam, STEPS);
+      if (parsed !== currentStep) {
+        setCurrentStep(parsed);
+      }
+    }
+  }, [searchParams, STEPS, currentStep]);
 
   const [savedExamId, setSavedExamId] = useState<string | null>(initialExam?.id || null);
 
@@ -291,6 +387,122 @@ export function CreateExamWizard({
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+
+  // Restore draft from sessionStorage on client mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+      if (raw) {
+        const d: ExamWizardDraft = JSON.parse(raw);
+        if (d.programmeId) setProgrammeId(d.programmeId);
+        if (d.semesterId) setSemesterId(d.semesterId);
+        if (Array.isArray(d.selectedBranchIds)) setSelectedBranchIds(d.selectedBranchIds);
+        if (d.sessionId) setSessionId(d.sessionId);
+        if (Array.isArray(d.selectedSubjectIds)) setSelectedSubjectIds(d.selectedSubjectIds);
+        if (d.title !== undefined) setTitle(d.title);
+        if (d.examCode) setExamCode(d.examCode);
+        if (d.description !== undefined) setDescription(d.description);
+        if (d.instructions !== undefined) setInstructions(d.instructions);
+        if (typeof d.durationMinutes === 'number') setDurationMinutes(d.durationMinutes);
+        if (typeof d.passingPercentage === 'number') setPassingPercentage(d.passingPercentage);
+        if (typeof d.negativeMarkingEnabled === 'boolean') setNegativeMarkingEnabled(d.negativeMarkingEnabled);
+        if (typeof d.negativeMarks === 'number') setNegativeMarks(d.negativeMarks);
+        if (typeof d.maxAttempts === 'number') setMaxAttempts(d.maxAttempts);
+        if (d.startAt !== undefined) setStartAt(d.startAt);
+        if (d.endAt !== undefined) setEndAt(d.endAt);
+        if (d.resultVisibility) setResultVisibility(d.resultVisibility);
+        if (typeof d.randomizeQuestions === 'boolean') setRandomizeQuestions(d.randomizeQuestions);
+        if (typeof d.randomizeOptions === 'boolean') setRandomizeOptions(d.randomizeOptions);
+        if (typeof d.showCorrectAnswers === 'boolean') setShowCorrectAnswers(d.showCorrectAnswers);
+        if (Array.isArray(d.questions) && d.questions.length > 0) setQuestions(d.questions);
+        if (d.savedExamId) setSavedExamId(d.savedExamId);
+
+        // If URL doesn't have an explicit ?step, restore last step from draft
+        const urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('step') && d.step && d.step > 1) {
+          goToStep(d.step);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore exam draft', e);
+    } finally {
+      setIsHydrated(true);
+    }
+  }, [storageKey, goToStep]);
+
+  // Auto-save draft changes to sessionStorage
+  useEffect(() => {
+    if (!isHydrated || typeof window === 'undefined') return;
+    try {
+      const draftData: ExamWizardDraft = {
+        step: currentStep,
+        programmeId,
+        semesterId,
+        selectedBranchIds,
+        sessionId,
+        selectedSubjectIds,
+        title,
+        examCode,
+        description,
+        instructions,
+        durationMinutes,
+        passingPercentage,
+        negativeMarkingEnabled,
+        negativeMarks,
+        maxAttempts,
+        startAt,
+        endAt,
+        resultVisibility,
+        randomizeQuestions,
+        randomizeOptions,
+        showCorrectAnswers,
+        questions,
+        savedExamId,
+      };
+      sessionStorage.setItem(storageKey, JSON.stringify(draftData));
+    } catch (err) {
+      console.warn('Failed to save exam draft to sessionStorage', err);
+    }
+  }, [
+    isHydrated,
+    storageKey,
+    currentStep,
+    programmeId,
+    semesterId,
+    selectedBranchIds,
+    sessionId,
+    selectedSubjectIds,
+    title,
+    examCode,
+    description,
+    instructions,
+    durationMinutes,
+    passingPercentage,
+    negativeMarkingEnabled,
+    negativeMarks,
+    maxAttempts,
+    startAt,
+    endAt,
+    resultVisibility,
+    randomizeQuestions,
+    randomizeOptions,
+    showCorrectAnswers,
+    questions,
+    savedExamId,
+  ]);
+
+  const handleResetDraft = () => {
+    if (window.confirm('Are you sure you want to discard this unsaved exam draft and reset all inputs?')) {
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(storageKey);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('step');
+        window.history.pushState(null, '', url.toString());
+      }
+      window.location.reload();
+    }
+  };
 
   // Filter subjects based on branch and academic level
   const filteredSubjects = subjects.filter(s => {
@@ -380,12 +592,12 @@ export function CreateExamWizard({
       await saveQuestionsToServer();
     }
 
-    setCurrentStep(prev => Math.min(STEPS.length, prev + 1));
+    goToStep(Math.min(STEPS.length, currentStep + 1));
   };
 
   const handlePrevStep = () => {
     setErrorMsg(null);
-    setCurrentStep(prev => Math.max(1, prev - 1));
+    goToStep(Math.max(1, currentStep - 1));
   };
 
   const saveDraftExamConfig = async (): Promise<string | null> => {
@@ -524,6 +736,10 @@ export function CreateExamWizard({
       const res = await publishExamAction(examId, collegeId);
       if (!res.success) throw new Error(res.error || 'Failed to publish exam.');
 
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(storageKey);
+      }
+
       setSuccessMsg('Exam published successfully! Eligible students can now access it.');
       setTimeout(() => {
         router.push('/admin/dashboard/exams');
@@ -552,11 +768,22 @@ export function CreateExamWizard({
               Step {currentStep} of {STEPS.length} — {currentStepConfig.label}
             </p>
           </div>
-          {savedExamId && (
-            <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl font-bold">
-              Draft ID: {savedExamId.slice(0, 8)}...
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {savedExamId && (
+              <span className="text-[11px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-xl font-bold">
+                Draft ID: {savedExamId.slice(0, 8)}...
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleResetDraft}
+              title="Reset draft and clear stored progress"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-red-600 bg-slate-50 hover:bg-red-50 border border-slate-200 hover:border-red-200 px-2.5 py-1 rounded-xl transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset</span>
+            </button>
+          </div>
         </div>
 
         {/* Stepper Progress Chips */}
@@ -571,7 +798,7 @@ export function CreateExamWizard({
                 key={s.key}
                 type="button"
                 onClick={() => {
-                  if (stepNum < currentStep) setCurrentStep(stepNum);
+                  if (stepNum < currentStep) goToStep(stepNum);
                 }}
                 className={`flex items-center gap-2 p-2 rounded-xl text-left border transition-all text-xs cursor-pointer select-none ${
                   isCurrent

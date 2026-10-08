@@ -5,7 +5,17 @@ import { CreateExamWizard } from '@/components/admin/exams/CreateExamWizard';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminCreateExamPage() {
+export default async function AdminCreateExamPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    step?: string;
+    [key: string]: string | string[] | undefined;
+  }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const initialStep = typeof resolvedParams.step === 'string' ? resolvedParams.step : undefined;
+
   const session = await getAdminSession();
   if (!session.isAuthenticated || !session.isActive) {
     redirect('/admin/login');
@@ -126,6 +136,7 @@ export default async function AdminCreateExamPage() {
           semester_id: sb.semester_id,
           is_active: Boolean(sb.is_active),
         }))}
+        initialStep={initialStep}
       />
     </div>
   );

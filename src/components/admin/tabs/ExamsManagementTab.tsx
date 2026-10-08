@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   FileText,
   Plus,
@@ -27,18 +28,80 @@ import {
 } from '@/app/admin/exams/actions';
 import type { Exam } from '@/types/exams';
 
+const VALID_EXAM_STATUSES = ['ALL', 'PUBLISHED', 'ACTIVE', 'DRAFT', 'CLOSED', 'ARCHIVED'] as const;
+type ExamStatusFilter = (typeof VALID_EXAM_STATUSES)[number];
+
+function normalizeExamStatus(val?: string | null): ExamStatusFilter {
+  if (!val) return 'ALL';
+  const upper = val.toUpperCase().trim();
+  if (VALID_EXAM_STATUSES.includes(upper as ExamStatusFilter)) {
+    return upper as ExamStatusFilter;
+  }
+  return 'ALL';
+}
+
 interface ExamsManagementTabProps {
   initialExams: Exam[];
   collegeId: string;
+  initialSubTab?: string;
 }
 
-export function ExamsManagementTab({ initialExams, collegeId }: ExamsManagementTabProps) {
+export function ExamsManagementTab({ initialExams, collegeId, initialSubTab }: ExamsManagementTabProps) {
+  const searchParams = useSearchParams();
+
+  const resolveStatusFilter = useCallback((): ExamStatusFilter => {
+    const fromParam = searchParams?.get('subtab') || searchParams?.get('status');
+    if (fromParam) {
+      return normalizeExamStatus(fromParam);
+    }
+    if (initialSubTab) {
+      return normalizeExamStatus(initialSubTab);
+    }
+    return 'ALL';
+  }, [searchParams, initialSubTab]);
+
   const [exams, setExams] = useState<Exam[]>(initialExams);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<ExamStatusFilter>(() => resolveStatusFilter());
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const handleStatusFilterChange = useCallback((nextStatus: ExamStatusFilter) => {
+    setStatusFilter(nextStatus);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'exams');
+      if (nextStatus === 'ALL') {
+        url.searchParams.delete('subtab');
+        url.searchParams.delete('status');
+      } else {
+        url.searchParams.set('subtab', nextStatus.toLowerCase());
+      }
+      window.history.pushState(null, '', url.toString());
+    }
+  }, []);
+
+  // Listen for browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sub = urlParams.get('subtab') || urlParams.get('status');
+      setStatusFilter(normalizeExamStatus(sub || initialSubTab));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [initialSubTab]);
+
+  // Sync on searchParams update
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sub = urlParams.get('subtab') || urlParams.get('status');
+    const target = normalizeExamStatus(sub || initialSubTab);
+    if (target !== statusFilter) {
+      setStatusFilter(target);
+    }
+  }, [searchParams, initialSubTab, statusFilter]);
 
   // Filter exams
   const filteredExams = exams.filter(e => {
@@ -147,11 +210,11 @@ export function ExamsManagementTab({ initialExams, collegeId }: ExamsManagementT
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Status Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {['ALL', 'PUBLISHED', 'ACTIVE', 'DRAFT', 'CLOSED', 'ARCHIVED'].map(st => (
+          {VALID_EXAM_STATUSES.map(st => (
             <button
               key={st}
               type="button"
-              onClick={() => setStatusFilter(st)}
+              onClick={() => handleStatusFilterChange(st)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 statusFilter === st
                   ? 'bg-bce-navy text-amber-300 shadow-2xs'

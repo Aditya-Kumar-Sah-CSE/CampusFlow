@@ -15,7 +15,17 @@ import type {
 
 export const dynamic = 'force-dynamic';
 
-export default async function CreateFeedbackFormPage() {
+export default async function CreateFeedbackFormPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    step?: string;
+    [key: string]: string | string[] | undefined;
+  }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const initialStep = typeof resolvedParams.step === 'string' ? resolvedParams.step : undefined;
+
   const session = await getAdminSession();
   if (!session.isAuthenticated) {
     redirect('/admin/login');
@@ -68,6 +78,7 @@ export default async function CreateFeedbackFormPage() {
           subjects={(subjects as unknown as Subject[]) || []}
           assignments={(assignments as unknown as FacultySubjectAssignment[]) || []}
           googleStatus={googleStatus}
+          initialStep={initialStep}
         />
       </FormAccessGate>
     </div>

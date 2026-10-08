@@ -8,9 +8,10 @@ import { Loader2 } from 'lucide-react';
 
 interface ExamsTabProps {
   activeCollegeId?: string;
+  initialSubTab?: string;
 }
 
-export function ExamsTab({ activeCollegeId }: ExamsTabProps) {
+export function ExamsTab({ activeCollegeId, initialSubTab }: ExamsTabProps) {
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export function ExamsTab({ activeCollegeId }: ExamsTabProps) {
     <ExamsManagementTab
       initialExams={exams}
       collegeId={activeCollegeId || ''}
+      initialSubTab={initialSubTab}
     />
   );
 }

@@ -725,6 +725,7 @@ export function AdminDashboardTabs({
             semesters={semesters}
             faculties={faculties}
             subjects={subjects}
+            initialSubTab={initialSubTab}
           />
         )}
 
@@ -733,7 +734,7 @@ export function AdminDashboardTabs({
         )}
 
         {activeTab === 'exams' && (
-          <ExamsTab activeCollegeId={activeCollegeId} />
+          <ExamsTab activeCollegeId={activeCollegeId} initialSubTab={initialSubTab} />
         )}
 
         {activeTab === 'audit' && (

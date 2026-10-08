@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition, useMemo, useEffect } from 'react';
+import { useState, useTransition, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toggleFeedbackFormStatusAction, deleteFeedbackFormAction } from '@/app/admin/actions';
 import {
   FileSpreadsheet,
@@ -29,6 +30,18 @@ import type {
 import { PaginationControl } from '@/components/ui/PaginationControl';
 import { ExternalActionLink } from '@/components/ui/ExternalActionLink';
 
+const VALID_FORM_STATUSES = ['ALL', 'PUBLISHED', 'DRAFT', 'CLOSED'] as const;
+type FormStatusFilter = (typeof VALID_FORM_STATUSES)[number];
+
+function normalizeFormStatus(val?: string | null): FormStatusFilter {
+  if (!val) return 'ALL';
+  const upper = val.toUpperCase().trim();
+  if (VALID_FORM_STATUSES.includes(upper as FormStatusFilter)) {
+    return upper as FormStatusFilter;
+  }
+  return 'ALL';
+}
+
 interface Props {
   feedbackForms: FeedbackForm[];
   academicYears: AcademicYear[];
@@ -36,6 +49,7 @@ interface Props {
   semesters: Semester[];
   faculties: Faculty[];
   subjects: Subject[];
+  initialSubTab?: string;
 }
 
 export function FeedbackFormsTab({
@@ -44,7 +58,21 @@ export function FeedbackFormsTab({
   semesters,
   faculties,
   subjects,
+  initialSubTab,
 }: Props) {
+  const searchParams = useSearchParams();
+
+  const resolveStatusFilter = useCallback((): FormStatusFilter => {
+    const fromParam = searchParams?.get('subtab') || searchParams?.get('status');
+    if (fromParam) {
+      return normalizeFormStatus(fromParam);
+    }
+    if (initialSubTab) {
+      return normalizeFormStatus(initialSubTab);
+    }
+    return 'ALL';
+  }, [searchParams, initialSubTab]);
+
   const [formsList, setFormsList] = useState<FeedbackForm[]>(feedbackForms);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -57,9 +85,46 @@ export function FeedbackFormsTab({
   // Search, filter, and pagination states
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'DRAFT' | 'CLOSED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<FormStatusFilter>(() => resolveStatusFilter());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const handleStatusFilterChange = useCallback((nextStatus: FormStatusFilter) => {
+    setStatusFilter(nextStatus);
+    setPage(1);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'forms');
+      if (nextStatus === 'ALL') {
+        url.searchParams.delete('subtab');
+        url.searchParams.delete('status');
+      } else {
+        url.searchParams.set('subtab', nextStatus.toLowerCase());
+      }
+      window.history.pushState(null, '', url.toString());
+    }
+  }, []);
+
+  // Listen for browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sub = urlParams.get('subtab') || urlParams.get('status');
+      setStatusFilter(normalizeFormStatus(sub || initialSubTab));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [initialSubTab]);
+
+  // Sync on searchParams update
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sub = urlParams.get('subtab') || urlParams.get('status');
+    const target = normalizeFormStatus(sub || initialSubTab);
+    if (target !== statusFilter) {
+      setStatusFilter(target);
+    }
+  }, [searchParams, initialSubTab, statusFilter]);
 
   // Sync if parent prop updates
   useEffect(() => {
@@ -244,11 +309,8 @@ export function FeedbackFormsTab({
             {/* Status Filter */}
             <select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value as any);
-                setPage(1);
-              }}
-              className="px-3 py-2 sm:py-1.5 min-h-[40px] bg-white border border-slate-200 rounded-lg text-base sm:text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+              onChange={(e) => handleStatusFilterChange(e.target.value as any)}
+              className="px-3 py-2 sm:py-1.5 min-h-[40px] bg-white border border-slate-200 rounded-lg text-base sm:text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt cursor-pointer"
             >
               <option value="ALL">All Status</option>
               <option value="PUBLISHED">Published</option>
