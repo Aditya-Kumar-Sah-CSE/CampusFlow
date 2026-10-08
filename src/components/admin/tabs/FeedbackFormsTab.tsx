@@ -137,7 +137,8 @@ export function FeedbackFormsTab({
   // Filtered forms list
   const filteredForms = useMemo(() => {
     return formsList.filter((f) => {
-      const matchStatus = statusFilter === 'ALL' || f.status === statusFilter;
+      const formStatus = (f.status || '').toUpperCase().trim();
+      const matchStatus = statusFilter === 'ALL' || formStatus === statusFilter;
       if (!matchStatus) return false;
 
       if (!debouncedSearch.trim()) return true;
@@ -179,11 +180,12 @@ export function FeedbackFormsTab({
           <Link
             href="/admin/dashboard/forms"
             onClick={() => setIsNavigatingCatalog(true)}
-            className="group inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 hover:border-slate-300 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 shadow-2xs hover:shadow-xs cursor-pointer select-none"
+            className="group relative inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer select-none border border-emerald-500/30 overflow-hidden"
           >
-            {isNavigatingCatalog && <Loader2 className="w-3.5 h-3.5 text-slate-600 animate-spin shrink-0" />}
-            <span>{isNavigatingCatalog ? 'Opening Catalog...' : 'Forms Catalog'}</span>
-            {!isNavigatingCatalog && <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform" />}
+            <span className="absolute inset-0 w-full h-full bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            {isNavigatingCatalog && <Loader2 className="w-3.5 h-3.5 text-white animate-spin shrink-0" />}
+            <span>{isNavigatingCatalog ? 'Opening Forms...' : 'SEE ALL FORMs'}</span>
+            {!isNavigatingCatalog && <ArrowRight className="w-3.5 h-3.5 text-emerald-100 group-hover:translate-x-0.5 transition-transform shrink-0" />}
           </Link>
           <Link
             href="/admin/dashboard/forms/create"
@@ -222,7 +224,7 @@ export function FeedbackFormsTab({
               Configured Feedback Forms ({totalItems})
             </h4>
             <span className="text-xs text-slate-400">
-              {formsList.filter((f) => f.status === 'PUBLISHED').length} Published Total
+              {formsList.filter((f) => (f.status || '').toUpperCase() === 'PUBLISHED').length} Published Total
             </span>
           </div>
 
@@ -299,7 +301,9 @@ export function FeedbackFormsTab({
                     const subject = subjects.find((s) => s.id === form.subject_id) || form.subject;
                     const branch = branches.find((b) => b.id === form.branch_id) || form.branch;
                     const semester = semesters.find((s) => s.id === form.semester_id) || form.semester;
-                    const isPublished = form.status === 'PUBLISHED';
+                    const formStatus = (form.status || '').toUpperCase();
+                    const isPublished = formStatus === 'PUBLISHED';
+                    const isDraft = formStatus === 'DRAFT';
                     const isNative = form.response_destination_type === 'NATIVE_SHEET';
 
                     return (
@@ -354,8 +358,10 @@ export function FeedbackFormsTab({
                           <span
                             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                               isPublished
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-slate-100 text-slate-600'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : isDraft
+                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                : 'bg-slate-100 text-slate-600 border border-slate-200'
                             }`}
                           >
                             {isPublished ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
@@ -461,7 +467,9 @@ export function FeedbackFormsTab({
                 const subject = subjects.find((s) => s.id === form.subject_id) || form.subject;
                 const branch = branches.find((b) => b.id === form.branch_id) || form.branch;
                 const semester = semesters.find((s) => s.id === form.semester_id) || form.semester;
-                const isPublished = form.status === 'PUBLISHED';
+                const formStatus = (form.status || '').toUpperCase();
+                const isPublished = formStatus === 'PUBLISHED';
+                const isDraft = formStatus === 'DRAFT';
                 const isNative = form.response_destination_type === 'NATIVE_SHEET';
 
                 return (
@@ -483,8 +491,10 @@ export function FeedbackFormsTab({
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${
                           isPublished
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-slate-100 text-slate-600'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : isDraft
+                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}
                       >
                         {isPublished ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}

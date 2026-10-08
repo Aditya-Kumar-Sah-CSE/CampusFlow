@@ -1011,6 +1011,7 @@ export async function updateFormStatusAction(
     `Form "${form.title}" status changed from ${currentStatus} to ${newStatus}`
   );
 
+  revalidatePath('/admin/dashboard');
   revalidatePath('/admin/dashboard/forms');
   revalidatePath(`/admin/dashboard/forms/${formId}`);
   revalidatePath('/');

@@ -72,9 +72,9 @@ export default async function AdminDashboardPage({
   const yearQuery = supabase.from('academic_years').select('id, name, is_active, created_at').eq('college_id', targetCollegeId).order('name', { ascending: false });
   const branchQuery = supabase.from('branches').select('id, name, code, is_active, created_at').eq('college_id', targetCollegeId).order('name', { ascending: true });
   const semesterQuery = supabase.from('semesters').select('id, name, year_number, semester_number, is_active, created_at').eq('college_id', targetCollegeId).order('semester_number', { ascending: true });
-  const facultyQuery = supabase.from('faculties').select('id, name, employee_id, department, designation, is_active, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('name', { ascending: true });
-  const subjectQuery = supabase.from('subjects').select('id, name, code, semester_id, branch_id, is_active, created_at, branch:branches(id, name, code), semester:semesters(id, name)', { count: 'exact' }).eq('college_id', targetCollegeId).order('code', { ascending: true });
-  const assignQuery = supabase.from('faculty_subject_assignments').select(`
+  const facultyQuery = adminDb.from('faculties').select('id, name, employee_id, department, designation, is_active, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('name', { ascending: true });
+  const subjectQuery = adminDb.from('subjects').select('id, name, code, semester_id, branch_id, is_active, created_at, branch:branches(id, name, code), semester:semesters(id, name)', { count: 'exact' }).eq('college_id', targetCollegeId).order('code', { ascending: true });
+  const assignQuery = adminDb.from('faculty_subject_assignments').select(`
     id,
     faculty_id,
     subject_id,
@@ -89,11 +89,11 @@ export default async function AdminDashboardPage({
     branch:branches(id, name, code),
     semester:semesters(id, name)
   `, { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 19);
-  const formQuery = supabase.from('feedback_forms').select('id, title, form_type, status, slug, academic_year_id, branch_id, semester_id, faculty_id, subject_id, response_count, created_at, published_at, closed_at, google_form_url, google_sheet_url, public_url', { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 49);
+  const formQuery = adminDb.from('feedback_forms').select('id, title, form_type, status, slug, academic_year_id, branch_id, semester_id, faculty_id, subject_id, response_count, created_at, published_at, closed_at, google_form_url, google_sheet_url, public_url', { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 49);
   const auditQuery = adminDb.from('audit_logs').select('id, college_id, actor_user_id, actor_email, action, entity_type, entity_id, details, metadata, created_at').eq('college_id', targetCollegeId).order('created_at', { ascending: false }).limit(20);
-  const activeFacultyCountQuery = supabase.from('faculties').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
-  const activeSubjectCountQuery = supabase.from('subjects').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
-  const pubFormCountQuery = supabase.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('status', 'PUBLISHED');
+  const activeFacultyCountQuery = adminDb.from('faculties').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
+  const activeSubjectCountQuery = adminDb.from('subjects').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
+  const pubFormCountQuery = adminDb.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('status', 'PUBLISHED');
 
   // Parallel lean data fetching for the admin portal with exact counts & range limits
   const [

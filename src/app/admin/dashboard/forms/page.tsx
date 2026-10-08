@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { redirect } from 'next/navigation';
 import { getGoogleConfigStatus } from '@/lib/google/auth';
@@ -47,6 +48,7 @@ export default async function FeedbackFormsPage({
 
   const resolvedParams = await searchParams;
   const supabase = await createClient();
+  const adminDb = createAdminClient() || supabase;
   const googleStatus = await getGoogleConfigStatus(session.activeCollegeId || undefined);
 
   // Pagination calculations
@@ -67,9 +69,9 @@ export default async function FeedbackFormsPage({
     semestersQuery = semestersQuery.eq('college_id', targetCollegeId);
   }
 
-  let pubCountQuery = supabase.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('status', 'PUBLISHED');
-  let draftCountQuery = supabase.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('status', 'DRAFT');
-  let closedCountQuery = supabase.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('status', 'CLOSED');
+  let pubCountQuery = adminDb.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('status', 'PUBLISHED');
+  let draftCountQuery = adminDb.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('status', 'DRAFT');
+  let closedCountQuery = adminDb.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('status', 'CLOSED');
 
   if (targetCollegeId) {
     pubCountQuery = pubCountQuery.eq('college_id', targetCollegeId);
@@ -95,7 +97,7 @@ export default async function FeedbackFormsPage({
   ]);
 
   // Query forms with lean relational projections
-  let query = supabase
+  let query = adminDb
     .from('feedback_forms')
     .select(`
       id,
@@ -157,8 +159,8 @@ export default async function FeedbackFormsPage({
   // Fallback: If relational nested query returned error or empty due to schema cache join mismatch, fetch base and join in memory
   if (queryErr) {
     console.warn('Nested relational join failed in forms catalog:', queryErr.message, 'Falling back to base query...');
-    let facQuery = supabase.from('faculties').select('id, name, department');
-    let subQuery = supabase.from('subjects').select('id, name, code');
+    let facQuery = adminDb.from('faculties').select('id, name, department');
+    let subQuery = adminDb.from('subjects').select('id, name, code');
     if (targetCollegeId) {
       facQuery = facQuery.eq('college_id', targetCollegeId);
       subQuery = subQuery.eq('college_id', targetCollegeId);
@@ -168,7 +170,7 @@ export default async function FeedbackFormsPage({
       subQuery,
     ]);
 
-    let baseQuery = supabase
+    let baseQuery = adminDb
       .from('feedback_forms')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });

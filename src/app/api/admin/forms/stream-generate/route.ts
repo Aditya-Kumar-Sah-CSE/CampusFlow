@@ -13,6 +13,7 @@ import {
   formatGoogleErrorMessage,
   isGoogleOAuthError,
 } from '@/lib/google/auth';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,6 +152,16 @@ export async function POST(req: NextRequest) {
         });
         await writer.close();
         return;
+      }
+
+      // Revalidate cache so newly created draft immediately appears on dashboard and catalog
+      try {
+        revalidatePath('/admin/dashboard');
+        revalidatePath('/admin/dashboard/forms');
+        revalidatePath('/feedback');
+        revalidatePath('/');
+      } catch {
+        // Non-fatal if outside request context
       }
 
       // Step 3: Complete

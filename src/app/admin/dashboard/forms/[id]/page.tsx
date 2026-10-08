@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { FeedbackForm, AuditLog } from '@/types/database';
 import { FormDetailConsole } from '@/components/admin/forms/FormDetailConsole';
 import { assertAnalyticsAccess } from '@/lib/billing/access-control';
@@ -21,10 +22,11 @@ export default async function FeedbackFormDetailPage({
 
   const { id } = await params;
   const supabase = await createClient();
+  const adminDb = createAdminClient() || supabase;
 
   // Fetch form with relations (with robust fallback)
   let form: any = null;
-  const { data: joinedForm, error: joinErr } = await supabase
+  const { data: joinedForm, error: joinErr } = await adminDb
     .from('feedback_forms')
     .select(`
       *,
@@ -42,7 +44,7 @@ export default async function FeedbackFormDetailPage({
   } else {
     // Fallback: If relational join fails due to schema cache mismatch, fetch base record and resolve relations
     console.warn('Nested join failed for form ID', id, joinErr?.message, 'Trying base query...');
-    const { data: baseForm, error: baseErr } = await supabase
+    const { data: baseForm, error: baseErr } = await adminDb
       .from('feedback_forms')
       .select('*')
       .eq('id', id)
@@ -56,11 +58,11 @@ export default async function FeedbackFormDetailPage({
         { data: branch },
         { data: semester },
       ] = await Promise.all([
-        supabase.from('faculties').select('*').eq('id', baseForm.faculty_id).maybeSingle(),
-        supabase.from('subjects').select('*').eq('id', baseForm.subject_id).maybeSingle(),
-        supabase.from('academic_years').select('*').eq('id', baseForm.academic_year_id).maybeSingle(),
-        supabase.from('branches').select('*').eq('id', baseForm.branch_id).maybeSingle(),
-        supabase.from('semesters').select('*').eq('id', baseForm.semester_id).maybeSingle(),
+        adminDb.from('faculties').select('*').eq('id', baseForm.faculty_id).maybeSingle(),
+        adminDb.from('subjects').select('*').eq('id', baseForm.subject_id).maybeSingle(),
+        adminDb.from('academic_years').select('*').eq('id', baseForm.academic_year_id).maybeSingle(),
+        adminDb.from('branches').select('*').eq('id', baseForm.branch_id).maybeSingle(),
+        adminDb.from('semesters').select('*').eq('id', baseForm.semester_id).maybeSingle(),
       ]);
 
       form = {
