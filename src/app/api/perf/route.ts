@@ -6,7 +6,9 @@ import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { getCachedAcademicMasters } from '@/lib/supabase/academic-cache';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
 import { createClient } from '@/lib/supabase/server';
+import { getSupabaseUrl } from '@/lib/supabase/env';
 
+export const preferredRegion = 'bom1';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -84,9 +86,28 @@ export async function GET(request: NextRequest) {
     };
   }
 
+  const vercelRegion = process.env.VERCEL_REGION || 'local';
+  const vercelId = request.headers.get('x-vercel-id') || null;
+  let computeRegion = vercelRegion;
+  if (vercelId && vercelId.includes('::')) {
+    const parts = vercelId.split('::');
+    if (parts.length >= 2) {
+      computeRegion = parts[1] || vercelRegion;
+    }
+  }
+
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseHost = new URL(supabaseUrl).hostname;
+
   return NextResponse.json({
     status: 'ok',
     environment: 'staging',
+    runtime: 'nodejs',
+    region: vercelRegion,
+    computeRegion,
+    vercelId,
+    supabaseRegion: 'ap-south-1',
+    supabaseHost,
     tenant: tenantSlug,
     timings,
     server_time: new Date().toISOString(),

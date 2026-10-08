@@ -6,6 +6,7 @@ import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
 import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
 import { NetworkStatusBanner } from '@/components/pwa/NetworkStatusBanner';
 import { APP_URL } from '@/lib/config/app';
+export const preferredRegion = 'bom1';
 
 export const viewport: Viewport = {
   themeColor: '#0B192C',
