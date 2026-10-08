@@ -56,9 +56,9 @@ async function main() {
   // 2. Academic Years
   console.log('Seeding academic years...');
   const years = [
-    { id: 'a1000000-0000-0000-0000-000000000001', college_id: collegeId, name: '2024-2025', is_current: false },
-    { id: 'a1000000-0000-0000-0000-000000000002', college_id: collegeId, name: '2025-2026', is_current: true },
-    { id: 'a1000000-0000-0000-0000-000000000003', college_id: collegeId, name: '2026-2027', is_current: false },
+    { id: 'a1000000-0000-0000-0000-000000000001', college_id: collegeId, name: '2024-2025', is_active: true },
+    { id: 'a1000000-0000-0000-0000-000000000002', college_id: collegeId, name: '2025-2026', is_active: true },
+    { id: 'a1000000-0000-0000-0000-000000000003', college_id: collegeId, name: '2026-2027', is_active: true },
   ];
   const { error: yrErr } = await supabase.from('academic_years').upsert(years, { onConflict: 'id' });
   if (yrErr) console.warn('Academic years note:', yrErr.message);
@@ -80,7 +80,7 @@ async function main() {
   const semesters = [];
   for (let s = 1; s <= 8; s++) {
     semesters.push({
-      id: `s1000000-0000-0000-0000-00000000000${s}`,
+      id: `c1000000-0000-0000-0000-00000000000${s}`,
       college_id: collegeId,
       name: `Semester ${s}`,
       semester_number: s,
@@ -150,7 +150,7 @@ async function main() {
       id: 'e1000000-0000-0000-0000-000000000001',
       college_id: collegeId,
       academic_session_id: 'a1000000-0000-0000-0000-000000000002',
-      semester_id: 's1000000-0000-0000-0000-000000000005',
+      semester_id: 'c1000000-0000-0000-0000-000000000005',
       title: 'Design & Analysis of Algorithms (Mid-Term)',
       exam_code: 'CSE-501-DAA',
       description: 'Comprehensive mid-term examination covering asymptotic analysis, dynamic programming, and greedy methods.',
@@ -165,7 +165,7 @@ async function main() {
       id: 'e1000000-0000-0000-0000-000000000002',
       college_id: collegeId,
       academic_session_id: 'a1000000-0000-0000-0000-000000000002',
-      semester_id: 's1000000-0000-0000-0000-000000000005',
+      semester_id: 'c1000000-0000-0000-0000-000000000005',
       title: 'Database Management Systems Assessment',
       exam_code: 'CSE-502-DBMS',
       description: 'Relational algebra, SQL query optimization, normalization, and ACID properties.',
@@ -192,7 +192,7 @@ async function main() {
       description: 'Anonymous academic feedback regarding course delivery and laboratory guidance.',
       academic_year_id: 'a1000000-0000-0000-0000-000000000002',
       branch_id: 'b1000000-0000-0000-0000-000000000001',
-      semester_id: 's1000000-0000-0000-0000-000000000005',
+      semester_id: 'c1000000-0000-0000-0000-000000000005',
       form_type: 'SEMESTER_FEEDBACK',
       status: 'PUBLISHED',
       response_count: 42,
@@ -204,7 +204,7 @@ async function main() {
       description: 'Campus facility evaluation including Wi-Fi, digital library, and classroom acoustics.',
       academic_year_id: 'a1000000-0000-0000-0000-000000000002',
       branch_id: 'b1000000-0000-0000-0000-000000000001',
-      semester_id: 's1000000-0000-0000-0000-000000000005',
+      semester_id: 'c1000000-0000-0000-0000-000000000005',
       form_type: 'SEMESTER_FEEDBACK',
       status: 'PUBLISHED',
       response_count: 88,
@@ -218,11 +218,51 @@ async function main() {
   // 8. PWA Installation Baseline Counter
   console.log('Seeding PWA installation record...');
   const { error: pwaErr } = await supabase.from('pwa_installations').upsert({
+    id: 'd1000000-0000-0000-0000-000000000001',
     college_id: collegeId,
-    platform: 'android',
+    installation_id: 'bce00000-0000-0000-0000-000000000099',
+    device_type: 'android',
+    user_agent: 'CampusFlow Staging Agent',
     installed_at: new Date().toISOString(),
-  }, { onConflict: 'id' }).select();
+  }, { onConflict: 'college_id,installation_id' });
   if (pwaErr) console.warn('PWA installation note:', pwaErr.message);
+
+  // 9. Exam Questions & Options (Realistic Assessment Workload)
+  console.log('Seeding exam questions and options...');
+  const examId = 'e1000000-0000-0000-0000-000000000001';
+  const questions = [
+    { id: 'f1000000-0000-0000-0000-000000000001', exam_id: examId, college_id: collegeId, question_text: 'What is the average time complexity of QuickSort?', marks: 5.0, position: 1 },
+    { id: 'f1000000-0000-0000-0000-000000000002', exam_id: examId, college_id: collegeId, question_text: 'Which data structure is primarily used to implement Breadth-First Search (BFS)?', marks: 5.0, position: 2 },
+    { id: 'f1000000-0000-0000-0000-000000000003', exam_id: examId, college_id: collegeId, question_text: 'Dynamic Programming solves problems using which foundational approach?', marks: 5.0, position: 3 },
+    { id: 'f1000000-0000-0000-0000-000000000004', exam_id: examId, college_id: collegeId, question_text: 'Dijkstras algorithm cannot be safely used when graphs have:', marks: 5.0, position: 4 },
+  ];
+  for (const q of questions) {
+    const { error: qErr } = await supabase.from('exam_questions').upsert(q, { onConflict: 'id' });
+    if (qErr) console.warn('Question note:', qErr.message);
+  }
+
+  const options = [
+    { question_id: 'f1000000-0000-0000-0000-000000000001', option_key: 'A', option_text: 'O(n log n)', is_correct: true, position: 1 },
+    { question_id: 'f1000000-0000-0000-0000-000000000001', option_key: 'B', option_text: 'O(n^2)', is_correct: false, position: 2 },
+    { question_id: 'f1000000-0000-0000-0000-000000000001', option_key: 'C', option_text: 'O(log n)', is_correct: false, position: 3 },
+    { question_id: 'f1000000-0000-0000-0000-000000000001', option_key: 'D', option_text: 'O(n)', is_correct: false, position: 4 },
+    { question_id: 'f1000000-0000-0000-0000-000000000002', option_key: 'A', option_text: 'Queue', is_correct: true, position: 1 },
+    { question_id: 'f1000000-0000-0000-0000-000000000002', option_key: 'B', option_text: 'Stack', is_correct: false, position: 2 },
+    { question_id: 'f1000000-0000-0000-0000-000000000002', option_key: 'C', option_text: 'Heap', is_correct: false, position: 3 },
+    { question_id: 'f1000000-0000-0000-0000-000000000002', option_key: 'D', option_text: 'Linked List', is_correct: false, position: 4 },
+    { question_id: 'f1000000-0000-0000-0000-000000000003', option_key: 'A', option_text: 'Optimal substructure and overlapping subproblems', is_correct: true, position: 1 },
+    { question_id: 'f1000000-0000-0000-0000-000000000003', option_key: 'B', option_text: 'Divide and conquer without memoization', is_correct: false, position: 2 },
+    { question_id: 'f1000000-0000-0000-0000-000000000003', option_key: 'C', option_text: 'Greedy choice at every local step', is_correct: false, position: 3 },
+    { question_id: 'f1000000-0000-0000-0000-000000000003', option_key: 'D', option_text: 'Randomized pivot elimination', is_correct: false, position: 4 },
+    { question_id: 'f1000000-0000-0000-0000-000000000004', option_key: 'A', option_text: 'Negative edge weights', is_correct: true, position: 1 },
+    { question_id: 'f1000000-0000-0000-0000-000000000004', option_key: 'B', option_text: 'Directed cycles', is_correct: false, position: 2 },
+    { question_id: 'f1000000-0000-0000-0000-000000000004', option_key: 'C', option_text: 'Multiple components', is_correct: false, position: 3 },
+    { question_id: 'f1000000-0000-0000-0000-000000000004', option_key: 'D', option_text: 'Dense edges', is_correct: false, position: 4 },
+  ];
+  for (const opt of options) {
+    const { error: optErr } = await supabase.from('exam_question_options').upsert(opt, { onConflict: 'question_id,option_key' });
+    if (optErr) console.warn('Option note:', optErr.message);
+  }
 
   console.log('Synthetic staging seeding completed successfully!');
 }
