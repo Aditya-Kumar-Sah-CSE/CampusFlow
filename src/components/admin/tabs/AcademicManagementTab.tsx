@@ -1099,15 +1099,29 @@ export function AcademicManagementTab({
   // Filtered Academic Levels
   const filteredLevels = useMemo(() => {
     return semesterList.filter((lev: any) => {
+      const isClass =
+        lev.level_type === 'CLASS' ||
+        Boolean(lev.class_number) ||
+        (typeof lev.name === 'string' && /^class\b/i.test(lev.name.trim()));
+
       // Programme filter
       if (levelProgFilter !== 'ALL') {
         const progId = lev.programme_id || lev.programme?.id;
-        const progCode = lev.programme?.code;
-        if (progId !== levelProgFilter && progCode !== levelProgFilter) return false;
+        const progCode = lev.programme?.code?.toUpperCase();
+        const btechProg = programmeList.find((p) => p.code.toUpperCase() === 'BTECH');
+
+        if (!progId && !isClass) {
+          // Legacy records without explicit programme_id default to B.Tech
+          if (btechProg && levelProgFilter !== btechProg.id && levelProgFilter !== 'BTECH') {
+            return false;
+          }
+        } else if (progId !== levelProgFilter && progCode !== levelProgFilter) {
+          return false;
+        }
       }
       // Level type filter (SEMESTER, CLASS, CUSTOM)
       if (levelTypeFilter !== 'ALL') {
-        const type = lev.level_type || (lev.class_number ? 'CLASS' : 'SEMESTER');
+        const type = isClass ? 'CLASS' : (lev.level_type || 'SEMESTER');
         if (type !== levelTypeFilter) return false;
       }
       // Status filter
@@ -1117,13 +1131,13 @@ export function AcademicManagementTab({
       if (levelSearchQuery.trim()) {
         const q = levelSearchQuery.toLowerCase();
         const mName = (lev.name || '').toLowerCase().includes(q);
-        const mProg = (lev.programme?.name || '').toLowerCase().includes(q);
+        const mProg = (lev.programme?.name || (isClass ? 'School' : 'B.Tech')).toLowerCase().includes(q);
         const mCode = (lev.code || '').toLowerCase().includes(q);
         return mName || mProg || mCode;
       }
       return true;
     });
-  }, [semesterList, levelProgFilter, levelTypeFilter, levelStatusFilter, levelSearchQuery]);
+  }, [semesterList, levelProgFilter, levelTypeFilter, levelStatusFilter, levelSearchQuery, programmeList]);
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
@@ -2666,9 +2680,22 @@ export function AcademicManagementTab({
                   ].map((preset) => {
                     const isSelected = selectedPresets.includes(preset.code);
                     const matchingProg = programmeList.find((p) => p.code.toUpperCase() === preset.code);
-                    const levelCount = matchingProg
-                      ? semesterList.filter((s: any) => s.programme_id === matchingProg.id || s.programme?.id === matchingProg.id).length
-                      : 0;
+                    const levelCount = semesterList.filter((s: any) => {
+                      if (matchingProg && (s.programme_id === matchingProg.id || s.programme?.id === matchingProg.id)) {
+                        return true;
+                      }
+                      const isClassItem =
+                        s.level_type === 'CLASS' ||
+                        Boolean(s.class_number) ||
+                        (typeof s.name === 'string' && /^class\b/i.test(s.name.trim()));
+                      if (preset.code === 'BTECH') {
+                        return !isClassItem && (!s.programme_id || s.programme_id === matchingProg?.id);
+                      }
+                      if (preset.code === 'SCHOOL') {
+                        return isClassItem;
+                      }
+                      return false;
+                    }).length;
 
                     return (
                       <div
@@ -3057,9 +3084,42 @@ export function AcademicManagementTab({
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {filteredLevels.map((lev: any) => {
-                        const isClass = lev.level_type === 'CLASS' || lev.class_number !== null;
-                        const progName = lev.programme?.name || 'B.Tech';
-                        const progType = lev.programme?.programme_type || (isClass ? 'SCHOOL' : 'UG');
+                        const isClass =
+                          lev.level_type === 'CLASS' ||
+                          Boolean(lev.class_number) ||
+                          (typeof lev.name === 'string' && /^class\b/i.test(lev.name.trim()));
+
+                        const progName =
+                          lev.programme?.name ||
+                          (isClass ? 'School' : 'B.Tech');
+
+                        const progType =
+                          lev.programme?.programme_type ||
+                          (isClass ? 'SCHOOL' : 'UNDERGRADUATE');
+
+                        const progBadge = isClass
+                          ? 'K-12'
+                          : progType === 'POSTGRADUATE'
+                          ? 'PG'
+                          : progType === 'DIPLOMA'
+                          ? 'DIPLOMA'
+                          : 'UG';
+
+                        const computedYearNumber =
+                          lev.year_number ||
+                          (lev.semester_number
+                            ? Math.ceil(Number(lev.semester_number) / 2)
+                            : lev.level_number
+                            ? Math.ceil(Number(lev.level_number) / 2)
+                            : null);
+
+                        const numMatch = typeof lev.name === 'string' ? lev.name.match(/\d+/) : null;
+                        const fallbackNum = numMatch ? Number(numMatch[0]) : 1;
+
+                        const semOrClassNum =
+                          (isClass ? lev.class_number : lev.semester_number) ||
+                          lev.level_number ||
+                          fallbackNum;
 
                         return (
                           <tr key={lev.id} className="hover:bg-slate-50 transition-colors">
@@ -3067,18 +3127,16 @@ export function AcademicManagementTab({
                               <div className="flex items-center gap-1.5">
                                 <span className="font-bold text-slate-900">{progName}</span>
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                                  {isClass ? 'K-12' : progType === 'POSTGRADUATE' ? 'PG' : 'UG'}
+                                  {progBadge}
                                 </span>
                               </div>
                             </td>
                             <td className="px-5 py-3 font-bold text-slate-800">{lev.name}</td>
                             <td className="px-5 py-3 text-slate-600">
-                              {isClass ? '—' : lev.year_number ? `Year ${lev.year_number}` : '—'}
+                              {isClass ? '—' : computedYearNumber ? `Year ${computedYearNumber}` : '—'}
                             </td>
                             <td className="px-5 py-3 text-slate-600">
-                              {isClass
-                                ? `Class ${lev.class_number || lev.level_number}`
-                                : `Sem ${lev.semester_number || lev.level_number}`}
+                              {isClass ? `Class ${semOrClassNum}` : `Sem ${semOrClassNum}`}
                             </td>
                             <td className="px-5 py-3">
                               <span
@@ -3148,7 +3206,7 @@ export function AcademicManagementTab({
                   <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 flex items-center justify-between">
                     <span>{deletingSemester.name}</span>
                     <span className="font-mono text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
-                      {deletingSemester.programme?.name || 'Programme'} • Level {deletingSemester.level_number || deletingSemester.semester_number || deletingSemester.class_number}
+                      {(deletingSemester.programme?.name || (deletingSemester.level_type === 'CLASS' || deletingSemester.class_number ? 'School' : 'B.Tech'))} • Level {deletingSemester.level_number || deletingSemester.semester_number || deletingSemester.class_number || 1}
                     </span>
                   </div>
                   <p className="text-rose-600 text-[11px] leading-relaxed">

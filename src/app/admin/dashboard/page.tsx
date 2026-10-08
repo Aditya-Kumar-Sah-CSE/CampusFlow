@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession } from '@/lib/auth/admin-auth';
 import { canAccessAnalytics } from '@/lib/billing/access-control';
 import { getGoogleConfigStatus } from '@/lib/google/auth';
+import { getCollegeAcademicLevels } from '@/lib/academic/programme-service';
 import { AdminDashboardTabs } from '@/components/admin/AdminDashboardTabs';
 import type {
   AcademicYear,
@@ -71,7 +72,7 @@ export default async function AdminDashboardPage({
   // Build queries strictly scoped to active college (fail-closed)
   const yearQuery = supabase.from('academic_years').select('id, name, is_active, created_at').eq('college_id', targetCollegeId).order('name', { ascending: false });
   const branchQuery = supabase.from('branches').select('id, name, code, is_active, created_at').eq('college_id', targetCollegeId).order('name', { ascending: true });
-  const semesterQuery = supabase.from('semesters').select('id, name, year_number, semester_number, is_active, created_at').eq('college_id', targetCollegeId).order('semester_number', { ascending: true });
+  const semesterQuery = getCollegeAcademicLevels(targetCollegeId).then((data) => ({ data }));
   const facultyQuery = adminDb.from('faculties').select('id, name, employee_id, department, designation, is_active, created_at', { count: 'exact' }).eq('college_id', targetCollegeId).order('name', { ascending: true });
   const subjectQuery = adminDb.from('subjects').select('id, name, code, semester_id, branch_id, is_active, created_at, branch:branches(id, name, code), semester:semesters(id, name)', { count: 'exact' }).eq('college_id', targetCollegeId).order('code', { ascending: true });
   const assignQuery = adminDb.from('faculty_subject_assignments').select(`
