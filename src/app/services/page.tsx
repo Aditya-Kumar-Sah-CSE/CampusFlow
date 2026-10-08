@@ -1,300 +1,278 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
-import { ServicesCatalogClient } from '@/components/services/ServicesCatalogClient';
+import { getAdminSession } from '@/lib/auth/admin-auth';
 import {
-  Building2,
-  FileSpreadsheet,
-  CheckCircle2,
-  CreditCard,
-  Lock,
-  Calendar,
   GraduationCap,
+  FileText,
+  Calendar,
+  CheckSquare,
+  LineChart,
+  ShieldCheck,
+  Building2,
+  ArrowRight,
+  Lock,
+  CheckCircle2,
 } from 'lucide-react';
 import { APP_URL } from '@/lib/config/app';
 
-export const dynamic = 'force-static';
-export const revalidate = 86400; // 24 hours
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Services & Capabilities | CampusFlow',
+  title: 'Platform Services | CampusFlow',
   description:
-    'Core tools for feedback, events, registration, and institutional operations.',
+    'Everything an institution needs to manage academic and engagement workflows in one place.',
   openGraph: {
-    title: 'Services & Capabilities | CampusFlow',
+    title: 'Platform Services | CampusFlow',
     description:
-      'Core tools for feedback, events, registration, and institutional operations.',
+      'Everything an institution needs to manage academic and engagement workflows in one place.',
     url: `${APP_URL}/services`,
   },
 };
 
-export default function ServicesPage() {
-  const FEEDBACK_WORKFLOW = [
-    { step: '01', title: 'Create Form', desc: 'Define criteria & faculties' },
-    { step: '02', title: 'Google Form Sync', desc: 'Generate linked survey' },
-    { step: '03', title: 'Anonymous Responses', desc: 'Students evaluate securely' },
-    { step: '04', title: 'Google Sheet Sync', desc: 'Pull responses automatically' },
-    { step: '05', title: 'CampusFlow Analysis', desc: 'Calculate faculty scores' },
-    { step: '06', title: 'Report / PDF', desc: 'Export departmental audits' },
-  ];
+export default async function ServicesPage() {
+  const session = await getAdminSession().catch(() => null);
+  const activeCollege = session?.isAuthenticated ? session.activeCollege : null;
 
-  const EVENTS_WORKFLOW = [
-    { step: '01', title: 'Create Event', desc: 'Set timeline & guidelines' },
-    { step: '02', title: 'Publish Program', desc: 'Competitions & rules' },
-    { step: '03', title: 'Registration', desc: 'Solo or team join codes' },
-    { step: '04', title: 'Payment / UTR Verify', desc: 'Verify UPI transaction' },
-    { step: '05', title: 'Digital Pass & QR', desc: 'Issue encrypted pass' },
-    { step: '06', title: 'Gate Check-in', desc: 'Live scanner verification' },
-    { step: '07', title: 'Export Roster', desc: 'PDF / CSV attendance' },
-  ];
-
-  const CAPABILITY_MATRIX = [
-    { feature: 'Institutional Feedback Forms', available: true, detail: 'Branch & semester specific forms' },
-    { feature: 'Faculty & Course Evaluation', available: true, detail: 'Standardized evaluation scorecards' },
-    { feature: 'Google Forms Sync', available: true, detail: 'Automated form generation via API' },
-    { feature: 'Google Sheets Response Sync', available: true, detail: 'Automated survey response pulling' },
-    { feature: 'Google Drive Document Storage', available: true, detail: 'Centralized institutional assets' },
-    { feature: 'Campus Events & Fests', available: true, detail: 'Multi-category college event publishing' },
-    { feature: 'Sub-Program Competitions', available: true, detail: 'Solo and team competition slots' },
-    { feature: 'Team Join / Invite Codes', available: true, detail: 'Dynamic join codes & roster control' },
-    { feature: 'Payment Reference (UTR) Tracking', available: true, detail: 'UPI QR display and receipt check' },
-    { feature: 'Digital Identity Passes (QR)', available: true, detail: 'Instant cryptographic attendee pass' },
-    { feature: 'Gate Verification Scanner (/verify)', available: true, detail: 'Live web scanner for gate staff' },
-    { feature: 'Server-Side PDF & CSV Exports', available: true, detail: 'PDFKit rosters & CSV data dumps' },
-    { feature: 'Multi-Tenant Isolation (/[tenant])', available: true, detail: 'Slug routing & college branding' },
-    { feature: 'Progressive Web App (PWA)', available: true, detail: 'Install prompts & offline app shell' },
-    { feature: 'Role-Based Access Control', available: true, detail: 'Super Admin and College Admin roles' },
-  ];
-
-  const INTEGRATIONS = [
+  const SERVICES = [
     {
-      title: 'Google Forms',
-      desc: 'Form creation and survey ingestion',
-      icon: FileSpreadsheet,
+      id: 'academic',
+      number: '01',
+      title: 'Academic Management',
+      badge: 'Core Curriculum',
+      description:
+        'Manage curriculum structures, departmental divisions, faculty rosters, and teaching assignments.',
+      icon: GraduationCap,
+      features: [
+        'Academic sessions & terms',
+        'Branches & departments',
+        'Subjects & course codes',
+        'Semesters / Classes (Higher Ed & K-12)',
+        'Faculty directory & profiles',
+        'Faculty-subject teaching assignments',
+      ],
     },
     {
-      title: 'Google Sheets',
-      desc: 'Bi-directional response synchronization',
-      icon: FileSpreadsheet,
+      id: 'feedback',
+      number: '02',
+      title: 'Feedback Management',
+      badge: 'Evaluation & Quality',
+      description:
+        'Standardized institutional feedback forms with connected response ingestion and faculty summaries.',
+      icon: FileText,
+      features: [
+        'Create feedback forms',
+        'Collect anonymous student responses',
+        'Faculty-wise performance reports',
+        'Result dashboards & scorecards',
+        'Departmental PDF reports',
+        'Feedback analytics & response rates',
+      ],
     },
     {
-      title: 'Google Drive',
-      desc: 'Institutional asset and document storage',
-      icon: FileSpreadsheet,
+      id: 'events',
+      number: '03',
+      title: 'Event Management',
+      badge: 'Campus Engagement',
+      description:
+        'Complete event workflows from competition category setup to registration, ticketing, and gate checks.',
+      icon: Calendar,
+      features: [
+        'Events & symposium publishing',
+        'Programs & competition rules',
+        'Registrations (Solo & team)',
+        'Team management & invite codes',
+        'Participant records & payment tracking',
+        'Passes with cryptographic QR codes',
+        'Event reports & roster exports',
+      ],
     },
     {
-      title: 'UPI Reference Verification',
-      desc: '12-digit UTR and receipt capture',
-      icon: CreditCard,
+      id: 'exams',
+      number: '04',
+      title: 'Examination & Assessments',
+      badge: 'Testing & Evaluation',
+      description:
+        'Secure online test administration with timed student sessions, server-side grading, and instant rank sheets.',
+      icon: CheckSquare,
+      features: [
+        'Exam creation & duration controls',
+        'MCQ question builder with explanations',
+        'Server-side evaluation & anti-tamper checks',
+        'Timed attempts with auto-submission',
+        'Automatic results & scorecards',
+        'Printable result PDFs',
+        'Question analytics & accuracy metrics',
+      ],
     },
-  ];
-
-  const SECURITY_TAGS = [
-    'Role-Based Access (SUPER_ADMIN / ADMIN)',
-    'Institution Isolation (Tenant Slugs)',
-    'Admin Controls & Permissions',
-    'Authenticated Access (Supabase Auth)',
-    'Row Level Security (RLS)',
-    'Anonymous Student Submissions',
+    {
+      id: 'reports',
+      number: '05',
+      title: 'Reports & Analytics',
+      badge: 'Data Intelligence',
+      description:
+        'Real-time dashboards, departmental compliance audits, and server-side document generation.',
+      icon: LineChart,
+      features: [
+        'Institutional overview dashboards',
+        'Feedback analytics & score trends',
+        'Exam results & candidate rankings',
+        'Event reports & participation demographics',
+        'Verified PDF exports',
+        'Raw CSV data downloads',
+      ],
+    },
+    {
+      id: 'admin',
+      number: '06',
+      title: 'Institution Administration',
+      badge: 'Governance & Security',
+      description:
+        'Multi-tenant boundaries, institution branding, and database-level Row Level Security controls.',
+      icon: ShieldCheck,
+      features: [
+        'Institution profile & custom slug (/[tenant])',
+        'Branding/logo & theme styling',
+        'User/role management (Super Admin & College Admin)',
+        'Access control & permission governance',
+        'Tenant-specific configuration',
+        'Database Row Level Security (RLS) isolation',
+      ],
+    },
   ];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      {/* 1. Header Navigation */}
-      <RootPublicNavbar />
+      {/* 1. Global Navigation */}
+      <RootPublicNavbar tenantCode={activeCollege?.code} />
 
       {/* 2. Main Content */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-6 sm:py-12 space-y-8 sm:space-y-12">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-14">
         {/* HERO SECTION */}
-        <section aria-labelledby="services-hero-title" className="text-center max-w-2xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-            <span>Platform Services</span>
-          </div>
+        <section aria-labelledby="services-hero-title" className="text-center max-w-3xl mx-auto space-y-3 sm:space-y-4">
+          {activeCollege ? (
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>
+                Active Workspace: <strong className="font-bold">{activeCollege.name}</strong> ({activeCollege.code})
+              </span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
+              <span>Verified System Capabilities</span>
+            </div>
+          )}
 
           <h1
             id="services-hero-title"
-            className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight"
+            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900"
           >
-            Services &amp; Capabilities
+            Platform Services
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-xl mx-auto">
-            Core tools for feedback, events, registration, and institutional operations.
+          <p className="text-lg sm:text-xl font-medium text-slate-700 max-w-2xl mx-auto">
+            Everything an institution needs to manage academic and engagement workflows in one place.
           </p>
-        </section>
 
-        {/* INTERACTIVE SERVICE CATALOG (Category Pills & Verified Modules) */}
-        <section aria-labelledby="catalog-heading" className="space-y-3">
-          <div className="border-b border-slate-200 pb-2">
-            <h2 id="catalog-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-              Operational Modules
-            </h2>
-            <p className="text-xs text-slate-500">Filter modules by functional domain.</p>
-          </div>
+          <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl mx-auto">
+            CampusFlow provides dedicated modules for colleges and schools to govern academic records,
+            conduct structured evaluations, host events, and administer online assessments.
+          </p>
 
-          <ServicesCatalogClient />
-        </section>
-
-        {/* REAL IMPLEMENTED WORKFLOWS */}
-        <section aria-labelledby="workflows-heading" className="space-y-4">
-          <div className="border-b border-slate-200 pb-2">
-            <h2 id="workflows-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-              Implemented Workflows
-            </h2>
-            <p className="text-xs text-slate-500">End-to-end operation pipelines supported by the repository.</p>
-          </div>
-
-          {/* Workflow A: Feedback */}
-          <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                1. Institutional Feedback Lifecycle
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-              {FEEDBACK_WORKFLOW.map((step, idx) => (
-                <div
-                  key={idx}
-                  className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-center space-y-1 hover:bg-emerald-50/50 hover:border-emerald-200 transition-colors"
-                >
-                  <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded">
-                    {step.step}
-                  </span>
-                  <p className="text-xs font-bold text-slate-900 leading-tight">{step.title}</p>
-                  <p className="text-[10px] text-slate-500 leading-tight">{step.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Workflow B: Events */}
-          <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-violet-600" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                2. Campus Events &amp; Passes Lifecycle
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-              {EVENTS_WORKFLOW.map((step, idx) => (
-                <div
-                  key={idx}
-                  className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/70 text-center space-y-1 hover:bg-violet-50/50 hover:border-violet-200 transition-colors"
-                >
-                  <span className="text-[10px] font-mono font-bold text-violet-700 bg-violet-100/70 px-1.5 py-0.2 rounded">
-                    {step.step}
-                  </span>
-                  <p className="text-xs font-bold text-slate-900 leading-tight">{step.title}</p>
-                  <p className="text-[10px] text-slate-500 leading-tight">{step.desc}</p>
-                </div>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition-colors"
+            >
+              <span>About Architecture</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            {activeCollege ? (
+              <Link
+                href="/admin/dashboard"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-colors"
+              >
+                <span>Go to Admin Console</span>
+              </Link>
+            ) : (
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-colors"
+              >
+                <Building2 className="w-4 h-4 text-slate-600" />
+                <span>Select Institution</span>
+              </Link>
+            )}
           </div>
         </section>
 
-        {/* INTEGRATION SECTION */}
-        <section aria-labelledby="integrations-heading" className="space-y-3">
-          <div className="border-b border-slate-200 pb-2">
-            <h2 id="integrations-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-              Supported Integrations
+        {/* 6 REAL IMPLEMENTED SERVICES */}
+        <section aria-labelledby="services-list-heading" className="space-y-5">
+          <div className="border-b border-slate-200 pb-2.5">
+            <h2 id="services-list-heading" className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
+              Operational Services
             </h2>
-            <p className="text-xs text-slate-500">Native external tool connections built into CampusFlow.</p>
+            <p className="text-xs sm:text-sm text-slate-600">
+              Only real functionality implemented and active in the CampusFlow codebase:
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-            {INTEGRATIONS.map((item, idx) => {
-              const Icon = item.icon;
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {SERVICES.map((service) => {
+              const Icon = service.icon;
               return (
                 <div
-                  key={idx}
-                  className="p-3.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs space-y-1 hover:border-slate-300 transition-colors"
+                  key={service.id}
+                  className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-slate-300 hover:shadow-xs transition-all flex flex-col justify-between space-y-4"
                 >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-blue-600 shrink-0" />
-                    <p className="text-xs font-bold text-slate-900 leading-tight">{item.title}</p>
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                        {service.number}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">{service.title}</h3>
+                      <p className="text-xs text-slate-600 mt-1 leading-relaxed">{service.description}</p>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                        Included Features
+                      </span>
+                      <ul className="space-y-1">
+                        {service.features.map((feat, fIdx) => (
+                          <li key={fIdx} className="text-xs text-slate-700 flex items-start gap-1.5 leading-snug">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">{item.desc}</p>
+
+                  <div className="pt-2">
+                    <span className="inline-block text-[10px] font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200/70">
+                      {service.badge}
+                    </span>
+                  </div>
                 </div>
               );
             })}
           </div>
         </section>
 
-        {/* CAPABILITY MATRIX */}
-        <section aria-labelledby="matrix-heading" className="space-y-3">
-          <div className="border-b border-slate-200 pb-2">
-            <h2 id="matrix-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-              Capability Matrix
-            </h2>
-            <p className="text-xs text-slate-500">Implemented features verified across the codebase.</p>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  <tr>
-                    <th scope="col" className="py-2.5 px-4">Capability</th>
-                    <th scope="col" className="py-2.5 px-3 text-center">Status</th>
-                    <th scope="col" className="py-2.5 px-4">Implementation Scope</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {CAPABILITY_MATRIX.map((row, idx) => (
-                    <tr key={idx} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-2 px-4 font-semibold text-slate-900">{row.feature}</td>
-                      <td className="py-2 px-3 text-center">
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 font-bold text-xs">
-                          ✓
-                        </span>
-                      </td>
-                      <td className="py-2 px-4 text-slate-600 text-[11px]">{row.detail}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        {/* SECURITY & ACCESS */}
-        <section aria-labelledby="security-heading" className="space-y-3">
-          <div className="border-b border-slate-200 pb-2">
-            <h2 id="security-heading" className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-              Security &amp; Access Controls
-            </h2>
-            <p className="text-xs text-slate-500">Authentication and authorization boundaries.</p>
-          </div>
-
-          <div className="p-4 sm:p-5 bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-              <Lock className="w-4 h-4 text-blue-600" />
-              <span>Verified Security Features</span>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {SECURITY_TAGS.map((tag, idx) => (
-                <div
-                  key={idx}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/80 text-xs font-medium text-slate-700"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>{tag}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="p-5 sm:p-6 bg-slate-900 text-white rounded-2xl text-center space-y-3 shadow-xs">
+        {/* CALL TO ACTION */}
+        <section className="p-6 bg-slate-900 text-white rounded-2xl text-center space-y-3 shadow-xs">
           <h2 className="text-base sm:text-lg font-bold">Access CampusFlow</h2>
           <p className="text-xs text-slate-300 max-w-md mx-auto">
-            Choose your college to browse active feedback forms or register for events.
+            Open your college portal to submit feedback, register for events, take exams, or manage operations.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
             <Link
@@ -315,55 +293,28 @@ export default function ServicesPage() {
               href="/feedback"
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors"
             >
-              <GraduationCap className="w-3.5 h-3.5" />
+              <FileText className="w-3.5 h-3.5" />
               <span>Feedback Portals</span>
+            </Link>
+            <Link
+              href="/admin/login"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl border border-slate-700 transition-colors"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Admin Login</span>
             </Link>
           </div>
         </section>
       </main>
 
       {/* 3. Platform Footer */}
-      <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-4 px-2.5 sm:px-4 sm:py-6 mt-auto">
+      <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-5 px-4 sm:px-8 mt-auto">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
-            <Link
-              href="/"
-              className="font-bold text-slate-800 hover:text-blue-600 hover:underline transition-colors block"
-              title="CampusFlow Main Portal"
-            >
+            <Link href="/" className="font-bold text-slate-900 hover:text-blue-600 transition-colors">
               CampusFlow
             </Link>
-            <p className="text-[11px] text-slate-500">Campus Management Platform</p>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Designed and developed by{' '}
-              <a
-                href="https://portfolio-two-ashen-zseywond41.vercel.app/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-              >
-                Mr. Aditya Kumar Sah
-              </a>{' '}
-              •{' '}
-              <a
-                href="https://portfolio-two-ashen-zseywond41.vercel.app/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-400 hover:text-slate-600 hover:underline transition-colors"
-              >
-                Developer Portfolio
-              </a>{' '}
-              under the guidance of{' '}
-              <a
-                href="https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-              >
-                Dr. Avinav
-              </a>{' '}
-              (Assistant Professor)
-            </p>
+            <p className="text-[11px] text-slate-500">Digital infrastructure for modern institutions.</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-[11px] text-slate-500">
             <Link href="/" className="hover:text-slate-900 transition-colors">
@@ -375,7 +326,7 @@ export default function ServicesPage() {
             </Link>
             <span className="text-slate-300">•</span>
             <Link href="/services" className="font-bold text-slate-900">
-              Services
+              Platform Services
             </Link>
             <span className="text-slate-300">•</span>
             <Link href="/privacy-policy" className="hover:text-slate-900 transition-colors">
