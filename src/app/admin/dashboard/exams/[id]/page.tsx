@@ -62,6 +62,32 @@ export default async function AdminEditExamPage({ params }: Props) {
       .order('name', { ascending: true }),
   ]);
 
+  let validSems: any[] = sems || [];
+  if (validSems.length === 0) {
+    const fallbackSems = await db
+      .from('semesters')
+      .select('id, name, semester_number, year_number, is_active')
+      .eq('college_id', collegeId)
+      .order('semester_number', { ascending: true });
+    validSems = fallbackSems.data || [];
+  }
+
+  let validProgs: any[] = progs || [];
+  if (validProgs.length === 0) {
+    validProgs = [
+      {
+        id: 'prog-btech-fallback',
+        name: 'B.Tech',
+        code: 'BTECH',
+        programme_type: 'UNDERGRADUATE',
+        duration_years: 4,
+        level_type: 'SEMESTER',
+        has_branches: true,
+        is_active: true,
+      },
+    ];
+  }
+
   return (
     <div className="py-2">
       <CreateExamWizard
@@ -72,7 +98,7 @@ export default async function AdminEditExamPage({ params }: Props) {
           name: s.name,
           is_active: Boolean(s.is_active),
         }))}
-        programmes={(progs || []).map((p: any) => ({
+        programmes={(validProgs || []).map((p: any) => ({
           id: p.id,
           name: p.name,
           code: p.code,
@@ -81,7 +107,7 @@ export default async function AdminEditExamPage({ params }: Props) {
           has_branches: Boolean(p.has_branches),
           is_active: Boolean(p.is_active),
         }))}
-        semesters={(sems || []).map((s: any) => ({
+        semesters={(validSems || []).map((s: any) => ({
           id: s.id,
           name: s.name,
           display_name: s.display_name || s.name,

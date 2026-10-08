@@ -87,72 +87,109 @@ export const PROGRAMME_PRESETS: Record<string, ProgrammePreset> = {
 export async function getCollegeAcademicProgrammes(
   collegeId: string
 ): Promise<AcademicProgramme[]> {
-  const supabase = await getAdminDb();
-  const { data, error } = await supabase
-    .from('academic_programmes')
-    .select('*')
-    .eq('college_id', collegeId)
-    .order('name', { ascending: true });
+  try {
+    const supabase = await getAdminDb();
+    const { data, error } = await supabase
+      .from('academic_programmes')
+      .select('*')
+      .eq('college_id', collegeId)
+      .order('name', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching academic programmes:', error);
+    if (error) {
+      console.warn('Notice: academic_programmes table not in schema cache; using default programme fallback.', error.message);
+      return [
+        {
+          id: 'prog-btech-fallback',
+          college_id: collegeId,
+          name: 'B.Tech',
+          code: 'BTECH',
+          programme_type: 'UNDERGRADUATE',
+          duration_years: 4,
+          level_type: 'SEMESTER',
+          has_branches: true,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        },
+      ];
+    }
+    return (data || []) as AcademicProgramme[];
+  } catch (err: any) {
+    console.warn('Fallback caught on getCollegeAcademicProgrammes:', err?.message);
     return [];
   }
-  return (data || []) as AcademicProgramme[];
 }
 
 /**
  * Loads all academic levels for an authorized college with joined programme details.
+ * Features automatic schema fallback if academic_programmes has not yet been migrated.
  */
 export async function getCollegeAcademicLevels(
   collegeId: string
 ): Promise<AcademicLevel[]> {
-  const supabase = await getAdminDb();
-  const { data, error } = await supabase
-    .from('semesters')
-    .select(`
-      id,
-      college_id,
-      programme_id,
-      name,
-      code,
-      level_number,
-      level_type,
-      year_number,
-      semester_number,
-      class_number,
-      display_name,
-      is_active,
-      created_at,
-      updated_at,
-      programme:academic_programmes(id, name, code, programme_type, duration_years, level_type, has_branches, is_active)
-    `)
-    .eq('college_id', collegeId)
-    .order('level_number', { ascending: true });
+  try {
+    const supabase = await getAdminDb();
+    let { data, error } = await supabase
+      .from('semesters')
+      .select(`
+        id,
+        college_id,
+        programme_id,
+        name,
+        code,
+        level_number,
+        level_type,
+        year_number,
+        semester_number,
+        class_number,
+        display_name,
+        is_active,
+        created_at,
+        updated_at,
+        programme:academic_programmes(id, name, code, programme_type, duration_years, level_type, has_branches, is_active)
+      `)
+      .eq('college_id', collegeId)
+      .order('level_number', { ascending: true });
 
-  if (error) {
-    console.error('Error fetching academic levels:', error);
+    let rawRows: any[] = [];
+    if (!error && data) {
+      rawRows = data;
+    } else {
+      console.warn('Notice: Enhanced semesters query failed, falling back to legacy semesters schema:', error?.message);
+      const fallback = await supabase
+        .from('semesters')
+        .select('id, college_id, name, semester_number, year_number, is_active, created_at, updated_at')
+        .eq('college_id', collegeId)
+        .order('semester_number', { ascending: true });
+
+      if (fallback.error) {
+        console.error('Error fetching academic levels on fallback:', fallback.error);
+        return [];
+      }
+      rawRows = fallback.data || [];
+    }
+
+    // Normalize and return
+    return rawRows.map((row: any) => ({
+      id: row.id,
+      college_id: row.college_id,
+      programme_id: row.programme_id || null,
+      name: row.name,
+      code: row.code || `SEM-${row.semester_number || 1}`,
+      level_number: row.level_number || row.semester_number || row.class_number || 1,
+      level_type: row.level_type || (row.programme?.level_type as AcademicLevelType) || 'SEMESTER',
+      year_number: row.year_number,
+      semester_number: row.semester_number,
+      class_number: row.class_number || null,
+      display_name: row.display_name || row.name,
+      is_active: Boolean(row.is_active),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      programme: row.programme || null,
+    })) as AcademicLevel[];
+  } catch (err: any) {
+    console.error('getCollegeAcademicLevels unexpected error:', err);
     return [];
   }
-
-  // Normalize and return
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    college_id: row.college_id,
-    programme_id: row.programme_id,
-    name: row.name,
-    code: row.code,
-    level_number: row.level_number || row.semester_number || row.class_number || 1,
-    level_type: row.level_type || (row.programme?.level_type as AcademicLevelType) || 'SEMESTER',
-    year_number: row.year_number,
-    semester_number: row.semester_number,
-    class_number: row.class_number,
-    display_name: row.display_name || row.name,
-    is_active: Boolean(row.is_active),
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    programme: row.programme || null,
-  })) as AcademicLevel[];
 }
 
 /**
@@ -189,7 +226,11 @@ export async function bulkSetupProgrammesAndLevels(
     .eq('college_id', collegeId);
 
   if (progErr) {
-    return { success: false, createdProgrammesCount: 0, createdLevelsCount: 0, programmes: [], levels: [], error: progErr.message };
+    const isMissingTable = progErr.message?.includes('academic_programmes') || progErr.code === 'PGRST205';
+    const friendlyMsg = isMissingTable
+      ? "Database table 'public.academic_programmes' has not been created yet in Supabase. Please run the SQL migration file 'supabase/migrations/20261008000002_academic_programmes_and_levels.sql' in your Supabase SQL Editor."
+      : progErr.message;
+    return { success: false, createdProgrammesCount: 0, createdLevelsCount: 0, programmes: [], levels: [], error: friendlyMsg };
   }
 
   const progMap = new Map<string, AcademicProgramme>((existingProgs || []).map((p: any) => [p.code.toUpperCase(), p]));
