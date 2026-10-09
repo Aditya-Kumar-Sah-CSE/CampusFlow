@@ -256,6 +256,11 @@ export function buildEventRegistrationQuestions(params: {
   performanceTypes?: string[];
   participationTypes?: string[];
   eventRef?: string;
+  paymentRequired?: boolean;
+  paymentAmount?: number | null;
+  paymentUpiId?: string | null;
+  paymentQrUrl?: string | null;
+  paymentInstructions?: string | null;
 }) {
   const requests: any[] = [];
   let index = 0;
@@ -493,6 +498,59 @@ export function buildEventRegistrationQuestions(params: {
     },
   });
 
+  // 12. Payment Items (If payment required)
+  if (params.paymentRequired) {
+    if (params.paymentQrUrl) {
+      requests.push({
+        createItem: {
+          item: {
+            title: `Scan QR Code to Pay (${params.paymentAmount ? `₹${params.paymentAmount}` : 'Payment Required'}${params.paymentUpiId ? ` - UPI ID: ${params.paymentUpiId}` : ''})`,
+            description: params.paymentInstructions || 'Scan this official UPI QR Code using Google Pay, PhonePe, Paytm, or BHIM UPI app. After payment, enter your 12-digit UTR / Transaction Reference Number below.',
+            imageItem: {
+              image: {
+                sourceUri: params.paymentQrUrl,
+                altText: 'Official UPI Payment QR Code',
+              },
+            },
+          },
+          location: { index: index++ },
+        },
+      });
+    }
+
+    requests.push({
+      createItem: {
+        item: {
+          title: `UPI / UTR Transaction Reference ID (Payment Required${params.paymentAmount ? `: ₹${params.paymentAmount}` : ''})`,
+          description: `Payment Fee: ${params.paymentAmount ? `₹${params.paymentAmount}` : 'As specified'}\nUPI ID: ${params.paymentUpiId || 'Provided above'}\nPay using the UPI ID or QR Code, then enter the 12-digit UPI / UTR Transaction Reference Number from your payment receipt (Google Pay / PhonePe / Paytm / BHIM).`,
+          questionItem: {
+            question: {
+              required: true,
+              textQuestion: { paragraph: false },
+            },
+          },
+        },
+        location: { index: index++ },
+      },
+    });
+
+    requests.push({
+      createItem: {
+        item: {
+          title: 'Payment Screenshot / Proof Link (Optional)',
+          description: 'Optional: If you want to attach payment proof, paste your Google Drive or image link here.',
+          questionItem: {
+            question: {
+              required: false,
+              textQuestion: { paragraph: false },
+            },
+          },
+        },
+        location: { index: index++ },
+      },
+    });
+  }
+
   return requests;
 }
 
@@ -555,6 +613,11 @@ export async function createOrUpdateEventGoogleForm(params: {
   branches: string[];
   performanceCategories?: string[];
   participationModes?: string[];
+  paymentRequired?: boolean;
+  paymentAmount?: number | null;
+  paymentUpiId?: string | null;
+  paymentQrUrl?: string | null;
+  paymentInstructions?: string | null;
   existingFormId?: string | null;
   targetFolderId?: string | null;
 }): Promise<{ formId: string; formUrl: string; editUri: string }> {
@@ -572,6 +635,11 @@ export async function createOrUpdateEventGoogleForm(params: {
     branches,
     performanceCategories,
     participationModes,
+    paymentRequired,
+    paymentAmount,
+    paymentUpiId,
+    paymentQrUrl,
+    paymentInstructions,
     existingFormId,
     targetFolderId,
   } = params;
@@ -687,6 +755,66 @@ export async function createOrUpdateEventGoogleForm(params: {
                 },
               });
             }
+
+            if (paymentRequired) {
+              const hasPaymentItem = existingItems.some((it: any) =>
+                it.title && (
+                  it.title.toLowerCase().includes('upi') ||
+                  it.title.toLowerCase().includes('utr') ||
+                  it.title.toLowerCase().includes('transaction')
+                )
+              );
+              if (!hasPaymentItem) {
+                let insertIdx = existingItems.length;
+                if (paymentQrUrl) {
+                  updateRequests.push({
+                    createItem: {
+                      item: {
+                        title: `Scan QR Code to Pay (${paymentAmount ? `₹${paymentAmount}` : 'Payment Required'}${paymentUpiId ? ` - UPI ID: ${paymentUpiId}` : ''})`,
+                        description: paymentInstructions || 'Scan this official UPI QR Code using Google Pay, PhonePe, Paytm, or BHIM UPI app. After payment, enter your 12-digit UTR / Transaction Reference Number below.',
+                        imageItem: {
+                          image: {
+                            sourceUri: paymentQrUrl,
+                            altText: 'Official UPI Payment QR Code',
+                          },
+                        },
+                      },
+                      location: { index: insertIdx++ },
+                    },
+                  });
+                }
+                updateRequests.push({
+                  createItem: {
+                    item: {
+                      title: `UPI / UTR Transaction Reference ID (Payment Required${paymentAmount ? `: ₹${paymentAmount}` : ''})`,
+                      description: `Payment Fee: ${paymentAmount ? `₹${paymentAmount}` : 'As specified'}\nUPI ID: ${paymentUpiId || 'Provided above'}\nPay using the UPI ID or QR Code, then enter the 12-digit UPI / UTR Transaction Reference Number from your payment receipt (Google Pay / PhonePe / Paytm / BHIM).`,
+                      questionItem: {
+                        question: {
+                          required: true,
+                          textQuestion: { paragraph: false },
+                        },
+                      },
+                    },
+                    location: { index: insertIdx++ },
+                  },
+                });
+                updateRequests.push({
+                  createItem: {
+                    item: {
+                      title: 'Payment Screenshot / Proof Link (Optional)',
+                      description: 'Optional: If you want to attach payment proof, paste your Google Drive or image link here.',
+                      questionItem: {
+                        question: {
+                          required: false,
+                          textQuestion: { paragraph: false },
+                        },
+                      },
+                    },
+                    location: { index: insertIdx++ },
+                  },
+                });
+              }
+            }
           }
 
           try {
@@ -750,6 +878,11 @@ export async function createOrUpdateEventGoogleForm(params: {
       performanceTypes: performanceCategories,
       participationTypes: participationModes,
       eventRef: eventSlug || eventTitle,
+      paymentRequired,
+      paymentAmount,
+      paymentUpiId,
+      paymentQrUrl,
+      paymentInstructions,
     });
 
     await forms.forms.batchUpdate({
@@ -1122,6 +1255,11 @@ export async function setupAutomatedEventRegistration(params: {
   eventSlug?: string;
   performanceCategories?: string[];
   participationModes?: string[];
+  paymentRequired?: boolean;
+  paymentAmount?: number | null;
+  paymentUpiId?: string | null;
+  paymentQrUrl?: string | null;
+  paymentInstructions?: string | null;
   forceRecreate?: boolean;
 }): Promise<{
   success: boolean;
@@ -1141,6 +1279,11 @@ export async function setupAutomatedEventRegistration(params: {
     eventSlug,
     performanceCategories,
     participationModes,
+    paymentRequired,
+    paymentAmount,
+    paymentUpiId,
+    paymentQrUrl,
+    paymentInstructions,
     forceRecreate = false,
   } = params;
 
@@ -1228,6 +1371,11 @@ export async function setupAutomatedEventRegistration(params: {
       branches,
       performanceCategories,
       participationModes,
+      paymentRequired,
+      paymentAmount,
+      paymentUpiId,
+      paymentQrUrl,
+      paymentInstructions,
       existingFormId,
       targetFolderId: driveFolder.folderId,
     });

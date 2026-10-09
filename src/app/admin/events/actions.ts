@@ -509,6 +509,9 @@ export async function updateEventAction(
     }
     if (data.status !== undefined) updates.status = data.status;
     if (data.registration_enabled !== undefined) updates.registration_enabled = data.registration_enabled;
+    if (data.google_form_url !== undefined) {
+      updates.google_form_url = data.google_form_url?.trim() || null;
+    }
 
     const targetRegistrationEnabled =
       data.registration_enabled !== undefined ? data.registration_enabled : existing.registration_enabled;
@@ -632,6 +635,11 @@ export async function updateEventAction(
         eventSlug: finalSlug,
         performanceCategories: data.performance_categories || existing.performance_categories || undefined,
         participationModes: data.participation_modes || existing.participation_modes || undefined,
+        paymentRequired: updates.payment_required !== undefined ? updates.payment_required : existing.payment_required,
+        paymentAmount: updates.payment_amount !== undefined ? updates.payment_amount : existing.payment_amount,
+        paymentUpiId: updates.payment_upi_id !== undefined ? updates.payment_upi_id : existing.payment_upi_id,
+        paymentQrUrl: updates.payment_qr_url !== undefined ? updates.payment_qr_url : existing.payment_qr_url,
+        paymentInstructions: updates.payment_instructions !== undefined ? updates.payment_instructions : existing.payment_instructions,
       });
     }
 
@@ -694,11 +702,13 @@ export async function updateEventAction(
     revalidatePath(`/admin/dashboard/events/${eventId}/edit`);
     revalidatePath(`/admin/dashboard/events/${eventId}/registrations`);
     if (existing.slug) {
+      revalidatePath(`/[tenant]/events/${existing.slug}`);
       revalidatePath(`/admin/dashboard/events/${existing.slug}`);
       revalidatePath(`/admin/dashboard/events/${existing.slug}/edit`);
       revalidatePath(`/admin/dashboard/events/${existing.slug}/registrations`);
     }
     if (updates.slug && updates.slug !== existing.slug) {
+      revalidatePath(`/[tenant]/events/${updates.slug}`);
       revalidatePath(`/admin/dashboard/events/${updates.slug}`);
       revalidatePath(`/admin/dashboard/events/${updates.slug}/edit`);
       revalidatePath(`/admin/dashboard/events/${updates.slug}/registrations`);

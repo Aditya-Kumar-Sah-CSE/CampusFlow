@@ -72,7 +72,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
   const [registrationType, setRegistrationType] = useState<EventRegistrationType>(
     initialEvent?.registration_type || (initialEvent?.google_form_url ? 'google_form' : 'internal')
   );
-  const [googleFormUrl] = useState(initialEvent?.google_form_url || '');
+  const [googleFormUrl, setGoogleFormUrl] = useState(initialEvent?.google_form_url || '');
   const [registrationDeadline, setRegistrationDeadline] = useState(
     formatForInput(initialEvent?.registration_deadline || initialEvent?.registration_end || defaultRegEnd)
   );
@@ -668,6 +668,37 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
                       <span className="text-[11px] text-slate-400 italic">Organized upon save</span>
                     )}
                   </div>
+                </div>
+
+                {/* Editable Google Form URL override */}
+                <div className="space-y-1.5 p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>Google Form Registration URL</span>
+                      <span className="text-[10px] font-normal text-slate-500">(Automated / Editable)</span>
+                    </label>
+                    {googleFormUrl && (
+                      <a
+                        href={googleFormUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <span>Test Link</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                  <input
+                    type="url"
+                    value={googleFormUrl}
+                    onChange={(e) => setGoogleFormUrl(e.target.value)}
+                    placeholder="https://docs.google.com/forms/d/e/.../viewform"
+                    className="w-full px-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-white text-slate-800 font-mono text-[11px] sm:text-xs"
+                  />
+                  <p className="text-[11px] text-slate-400">
+                    Auto-generated and managed by CampusFlow. You can also paste your own custom Google Form link here.
+                  </p>
                 </div>
 
                 {/* Explanatory Banner & Recreate / Repair Resources */}
