@@ -35,6 +35,8 @@ export interface SuccessStateProps {
   onDownloadPdf?: () => void;
   isDownloadingPdf?: boolean;
   hasDownloadUrl?: boolean;
+  children?: React.ReactNode;
+  hideDefaultActions?: boolean;
 }
 
 export function SuccessState({
@@ -54,6 +56,8 @@ export function SuccessState({
   onDownloadPdf,
   isDownloadingPdf,
   hasDownloadUrl,
+  children,
+  hideDefaultActions,
 }: SuccessStateProps) {
   const [copied, setCopied] = React.useState(false);
 
@@ -179,79 +183,84 @@ export function SuccessState({
         </div>
       </div>
 
+      {/* Custom Children / Interactive Pass Download Component */}
+      {children}
+
       {/* Action Buttons (Strictly matching prompt requirement 15) */}
-      <div className="max-w-lg mx-auto space-y-2.5 pt-2">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5">
-          {type === 'event' && myRegistrationsPath && (
+      {!hideDefaultActions && (
+        <div className="max-w-lg mx-auto space-y-2.5 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5">
+            {type === 'event' && myRegistrationsPath && (
+              <Link
+                href={myRegistrationsPath}
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/50 active:scale-[0.98]"
+              >
+                <span>View My Registration</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            )}
+
+            {/* More Action Button */}
             <Link
-              href={myRegistrationsPath}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/50 active:scale-[0.98]"
+              href={moreHref}
+              className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 active:scale-[0.98] ${
+                type === 'feedback'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-600/50'
+                  : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 focus:ring-slate-400'
+              }`}
             >
-              <span>View My Registration</span>
+              <span>{type === 'feedback' ? 'Find More Feedback Forms' : 'Explore More Events'}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-          )}
 
-          {/* More Action Button */}
-          <Link
-            href={moreHref}
-            className={`inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 active:scale-[0.98] ${
-              type === 'feedback'
-                ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-600/50'
-                : 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 focus:ring-slate-400'
-            }`}
-          >
-            <span>{type === 'feedback' ? 'Find More Feedback Forms' : 'Explore More Events'}</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-
-          {/* Go to CampusFlow Button */}
-          <Link
-            href={homePath}
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
-          >
-            <Home className="w-4 h-4" />
-            <span>Go to CampusFlow</span>
-          </Link>
-        </div>
-
-        {/* Secondary Downloads (Pass PNG or PDF receipt) */}
-        {(onDownloadPass || (onDownloadPdf && hasDownloadUrl)) && (
-          <div className="pt-2 flex items-center justify-center gap-2">
-            {onDownloadPass && (
-              <button
-                type="button"
-                onClick={onDownloadPass}
-                disabled={isDownloadingPass}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-200/80 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {isDownloadingPass ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Download className="w-3.5 h-3.5" />
-                )}
-                <span>{isDownloadingPass ? 'Preparing Pass...' : 'Download Pass (PNG)'}</span>
-              </button>
-            )}
-
-            {onDownloadPdf && hasDownloadUrl && (
-              <button
-                type="button"
-                onClick={onDownloadPdf}
-                disabled={isDownloadingPdf}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold text-xs border border-indigo-200/80 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {isDownloadingPdf ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="w-3.5 h-3.5" />
-                )}
-                <span>{isDownloadingPdf ? 'Downloading...' : 'Download Response (PDF)'}</span>
-              </button>
-            )}
+            {/* Go to CampusFlow Button */}
+            <Link
+              href={homePath}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
+            >
+              <Home className="w-4 h-4" />
+              <span>Go to CampusFlow</span>
+            </Link>
           </div>
-        )}
-      </div>
+
+          {/* Secondary Downloads (Pass PNG or PDF receipt) */}
+          {(onDownloadPass || (onDownloadPdf && hasDownloadUrl)) && (
+            <div className="pt-2 flex items-center justify-center gap-2">
+              {onDownloadPass && (
+                <button
+                  type="button"
+                  onClick={onDownloadPass}
+                  disabled={isDownloadingPass}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-xs border border-emerald-200/80 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isDownloadingPass ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isDownloadingPass ? 'Preparing Pass...' : 'Download Pass (PNG)'}</span>
+                </button>
+              )}
+
+              {onDownloadPdf && hasDownloadUrl && (
+                <button
+                  type="button"
+                  onClick={onDownloadPdf}
+                  disabled={isDownloadingPdf}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-semibold text-xs border border-indigo-200/80 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isDownloadingPdf ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isDownloadingPdf ? 'Downloading...' : 'Download Response (PDF)'}</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -117,18 +117,16 @@ export default async function PublicEventDetailPage({ params }: Props) {
           semesters={academic.semesters}
         />
 
-        {/* Student Event Identity / Verification Section (Only needed for internal multi-program registration) */}
-        {event.registration_type !== 'google_form' && (
-          <section id="identity">
-            <EventStudentIdentityCard
-              event={event}
-              initialSession={session}
-              tenantSlug={tenant.slug}
-              collegeLogoUrl={tenant.logo}
-              collegeName={tenant.name}
-            />
-          </section>
-        )}
+        {/* Student Event Identity / Verification & Pass Section */}
+        <section id="identity">
+          <EventStudentIdentityCard
+            event={event}
+            initialSession={session}
+            tenantSlug={tenant.slug}
+            collegeLogoUrl={tenant.logo}
+            collegeName={tenant.name}
+          />
+        </section>
 
         {/* Programs Section */}
         {programData.categories.length > 0 && (

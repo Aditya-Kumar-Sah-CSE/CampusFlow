@@ -457,20 +457,31 @@ export function EventStudentIdentityCard({
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
             <button
-              onClick={scrollToPrograms}
-              className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              onClick={handleDownloadPass}
+              disabled={downloadingPass}
+              className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
-              <Ticket className="w-4 h-4 shrink-0" />
-              <span>Choose Program to Join</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
+              {downloadingPass ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Download className="w-4 h-4 shrink-0" />}
+              <span>{downloadingPass ? 'Generating Official Pass...' : 'Download Pass (PNG)'}</span>
             </button>
+
+            {event.registration_type !== 'google_form' && (
+              <button
+                onClick={scrollToPrograms}
+                className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm border border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Ticket className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Choose Program to Join</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </button>
+            )}
 
             <Link
               href={myRegistrationsPath}
               className="w-full sm:w-auto px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs sm:text-sm border border-slate-700 transition-colors flex items-center justify-center gap-2 text-center"
             >
               <UserCheck className="w-4 h-4 text-blue-400 shrink-0" />
-              <span>View My Registrations</span>
+              <span>View Registration Details</span>
             </Link>
           </div>
         </div>
@@ -512,23 +523,36 @@ export function EventStudentIdentityCard({
               <UserCheck className="w-4 h-4" />
             </div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900 break-words">
-              Student Event Identification
+              Student Event Pass &amp; Verification
             </h2>
           </div>
           <p className="text-xs text-slate-500 max-w-xl">
-            One student must have exactly <strong>ONE Event Registration</strong> to participate in any programs.
-            Identify yourself below or register for the event.
+            {event.registration_type === 'google_form'
+              ? 'Already registered for this event? Enter your details below to download your official entry pass (PNG).'
+              : 'One student must have exactly ONE Event Registration to participate in any programs. Identify yourself below or register for the event.'}
           </p>
         </div>
 
         {event.registration_enabled && event.status === 'PUBLISHED' && (
-          <Link
-            href={registerEventPath}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0 text-center"
-          >
-            <Ticket className="w-3.5 h-3.5" />
-            <span>New Student? Register Event</span>
-          </Link>
+          event.registration_type === 'google_form' && event.google_form_url ? (
+            <a
+              href={event.google_form_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0 text-center"
+            >
+              <Ticket className="w-3.5 h-3.5" />
+              <span>Register via Form &rarr;</span>
+            </a>
+          ) : (
+            <Link
+              href={registerEventPath}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all shrink-0 text-center"
+            >
+              <Ticket className="w-3.5 h-3.5" />
+              <span>New Student? Register Event</span>
+            </Link>
+          )
         )}
       </div>
 
@@ -540,15 +564,27 @@ export function EventStudentIdentityCard({
             <p className="font-semibold break-words">{errorMsg}</p>
             {notFoundQuery && (
               <div className="pt-1 flex flex-col sm:flex-row sm:items-center gap-2">
-                <Link
-                  href={registerEventPath}
-                  className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors w-full sm:w-auto"
-                >
-                  <span>Register for Event Now</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
+                {event.registration_type === 'google_form' && event.google_form_url ? (
+                  <a
+                    href={event.google_form_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors w-full sm:w-auto"
+                  >
+                    <span>Register for Event Now</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <Link
+                    href={registerEventPath}
+                    className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-colors w-full sm:w-auto"
+                  >
+                    <span>Register for Event Now</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                )}
                 <span className="text-[11px] text-amber-800">
-                  After registering, your event registration number will be created automatically.
+                  After registering, your event pass will be available for download here.
                 </span>
               </div>
             )}
@@ -559,7 +595,7 @@ export function EventStudentIdentityCard({
       {/* Search Input Bar */}
       <form onSubmit={handleIdentify} className="space-y-3">
         <label className="text-xs font-semibold text-slate-700 block">
-          Already registered for {event.title}? Identify your registration:
+          Already registered for {event.title}? Identify and download your pass:
         </label>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1 min-w-0">
@@ -567,7 +603,7 @@ export function EventStudentIdentityCard({
             <input
               type="text"
               required
-              placeholder="Enter your Email (e.g. aditya@example.com) or Reg # (e.g. UMANG27-E001)"
+              placeholder="Enter College Roll No (e.g. 24533), Reg # (e.g. DANDIY-REG-0001) or Email"
               value={identifierInput}
               onChange={(e) => setIdentifierInput(e.target.value)}
               className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all"

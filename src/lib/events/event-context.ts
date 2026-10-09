@@ -14,6 +14,9 @@ export interface EventRegistrationContext {
   payment_required: boolean;
   payment_amount: number;
   registration_sheet_id: string | null;
+  registration_type?: string | null;
+  google_spreadsheet_id?: string | null;
+  google_form_url?: string | null;
 }
 
 /**
@@ -25,12 +28,19 @@ export async function getEventWithCollege(eventId: string): Promise<EventRegistr
   const db = createAdminClient();
   if (!db) throw new Error('DATABASE_UNAVAILABLE');
 
-  const columnsWithSheet = 'id,college_id,title,slug,status,registration_enabled,registration_start,registration_end,payment_required,payment_amount,registration_sheet_id';
-  const columnsWithoutSheet = 'id,college_id,title,slug,status,registration_enabled,registration_start,registration_end,payment_required,payment_amount';
+  const columnsWithGoogle =
+    'id,college_id,title,slug,status,registration_enabled,registration_start,registration_end,payment_required,payment_amount,registration_sheet_id,registration_type,google_spreadsheet_id,google_form_url';
+  const columnsWithSheet =
+    'id,college_id,title,slug,status,registration_enabled,registration_start,registration_end,payment_required,payment_amount,registration_sheet_id';
+  const columnsWithoutSheet =
+    'id,college_id,title,slug,status,registration_enabled,registration_start,registration_end,payment_required,payment_amount';
 
-  let { data, error } = await db.from('events').select(columnsWithSheet).eq('id', eventId).maybeSingle();
+  let { data, error } = await db.from('events').select(columnsWithGoogle).eq('id', eventId).maybeSingle();
   if (error?.code === '42703') {
-    ({ data, error } = await db.from('events').select(columnsWithoutSheet).eq('id', eventId).maybeSingle());
+    ({ data, error } = await db.from('events').select(columnsWithSheet).eq('id', eventId).maybeSingle());
+    if (error?.code === '42703') {
+      ({ data, error } = await db.from('events').select(columnsWithoutSheet).eq('id', eventId).maybeSingle());
+    }
   }
 
   if (error) {
@@ -39,7 +49,11 @@ export async function getEventWithCollege(eventId: string): Promise<EventRegistr
   }
   if (!data) throw new Error('EVENT_NOT_FOUND');
 
-  const event = data as Omit<EventRegistrationContext, 'registration_sheet_id'> & { registration_sheet_id?: string | null };
+  const event = data as Omit<EventRegistrationContext, 'registration_sheet_id'> & {
+    registration_sheet_id?: string | null;
+    google_spreadsheet_id?: string | null;
+  };
+
   let sheetId: string | null = null;
   try {
     sheetId = await resolveEventRegistrationSpreadsheet(
@@ -50,6 +64,11 @@ export async function getEventWithCollege(eventId: string): Promise<EventRegistr
     );
   } catch (error) {
     console.warn('[EventContext] Existing registration spreadsheet could not be resolved:', error);
+  }
+
+  // Fallback to directly stored sheet IDs on the event row
+  if (!sheetId) {
+    sheetId = event.registration_sheet_id || event.google_spreadsheet_id || null;
   }
 
   return { ...event, registration_sheet_id: sheetId };

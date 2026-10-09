@@ -218,21 +218,65 @@ export async function loginToEventAction(
       };
     }
 
-    if (!event.registration_sheet_id) {
-      return { success: false, error: 'No registrations exist for this event yet. Please register for the event first.' };
+    let registration: any = null;
+    if (event.registration_sheet_id) {
+      try {
+        registration = await findEventRegistrationByCredentials(
+          event.college_id,
+          event.id,
+          input.email.trim(),
+          input.registration_number.trim(),
+          event.registration_sheet_id
+        );
+      } catch (findErr) {
+        console.warn('[EventLogin] findEventRegistrationByCredentials fallback:', findErr);
+      }
     }
 
-    // 3. Look up registration in Google Sheet
-    const registration = await findEventRegistrationByCredentials(
-      event.college_id,
-      event.id,
-      input.email.trim(),
-      input.registration_number.trim(),
-      event.registration_sheet_id
-    );
+    // Fallback: Check Google Form automated responses if not found in EVENT_REGISTRATIONS sheet
+    if (!registration) {
+      try {
+        const { fetchGoogleFormEventResponses } = await import('@/lib/google/event-registration-automated');
+        const googleRes = await fetchGoogleFormEventResponses({
+          collegeId: event.college_id,
+          eventId: event.id,
+          bypassCache: false,
+        });
+
+        const targetEmail = input.email.trim().toLowerCase();
+        const targetReg = input.registration_number.trim().toLowerCase();
+
+        const match = (googleRes.responses || []).find((r) => {
+          const rEmail = r.email?.trim().toLowerCase();
+          const rReg = r.registrationNumber?.trim().toLowerCase();
+          const rRoll = r.rollNumber?.trim().toLowerCase();
+          const rColReg = r.collegeRegistrationNumber?.trim().toLowerCase();
+
+          const emailMatches = rEmail === targetEmail;
+          const regMatches = rReg === targetReg || rRoll === targetReg || rColReg === targetReg;
+          return emailMatches && regMatches;
+        });
+
+        if (match) {
+          registration = {
+            registrationNumber: match.registrationNumber || `REG-${match.rollNumber || '0001'}`,
+            email: match.email,
+            participantName: match.participantName,
+            studentId: match.rollNumber || match.collegeRegistrationNumber || '',
+            mobile: match.contactNumber || '',
+            branch: match.branch || '',
+            semester: match.year || '',
+            gender: '',
+            registrationStatus: 'REGISTERED',
+          };
+        }
+      } catch (googleErr) {
+        console.warn('[EventLogin] fetchGoogleFormEventResponses fallback error:', googleErr);
+      }
+    }
 
     if (!registration) {
-      return { success: false, error: 'Registration number and email combination not found.' };
+      return { success: false, error: 'Registration number / Roll number and email combination not found.' };
     }
 
     if (registration.registrationStatus === 'CANCELLED') {
@@ -320,24 +364,101 @@ export async function identifyStudentAction(input: {
       };
     }
 
-    if (!event.registration_sheet_id) {
-      return {
-        success: true,
-        isRegistered: false,
-        error: 'No event registrations exist yet. Please register for the event first.',
-      };
-    }
-
     console.log(`[EventVerification] eventId=${event.id} eventSlug=${event.slug} registrationSheetId=${event.registration_sheet_id}`);
 
     const isEmail = cleanId.includes('@');
-    const registration = await findEventRegistrationByCredentials(
-      event.college_id,
-      event.id,
-      isEmail ? cleanId : undefined,
-      !isEmail ? cleanId : undefined,
-      event.registration_sheet_id
-    );
+    let registration: any = null;
+
+    if (event.registration_sheet_id) {
+      try {
+        registration = await findEventRegistrationByCredentials(
+          event.college_id,
+          event.id,
+          isEmail ? cleanId : undefined,
+          !isEmail ? cleanId : undefined,
+          event.registration_sheet_id
+        );
+      } catch (sheetLookupErr) {
+        console.warn('[EventVerification] findEventRegistrationByCredentials fallback:', sheetLookupErr);
+      }
+    }
+
+    // Fallback: Check Google Form responses (for Google Form / automated / small events)
+    if (!registration) {
+      try {
+        const { fetchGoogleFormEventResponses } = await import('@/lib/google/event-registration-automated');
+        const googleRes = await fetchGoogleFormEventResponses({
+          collegeId: event.college_id,
+          eventId: event.id,
+          bypassCache: false,
+        });
+
+        const queryNorm = cleanId.toLowerCase();
+        const digitsOnly = cleanId.replace(/\D/g, '');
+
+        const found = (googleRes.responses || []).find((r) => {
+          const rReg = r.registrationNumber?.trim().toLowerCase();
+          const rRoll = r.rollNumber?.trim().toLowerCase();
+          const rColReg = r.collegeRegistrationNumber?.trim().toLowerCase();
+          const rEmail = r.email?.trim().toLowerCase();
+          const rPhone = (r.contactNumber || '').replace(/\D/g, '');
+
+          return (
+            (rReg && rReg === queryNorm) ||
+            (rRoll && rRoll === queryNorm) ||
+            (rColReg && rColReg === queryNorm) ||
+            (rEmail && rEmail === queryNorm) ||
+            (digitsOnly && digitsOnly.length >= 7 && rPhone && rPhone === digitsOnly)
+          );
+        });
+
+        if (found) {
+          const academic = await resolveAcademicDisplayValues(
+            event.college_id,
+            found.branch || '',
+            found.year || ''
+          );
+
+          const studentRegNo = found.registrationNumber || `REG-${found.rollNumber || '0001'}`;
+          const studentId = found.rollNumber || found.collegeRegistrationNumber || '';
+
+          // Create session cookie
+          await createEventSession({
+            registrationNumber: studentRegNo,
+            email: found.email,
+            fullName: found.participantName,
+            studentId: studentId,
+            eventId: event.id,
+            collegeId: event.college_id,
+            mobile: found.contactNumber || '',
+            branch: academic.branch || found.branch || '',
+            semester: academic.semester || found.year || '',
+            gender: '',
+          });
+
+          return {
+            success: true,
+            isRegistered: true,
+            participant: {
+              fullName: found.participantName,
+              registrationNumber: studentRegNo,
+              email: found.email,
+              studentId: studentId,
+              mobile: found.contactNumber || '',
+              branch: academic.branch || found.branch || '',
+              semester: academic.semester || found.year || '',
+              gender: '',
+              totalPaidAmount: 0,
+              isPaid: false,
+              hasPendingPayment: false,
+              canGeneratePass: true,
+            },
+          };
+        }
+      } catch (googleErr) {
+        console.warn('[EventVerification] Google Form response search fallback error:', googleErr);
+      }
+    }
 
     if (!registration) {
       return {
@@ -374,34 +495,36 @@ export async function identifyStudentAction(input: {
     let hasFreeAccess = false;
 
     try {
-      const allRows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
-      const cleanReg = registration.registrationNumber.toUpperCase();
-      const myRows = allRows.filter(
-        (r) => r.registrationNumber.toUpperCase() === cleanReg && r.registrationStatus !== 'CANCELLED'
-      );
-      for (const row of myRows) {
-        const isVerified = row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED';
-        if (isVerified) {
-          totalPaid += (row.paymentAmount || 0);
-          if (row.programName && !specialEntryPrograms.includes(row.programName)) {
-            specialEntryPrograms.push(row.programName);
+      if (event.registration_sheet_id) {
+        const allRows = await getEventRegistrations(event.college_id, event.registration_sheet_id);
+        const cleanReg = registration.registrationNumber.toUpperCase();
+        const myRows = allRows.filter(
+          (r) => r.registrationNumber.toUpperCase() === cleanReg && r.registrationStatus !== 'CANCELLED'
+        );
+        for (const row of myRows) {
+          const isVerified = row.paymentStatus === 'PAID' || row.paymentStatus === 'VERIFIED';
+          if (isVerified) {
+            totalPaid += (row.paymentAmount || 0);
+            if (row.programName && !specialEntryPrograms.includes(row.programName)) {
+              specialEntryPrograms.push(row.programName);
+            }
+          } else if (
+            (row.paymentAmount > 0 || row.paymentStatus === 'PENDING' || row.paymentStatus === 'SUBMITTED') &&
+            row.paymentStatus !== 'REJECTED'
+          ) {
+            pendingPaymentAmount += (row.paymentAmount || 0);
+            if (row.programName && !pendingPaymentPrograms.includes(row.programName)) {
+              pendingPaymentPrograms.push(row.programName);
+            }
           }
-        } else if (
-          (row.paymentAmount > 0 || row.paymentStatus === 'PENDING' || row.paymentStatus === 'SUBMITTED') &&
-          row.paymentStatus !== 'REJECTED'
-        ) {
-          pendingPaymentAmount += (row.paymentAmount || 0);
-          if (row.programName && !pendingPaymentPrograms.includes(row.programName)) {
-            pendingPaymentPrograms.push(row.programName);
-          }
-        }
 
-        if (
-          row.programId === '' ||
-          ((!row.paymentAmount || row.paymentAmount === 0) &&
-            (row.paymentStatus === 'NOT_REQUIRED' || row.paymentStatus === 'FREE' || !row.paymentStatus))
-        ) {
-          hasFreeAccess = true;
+          if (
+            row.programId === '' ||
+            ((!row.paymentAmount || row.paymentAmount === 0) &&
+              (row.paymentStatus === 'NOT_REQUIRED' || row.paymentStatus === 'FREE' || !row.paymentStatus))
+          ) {
+            hasFreeAccess = true;
+          }
         }
       }
     } catch {
@@ -1467,14 +1590,17 @@ export async function getStudentRegistrationsAction(
 
     const event = await getEventWithCollege(eventId);
     if (event.college_id !== session.collegeId) return { success: false, error: 'UNAUTHORIZED' };
-    if (!event.registration_sheet_id) {
-      return { success: false, error: 'REGISTRATION_SHEET_NOT_FOUND' };
+    let allRows: any[] = [];
+    if (event.registration_sheet_id) {
+      try {
+        allRows = await getEventRegistrations(
+          session.collegeId,
+          event.registration_sheet_id
+        );
+      } catch (err) {
+        console.warn('[GetStudentRegistrations] getEventRegistrations fallback for Google Form events:', err);
+      }
     }
-
-    const allRows = await getEventRegistrations(
-      session.collegeId,
-      event.registration_sheet_id
-    );
 
     // 1. Base event registration
     const baseReg = allRows.find(
@@ -1482,7 +1608,13 @@ export async function getStudentRegistrationsAction(
         r.programId === '' &&
         (r.registrationNumber === session.registrationNumber ||
           r.studentId.toUpperCase() === session.studentId.toUpperCase())
-    );
+    ) || {
+      registrationNumber: session.registrationNumber,
+      participantName: session.fullName,
+      studentId: session.studentId,
+      email: session.email,
+      registeredAt: '',
+    };
 
     // 2. Program registrations for this student (their own participation row)
     const myProgramRows = allRows.filter(

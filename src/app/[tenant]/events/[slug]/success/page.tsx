@@ -3,11 +3,13 @@ import type { Metadata } from 'next';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicEventBySlug, getMorePublishedEventsForCollege } from '@/lib/events/service';
 import { getSmallEventById } from '@/config/events';
+import { getCurrentEventSession } from '@/lib/events/event-session';
 import {
   CompletionPage,
   SuccessState,
   MoreEvents,
 } from '@/components/completion';
+import { EventSuccessPassCard } from '@/components/events/EventSuccessPassCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,9 +63,27 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
           collegeCode={tenant.shortName || tenant.code}
           registrationNumber={registrationNumber}
           teamId={teamId}
-          myRegistrationsPath={`/${tenant.slug}/events`}
-          moreActionHref={`/${tenant.slug}/events`}
-        />
+          hideDefaultActions
+        >
+          <EventSuccessPassCard
+            event={{
+              id: smallEvent.id,
+              title: smallEvent.title,
+              slug: smallEvent.id,
+              venue: smallEvent.venue,
+            }}
+            college={{
+              name: tenant.name,
+              slug: tenant.slug,
+              code: tenant.shortName || tenant.code,
+              logoUrl: tenant.logo,
+            }}
+            initialSession={null}
+            initialReg={registrationNumber}
+            myRegistrationsPath={`/${tenant.slug}/events`}
+            moreActionHref={`/${tenant.slug}/events`}
+          />
+        </SuccessState>
       </CompletionPage>
     );
   }
@@ -77,7 +97,10 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
     notFound();
   }
 
-  const moreEvents = await getMorePublishedEventsForCollege(tenant.collegeId, event.id, 4);
+  const [moreEvents, session] = await Promise.all([
+    getMorePublishedEventsForCollege(tenant.collegeId, event.id, 4),
+    getCurrentEventSession(event.id),
+  ]);
 
   const myRegistrationsPath = `/${tenant.slug}/events/${event.slug}/my-registrations`;
   const moreActionHref = `/${tenant.slug}/events`;
@@ -97,11 +120,29 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
         collegeName={tenant.name}
         collegeSlug={tenant.slug}
         collegeCode={tenant.shortName || tenant.code}
-        registrationNumber={registrationNumber}
+        registrationNumber={session?.registrationNumber || registrationNumber}
         teamId={teamId}
-        myRegistrationsPath={myRegistrationsPath}
-        moreActionHref={moreActionHref}
-      />
+        hideDefaultActions
+      >
+        <EventSuccessPassCard
+          event={{
+            id: event.id,
+            title: event.title,
+            slug: event.slug,
+            venue: event.venue,
+          }}
+          college={{
+            name: tenant.name,
+            slug: tenant.slug,
+            code: tenant.shortName || tenant.code,
+            logoUrl: tenant.logo,
+          }}
+          initialSession={session}
+          initialReg={registrationNumber}
+          myRegistrationsPath={myRegistrationsPath}
+          moreActionHref={moreActionHref}
+        />
+      </SuccessState>
 
       <MoreEvents
         events={moreEvents}

@@ -236,64 +236,72 @@ export default async function PublicEventPage({ params }: Props) {
               Registration deadline: <span className="font-semibold text-slate-800">{deadlineFormatted}</span>
             </div>
 
-            {isOpen ? (
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                {isGoogleForm ? (
-                  event.google_form_url ? (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <a
+                href="#identity"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300/90 text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl transition-all shadow-xs hover:shadow-sm active:scale-95 cursor-pointer text-center"
+              >
+                <Ticket className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>Already Registered? Download Pass</span>
+              </a>
+
+              {isOpen ? (
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  {isGoogleForm ? (
+                    event.google_form_url ? (
+                      <a
+                        href={event.google_form_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>{registerButtonLabel} &rarr;</span>
+                        <ExternalLink className="w-4 h-4 shrink-0" />
+                      </a>
+                    ) : (
+                      <div className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 font-semibold text-xs sm:text-sm rounded-xl text-center">
+                        Registration temporarily unavailable
+                      </div>
+                    )
+                  ) : session ? (
                     <a
-                      href={event.google_form_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      href="#programs"
+                      className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                     >
-                      <span>{registerButtonLabel} &rarr;</span>
-                      <ExternalLink className="w-4 h-4 shrink-0" />
+                      <ShieldCheck className="w-4 h-4 shrink-0" />
+                      <span>Registered ({session.registrationNumber}) &bull; Choose Program</span>
                     </a>
                   ) : (
-                    <div className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 font-semibold text-xs sm:text-sm rounded-xl text-center">
-                      Registration temporarily unavailable
-                    </div>
-                  )
-                ) : session ? (
-                  <a
-                    href="#programs"
-                    className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    <ShieldCheck className="w-4 h-4 shrink-0" />
-                    <span>Registered ({session.registrationNumber}) &bull; Choose Program</span>
-                  </a>
-                ) : (
-                  <Link
-                    href={`/events/${event.slug}/register`}
-                    className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                  >
-                    <Ticket className="w-4 h-4 shrink-0" />
-                    <span>{registerButtonLabel}</span>
-                  </Link>
-                )}
-              </div>
-            ) : (
-              <div className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 font-semibold text-xs sm:text-sm rounded-xl text-center">
-                {event.registration_type === 'google_form' && (!event.google_form_url || event.google_registration_status === 'ERROR')
-                  ? 'Registration temporarily unavailable'
-                  : 'Registration Closed'}
-              </div>
-            )}
+                    <Link
+                      href={`/events/${event.slug}/register`}
+                      className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm text-center shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      <Ticket className="w-4 h-4 shrink-0" />
+                      <span>{registerButtonLabel}</span>
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-slate-200 text-slate-500 font-semibold text-xs sm:text-sm rounded-xl text-center">
+                  {event.registration_type === 'google_form' && (!event.google_form_url || event.google_registration_status === 'ERROR')
+                    ? 'Registration temporarily unavailable'
+                    : 'Registration Closed'}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Student Event Identity / Verification Section (Only for internal multi-program registration) */}
-        {!isGoogleForm && (
-          <section id="identity">
-            <EventStudentIdentityCard
-              event={event}
-              initialSession={session}
-              tenantSlug={event.college?.slug}
-              collegeLogoUrl={event.college?.logo_url}
-              collegeName={event.college?.name}
-            />
-          </section>
-        )}
+        {/* Student Event Identity / Verification Section */}
+        <section id="identity">
+          <EventStudentIdentityCard
+            event={event}
+            initialSession={session}
+            tenantSlug={event.college?.slug}
+            collegeLogoUrl={event.college?.logo_url}
+            collegeName={event.college?.name}
+          />
+        </section>
 
         {/* Programs / Competitions Section */}
         {programData.categories.length > 0 && (

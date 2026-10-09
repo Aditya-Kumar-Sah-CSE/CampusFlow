@@ -2,11 +2,13 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPublicEventBySlugGlobal, getMorePublishedEventsForCollege } from '@/lib/events/service';
 import { getSmallEventById } from '@/config/events';
+import { getCurrentEventSession } from '@/lib/events/event-session';
 import {
   CompletionPage,
   SuccessState,
   MoreEvents,
 } from '@/components/completion';
+import { EventSuccessPassCard } from '@/components/events/EventSuccessPassCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,9 +65,26 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
           collegeCode={smallEvent.institutionId.toUpperCase()}
           registrationNumber={registrationNumber}
           teamId={teamId}
-          myRegistrationsPath="/events"
-          moreActionHref="/events"
-        />
+          hideDefaultActions
+        >
+          <EventSuccessPassCard
+            event={{
+              id: smallEvent.id,
+              title: smallEvent.title,
+              slug: smallEvent.id,
+              venue: smallEvent.venue,
+            }}
+            college={{
+              name: institutionDisplayName,
+              slug: smallEvent.institutionId,
+              code: smallEvent.institutionId.toUpperCase(),
+            }}
+            initialSession={null}
+            initialReg={registrationNumber}
+            myRegistrationsPath="/events"
+            moreActionHref="/events"
+          />
+        </SuccessState>
       </CompletionPage>
     );
   }
@@ -77,7 +96,10 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
   }
 
   const college = event.college;
-  const moreEvents = await getMorePublishedEventsForCollege(event.college_id, event.id, 4);
+  const [moreEvents, session] = await Promise.all([
+    getMorePublishedEventsForCollege(event.college_id, event.id, 4),
+    getCurrentEventSession(event.id),
+  ]);
 
   const myRegistrationsPath = college?.slug
     ? `/${college.slug}/events/${event.slug}/my-registrations`
@@ -102,11 +124,29 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
         collegeName={college?.name}
         collegeSlug={college?.slug}
         collegeCode={college?.code}
-        registrationNumber={registrationNumber}
+        registrationNumber={session?.registrationNumber || registrationNumber}
         teamId={teamId}
-        myRegistrationsPath={myRegistrationsPath}
-        moreActionHref={moreActionHref}
-      />
+        hideDefaultActions
+      >
+        <EventSuccessPassCard
+          event={{
+            id: event.id,
+            title: event.title,
+            slug: event.slug,
+            venue: event.venue,
+          }}
+          college={{
+            name: college?.name || 'College Event',
+            slug: college?.slug || 'events',
+            code: college?.code,
+            logoUrl: college?.logo_url,
+          }}
+          initialSession={session}
+          initialReg={registrationNumber}
+          myRegistrationsPath={myRegistrationsPath}
+          moreActionHref={moreActionHref}
+        />
+      </SuccessState>
 
       <MoreEvents
         events={moreEvents}

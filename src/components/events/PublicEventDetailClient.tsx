@@ -200,7 +200,15 @@ export function PublicEventDetailClient({ event, tenant, branches, semesters }: 
               Registration Deadline: <span className="font-semibold text-slate-800">{deadlineFormatted}</span>
             </div>
 
-            <div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              <a
+                href="#identity"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300/90 text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl transition-all shadow-xs hover:shadow-sm active:scale-95 cursor-pointer text-center"
+              >
+                <Ticket className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>Already Registered? Download Pass</span>
+              </a>
+
               {canRegister ? (
                 isGoogleForm ? (
                   event.google_form_url ? (
