@@ -1299,13 +1299,85 @@ export async function setupAutomatedEventRegistration(params: {
 // ============================================================
 
 /**
- * Helper to generate a unique deduplication signature for an event registration response
+ * Helper to generate a unique deduplication signature for an event registration response.
+ * Uses persistent student identifiers (Registration Number, Roll Number, Email, Phone, Name)
+ * across Google Forms API responses and Google Sheet rows.
+ * Excludes variable timestamps to prevent duplicate rows caused by timezone, millisecond, or date format differences.
  */
-function makeRegistrationSignature(timestamp: string, roll: string, name: string): string {
-  const tsPrefix = (timestamp || '').slice(0, 16);
-  const cleanRoll = (roll || '').trim().toLowerCase();
-  const cleanName = (name || '').trim().toLowerCase();
-  return `${cleanRoll}|${cleanName}|${tsPrefix}`;
+function makeRegistrationSignature(params: {
+  roll?: string;
+  name?: string;
+  regNo?: string;
+  email?: string;
+  contact?: string;
+  perfType?: string;
+}): string {
+  const cleanRoll = (params.roll || '').trim().toLowerCase();
+  const cleanRegNo = (params.regNo || '').trim().toLowerCase();
+  const cleanEmail = (params.email || '').trim().toLowerCase();
+  const cleanContact = (params.contact || '').trim().replace(/\D/g, '');
+  const cleanName = (params.name || '').trim().toLowerCase();
+  const cleanPerf = (params.perfType || '').trim().toLowerCase();
+
+  // 1. Highest priority: College Registration Number (Unique student ID)
+  if (cleanRegNo && cleanRegNo !== '—' && cleanRegNo !== '-' && cleanRegNo !== 'none' && cleanRegNo !== 'null') {
+    return `reg:${cleanRegNo}|cat:${cleanPerf}`;
+  }
+
+  // 2. Second priority: College Roll Number (Unique within college/batch)
+  if (cleanRoll && cleanRoll !== '—' && cleanRoll !== '-' && cleanRoll !== 'none' && cleanRoll !== 'null') {
+    return `roll:${cleanRoll}|cat:${cleanPerf}`;
+  }
+
+  // 3. Third priority: Email address
+  if (cleanEmail && cleanEmail.includes('@') && cleanEmail !== '—') {
+    return `email:${cleanEmail}|cat:${cleanPerf}`;
+  }
+
+  // 4. Fourth priority: Contact / Mobile number (last 10 digits)
+  if (cleanContact.length >= 10) {
+    return `phone:${cleanContact.slice(-10)}|cat:${cleanPerf}`;
+  }
+
+  // 5. Fallback: Normalized participant name + performance category
+  return `name:${cleanName}|cat:${cleanPerf}`;
+}
+
+/**
+ * Safely parses spreadsheet timestamp strings, handling ISO formats,
+ * DD/MM/YYYY, and localized Google Sheets timestamps without day/month inversion.
+ */
+function parseSheetTimestamp(raw: string | undefined): string {
+  if (!raw || !raw.trim()) return new Date().toISOString();
+  const trimmed = raw.trim();
+
+  // If already an ISO string with T (e.g. 2026-10-09T18:40:13.757Z)
+  if (trimmed.includes('T') || /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+
+  // Handle DD/MM/YYYY or D/M/YYYY or M/D/YYYY
+  const parts = trimmed.split(/[\s,]+/);
+  const datePart = parts[0];
+  const timePart = parts[1] || '00:00:00';
+
+  const slashMatch = datePart.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const p1 = parseInt(slashMatch[1], 10);
+    const p2 = parseInt(slashMatch[2], 10);
+    const year = parseInt(slashMatch[3], 10);
+
+    const actualDay = p2 > 12 ? p2 : p1;
+    const actualMonth = p2 > 12 ? p1 : p2;
+
+    const [hh, mm, ss] = timePart.split(':').map((v) => parseInt(v || '0', 10));
+    const d = new Date(Date.UTC(year, actualMonth - 1, actualDay, hh || 0, mm || 0, ss || 0));
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+
+  const fallback = new Date(trimmed);
+  return isNaN(fallback.getTime()) ? new Date().toISOString() : fallback.toISOString();
 }
 
 /**
@@ -1489,18 +1561,36 @@ export async function fetchGoogleFormEventResponses(params: {
 
   // Add Forms API responses first (authoritative on web form submissions)
   formApiResponses.forEach((r) => {
-    const sig = makeRegistrationSignature(r.submittedAt, r.rollNumber, r.participantName);
+    const sig = makeRegistrationSignature({
+      roll: r.rollNumber,
+      name: r.participantName,
+      regNo: r.collegeRegistrationNumber,
+      email: r.email,
+      contact: r.contactNumber,
+      perfType: r.performanceType,
+    });
     dedupMap.set(sig, r);
   });
 
   // Add any rows from Google Sheet that might not be in Forms API (e.g. manual entries)
   sheetData.forEach((row, idx) => {
     if (!row || row.length === 0 || !row[1]) return;
-    const submittedAt = row[0] ? new Date(row[0]).toISOString() : new Date().toISOString();
+    const submittedAt = row[0] ? parseSheetTimestamp(row[0]) : new Date().toISOString();
     const participantName = (row[1] || '').trim();
-    const rollNumber = (row[3] || '').trim();
     const customRegNo = (row[2] || '').trim();
-    const sig = makeRegistrationSignature(submittedAt, rollNumber, participantName);
+    const rollNumber = (row[3] || '').trim();
+    const contact = (row[6] || '').trim();
+    const email = (row[7] || '').trim();
+    const perfType = (row[8] || '').trim();
+
+    const sig = makeRegistrationSignature({
+      roll: rollNumber,
+      name: participantName,
+      regNo: customRegNo,
+      email,
+      contact,
+      perfType,
+    });
 
     if (!dedupMap.has(sig)) {
       dedupMap.set(sig, {
@@ -1512,9 +1602,9 @@ export async function fetchGoogleFormEventResponses(params: {
         rollNumber: rollNumber || '—',
         year: (row[4] || '1st Year').trim(),
         branch: (row[5] || '').trim(),
-        contactNumber: (row[6] || '').trim(),
-        email: (row[7] || '').trim(),
-        performanceType: (row[8] || '').trim(),
+        contactNumber: contact || '—',
+        email: email || '—',
+        performanceType: perfType || 'General Entry',
         participationType: (row[9] || 'Solo').trim(),
         notes: (row[10] || '').trim(),
         consent: true,
@@ -1524,9 +1614,9 @@ export async function fetchGoogleFormEventResponses(params: {
           RegNo: customRegNo,
           Year: row[4] || '',
           Branch: row[5] || '',
-          Mobile: row[6] || '',
-          Email: row[7] || '',
-          Category: row[8] || '',
+          Mobile: contact || '',
+          Email: email || '',
+          Category: perfType || '',
           Mode: row[9] || '',
           Remarks: row[10] || '',
         },
