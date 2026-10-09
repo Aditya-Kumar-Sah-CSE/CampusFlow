@@ -4,6 +4,7 @@ import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { School, ArrowLeft, GraduationCap, ExternalLink } from 'lucide-react';
+import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
 
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
@@ -98,11 +99,14 @@ export default async function FeedbackPortalPage() {
               </p>
             </div>
           </Link>
+          <StudentStatusBadge compact={true} />
         </div>
       </header>
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
+        <StudentStatusBadge compact={false} />
+
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-bce-cobalt text-xs font-semibold mb-2">
             <GraduationCap className="w-3.5 h-3.5" />

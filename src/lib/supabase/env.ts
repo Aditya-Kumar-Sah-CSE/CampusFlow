@@ -1,6 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-
 /**
  * Supabase Environment Configuration
  *
@@ -21,34 +18,5 @@ export function getSupabaseAnonKey(): string {
 }
 
 export function getSupabaseServiceRoleKey(): string | undefined {
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return process.env.SUPABASE_SERVICE_ROLE_KEY;
-  }
-
-  try {
-    const envPath = path.join(process.cwd(), '.env.local');
-    if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, 'utf8');
-      for (const line of content.split('\n')) {
-        const trimmed = line.trim();
-        if (trimmed.startsWith('SUPABASE_SERVICE_ROLE_KEY=')) {
-          let val = trimmed.slice('SUPABASE_SERVICE_ROLE_KEY='.length).trim();
-          if (
-            (val.startsWith('"') && val.endsWith('"')) ||
-            (val.startsWith("'") && val.endsWith("'"))
-          ) {
-            val = val.slice(1, -1);
-          }
-          if (val) {
-            process.env.SUPABASE_SERVICE_ROLE_KEY = val;
-            return val;
-          }
-        }
-      }
-    }
-  } catch {
-    // Non-fatal if fs not available or in browser
-  }
-
-  return undefined;
+  return process.env.SUPABASE_SERVICE_ROLE_KEY;
 }

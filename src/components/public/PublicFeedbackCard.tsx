@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PublicFormSummary } from '@/app/feedback/actions';
 import {
@@ -14,22 +14,48 @@ import {
   ShieldCheck,
   Sparkles,
   ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { ExternalActionLink } from '@/components/ui/ExternalActionLink';
-
+import { checkStudentFormEligibilityAction } from '@/app/auth/student/actions';
+import type { StudentFormEligibility } from '@/types/student';
 
 interface Props {
   form: PublicFormSummary;
   isClosed?: boolean;
 }
 
-export function PublicFeedbackCard({ form, isClosed }: boolean extends never ? any : Props) {
+export function PublicFeedbackCard({ form, isClosed }: Props) {
   const [copied, setCopied] = useState(false);
   const [hasOpenedForm, setHasOpenedForm] = useState(false);
+  const [eligibility, setEligibility] = useState<StudentFormEligibility | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(true);
 
   const directLink = typeof window !== 'undefined'
     ? `${window.location.origin}/feedback/${form.id}`
     : `/feedback/${form.id}`;
+
+  useEffect(() => {
+    let isMounted = true;
+    async function check() {
+      try {
+        const res = await checkStudentFormEligibilityAction(form.id);
+        if (isMounted) {
+          setEligibility(res);
+        }
+      } catch {
+        // Fallback gracefully
+      } finally {
+        if (isMounted) setLoadingEligibility(false);
+      }
+    }
+    check();
+    return () => {
+      isMounted = false;
+    };
+  }, [form.id]);
 
   const handleCopy = () => {
     if (typeof navigator !== 'undefined') {
@@ -71,6 +97,19 @@ export function PublicFeedbackCard({ form, isClosed }: boolean extends never ? a
             <span>100% Anonymous Evaluation</span>
           </div>
         </div>
+
+        {/* Institution Badge if available */}
+        {form.college && (
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/70">
+            <span className="text-slate-400 font-normal">Institution:</span>
+            <span className="text-slate-900">{form.college.name}</span>
+            {form.college.code && (
+              <span className="px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200 font-mono text-[10px]">
+                {form.college.code}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Faculty & Subject Details */}
         <div className="space-y-3 sm:space-y-4">
@@ -154,6 +193,49 @@ export function PublicFeedbackCard({ form, isClosed }: boolean extends never ? a
                 Submissions Closed
               </span>
               <p className="text-[10px] sm:text-[11px] text-slate-400 mt-1">This feedback form has concluded.</p>
+            </div>
+          ) : eligibility?.reason === 'CROSS_COLLEGE_RESTRICTED' ? (
+            <div className="w-full sm:w-auto p-3 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-red-900">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>Restricted Institution Access</span>
+              </div>
+              <p className="text-[11px] text-red-700">{eligibility.message}</p>
+            </div>
+          ) : eligibility?.reason === 'EMAIL_NOT_VERIFIED' ? (
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs">
+              <span className="text-amber-800 font-medium">Please verify your email address to access forms.</span>
+              <Link
+                href="/auth/student/verify"
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors shrink-0"
+              >
+                Verify Email
+              </Link>
+            </div>
+          ) : !eligibility?.isAuthenticated && !loadingEligibility ? (
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+              <Link
+                href={`/auth/student/login?redirect=${encodeURIComponent(directLink)}`}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 bg-gradient-to-r from-bce-cobalt to-indigo-600 hover:from-bce-navy hover:to-indigo-700 text-white rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md hover:shadow-lg active:scale-98"
+              >
+                <GraduationCap className="w-4 h-4" />
+                <span>Sign In to Open Form</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          ) : eligibility?.alreadySubmitted ? (
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-100 text-emerald-900 text-xs font-bold border border-emerald-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                Already Submitted
+              </span>
+              <Link
+                href={`/feedback/confirmation?formId=${form.id}${form.college?.slug ? `&tenant=${form.college.slug}` : ''}`}
+                className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 p-1"
+              >
+                <span>View Receipt</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
             </div>
           ) : form.google_form_url ? (
             <ExternalActionLink

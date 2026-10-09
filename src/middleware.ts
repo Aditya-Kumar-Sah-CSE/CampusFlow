@@ -102,9 +102,32 @@ export async function middleware(request: NextRequest) {
         loginUrl.searchParams.set('redirect', fullPath);
         return NextResponse.redirect(loginUrl);
       }
+
+      // Block student accounts from entering admin dashboard
+      if (user.user_metadata?.role === 'STUDENT') {
+        const loginUrl = new URL('/admin/login', request.url);
+        loginUrl.searchParams.set('error', 'Students do not have permission to access the administrator portal.');
+        return NextResponse.redirect(loginUrl);
+      }
     }
 
-    // If already authenticated and accessing login/signup, redirect to destination or dashboard
+    // Handle student auth pages when already logged in
+    const isStudentAuthPage =
+      pathname === '/auth/student/login' ||
+      pathname === '/auth/student/signup';
+
+    if (isStudentAuthPage && user && (user.email_confirmed_at || user.user_metadata?.email_verified)) {
+      const redirectParam = request.nextUrl.searchParams.get('redirect') || request.nextUrl.searchParams.get('returnTo');
+      let dest = '/feedback';
+      if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//') && !redirectParam.includes(':')) {
+        dest = redirectParam;
+      } else if (user.user_metadata?.college_slug) {
+        dest = `/${user.user_metadata.college_slug}/feedback`;
+      }
+      return NextResponse.redirect(new URL(dest, request.url));
+    }
+
+    // If already authenticated and accessing admin login/signup, redirect to destination or dashboard
     const isLoginOrSignup =
       pathname === '/admin/login' ||
       pathname === '/admin/signup' ||
@@ -112,6 +135,11 @@ export async function middleware(request: NextRequest) {
       pathname.endsWith('/admin/signup');
 
     if (isLoginOrSignup && user) {
+      // If user is a student, let them view admin login or sign out, do not force them into /admin/dashboard
+      if (user.user_metadata?.role === 'STUDENT') {
+        return response;
+      }
+
       const reasonParam = request.nextUrl.searchParams.get('reason');
       const hasAdminSessionCookie = request.cookies.has('cf_admin_session_id');
 

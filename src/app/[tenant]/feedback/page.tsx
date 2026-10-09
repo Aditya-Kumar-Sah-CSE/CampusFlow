@@ -7,6 +7,7 @@ import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSec
 import { getPwaInstallCount } from '@/lib/pwa/installations';
 import { GraduationCap, ArrowLeft, ExternalLink } from 'lucide-react';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
+import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 
@@ -63,6 +64,8 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
+        <StudentStatusBadge compact={false} />
+
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-2">
             <GraduationCap className="w-3.5 h-3.5" />

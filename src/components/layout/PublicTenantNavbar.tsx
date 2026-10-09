@@ -19,6 +19,7 @@ import {
 import type { TenantContext } from '@/types/tenant';
 import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
+import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
 
 export interface PublicTenantNavbarProps {
   tenant: TenantContext;
@@ -152,6 +153,8 @@ export function PublicTenantNavbar({
               <span>Exams</span>
             </Link>
 
+            <StudentStatusBadge compact={true} />
+
             <Link
               href={`/${tenant.slug}/admin/login`}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all shrink-0 active:scale-98"
@@ -163,13 +166,14 @@ export function PublicTenantNavbar({
 
           {/* Right: Mobile Hamburger Trigger */}
           <div className="flex md:hidden items-center gap-1.5 shrink-0">
+            <StudentStatusBadge compact={true} />
             <Link
               href={`/${tenant.slug}/admin/login`}
               className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-colors"
               title="Faculty / Admin Login"
             >
               <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden xs:inline">Login</span>
+              <span className="hidden xs:inline">Admin</span>
             </Link>
 
             <button
@@ -310,6 +314,14 @@ export function PublicTenantNavbar({
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </Link>
+              </div>
+
+              {/* Student Account Card */}
+              <div className="pt-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                  Student Portal
+                </p>
+                <StudentStatusBadge compact={false} />
               </div>
 
               {/* Login Action Card */}
