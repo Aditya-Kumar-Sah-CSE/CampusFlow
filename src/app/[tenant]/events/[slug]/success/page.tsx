@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { resolveTenantOrNotFound } from '@/lib/tenant/resolver';
 import { getPublicEventBySlug, getMorePublishedEventsForCollege } from '@/lib/events/service';
+import { getSmallEventById } from '@/config/events';
 import {
   CompletionPage,
   SuccessState,
@@ -18,6 +19,15 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { tenant: rawSlug, slug } = await params;
   const tenant = await resolveTenantOrNotFound(rawSlug);
+
+  const smallEvent = getSmallEventById(slug, tenant.slug);
+  if (smallEvent) {
+    return {
+      title: `Registration Successful — ${smallEvent.title}`,
+      description: `Your registration for ${smallEvent.title} at ${tenant.name} is confirmed.`,
+    };
+  }
+
   const event = await getPublicEventBySlug(tenant.collegeId, slug);
   return {
     title: event ? `Registration Successful — ${event.title}` : 'Registration Successful',
@@ -30,9 +40,40 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
   const { reg: registrationNumber, team: teamId } = await searchParams;
 
   const tenant = await resolveTenantOrNotFound(rawSlug);
+
+  // 1. Check for Config-Driven Small Event (Google Forms registration)
+  const smallEvent = getSmallEventById(slug, tenant.slug);
+  if (smallEvent) {
+    return (
+      <CompletionPage
+        collegeName={tenant.name}
+        collegeSlug={tenant.slug}
+        collegeCode={tenant.shortName || tenant.code}
+        collegeLogoUrl={tenant.logo}
+      >
+        <SuccessState
+          type="event"
+          title="Registration Successful"
+          subtitle={`Your registration for ${smallEvent.title} has been submitted successfully.`}
+          entityTitle={smallEvent.title}
+          collegeName={tenant.name}
+          collegeSlug={tenant.slug}
+          collegeCode={tenant.shortName || tenant.code}
+          registrationNumber={registrationNumber}
+          teamId={teamId}
+          myRegistrationsPath={`/${tenant.slug}/events`}
+          moreActionHref={`/${tenant.slug}/events`}
+        />
+      </CompletionPage>
+    );
+  }
+
+  // 2. Database Events
   const event = await getPublicEventBySlug(tenant.collegeId, slug);
 
-  if (!event || event.status !== 'PUBLISHED') {
+  // On the success confirmation page, the student has already registered.
+  // We only 404 if the event does not exist at all or has been explicitly cancelled.
+  if (!event || event.status === 'CANCELLED') {
     notFound();
   }
 

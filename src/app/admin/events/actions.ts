@@ -345,7 +345,7 @@ export async function createEventAction(
       registration_start: data.registration_start,
       registration_end: data.registration_end,
       max_capacity: data.max_capacity && data.max_capacity > 0 ? data.max_capacity : null,
-      status: data.status || 'DRAFT',
+      status: data.status || (registrationType === 'google_form' && registrationEnabled ? 'PUBLISHED' : 'DRAFT'),
       registration_enabled: registrationEnabled,
       registration_type: registrationType,
       google_form_url: null, // Populated via automated pipeline

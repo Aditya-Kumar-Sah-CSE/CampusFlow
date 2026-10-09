@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPublicEventBySlugGlobal, getMorePublishedEventsForCollege } from '@/lib/events/service';
+import { getSmallEventById } from '@/config/events';
 import {
   CompletionPage,
   SuccessState,
@@ -16,6 +17,15 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+
+  const smallEvent = getSmallEventById(slug);
+  if (smallEvent) {
+    return {
+      title: `Registration Successful — ${smallEvent.title}`,
+      description: `Your registration for ${smallEvent.title} is confirmed.`,
+    };
+  }
+
   const event = await getPublicEventBySlugGlobal(slug);
   return {
     title: event ? `Registration Successful — ${event.title}` : 'Registration Successful',
@@ -27,8 +37,42 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
   const { slug } = await params;
   const { reg: registrationNumber, team: teamId } = await searchParams;
 
+  // 1. Check for Config-Driven Small Event
+  const smallEvent = getSmallEventById(slug);
+  if (smallEvent) {
+    const institutionDisplayName =
+      smallEvent.institutionId === 'bce-bgp'
+        ? 'Bhagalpur College of Engineering'
+        : smallEvent.institutionId === 'gec-gaya'
+        ? 'Government Engineering College, Gaya'
+        : smallEvent.organizer;
+
+    return (
+      <CompletionPage
+        collegeName={institutionDisplayName}
+        collegeSlug={smallEvent.institutionId}
+        collegeCode={smallEvent.institutionId.toUpperCase()}
+      >
+        <SuccessState
+          type="event"
+          title="Registration Successful"
+          subtitle={`Your registration for ${smallEvent.title} has been submitted successfully.`}
+          entityTitle={smallEvent.title}
+          collegeName={institutionDisplayName}
+          collegeSlug={smallEvent.institutionId}
+          collegeCode={smallEvent.institutionId.toUpperCase()}
+          registrationNumber={registrationNumber}
+          teamId={teamId}
+          myRegistrationsPath="/events"
+          moreActionHref="/events"
+        />
+      </CompletionPage>
+    );
+  }
+
+  // 2. Database Events
   const event = await getPublicEventBySlugGlobal(slug);
-  if (!event || event.status !== 'PUBLISHED') {
+  if (!event || event.status === 'CANCELLED') {
     notFound();
   }
 
