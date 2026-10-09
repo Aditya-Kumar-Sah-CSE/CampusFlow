@@ -270,7 +270,14 @@ export async function studentSignupAction(input: StudentSignupInput): Promise<{
       console.error('[signup-action] generateLink error:', linkError);
     }
 
-    const verificationUrl = linkData?.properties?.action_link || redirectDestination;
+    const hashedToken = linkData?.properties?.hashed_token;
+    const verificationUrl = hashedToken
+      ? appUrl(
+          `/auth/callback?token_hash=${hashedToken}&type=signup&email=${encodeURIComponent(cleanEmail)}&next=${encodeURIComponent(
+            `/auth/student/login?verified=true&email=${encodeURIComponent(cleanEmail)}`
+          )}`
+        )
+      : (linkData?.properties?.action_link || redirectDestination);
 
     // 7. Dispatch verification email via Brevo
     await sendStudentVerificationEmail({
@@ -371,6 +378,19 @@ export async function studentLoginAction(
       };
     }
 
+    // Auto-sync students table email_verified flag
+    try {
+      const adminDb = createAdminClient();
+      if (adminDb && user.id) {
+        await adminDb
+          .from('students')
+          .update({ email_verified: true, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      }
+    } catch {
+      // non-fatal
+    }
+
     // 3. Resolve destination URL safely
     let targetDestination = '/feedback';
 
@@ -465,7 +485,16 @@ export async function resendStudentVerificationAction(email: string): Promise<{
       return { success: false, error: 'Failed to generate verification link. Please try again.' };
     }
 
-    const verificationUrl = linkData?.properties?.action_link || redirectDestination;
+    const hashedToken = linkData?.properties?.hashed_token;
+    const verificationType = linkData?.properties?.verification_type || 'magiclink';
+    const verificationUrl = hashedToken
+      ? appUrl(
+          `/auth/callback?token_hash=${hashedToken}&type=${verificationType}&email=${encodeURIComponent(cleanEmail)}&next=${encodeURIComponent(
+            `/auth/student/login?verified=true&email=${encodeURIComponent(cleanEmail)}`
+          )}`
+        )
+      : (linkData?.properties?.action_link || redirectDestination);
+
     const collegeName = user.user_metadata?.college_name || 'CampusFlow';
     const fullName = user.user_metadata?.name || 'Student';
 

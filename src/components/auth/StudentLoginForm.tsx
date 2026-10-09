@@ -50,10 +50,11 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
     }
     if (queryVerified === 'true') {
       setSuccessMsg('Email verified successfully! You can now sign in with your credentials.');
+      setErrorMsg('');
     } else if (queryReset === 'success') {
       setSuccessMsg('Password updated successfully. Please sign in with your new password.');
-    }
-    if (queryError) {
+      setErrorMsg('');
+    } else if (queryError) {
       setErrorMsg(queryError);
     }
   }, [initialEmail, queryVerified, queryReset, queryError]);
@@ -187,7 +188,10 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
               required
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errorMsg) setErrorMsg('');
+              }}
               placeholder="Enter your password"
               disabled={isLoading}
               className="w-full min-h-[46px] rounded-xl border border-slate-300 bg-slate-50 px-3.5 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/30 transition-all"
