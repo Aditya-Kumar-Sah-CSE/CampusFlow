@@ -37,10 +37,11 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
   const [isResending, setIsResending] = useState(false);
   const [resendFeedback, setResendFeedback] = useState<{ success?: boolean; message?: string } | null>(null);
 
-  const redirectParam = searchParams.get('redirect') || searchParams.get('returnTo');
+  const redirectParam = searchParams.get('redirect') || searchParams.get('returnTo') || searchParams.get('next');
   const queryVerified = searchParams.get('verified');
   const queryReset = searchParams.get('reset');
   const queryError = searchParams.get('error');
+  const queryInfo = searchParams.get('info') || searchParams.get('message');
   const initialEmail = searchParams.get('email');
 
   useEffect(() => {
@@ -54,10 +55,13 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
     } else if (queryReset === 'success') {
       setSuccessMsg('Password updated successfully. Please sign in with your new password.');
       setErrorMsg('');
+    } else if (queryInfo) {
+      setSuccessMsg(queryInfo);
+      setErrorMsg('');
     } else if (queryError) {
       setErrorMsg(queryError);
     }
-  }, [initialEmail, queryVerified, queryReset, queryError]);
+  }, [initialEmail, queryVerified, queryReset, queryInfo, queryError]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +164,7 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
             onChange={(e) => {
               setEmail(e.target.value);
               setResendEmail(e.target.value);
+              if (errorMsg) setErrorMsg('');
             }}
             placeholder="e.g. student@gmail.com"
             disabled={isLoading}

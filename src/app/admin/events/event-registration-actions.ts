@@ -46,6 +46,7 @@ import type { Branch, Semester } from '@/types/database';
 import { checkIsRegistrationOpen } from '@/lib/events/registration-status';
 import { getEventWithCollege } from '@/lib/events/event-context';
 import { getMorePublishedEventsForCollege } from '@/lib/events/service';
+import { getStudentSession } from '@/lib/auth/student-auth';
 
 // ============================================================
 // HELPERS
@@ -561,6 +562,198 @@ export async function identifyStudentAction(input: {
       success: false,
       isRegistered: false,
       error: (err as Error).message || 'Failed to check registration. Please try again.',
+    };
+  }
+}
+
+export type StudentPassAuthStatus =
+  | 'AUTHORIZED'
+  | 'LOGIN_REQUIRED'
+  | 'SIGNUP_REQUIRED'
+  | 'ACCOUNT_MISMATCH'
+  | 'EMAIL_NOT_VERIFIED';
+
+export interface CheckStudentPassAuthResult {
+  success: boolean;
+  status: StudentPassAuthStatus;
+  canDownload: boolean;
+  isSignedUp: boolean;
+  isLoggedIn: boolean;
+  targetEmail: string;
+  loggedInEmail?: string;
+  studentName?: string;
+  message: string;
+  loginUrl?: string;
+  signupUrl?: string;
+}
+
+/**
+ * Validates if the current browser session has verified student rights to download an event pass.
+ * - Prevents direct unauthorized pass downloads without student account verification.
+ * - Checks if the target registration email has a registered student account in Supabase.
+ * - Verifies if the currently authenticated student session matches the registration email.
+ */
+export async function checkStudentPassAuthStatusAction(input: {
+  email: string;
+  eventId?: string;
+  returnUrl?: string;
+}): Promise<CheckStudentPassAuthResult> {
+  const targetEmail = (input.email || '').toLowerCase().trim();
+  if (!targetEmail) {
+    return {
+      success: false,
+      status: 'LOGIN_REQUIRED',
+      canDownload: false,
+      isSignedUp: false,
+      isLoggedIn: false,
+      targetEmail: '',
+      message: 'A valid student email address is required to verify pass ownership.',
+    };
+  }
+
+  const returnUrl = input.returnUrl || '';
+  const encodedEmail = encodeURIComponent(targetEmail);
+  const encodedNext = returnUrl ? `&next=${encodeURIComponent(returnUrl)}` : '';
+  const loginUrl = `/auth/student/login?email=${encodedEmail}${encodedNext}`;
+  const signupUrl = `/auth/student/signup?email=${encodedEmail}${encodedNext}`;
+
+  // 1. Check current authenticated student session
+  const studentSession = await getStudentSession();
+
+  // 2. Query Supabase for student account existence
+  const adminDb = createAdminClient();
+  let isSignedUp = false;
+  let studentName = '';
+  let isDbEmailVerified = false;
+
+  if (adminDb) {
+    try {
+      const { data: studentRecord } = await adminDb
+        .from('students')
+        .select('id, email, full_name, is_active, email_verified')
+        .ilike('email', targetEmail)
+        .maybeSingle();
+
+      if (studentRecord) {
+        isSignedUp = true;
+        studentName = studentRecord.full_name || '';
+        isDbEmailVerified = Boolean(studentRecord.email_verified);
+      } else {
+        const { data: usersData } = await adminDb.auth.admin.listUsers({ page: 1, perPage: 100 });
+        const foundUser = usersData?.users?.find(
+          (u) => (u.email || '').toLowerCase().trim() === targetEmail
+        );
+        if (foundUser) {
+          isSignedUp = true;
+          studentName = foundUser.user_metadata?.name || '';
+          isDbEmailVerified = Boolean(foundUser.email_confirmed_at || foundUser.user_metadata?.email_verified);
+        }
+      }
+    } catch (err) {
+      console.warn('[checkStudentPassAuthStatusAction] Database check warning:', err);
+    }
+  }
+
+  // 3. User is logged in
+  if (studentSession.isAuthenticated && studentSession.user?.email) {
+    const currentEmail = studentSession.user.email.toLowerCase().trim();
+
+    // Check admin override privilege
+    const userRole = studentSession.user?.user_metadata?.role;
+    const isAdmin =
+      userRole === 'SUPER_ADMIN' ||
+      userRole === 'COLLEGE_SUPER_ADMIN' ||
+      userRole === 'FACULTY_ADMIN';
+
+    if (isAdmin) {
+      return {
+        success: true,
+        status: 'AUTHORIZED',
+        canDownload: true,
+        isSignedUp: true,
+        isLoggedIn: true,
+        targetEmail,
+        loggedInEmail: currentEmail,
+        studentName: studentName || 'Admin User',
+        message: 'Authorized via Administrator Privileges.',
+        loginUrl,
+        signupUrl,
+      };
+    }
+
+    if (currentEmail === targetEmail) {
+      const isVerified = Boolean(studentSession.emailVerified || isDbEmailVerified);
+      if (isVerified) {
+        return {
+          success: true,
+          status: 'AUTHORIZED',
+          canDownload: true,
+          isSignedUp: true,
+          isLoggedIn: true,
+          targetEmail,
+          loggedInEmail: currentEmail,
+          studentName: studentSession.student?.fullName || studentName || 'Student',
+          message: 'Student account verified and authenticated.',
+          loginUrl,
+          signupUrl,
+        };
+      } else {
+        return {
+          success: true,
+          status: 'EMAIL_NOT_VERIFIED',
+          canDownload: false,
+          isSignedUp: true,
+          isLoggedIn: true,
+          targetEmail,
+          loggedInEmail: currentEmail,
+          studentName: studentSession.student?.fullName || studentName || 'Student',
+          message: `Your student email (${targetEmail}) is pending verification. Please verify your email before downloading the pass.`,
+          loginUrl,
+          signupUrl,
+        };
+      }
+    } else {
+      return {
+        success: true,
+        status: 'ACCOUNT_MISMATCH',
+        canDownload: false,
+        isSignedUp,
+        isLoggedIn: true,
+        targetEmail,
+        loggedInEmail: currentEmail,
+        studentName,
+        message: `You are signed in as ${currentEmail}, but this pass is registered to ${targetEmail}. Please switch to the registered student account.`,
+        loginUrl,
+        signupUrl,
+      };
+    }
+  }
+
+  // 4. User is NOT logged in
+  if (isSignedUp) {
+    return {
+      success: true,
+      status: 'LOGIN_REQUIRED',
+      canDownload: false,
+      isSignedUp: true,
+      isLoggedIn: false,
+      targetEmail,
+      studentName,
+      message: `A student account exists for ${targetEmail}. Please sign in to verify your identity and download your official event pass.`,
+      loginUrl,
+      signupUrl,
+    };
+  } else {
+    return {
+      success: true,
+      status: 'SIGNUP_REQUIRED',
+      canDownload: false,
+      isSignedUp: false,
+      isLoggedIn: false,
+      targetEmail,
+      message: `No student account found for ${targetEmail}. Please create a student account using this email to activate and download your event pass.`,
+      loginUrl,
+      signupUrl,
     };
   }
 }

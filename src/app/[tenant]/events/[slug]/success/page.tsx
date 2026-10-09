@@ -9,6 +9,7 @@ import {
   SuccessState,
   MoreEvents,
 } from '@/components/completion';
+import { getStudentSession } from '@/lib/auth/student-auth';
 import { EventSuccessPassCard } from '@/components/events/EventSuccessPassCard';
 
 export const dynamic = 'force-dynamic';
@@ -97,9 +98,10 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
     notFound();
   }
 
-  const [moreEvents, session] = await Promise.all([
+  const [moreEvents, session, studentSession] = await Promise.all([
     getMorePublishedEventsForCollege(tenant.collegeId, event.id, 4),
     getCurrentEventSession(event.id),
+    getStudentSession(),
   ]);
 
   const myRegistrationsPath = `/${tenant.slug}/events/${event.slug}/my-registrations`;
@@ -138,6 +140,7 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
             logoUrl: tenant.logo,
           }}
           initialSession={session}
+          initialStudentSession={studentSession}
           initialReg={registrationNumber}
           myRegistrationsPath={myRegistrationsPath}
           moreActionHref={moreActionHref}

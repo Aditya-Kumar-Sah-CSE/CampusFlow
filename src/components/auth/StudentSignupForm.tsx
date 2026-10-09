@@ -51,7 +51,14 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
   const [errorMsg, setErrorMsg] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const redirectParam = searchParams.get('redirect') || searchParams.get('returnTo');
+  const redirectParam = searchParams.get('redirect') || searchParams.get('returnTo') || searchParams.get('next');
+  const initialEmail = searchParams.get('email');
+
+  useEffect(() => {
+    if (initialEmail) {
+      setEmail(initialEmail);
+    }
+  }, [initialEmail]);
 
   // Load active colleges from Supabase
   useEffect(() => {

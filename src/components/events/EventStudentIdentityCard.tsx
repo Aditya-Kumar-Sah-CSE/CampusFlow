@@ -25,6 +25,8 @@ import {
   identifyStudentAction,
   logoutFromEventAction,
   getStudentRegistrationsAction,
+  checkStudentPassAuthStatusAction,
+  type CheckStudentPassAuthResult,
   type StudentProgramRegistrationItem,
 } from '@/app/admin/events/event-registration-actions';
 import { EditEventPassModal } from './EditEventPassModal';
@@ -92,6 +94,31 @@ export function EventStudentIdentityCard({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
   const [enrolledPrograms, setEnrolledPrograms] = useState<StudentProgramRegistrationItem[]>([]);
+  const [passAuth, setPassAuth] = useState<CheckStudentPassAuthResult | null>(null);
+
+  // Check student authentication whenever participant changes
+  React.useEffect(() => {
+    if (!participant?.email) {
+      setPassAuth(null);
+      return;
+    }
+    let isMounted = true;
+    const currentReturnUrl = typeof window !== 'undefined'
+      ? window.location.pathname + window.location.search
+      : '';
+    checkStudentPassAuthStatusAction({
+      email: participant.email,
+      eventId: event.id,
+      returnUrl: currentReturnUrl,
+    })
+      .then((res) => {
+        if (isMounted) setPassAuth(res);
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [participant?.email, event.id]);
 
   // Fetch enrolled programs whenever participant changes
   React.useEffect(() => {
@@ -157,6 +184,32 @@ export function EventStudentIdentityCard({
 
     setDownloadingPass(true);
     try {
+      const currentReturnUrl =
+        typeof window !== 'undefined'
+          ? window.location.pathname + window.location.search
+          : '';
+
+      const authCheck = await checkStudentPassAuthStatusAction({
+        email: participant.email,
+        eventId: event.id,
+        returnUrl: currentReturnUrl,
+      });
+
+      setPassAuth(authCheck);
+
+      if (!authCheck.canDownload) {
+        if (authCheck.status === 'LOGIN_REQUIRED') {
+          window.location.href = authCheck.loginUrl || `/auth/student/login?email=${encodeURIComponent(participant.email)}`;
+          return;
+        }
+        if (authCheck.status === 'SIGNUP_REQUIRED') {
+          window.location.href = authCheck.signupUrl || `/auth/student/signup?email=${encodeURIComponent(participant.email)}`;
+          return;
+        }
+        alert(authCheck.message);
+        return;
+      }
+
       await generateAndDownloadPassPNG({
         eventTitle: event.title,
         collegeName: effectiveCollegeName,
@@ -297,31 +350,48 @@ export function EventStudentIdentityCard({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-              {/* Download PNG Pass Button */}
-              <button
-                type="button"
-                onClick={handleDownloadPass}
-                disabled={downloadingPass || isPaidPassPending}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all ${
-                  isPaidPassPending
-                    ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-not-allowed opacity-85'
-                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer disabled:opacity-50'
-                }`}
-                title={
-                  isPaidPassPending
-                    ? `Payment verification pending by Admin for ${pendingProgramNames}`
-                    : 'Download PNG Pass'
-                }
-              >
-                {downloadingPass ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : isPaidPassPending ? (
-                  <Lock className="w-3.5 h-3.5 text-amber-400" />
-                ) : (
-                  <Download className="w-3.5 h-3.5 text-emerald-400" />
-                )}
-                <span>{isPaidPassPending ? 'Pass Pending Verification' : 'Download Pass'}</span>
-              </button>
+              {/* Download PNG Pass Button or Auth Unlock Button */}
+              {passAuth && !passAuth.canDownload ? (
+                <Link
+                  href={passAuth.loginUrl || passAuth.signupUrl || `/auth/student/login?email=${encodeURIComponent(participant.email)}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 transition-all cursor-pointer"
+                  title={passAuth.message}
+                >
+                  <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>
+                    {passAuth.status === 'SIGNUP_REQUIRED'
+                      ? 'Sign Up to Unlock Pass'
+                      : passAuth.status === 'ACCOUNT_MISMATCH'
+                      ? 'Switch Account to Unlock'
+                      : 'Sign In to Unlock Pass'}
+                  </span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDownloadPass}
+                  disabled={downloadingPass || isPaidPassPending}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold shadow-xs transition-all ${
+                    isPaidPassPending
+                      ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 cursor-not-allowed opacity-85'
+                      : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer disabled:opacity-50'
+                  }`}
+                  title={
+                    isPaidPassPending
+                      ? `Payment verification pending by Admin for ${pendingProgramNames}`
+                      : 'Download PNG Pass'
+                  }
+                >
+                  {downloadingPass ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : isPaidPassPending ? (
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span>{isPaidPassPending ? 'Pass Pending Verification' : 'Download Pass'}</span>
+                </button>
+              )}
 
               {/* Switch Student */}
               <button
