@@ -17,6 +17,7 @@ import {
   fetchGoogleFormEventResponses,
   enrichEventWithGoogleMetadata,
   ensureEventGoogleDriveFolder,
+  updateGoogleSheetParticipantStatus,
 } from '@/lib/google/event-registration-automated';
 import { moveDriveFileToFolder } from '@/lib/google/feedback-drive';
 import { getOrCreateEventRegistrationSpreadsheet } from '@/lib/google/event-registration-sheets';
@@ -1214,3 +1215,61 @@ export async function getEventGoogleRegistrationsAction(
     return { success: false, error: err.message || 'Failed to fetch registrations from Google.' };
   }
 }
+
+/**
+ * Update payment verification status for a Google Form / automated event participant.
+ * Directly writes to the connected Google Spreadsheet ledger (source of truth).
+ */
+export async function updateGoogleParticipantPaymentStatusAction(
+  eventId: string,
+  participantIdentifier: string,
+  newStatus: 'VERIFIED' | 'REJECTED' | 'PENDING',
+  targetCollegeId?: string
+): Promise<{ success: boolean; error?: string; message?: string }> {
+  try {
+    const { collegeId, session } = await assertAdminCollegeAuth(targetCollegeId);
+    const db = await getAdminDb();
+
+    // 1. Fetch Event to get spreadsheet id
+    const { data: rawEvent, error: eventErr } = await db
+      .from('events')
+      .select('id, slug, title, google_spreadsheet_id, registration_sheet_id, description')
+      .eq('id', eventId)
+      .single();
+
+    if (eventErr || !rawEvent) {
+      return { success: false, error: 'Event not found.' };
+    }
+
+    const event = enrichEventWithGoogleMetadata(rawEvent);
+    const sheetId = event.google_spreadsheet_id || event.registration_sheet_id;
+
+    if (!sheetId) {
+      return { success: false, error: 'Event does not have a linked Google Spreadsheet.' };
+    }
+
+    const verifiedBy = session.admin?.email || session.admin?.name || 'College Admin';
+
+    await updateGoogleSheetParticipantStatus({
+      collegeId,
+      sheetId,
+      eventId,
+      participantIdentifier,
+      newStatus,
+      verifiedBy,
+    });
+
+    revalidatePath(`/admin/events/${eventId}/registrations`);
+    revalidatePath(`/events/${event.slug || eventId}`);
+    revalidatePath(`/events/${event.slug || eventId}/register`);
+    revalidatePath(`/events/${event.slug || eventId}/pass`);
+
+    return {
+      success: true,
+      message: `Participant payment status successfully updated to ${newStatus}.`,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update payment status in Google Sheet.' };
+  }
+}
+

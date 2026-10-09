@@ -187,6 +187,12 @@ export interface GoogleFormParticipantResponse {
   participationType?: string;
   notes?: string;
   consent: boolean;
+  paymentStatus?: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+  paymentAmount?: number | null;
+  paymentReference?: string;
+  paymentScreenshotUrl?: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
   rawAnswers?: Record<string, string>;
 }
 

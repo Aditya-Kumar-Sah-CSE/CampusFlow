@@ -44,6 +44,11 @@ export const GOOGLE_EVENT_REG_HEADERS = [
   'Participation Type',         // Col J (9)
   'Notes / Remarks',            // Col K (10)
   'Consent',                    // Col L (11)
+  'Payment Status',             // Col M (12)
+  'Transaction Reference (UTR)',// Col N (13)
+  'Payment Screenshot URL',     // Col O (14)
+  'Verified At',                // Col P (15)
+  'Verified By',                // Col Q (16)
 ];
 
 export const DEFAULT_PERFORMANCE_TYPES = [
@@ -1458,37 +1463,35 @@ function makeRegistrationSignature(params: {
   regNo?: string;
   email?: string;
   contact?: string;
-  perfType?: string;
 }): string {
   const cleanRoll = (params.roll || '').trim().toLowerCase();
   const cleanRegNo = (params.regNo || '').trim().toLowerCase();
   const cleanEmail = (params.email || '').trim().toLowerCase();
   const cleanContact = (params.contact || '').trim().replace(/\D/g, '');
   const cleanName = (params.name || '').trim().toLowerCase();
-  const cleanPerf = (params.perfType || '').trim().toLowerCase();
 
-  // 1. Highest priority: College Registration Number (Unique student ID)
+  // 1. Highest priority: Email address (universal unique student identity)
+  if (cleanEmail && cleanEmail.includes('@') && cleanEmail !== '—' && cleanEmail !== '-') {
+    return `email:${cleanEmail}`;
+  }
+
+  // 2. Second priority: College Registration Number
   if (cleanRegNo && cleanRegNo !== '—' && cleanRegNo !== '-' && cleanRegNo !== 'none' && cleanRegNo !== 'null') {
-    return `reg:${cleanRegNo}|cat:${cleanPerf}`;
+    return `reg:${cleanRegNo}`;
   }
 
-  // 2. Second priority: College Roll Number (Unique within college/batch)
+  // 3. Third priority: College Roll Number
   if (cleanRoll && cleanRoll !== '—' && cleanRoll !== '-' && cleanRoll !== 'none' && cleanRoll !== 'null') {
-    return `roll:${cleanRoll}|cat:${cleanPerf}`;
-  }
-
-  // 3. Third priority: Email address
-  if (cleanEmail && cleanEmail.includes('@') && cleanEmail !== '—') {
-    return `email:${cleanEmail}|cat:${cleanPerf}`;
+    return `roll:${cleanRoll}`;
   }
 
   // 4. Fourth priority: Contact / Mobile number (last 10 digits)
-  if (cleanContact.length >= 10) {
-    return `phone:${cleanContact.slice(-10)}|cat:${cleanPerf}`;
+  if (cleanContact.length >= 7) {
+    return `phone:${cleanContact.slice(-10)}`;
   }
 
-  // 5. Fallback: Normalized participant name + performance category
-  return `name:${cleanName}|cat:${cleanPerf}`;
+  // 5. Fallback: Normalized participant name
+  return `name:${cleanName}`;
 }
 
 /**
@@ -1616,6 +1619,8 @@ export async function fetchGoogleFormEventResponses(params: {
           let perfType = '';
           let partType = 'Solo';
           let notes = '';
+          let utr = '';
+          let screenshotUrl = '';
 
           const answers = fRes.answers || {};
           for (const [qId, ansObj] of Object.entries(answers)) {
@@ -1650,6 +1655,19 @@ export async function fetchGoogleFormEventResponses(params: {
             } else if (qTitle.includes('email')) {
               email = email || val;
             } else if (
+              qTitle.includes('upi') ||
+              qTitle.includes('utr') ||
+              qTitle.includes('transaction') ||
+              qTitle.includes('reference')
+            ) {
+              utr = val;
+            } else if (
+              qTitle.includes('screenshot') ||
+              qTitle.includes('proof') ||
+              qTitle.includes('receipt')
+            ) {
+              screenshotUrl = val;
+            } else if (
               qTitle.includes('title') ||
               qTitle.includes('topic') ||
               qTitle.includes('requirement') ||
@@ -1660,6 +1678,7 @@ export async function fetchGoogleFormEventResponses(params: {
             }
           }
 
+          const isPayRequired = Boolean(event.payment_required);
           formApiResponses.push({
             responseId: fRes.responseId || `form-res-${idx + 1}`,
             submittedAt: fRes.lastSubmittedTime || fRes.createTime || new Date().toISOString(),
@@ -1671,10 +1690,14 @@ export async function fetchGoogleFormEventResponses(params: {
             branch: branch || 'General',
             contactNumber: contact || '—',
             email: email || '—',
-            performanceType: perfType || 'General Entry',
+            performanceType: perfType || (event.title || 'General Entry'),
             participationType: partType || 'Solo',
             notes: notes || '',
             consent: true,
+            paymentStatus: isPayRequired ? 'PENDING' : 'NOT_REQUIRED',
+            paymentAmount: isPayRequired ? event.payment_amount : null,
+            paymentReference: utr || undefined,
+            paymentScreenshotUrl: screenshotUrl || undefined,
             rawAnswers,
           });
         });
@@ -1703,11 +1726,36 @@ export async function fetchGoogleFormEventResponses(params: {
     }
   });
 
-  // 4. Merge & Deduplicate responses
+  // 4. Merge & Deduplicate responses (Strict single participant record per student)
+  const headerRow = sheetRows[0] || [];
+  const headerStrings = headerRow.map((h: any) => String(h || '').trim().toLowerCase());
+
+  const findCol = (matcher: (h: string) => boolean, fallback: number) => {
+    const idx = headerStrings.findIndex(matcher);
+    return idx >= 0 ? idx : fallback;
+  };
+
+  const colTimestamp = findCol((h) => h.includes('time'), 0);
+  const colName = findCol((h) => h.includes('participant name') || (h.includes('name') && !h.includes('entry')), 1);
+  const colReg = findCol((h) => h.includes('registration') && !h.includes('type'), 2);
+  const colRoll = findCol((h) => h.includes('roll'), 3);
+  const colYear = findCol((h) => h.includes('year'), 4);
+  const colBranch = findCol((h) => h.includes('branch') || h.includes('dept'), 5);
+  const colContact = findCol((h) => h.includes('contact') || h.includes('mobile') || h.includes('phone'), 6);
+  const colEmail = findCol((h) => h.includes('email'), 7);
+  const colPerf = findCol((h) => h.includes('performance type') || h.includes('category') || h.includes('present'), 8);
+  const colMode = findCol((h) => h.includes('participation type') || h.includes('mode') || h.includes('participate'), 9);
+  const colNotes = findCol((h) => h.includes('note') || h.includes('remark') || h.includes('topic'), 10);
+  const colPayStatus = findCol((h) => h.includes('payment status') || h === 'status', 12);
+  const colUtr = findCol((h) => h.includes('utr') || h.includes('transaction') || h.includes('upi') || h.includes('reference'), 13);
+  const colScreenshot = findCol((h) => h.includes('screenshot') || h.includes('proof'), 14);
+  const colVerifiedAt = findCol((h) => h.includes('verified at'), 15);
+  const colVerifiedBy = findCol((h) => h.includes('verified by'), 16);
+
   const sheetData = sheetRows.slice(1);
   const dedupMap = new Map<string, GoogleFormParticipantResponse>();
 
-  // Add Forms API responses first (authoritative on web form submissions)
+  // Add Forms API responses first
   formApiResponses.forEach((r) => {
     const sig = makeRegistrationSignature({
       roll: r.rollNumber,
@@ -1715,21 +1763,45 @@ export async function fetchGoogleFormEventResponses(params: {
       regNo: r.collegeRegistrationNumber,
       email: r.email,
       contact: r.contactNumber,
-      perfType: r.performanceType,
     });
     dedupMap.set(sig, r);
   });
 
-  // Add any rows from Google Sheet that might not be in Forms API (e.g. manual entries)
+  // Merge sheet rows into deduplication map
   sheetData.forEach((row, idx) => {
-    if (!row || row.length === 0 || !row[1]) return;
-    const submittedAt = row[0] ? parseSheetTimestamp(row[0]) : new Date().toISOString();
-    const participantName = (row[1] || '').trim();
-    const customRegNo = (row[2] || '').trim();
-    const rollNumber = (row[3] || '').trim();
-    const contact = (row[6] || '').trim();
-    const email = (row[7] || '').trim();
-    const perfType = (row[8] || '').trim();
+    if (!row || row.length === 0 || !row[colName]) return;
+    const submittedAt = row[colTimestamp] ? parseSheetTimestamp(row[colTimestamp]) : new Date().toISOString();
+    const participantName = (row[colName] || '').trim();
+    const customRegNo = (row[colReg] || '').trim();
+    const rollNumber = (row[colRoll] || '').trim();
+    const contact = (row[colContact] || '').trim();
+    const email = (row[colEmail] || '').trim();
+
+    // Check multiple potential category columns if row[colPerf] is generic
+    let perfType = (row[colPerf] || '').trim();
+    if (!perfType || perfType.toLowerCase() === 'general entry') {
+      const altCatCol = row.findIndex((val: any, cIdx: number) => cIdx > 10 && val && String(val).toLowerCase() !== 'yes' && String(val).toLowerCase() !== 'solo');
+      if (altCatCol >= 0 && row[altCatCol]) {
+        perfType = String(row[altCatCol]).trim();
+      }
+    }
+
+    const rawPayStatus = (row[colPayStatus] || '').trim().toUpperCase();
+    let finalPayStatus: 'NOT_REQUIRED' | 'PENDING' | 'VERIFIED' | 'REJECTED' = 'NOT_REQUIRED';
+    if (event.payment_required) {
+      if (rawPayStatus === 'VERIFIED' || rawPayStatus === 'PAID') {
+        finalPayStatus = 'VERIFIED';
+      } else if (rawPayStatus === 'REJECTED') {
+        finalPayStatus = 'REJECTED';
+      } else {
+        finalPayStatus = 'PENDING';
+      }
+    }
+
+    const rowUtr = (row[colUtr] || '').trim();
+    const rowScreenshot = (row[colScreenshot] || '').trim();
+    const verifiedAt = (row[colVerifiedAt] || '').trim();
+    const verifiedBy = (row[colVerifiedBy] || '').trim();
 
     const sig = makeRegistrationSignature({
       roll: rollNumber,
@@ -1737,10 +1809,36 @@ export async function fetchGoogleFormEventResponses(params: {
       regNo: customRegNo,
       email,
       contact,
-      perfType,
     });
 
-    if (!dedupMap.has(sig)) {
+    const existing = dedupMap.get(sig);
+    if (existing) {
+      // Merge best attributes — guarantee zero duplicate records!
+      if (!existing.collegeRegistrationNumber && customRegNo) {
+        existing.collegeRegistrationNumber = customRegNo;
+      }
+      if ((!existing.rollNumber || existing.rollNumber === '—') && rollNumber) {
+        existing.rollNumber = rollNumber;
+      }
+      if ((!existing.contactNumber || existing.contactNumber === '—') && contact) {
+        existing.contactNumber = contact;
+      }
+      if ((!existing.performanceType || existing.performanceType.toLowerCase() === 'general entry') && perfType && perfType.toLowerCase() !== 'general entry') {
+        existing.performanceType = perfType;
+      }
+      if (!existing.paymentReference && rowUtr) {
+        existing.paymentReference = rowUtr;
+      }
+      if (!existing.paymentScreenshotUrl && rowScreenshot) {
+        existing.paymentScreenshotUrl = rowScreenshot;
+      }
+      // If sheet has an explicit admin decision (VERIFIED / REJECTED), adopt it
+      if (finalPayStatus === 'VERIFIED' || finalPayStatus === 'REJECTED') {
+        existing.paymentStatus = finalPayStatus;
+        if (verifiedAt) existing.verifiedAt = verifiedAt;
+        if (verifiedBy) existing.verifiedBy = verifiedBy;
+      }
+    } else {
       dedupMap.set(sig, {
         responseId: `sheet-row-${idx + 2}`,
         submittedAt,
@@ -1748,25 +1846,34 @@ export async function fetchGoogleFormEventResponses(params: {
         registrationNumber: '',
         collegeRegistrationNumber: customRegNo || undefined,
         rollNumber: rollNumber || '—',
-        year: (row[4] || '1st Year').trim(),
-        branch: (row[5] || '').trim(),
+        year: (row[colYear] || '1st Year').trim(),
+        branch: (row[colBranch] || '').trim(),
         contactNumber: contact || '—',
         email: email || '—',
-        performanceType: perfType || 'General Entry',
-        participationType: (row[9] || 'Solo').trim(),
-        notes: (row[10] || '').trim(),
+        performanceType: perfType || (event.title || 'General Entry'),
+        participationType: (row[colMode] || 'Solo').trim(),
+        notes: (row[colNotes] || '').trim(),
         consent: true,
+        paymentStatus: finalPayStatus,
+        paymentAmount: event.payment_required ? event.payment_amount : null,
+        paymentReference: rowUtr || undefined,
+        paymentScreenshotUrl: rowScreenshot || undefined,
+        verifiedAt: verifiedAt || undefined,
+        verifiedBy: verifiedBy || undefined,
         rawAnswers: {
           Name: participantName,
           Roll: rollNumber,
           RegNo: customRegNo,
-          Year: row[4] || '',
-          Branch: row[5] || '',
+          Year: row[colYear] || '',
+          Branch: row[colBranch] || '',
           Mobile: contact || '',
           Email: email || '',
           Category: perfType || '',
-          Mode: row[9] || '',
-          Remarks: row[10] || '',
+          Mode: row[colMode] || '',
+          Remarks: row[colNotes] || '',
+          UTR: rowUtr || '',
+          Screenshot: rowScreenshot || '',
+          PaymentStatus: finalPayStatus,
         },
       });
     }
@@ -1776,7 +1883,7 @@ export async function fetchGoogleFormEventResponses(params: {
   // Sort chronologically
   mergedResponses.sort((a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime());
 
-  // Assign sequential pass numbers
+  // Assign clean sequential pass numbers
   mergedResponses.forEach((r, idx) => {
     r.registrationNumber = generateRegistrationNumber(eventSlug, 'REG', idx + 1);
   });
@@ -1798,23 +1905,31 @@ export async function fetchGoogleFormEventResponses(params: {
           r.participationType || 'Solo',
           r.notes || '',
           'Yes',
+          r.paymentStatus || (event.payment_required ? 'PENDING' : 'NOT_REQUIRED'),
+          r.paymentReference || '',
+          r.paymentScreenshotUrl || '',
+          r.verifiedAt || '',
+          r.verifiedBy || '',
         ]);
 
         await sheets.spreadsheets.values.update({
           spreadsheetId: sheetId,
-          range: `'${tabName}'!A1:L${formattedRows.length + 1}`,
+          range: `'${tabName}'!A1:Q${formattedRows.length + 1}`,
           valueInputOption: 'USER_ENTERED',
           requestBody: {
             values: [GOOGLE_EVENT_REG_HEADERS, ...formattedRows],
           },
         });
 
-        // If the sheet previously had more rows (e.g. duplicate rows), clear trailing rows
-        if (sheetRows.length > formattedRows.length + 1) {
-          await sheets.spreadsheets.values.clear({
-            spreadsheetId: sheetId,
-            range: `'${tabName}'!A${formattedRows.length + 2}:L${sheetRows.length + 10}`,
-          });
+        // Clean up any historical duplicate rows in Google Sheet
+        const totalRowsToClean = Math.max(sheetRows.length + 10, formattedRows.length + 30);
+        if (totalRowsToClean > formattedRows.length + 1) {
+          try {
+            await sheets.spreadsheets.values.clear({
+              spreadsheetId: sheetId,
+              range: `'${tabName}'!A${formattedRows.length + 2}:Z${totalRowsToClean}`,
+            });
+          } catch {}
         }
       });
     } catch (syncErr) {
@@ -1840,6 +1955,110 @@ export async function fetchGoogleFormEventResponses(params: {
     syncedAt: new Date().toISOString(),
     source,
   };
+}
+
+/**
+ * Updates a participant's payment verification status directly in the Google Sheet ledger.
+ */
+export async function updateGoogleSheetParticipantStatus(params: {
+  collegeId: string;
+  sheetId: string;
+  eventId: string;
+  participantIdentifier: string; // registrationNumber, email, rollNumber, or name
+  newStatus: 'VERIFIED' | 'REJECTED' | 'PENDING';
+  verifiedBy: string;
+}): Promise<boolean> {
+  const { collegeId, sheetId, eventId, participantIdentifier, newStatus, verifiedBy } = params;
+
+  return executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+      fields: 'sheets(properties(sheetId,title))',
+    });
+    const tabName = meta.data.sheets?.[0]?.properties?.title || 'Form Responses 1';
+
+    const valuesRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `'${tabName}'!A1:Z1000`,
+    });
+    const rows = valuesRes.data.values || [];
+    if (rows.length < 2) return false;
+
+    // Header column mapping
+    const headerRow = (rows[0] || []).map((h: any) => String(h || '').trim().toLowerCase());
+    const findCol = (matcher: (h: string) => boolean, fallback: number) => {
+      const idx = headerRow.findIndex(matcher);
+      return idx >= 0 ? idx : fallback;
+    };
+
+    const colStatusIdx = findCol((h) => h.includes('payment status') || h === 'status', 12);
+    const colVerifiedAtIdx = findCol((h) => h.includes('verified at'), 15);
+    const colVerifiedByIdx = findCol((h) => h.includes('verified by'), 16);
+    const colNameIdx = findCol((h) => h.includes('participant name') || (h.includes('name') && !h.includes('entry')), 1);
+    const colRegIdx = findCol((h) => h.includes('registration') && !h.includes('type'), 2);
+    const colRollIdx = findCol((h) => h.includes('roll'), 3);
+    const colContactIdx = findCol((h) => h.includes('contact') || h.includes('mobile') || h.includes('phone'), 6);
+    const colEmailIdx = findCol((h) => h.includes('email'), 7);
+
+    const normTarget = participantIdentifier.trim().toLowerCase();
+    const digitsTarget = normTarget.replace(/\D/g, '');
+    const nowIso = new Date().toISOString();
+
+    let targetRowIndex = -1;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const rEmail = (row[colEmailIdx] || '').trim().toLowerCase();
+      const rCustomReg = (row[colRegIdx] || '').trim().toLowerCase();
+      const rRoll = (row[colRollIdx] || '').trim().toLowerCase();
+      const rName = (row[colNameIdx] || '').trim().toLowerCase();
+      const rContactDigits = (row[colContactIdx] || '').replace(/\D/g, '');
+
+      if (
+        (rEmail && rEmail === normTarget) ||
+        (rCustomReg && rCustomReg === normTarget) ||
+        (rRoll && rRoll === normTarget) ||
+        (rName && rName === normTarget) ||
+        (digitsTarget.length >= 7 && rContactDigits.endsWith(digitsTarget.slice(-10)))
+      ) {
+        targetRowIndex = i + 1; // 1-indexed row in sheet
+        break;
+      }
+    }
+
+    if (targetRowIndex === -1) {
+      throw new Error(`Participant "${participantIdentifier}" was not found in the registration spreadsheet.`);
+    }
+
+    const colToLetter = (idx: number): string => {
+      let letter = '';
+      let temp = idx;
+      while (temp >= 0) {
+        letter = String.fromCharCode((temp % 26) + 65) + letter;
+        temp = Math.floor(temp / 26) - 1;
+      }
+      return letter;
+    };
+
+    const statusLetter = colToLetter(colStatusIdx);
+    const verifiedAtLetter = colToLetter(colVerifiedAtIdx);
+    const verifiedByLetter = colToLetter(colVerifiedByIdx);
+
+    // Surgically update Payment Status, Verified At, and Verified By cells
+    await sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          { range: `'${tabName}'!${statusLetter}${targetRowIndex}`, values: [[newStatus]] },
+          { range: `'${tabName}'!${verifiedAtLetter}${targetRowIndex}`, values: [[nowIso]] },
+          { range: `'${tabName}'!${verifiedByLetter}${targetRowIndex}`, values: [[verifiedBy]] },
+        ],
+      },
+    });
+
+    responseCache.delete(eventId);
+    return true;
+  });
 }
 
 // ============================================================
@@ -1932,11 +2151,29 @@ export async function generateGoogleEventParticipantPdf(params: {
 
   // Status Badge on Top Right
   const badgeX = pageWidth - 160;
+  const isPayReq = Boolean(event.payment_required);
+  const pStatus = participant.paymentStatus || (isPayReq ? 'PENDING' : 'NOT_REQUIRED');
+  let badgeText = '✓ CONFIRMED ENTRY';
+  let badgeColor = PDF_COLORS.success;
+
+  if (isPayReq) {
+    if (pStatus === 'VERIFIED') {
+      badgeText = '✓ PAYMENT VERIFIED';
+      badgeColor = PDF_COLORS.success;
+    } else if (pStatus === 'REJECTED') {
+      badgeText = '✗ PAYMENT REJECTED';
+      badgeColor = PDF_COLORS.danger;
+    } else {
+      badgeText = '⏳ VERIFICATION PENDING';
+      badgeColor = PDF_COLORS.warning;
+    }
+  }
+
   doc.roundedRect(badgeX, y, 120, 24, 4).fill(PDF_COLORS.bgLight).stroke(PDF_COLORS.border);
   doc.font('Helvetica-Bold')
-    .fontSize(8.5)
-    .fillColor(PDF_COLORS.success)
-    .text('✓ CONFIRMED ENTRY', badgeX, y + 7, { width: 120, align: 'center' });
+    .fontSize(7.8)
+    .fillColor(badgeColor)
+    .text(badgeText, badgeX, y + 8, { width: 120, align: 'center' });
 
   y += 55;
   doc.moveTo(40, y).lineTo(40 + contentWidth, y).strokeColor(PDF_COLORS.borderLight).stroke();

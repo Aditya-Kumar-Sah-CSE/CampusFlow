@@ -72,6 +72,8 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
               title: smallEvent.title,
               slug: smallEvent.id,
               venue: smallEvent.venue,
+              payment_required: (smallEvent as any).payment_required,
+              payment_amount: (smallEvent as any).payment_amount,
             }}
             college={{
               name: tenant.name,
@@ -132,6 +134,8 @@ export default async function TenantEventSuccessPage({ params, searchParams }: P
             title: event.title,
             slug: event.slug,
             venue: event.venue,
+            payment_required: event.payment_required,
+            payment_amount: event.payment_amount,
           }}
           college={{
             name: tenant.name,

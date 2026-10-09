@@ -21,11 +21,17 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Check,
+  X,
+  Clock,
+  CreditCard,
+  ShieldCheck,
 } from 'lucide-react';
 import type { CollegeEvent, GoogleFormParticipantResponse } from '@/types/events';
 import {
   getEventGoogleRegistrationsAction,
   resyncEventGoogleResourcesAction,
+  updateGoogleParticipantPaymentStatusAction,
 } from '@/app/admin/events/actions';
 
 interface Props {
@@ -49,6 +55,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
   const [yearFilter, setYearFilter] = useState('ALL');
   const [branchFilter, setBranchFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<'ALL' | 'VERIFIED' | 'PENDING' | 'REJECTED'>('ALL');
 
   // Sorting
   const [sortField, setSortField] = useState<SortField>('submittedAt');
@@ -56,6 +63,9 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
 
   // Detail Modal
   const [selected, setSelected] = useState<GoogleFormParticipantResponse | null>(null);
+
+  // Payment Verification action
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // Re-sync action
   const [resyncing, setResyncing] = useState(false);
@@ -111,6 +121,66 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
     }
   };
 
+  const handleUpdatePaymentStatus = async (
+    target: GoogleFormParticipantResponse,
+    newStatus: 'VERIFIED' | 'REJECTED' | 'PENDING'
+  ) => {
+    const identifier = target.registrationNumber || target.email || target.rollNumber || target.participantName;
+    if (!identifier) return;
+
+    try {
+      setUpdatingId(target.responseId || target.registrationNumber);
+      const res = await updateGoogleParticipantPaymentStatusAction(
+        event.id,
+        identifier,
+        newStatus,
+        activeCollegeId
+      );
+
+      if (res.success) {
+        setResponses((prev) =>
+          prev.map((r) =>
+            r.responseId === target.responseId || r.registrationNumber === target.registrationNumber
+              ? { ...r, paymentStatus: newStatus, verifiedAt: new Date().toISOString() }
+              : r
+          )
+        );
+        if (selected && (selected.responseId === target.responseId || selected.registrationNumber === target.registrationNumber)) {
+          setSelected((prev) => prev ? { ...prev, paymentStatus: newStatus, verifiedAt: new Date().toISOString() } : null);
+        }
+        setResyncMsg({
+          type: 'success',
+          text: `Payment marked as ${newStatus} for ${target.participantName}. Pass generation updated.`,
+        });
+      } else {
+        setResyncMsg({
+          type: 'error',
+          text: res.error || 'Failed to update payment status in Google Sheet.',
+        });
+      }
+    } catch (err: any) {
+      setResyncMsg({
+        type: 'error',
+        text: err.message || 'An error occurred while updating status.',
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const verifiedCount = useMemo(
+    () => responses.filter((r) => r.paymentStatus === 'VERIFIED').length,
+    [responses]
+  );
+  const pendingCount = useMemo(
+    () => responses.filter((r) => r.paymentStatus === 'PENDING').length,
+    [responses]
+  );
+  const rejectedCount = useMemo(
+    () => responses.filter((r) => r.paymentStatus === 'REJECTED').length,
+    [responses]
+  );
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -148,6 +218,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
       if (yearFilter !== 'ALL' && r.year !== yearFilter) return false;
       if (branchFilter !== 'ALL' && r.branch !== branchFilter) return false;
       if (categoryFilter !== 'ALL' && r.performanceType !== categoryFilter) return false;
+      if (paymentFilter !== 'ALL' && r.paymentStatus !== paymentFilter) return false;
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -158,7 +229,19 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
         const matchEmail = r.email?.toLowerCase().includes(q);
         const matchMobile = r.contactNumber?.toLowerCase().includes(q);
         const matchNotes = r.notes?.toLowerCase().includes(q);
-        if (!matchName && !matchReg && !matchCollegeReg && !matchRoll && !matchEmail && !matchMobile && !matchNotes) {
+        const matchUtr = r.paymentReference?.toLowerCase().includes(q);
+        const matchPayStatus = r.paymentStatus?.toLowerCase().includes(q);
+        if (
+          !matchName &&
+          !matchReg &&
+          !matchCollegeReg &&
+          !matchRoll &&
+          !matchEmail &&
+          !matchMobile &&
+          !matchNotes &&
+          !matchUtr &&
+          !matchPayStatus
+        ) {
           return false;
         }
       }
@@ -414,51 +497,108 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
           </span>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Performance Categories
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900">
-              {availableCategories.length}
-            </span>
-            <Award className="w-4 h-4 text-purple-600" />
-          </div>
-          <span className="text-[11px] text-slate-500 block truncate">
-            {availableCategories.slice(0, 2).join(', ') || 'Various entries'}
-          </span>
-        </div>
+        {event.payment_required ? (
+          <>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Verified Payments
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-emerald-600">
+                  {verifiedCount}
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  ₹{verifiedCount * (event.payment_amount || 0)}
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 block truncate">
+                Pass downloads unlocked
+              </span>
+            </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Academic Branches
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-black text-slate-900">
-              {availableBranches.length}
-            </span>
-            <Users className="w-4 h-4 text-blue-600" />
-          </div>
-          <span className="text-[11px] text-slate-500 block truncate">
-            {availableBranches.slice(0, 2).join(', ') || 'All active departments'}
-          </span>
-        </div>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Pending Verification
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-amber-600">
+                  {pendingCount}
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                  ₹{pendingCount * (event.payment_amount || 0)}
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 block truncate">
+                Requires admin review
+              </span>
+            </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-            Storage Engine
-          </span>
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm font-bold text-emerald-700 flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{source === 'GOOGLE_FORMS_API' ? 'Google Forms API' : 'Google Sheets'}</span>
-            </span>
-            <span className="text-[10px] font-semibold text-slate-400">Zero DB Rows</span>
-          </div>
-          <span className="text-[11px] text-slate-500 block truncate">
-            Verified institutional owner
-          </span>
-        </div>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Declined / Rejected
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-rose-600">
+                  {rejectedCount}
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700">
+                  Locked
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-500 block truncate">
+                Payment unconfirmed
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Performance Categories
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                  {availableCategories.length}
+                </span>
+                <Award className="w-4 h-4 text-purple-600" />
+              </div>
+              <span className="text-[11px] text-slate-500 block truncate">
+                {availableCategories.slice(0, 2).join(', ') || 'Various entries'}
+              </span>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Academic Branches
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                  {availableBranches.length}
+                </span>
+                <Users className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="text-[11px] text-slate-500 block truncate">
+                {availableBranches.slice(0, 2).join(', ') || 'All active departments'}
+              </span>
+            </div>
+
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Storage Engine
+              </span>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm font-bold text-emerald-700 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{source === 'GOOGLE_FORMS_API' ? 'Google Forms API' : 'Google Sheets'}</span>
+                </span>
+                <span className="text-[10px] font-semibold text-slate-400">Zero DB Rows</span>
+              </div>
+              <span className="text-[11px] text-slate-500 block truncate">
+                Verified institutional owner
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Main Table & Filters Card (also printable) */}
@@ -484,7 +624,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search name, roll, pass no, reg no, mobile..."
+                placeholder="Search name, roll, pass no, reg no, mobile, UTR..."
                 className="w-full pl-9 pr-3.5 py-2 text-xs sm:text-sm border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt bg-slate-50/50"
               />
             </div>
@@ -531,6 +671,20 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
                     {c}
                   </option>
                 ))}
+              </select>
+            )}
+
+            {/* Payment Status Filter (When event is paid) */}
+            {event.payment_required && (
+              <select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value as any)}
+                className="px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium text-slate-700 focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 max-w-[170px]"
+              >
+                <option value="ALL">All Payments</option>
+                <option value="VERIFIED">Verified ({verifiedCount})</option>
+                <option value="PENDING">Pending Approval ({pendingCount})</option>
+                <option value="REJECTED">Rejected ({rejectedCount})</option>
               </select>
             )}
 
@@ -655,6 +809,7 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
                   <th className="py-3 px-4">Branch</th>
                   <th className="py-3 px-4">Contact</th>
                   <th className="py-3 px-4">Category &amp; Mode</th>
+                  {event.payment_required && <th className="py-3 px-4">Payment Status</th>}
                   <th
                     className="py-3 px-4 cursor-pointer hover:bg-slate-100/80 transition-colors select-none"
                     onClick={() => handleSort('submittedAt')}
@@ -718,6 +873,35 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
                       </span>
                     </td>
 
+                    {/* Payment Status Column */}
+                    {event.payment_required && (
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-1 items-start">
+                          {r.paymentStatus === 'VERIFIED' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <Check className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span>Verified</span>
+                            </span>
+                          ) : r.paymentStatus === 'REJECTED' ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                              <X className="w-3 h-3 text-rose-600 shrink-0" />
+                              <span>Rejected</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                              <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                              <span>Pending</span>
+                            </span>
+                          )}
+                          {r.paymentReference && (
+                            <span className="text-[9px] font-mono text-slate-500 truncate max-w-[120px]" title={`UTR: ${r.paymentReference}`}>
+                              UTR: {r.paymentReference}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
                     {/* Submitted At */}
                     <td className="py-3 px-4 text-slate-500 text-[11px] whitespace-nowrap">
                       {r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('en-IN') : '—'}
@@ -725,6 +909,36 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
 
                     {/* Actions */}
                     <td className="py-3 px-4 text-right space-x-1.5 whitespace-nowrap no-print">
+                      {/* Payment Quick Actions */}
+                      {event.payment_required && r.paymentStatus !== 'VERIFIED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdatePaymentStatus(r, 'VERIFIED')}
+                          disabled={updatingId === (r.responseId || r.registrationNumber)}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                          title="Verify Payment (Unlocks Student Pass)"
+                        >
+                          {updatingId === (r.responseId || r.registrationNumber) ? (
+                            <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                          ) : (
+                            <Check className="w-3 h-3 shrink-0" />
+                          )}
+                          <span>Verify</span>
+                        </button>
+                      )}
+
+                      {event.payment_required && r.paymentStatus !== 'REJECTED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdatePaymentStatus(r, 'REJECTED')}
+                          disabled={updatingId === (r.responseId || r.registrationNumber)}
+                          className="inline-flex items-center gap-1 px-1.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                          title="Reject Payment"
+                        >
+                          <X className="w-3 h-3 shrink-0" />
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => setSelected(r)}
@@ -777,9 +991,25 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
                 </span>
                 <h3 className="text-lg font-black text-slate-900">{selected.participantName}</h3>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Confirmed Entry
-              </span>
+              {event.payment_required ? (
+                selected.paymentStatus === 'VERIFIED' ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    ✓ Payment Verified
+                  </span>
+                ) : selected.paymentStatus === 'REJECTED' ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                    ✗ Payment Declined
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                    ⏳ Verification Pending
+                  </span>
+                )
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Confirmed Entry
+                </span>
+              )}
             </div>
 
             {/* Details Grid */}
@@ -847,6 +1077,89 @@ export function GoogleEventRegistrationsClient({ event, activeCollegeId }: Props
                 </div>
               )}
             </div>
+
+            {/* Payment & Verification Section */}
+            {event.payment_required && (
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-slate-500" />
+                    <span>Payment Verification</span>
+                  </span>
+                  <span className="font-bold text-slate-900 text-sm">
+                    Fee: ₹{event.payment_amount || 0}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Status</span>
+                    <span className={`font-bold inline-block mt-0.5 ${
+                      selected.paymentStatus === 'VERIFIED' ? 'text-emerald-700' :
+                      selected.paymentStatus === 'REJECTED' ? 'text-rose-700' : 'text-amber-700'
+                    }`}>
+                      {selected.paymentStatus === 'VERIFIED' ? '✓ Verified (Pass Unlocked)' :
+                       selected.paymentStatus === 'REJECTED' ? '✗ Rejected (Pass Locked)' : '⏳ Awaiting Admin Review'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">UTR / Transaction Ref</span>
+                    <span className="font-mono font-bold text-slate-800 block truncate mt-0.5">
+                      {selected.paymentReference || 'None submitted'}
+                    </span>
+                  </div>
+                </div>
+
+                {selected.paymentScreenshotUrl && (
+                  <div className="pt-1 flex items-center justify-between bg-white p-2.5 rounded-xl border border-slate-200/80">
+                    <span className="text-[11px] text-slate-600 font-medium">Payment Screenshot Proof:</span>
+                    <a
+                      href={selected.paymentScreenshotUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <span>Open Screenshot</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
+                {(selected.verifiedAt || selected.verifiedBy) && (
+                  <div className="text-[10px] text-slate-400">
+                    Last updated by {selected.verifiedBy || 'Admin'} on {selected.verifiedAt ? new Date(selected.verifiedAt).toLocaleString('en-IN') : '—'}
+                  </div>
+                )}
+
+                {/* Modal Payment Approval Actions */}
+                <div className="pt-2 border-t border-slate-200 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleUpdatePaymentStatus(selected, 'VERIFIED')}
+                    disabled={updatingId === (selected.responseId || selected.registrationNumber) || selected.paymentStatus === 'VERIFIED'}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {updatingId === (selected.responseId || selected.registrationNumber) ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
+                    <span>{selected.paymentStatus === 'VERIFIED' ? 'Payment Verified' : 'Approve Payment (Unlock Pass)'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleUpdatePaymentStatus(selected, 'REJECTED')}
+                    disabled={updatingId === (selected.responseId || selected.registrationNumber) || selected.paymentStatus === 'REJECTED'}
+                    className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Reject</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Performance Notes */}
             {selected.notes && (

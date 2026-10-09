@@ -74,6 +74,8 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
               title: smallEvent.title,
               slug: smallEvent.id,
               venue: smallEvent.venue,
+              payment_required: (smallEvent as any).payment_required,
+              payment_amount: (smallEvent as any).payment_amount,
             }}
             college={{
               name: institutionDisplayName,
@@ -136,6 +138,8 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
             title: event.title,
             slug: event.slug,
             venue: event.venue,
+            payment_required: event.payment_required,
+            payment_amount: event.payment_amount,
           }}
           college={{
             name: college?.name || 'College Event',

@@ -347,6 +347,9 @@ export async function identifyStudentAction(input: {
     pendingPaymentProgram?: string;
     pendingPaymentAmount?: number;
     canGeneratePass?: boolean;
+    paymentStatus?: string;
+    paymentReference?: string;
+    paymentScreenshotUrl?: string;
   };
 }> {
   try {
@@ -437,6 +440,11 @@ export async function identifyStudentAction(input: {
             gender: '',
           });
 
+          const isPayRequired = Boolean(event.payment_required);
+          const payStatus = found.paymentStatus || (isPayRequired ? 'PENDING' : 'NOT_REQUIRED');
+          const isVerified = !isPayRequired || payStatus === 'VERIFIED';
+          const hasPending = isPayRequired && payStatus === 'PENDING';
+
           return {
             success: true,
             isRegistered: true,
@@ -449,10 +457,16 @@ export async function identifyStudentAction(input: {
               branch: academic.branch || found.branch || '',
               semester: academic.semester || found.year || '',
               gender: '',
-              totalPaidAmount: 0,
-              isPaid: false,
-              hasPendingPayment: false,
-              canGeneratePass: true,
+              totalPaidAmount: isVerified ? (Number(event.payment_amount) || 0) : 0,
+              isPaid: isVerified && isPayRequired,
+              hasPendingPayment: hasPending || (!isVerified && isPayRequired),
+              canGeneratePass: isVerified,
+              specialEntryName: found.performanceType && found.performanceType.toLowerCase() !== 'general entry' ? found.performanceType : undefined,
+              pendingPaymentProgram: hasPending ? `${event.title} (Fee ₹${event.payment_amount || 0})` : undefined,
+              pendingPaymentAmount: hasPending ? (Number(event.payment_amount) || 0) : 0,
+              paymentStatus: payStatus,
+              paymentReference: found.paymentReference,
+              paymentScreenshotUrl: found.paymentScreenshotUrl,
             },
           };
         }

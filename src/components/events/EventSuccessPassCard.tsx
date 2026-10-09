@@ -35,6 +35,8 @@ interface EventSuccessPassCardProps {
     title: string;
     slug: string;
     venue?: string;
+    payment_required?: boolean;
+    payment_amount?: number | null;
   };
   college: {
     name: string;
@@ -69,6 +71,11 @@ export function EventSuccessPassCard({
     isPaid?: boolean;
     totalPaidAmount?: number;
     specialEntryName?: string;
+    hasPendingPayment?: boolean;
+    canGeneratePass?: boolean;
+    paymentStatus?: string;
+    paymentReference?: string;
+    paymentScreenshotUrl?: string;
   } | null>(
     initialSession
       ? {
@@ -95,13 +102,14 @@ export function EventSuccessPassCard({
   const [authDetails, setAuthDetails] = useState<CheckStudentPassAuthResult | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(false);
 
-  // If initialReg was passed in query params and no session yet, auto-identify
+  // If initialReg was passed in query params or initialSession exists, fetch live registration & verification status
   useEffect(() => {
-    if (!participant && initialReg?.trim()) {
+    const lookupTarget = (initialReg || initialSession?.registrationNumber || '').trim();
+    if (lookupTarget) {
       let isMounted = true;
       identifyStudentAction({
         eventId: event.id,
-        identifier: initialReg.trim(),
+        identifier: lookupTarget,
       })
         .then((res) => {
           if (isMounted && res.success && res.participant) {
@@ -113,7 +121,7 @@ export function EventSuccessPassCard({
         isMounted = false;
       };
     }
-  }, [event.id, initialReg, participant]);
+  }, [event.id, initialReg, initialSession?.registrationNumber]);
 
   // Whenever participant is identified, verify student account & login authorization
   useEffect(() => {
@@ -181,6 +189,21 @@ export function EventSuccessPassCard({
 
       if (!authCheck.canDownload) {
         setErrorMessage(authCheck.message);
+        setDownloading(false);
+        return;
+      }
+
+      // Gate pass download if event requires payment and admin hasn't verified
+      const isPayPending = Boolean(
+        event.payment_required &&
+        (p.canGeneratePass === false || p.hasPendingPayment || p.paymentStatus !== 'VERIFIED')
+      );
+      if (p.paymentStatus === 'REJECTED' || isPayPending) {
+        setErrorMessage(
+          p.paymentStatus === 'REJECTED'
+            ? 'Payment was rejected by admin. Pass download is disabled.'
+            : 'Payment verification is pending admin approval. Pass download will unlock once verified.'
+        );
         setDownloading(false);
         return;
       }
@@ -271,6 +294,16 @@ export function EventSuccessPassCard({
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400 shrink-0" />
                 <span>Checking Student Verification...</span>
               </span>
+            ) : participant.paymentStatus === 'REJECTED' ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span>Payment Declined by Admin</span>
+              </span>
+            ) : (event.payment_required && (participant.canGeneratePass === false || participant.hasPendingPayment || participant.paymentStatus !== 'VERIFIED')) ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>Payment Verification Pending</span>
+              </span>
             ) : authStatus === 'AUTHORIZED' ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
@@ -336,41 +369,99 @@ export function EventSuccessPassCard({
               <span>Verifying student account status...</span>
             </div>
           ) : authStatus === 'AUTHORIZED' ? (
-            /* 1. AUTHORIZED — UNLOCKED DOWNLOAD */
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5">
-                <UserCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span className="truncate">
-                  Authenticated Student: <strong>{authDetails?.loggedInEmail || participant.email}</strong>
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 pt-1">
-                <span className="text-[11px] text-slate-300">
-                  Ready to download your official VIP event pass.
-                </span>
+            /* 1. AUTHORIZED */
+            participant.paymentStatus === 'REJECTED' ? (
+              <div className="space-y-3 text-left">
+                <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-xs text-rose-200 space-y-1.5">
+                  <div className="font-bold flex items-center gap-1.5 text-rose-300">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+                    <span>Payment Verification Declined</span>
+                  </div>
+                  <p className="text-[11px] text-rose-200/90 leading-relaxed">
+                    Your payment submission was reviewed and rejected by the college administrator. Please contact the event coordinator with your payment receipt.
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => triggerDownload()}
-                  disabled={downloading}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                  disabled
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 text-rose-400 font-bold text-xs sm:text-sm border border-slate-700 cursor-not-allowed"
                 >
-                  {downloading ? (
-                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                  ) : (
-                    <Download className="w-4 h-4 shrink-0" />
-                  )}
-                  <span>{downloading ? 'Generating...' : 'Download Pass (PNG)'}</span>
+                  <Lock className="w-4 h-4 shrink-0 text-slate-500" />
+                  <span>Pass Locked (Payment Declined)</span>
                 </button>
               </div>
-
-              {downloadSuccess && (
-                <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold pt-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  <span>Pass downloaded to your device! Keep it handy for campus entry.</span>
+            ) : (event.payment_required && (participant.canGeneratePass === false || participant.hasPendingPayment || participant.paymentStatus !== 'VERIFIED')) ? (
+              <div className="space-y-3 text-left">
+                <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5">
+                  <UserCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span className="truncate">
+                    Authenticated Student: <strong>{authDetails?.loggedInEmail || participant.email}</strong>
+                  </span>
                 </div>
-              )}
-            </div>
+
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 text-xs text-amber-200 space-y-2">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-300">
+                    <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>Admin Payment Verification Pending</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                    Your registration form and payment details have been submitted. For paid events, the college administrator must review and verify your payment submission before the VIP pass can be downloaded.
+                  </p>
+                  {(participant.paymentReference || event.payment_amount) && (
+                    <div className="pt-1.5 border-t border-amber-500/20 text-[10px] text-amber-300 flex flex-wrap gap-x-3 gap-y-1 font-mono">
+                      {event.payment_amount && <span>Amount: ₹{event.payment_amount}</span>}
+                      {participant.paymentReference && <span>UTR: {participant.paymentReference}</span>}
+                      <span className="font-sans font-semibold text-amber-400">Status: Awaiting Admin Approval</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  disabled
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800/80 text-amber-400/90 font-bold text-xs sm:text-sm border border-slate-700/80 cursor-not-allowed shadow-inner"
+                >
+                  <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                  <span>Pass Download Locked (Admin Approval Pending)</span>
+                </button>
+              </div>
+            ) : (
+              /* UNLOCKED DOWNLOAD */
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5">
+                  <UserCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span className="truncate">
+                    Authenticated Student: <strong>{authDetails?.loggedInEmail || participant.email}</strong>
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <span className="text-[11px] text-slate-300">
+                    Ready to download your official VIP event pass.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => triggerDownload()}
+                    disabled={downloading}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+                  >
+                    {downloading ? (
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                    ) : (
+                      <Download className="w-4 h-4 shrink-0" />
+                    )}
+                    <span>{downloading ? 'Generating...' : 'Download Pass (PNG)'}</span>
+                  </button>
+                </div>
+
+                {downloadSuccess && (
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold pt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Pass downloaded to your device! Keep it handy for campus entry.</span>
+                  </div>
+                )}
+              </div>
+            )
           ) : authStatus === 'LOGIN_REQUIRED' ? (
             /* 2. LOGIN REQUIRED — REGISTERED ACCOUNT EXISTS BUT USER NOT SIGNED IN */
             <div className="space-y-3 text-left">

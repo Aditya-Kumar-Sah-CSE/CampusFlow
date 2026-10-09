@@ -72,6 +72,11 @@ export function EventStudentIdentityCard({
     mobile?: string;
     branch?: string;
     semester?: string;
+    isPaid?: boolean;
+    totalPaidAmount?: number;
+    hasPendingPayment?: boolean;
+    canGeneratePass?: boolean;
+    paymentStatus?: string;
   } | null>(
     initialSession
       ? {
@@ -166,18 +171,20 @@ export function EventStudentIdentityCard({
   const pendingAmount = pendingPaidPrograms.reduce((sum, p) => sum + (p.paymentAmount || 0), 0);
   const pendingProgramNames = pendingPaidPrograms.map((p) => p.programName).filter(Boolean).join(', ');
 
-  // Pass generation locked if student registered ONLY for paid program and it has not been verified yet
+  // Pass generation locked if payment is awaiting admin verification
   const isPaidPassPending =
-    enrolledPrograms.length > 0 &&
-    verifiedPaidPrograms.length === 0 &&
-    freePrograms.length === 0 &&
-    pendingPaidPrograms.length > 0;
+    (enrolledPrograms.length > 0 &&
+      verifiedPaidPrograms.length === 0 &&
+      freePrograms.length === 0 &&
+      pendingPaidPrograms.length > 0) ||
+    participant?.canGeneratePass === false ||
+    participant?.hasPendingPayment === true;
 
   const handleDownloadPass = async () => {
     if (!participant) return;
     if (isPaidPassPending) {
       alert(
-        `Payment verification is pending by Admin for ${pendingProgramNames}. Once the college admin verifies your payment, your official pass will be unlocked.`
+        `Payment verification is pending by Admin for ${pendingProgramNames || event.title}. Once the college admin verifies your payment, your official pass will be unlocked.`
       );
       return;
     }
