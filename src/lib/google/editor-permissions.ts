@@ -60,6 +60,27 @@ export async function isGoogleFormEditorApproved(
     console.warn('[EditorPermissions] Check warning:', err);
   }
 
+  // 3. Fallback: check audit_logs for active editor grant
+  try {
+    const { data: auditRecords } = await db
+      .from('audit_logs')
+      .select('id, action, metadata')
+      .eq('college_id', collegeId)
+      .eq('entity_type', 'GOOGLE_FORM_EDITOR_ACTIVE')
+      .ilike('entity_id', normalizedEmail)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (auditRecords && auditRecords.length > 0) {
+      const rec = auditRecords[0];
+      if (rec.action === 'ACTIVE' && rec.metadata?.is_active !== false) {
+        return { approved: true, isOwner: false };
+      }
+    }
+  } catch (err) {
+    console.warn('[EditorPermissions] Audit logs check warning:', err);
+  }
+
   return { approved: false, isOwner: false };
 }
 
