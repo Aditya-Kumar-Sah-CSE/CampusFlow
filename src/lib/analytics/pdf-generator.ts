@@ -302,7 +302,68 @@ interface MetadataCell {
 
 interface MetadataRow {
   left: MetadataCell;
-  right: MetadataCell;
+  right?: MetadataCell;
+  fullWidth?: boolean;
+}
+
+/**
+ * Resolves the academic level (e.g., 'B.Tech', 'M.Tech', 'Diploma', 'B.E.')
+ * for display on institutional evaluation PDFs and student response records.
+ *
+ * Evaluation order:
+ * 1. Explicit level value passed from DB (e.g. programme name, programme code).
+ * 2. Text inspection of combined contextual strings (form title, branch, semester name).
+ * 3. Default fallback: 'B.Tech' (standard undergraduate engineering degree).
+ */
+export function resolveAcademicLevel(
+  level?: string | null,
+  fallbackContext?: string | null
+): string {
+  if (level && level.trim()) {
+    const clean = level.trim();
+    const upper = clean.toUpperCase();
+    if (upper === 'BTECH' || upper === 'B.TECH') return 'B.Tech';
+    if (upper === 'MTECH' || upper === 'M.TECH') return 'M.Tech';
+    if (upper === 'BE' || upper === 'B.E.') return 'B.E.';
+    if (upper === 'DIPLOMA') return 'Diploma';
+    if (upper === 'BCA') return 'BCA';
+    if (upper === 'MCA') return 'MCA';
+    if (upper === 'MBA') return 'MBA';
+    if (upper === 'PHD' || upper === 'PH.D.') return 'Ph.D.';
+    if (upper === 'UNDERGRADUATE') return 'B.Tech';
+    if (upper === 'POSTGRADUATE') return 'M.Tech';
+    return clean;
+  }
+
+  if (fallbackContext) {
+    const lower = fallbackContext.toLowerCase();
+    if (lower.includes('m.tech') || lower.includes('mtech') || lower.includes('postgraduate') || lower.includes('m. tech')) {
+      return 'M.Tech';
+    }
+    if (lower.includes('diploma') || lower.includes('polytechnic')) {
+      return 'Diploma';
+    }
+    if (lower.includes('b.e.') || lower.includes('bachelor of engineering')) {
+      return 'B.E.';
+    }
+    if (lower.includes('mca')) {
+      return 'MCA';
+    }
+    if (lower.includes('bca')) {
+      return 'BCA';
+    }
+    if (lower.includes('mba')) {
+      return 'MBA';
+    }
+    if (lower.includes('phd') || lower.includes('ph.d')) {
+      return 'Ph.D.';
+    }
+    if (lower.includes('b.tech') || lower.includes('btech') || lower.includes('undergraduate') || lower.includes('b. tech')) {
+      return 'B.Tech';
+    }
+  }
+
+  return 'B.Tech';
 }
 
 /**
@@ -324,7 +385,7 @@ export function formatSafeCellText(value: string | null | undefined, maxChunk = 
 }
 
 /**
- * Determines whether submission-level metadata (Submission Date and Submission ID)
+ * Determines whether submission-level metadata (Submission Date, Submission ID, and Verified Email)
  * should be rendered on the Student Feedback Submission Record PDF based strictly
  * on the feedback form's Academic Session / Academic Year.
  *
@@ -347,8 +408,8 @@ export function shouldShowSubmissionMetadata(academicSession?: string | null): b
 
 function measureMetadataCell(
   doc: PDFKit.PDFDocument,
-  cell: MetadataCell,
-  width: number,
+  cell?: MetadataCell | null,
+  width = 200,
   fontSize = 8.5,
   lineGap = 1.5
 ): number {
@@ -362,8 +423,8 @@ function measureMetadataCell(
 }
 
 /**
- * Renders a structured 2-column metadata table/grid with dynamic row heights
- * and automatic text wrapping to prevent any field collision.
+ * Renders a structured metadata table/grid with dynamic row heights,
+ * support for full-width rows, and automatic text wrapping.
  */
 function renderMetadataGrid(
   doc: PDFKit.PDFDocument,
@@ -376,10 +437,15 @@ function renderMetadataGrid(
   const padX = 12;
   const padY = 4.5;
   const innerWidth = col1Width - padX * 2;
+  const fullInnerWidth = contentWidth - padX * 2;
   const fontSize = 8.5;
   const lineGap = 1.5;
 
   const rowHeights = rows.map(row => {
+    if (row.fullWidth) {
+      const fullH = measureMetadataCell(doc, row.left, fullInnerWidth, fontSize, lineGap);
+      return Math.max(fullH + padY * 2, 18);
+    }
     const leftH = measureMetadataCell(doc, row.left, innerWidth, fontSize, lineGap);
     const rightH = measureMetadataCell(doc, row.right, innerWidth, fontSize, lineGap);
     const contentH = Math.max(leftH, rightH);
@@ -390,14 +456,6 @@ function renderMetadataGrid(
 
   // Background and outer border
   doc.rect(margin, startY, contentWidth, totalHeight).fillAndStroke(COLORS.bgLight, COLORS.border);
-
-  // Subtle vertical column divider
-  doc
-    .strokeColor('#E2E8F0')
-    .lineWidth(0.5)
-    .moveTo(margin + col1Width, startY + 3)
-    .lineTo(margin + col1Width, startY + totalHeight - 3)
-    .stroke();
 
   let curY = startY;
 
@@ -414,56 +472,94 @@ function renderMetadataGrid(
         .stroke();
     }
 
+    // Subtle vertical column divider (only for 2-column rows, NOT fullWidth)
+    if (!row.fullWidth) {
+      doc
+        .strokeColor('#E2E8F0')
+        .lineWidth(0.5)
+        .moveTo(margin + col1Width, curY + 2)
+        .lineTo(margin + col1Width, curY + rHeight - 2)
+        .stroke();
+    }
+
     const textY = curY + padY;
 
-    // Render Left Cell (confined to innerWidth of Left Column)
-    if (row.left && (row.left.label || row.left.value)) {
-      if (row.left.label) {
-        doc.font('Helvetica-Bold').fontSize(fontSize).fillColor(COLORS.secondary);
-        doc.text(row.left.label, margin + padX, textY, {
-          continued: Boolean(row.left.value),
-          width: innerWidth,
-          lineGap,
-        });
-      }
-      if (row.left.value) {
-        doc.font('Helvetica').fontSize(fontSize).fillColor('#000000');
-        if (!row.left.label) {
-          doc.text(row.left.value, margin + padX, textY, {
-            width: innerWidth,
+    if (row.fullWidth) {
+      // Render Full-Width Left Cell across entire contentWidth
+      if (row.left && (row.left.label || row.left.value)) {
+        if (row.left.label) {
+          doc.font('Helvetica-Bold').fontSize(fontSize).fillColor(COLORS.secondary);
+          doc.text(row.left.label, margin + padX, textY, {
+            continued: Boolean(row.left.value),
+            width: fullInnerWidth,
             lineGap,
           });
-        } else {
-          doc.text(row.left.value, {
+        }
+        if (row.left.value) {
+          doc.font('Helvetica').fontSize(fontSize).fillColor('#000000');
+          if (!row.left.label) {
+            doc.text(row.left.value, margin + padX, textY, {
+              width: fullInnerWidth,
+              lineGap,
+            });
+          } else {
+            doc.text(row.left.value, {
+              width: fullInnerWidth,
+              lineGap,
+            });
+          }
+        }
+      }
+    } else {
+      // Render Left Cell (confined to innerWidth of Left Column)
+      if (row.left && (row.left.label || row.left.value)) {
+        if (row.left.label) {
+          doc.font('Helvetica-Bold').fontSize(fontSize).fillColor(COLORS.secondary);
+          doc.text(row.left.label, margin + padX, textY, {
+            continued: Boolean(row.left.value),
             width: innerWidth,
             lineGap,
           });
         }
+        if (row.left.value) {
+          doc.font('Helvetica').fontSize(fontSize).fillColor('#000000');
+          if (!row.left.label) {
+            doc.text(row.left.value, margin + padX, textY, {
+              width: innerWidth,
+              lineGap,
+            });
+          } else {
+            doc.text(row.left.value, {
+              width: innerWidth,
+              lineGap,
+            });
+          }
+        }
       }
-    }
 
-    // Render Right Cell (confined to innerWidth of Right Column)
-    if (row.right && (row.right.label || row.right.value)) {
-      if (row.right.label) {
-        doc.font('Helvetica-Bold').fontSize(fontSize).fillColor(COLORS.secondary);
-        doc.text(row.right.label, margin + col1Width + padX, textY, {
-          continued: Boolean(row.right.value),
-          width: innerWidth,
-          lineGap,
-        });
-      }
-      if (row.right.value) {
-        doc.font('Helvetica').fontSize(fontSize).fillColor('#000000');
-        if (!row.right.label) {
-          doc.text(row.right.value, margin + col1Width + padX, textY, {
+      // Render Right Cell (confined to innerWidth of Right Column)
+      if (row.right && (row.right.label || row.right.value)) {
+        if (row.right.label) {
+          doc.font('Helvetica-Bold').fontSize(fontSize).fillColor(COLORS.secondary);
+          doc.text(row.right.label, margin + col1Width + padX, textY, {
+            continued: Boolean(row.right.value),
             width: innerWidth,
             lineGap,
           });
-        } else {
-          doc.text(row.right.value, {
-            width: innerWidth,
-            lineGap,
-          });
+        }
+        if (row.right.value) {
+          doc.font('Helvetica').fontSize(fontSize).fillColor('#000000');
+          if (!row.right.label) {
+            doc.text(row.right.value, margin + col1Width + padX, textY, {
+              width: innerWidth,
+              lineGap,
+            });
+          } else {
+            doc.text(row.right.value, {
+              width: innerWidth,
+              lineGap,
+            });
+          }
         }
       }
     }
@@ -507,25 +603,30 @@ export async function generateIndividualFacultyPDF(
 
   let currentY = 104;
 
+  const resolvedLevel = resolveAcademicLevel(
+    report.academicLevel,
+    `${report.title} ${report.branch} ${report.semester}`
+  );
+
   // Metadata Table Grid (2 Columns)
   const metadataRows: MetadataRow[] = [
     {
       left: { label: 'Faculty Member: ', value: report.facultyName || 'N/A' },
-      right: { label: 'Semester: ', value: report.semester || 'N/A' },
+      right: { label: 'Academic Level: ', value: resolvedLevel },
     },
     {
       left: {
         label: 'Subject / Course: ',
         value: `${report.subjectName || 'N/A'}${report.subjectCode ? ` (${report.subjectCode})` : ''}`,
       },
-      right: { label: 'Evaluation Type: ', value: report.formType || 'Faculty-Specific' },
+      right: { label: 'Semester: ', value: report.semester || 'N/A' },
     },
     {
       left: { label: 'Branch / Discipline: ', value: report.branch || 'N/A' },
-      right: { label: 'Lifecycle Status: ', value: report.status || 'PUBLISHED' },
+      right: { label: 'Academic Session: ', value: report.academicYear || 'N/A' },
     },
     {
-      left: { label: 'Academic Session: ', value: report.academicYear || 'N/A' },
+      left: { label: 'Evaluation Type: ', value: report.formType || 'Faculty-Specific' },
       right: {
         label: 'Submissions: ',
         value: report.excludedCount && report.excludedCount > 0
@@ -816,18 +917,27 @@ export async function generateOverallFeedbackPDF(
 
   let currentY = 104;
 
+  const resolvedLevel = resolveAcademicLevel(
+    report.academicLevel,
+    `${report.scopeTitle} ${report.filters.branchName} ${report.filters.semesterName}`
+  );
+
   // Scope Metadata Grid (2 Columns, dynamic wrapped row heights)
   const metadataRows: MetadataRow[] = [
     {
       left: { label: 'Analysis Scope: ', value: report.scopeTitle || 'College-Wide Academic Evaluation' },
-      right: { label: 'Academic Session: ', value: report.filters.academicYearName || 'All Sessions' },
+      right: { label: 'Academic Level: ', value: resolvedLevel },
     },
     {
       left: { label: 'Branch / Discipline: ', value: report.filters.branchName || 'All Branches' },
-      right: { label: 'Target Semester: ', value: report.filters.semesterName || 'All Semesters' },
+      right: { label: 'Academic Session: ', value: report.filters.academicYearName || 'All Sessions' },
     },
     {
-      left: { label: 'Target Faculty: ', value: report.filters.facultyName || 'All Faculty Members' },
+      left: { label: 'Target Semester: ', value: report.filters.semesterName || 'All Semesters' },
+      right: { label: 'Target Faculty: ', value: report.filters.facultyName || 'All Faculty Members' },
+    },
+    {
+      left: { label: 'Evaluation System: ', value: `${brand.name} Feedback System` },
       right: {
         label: 'Evaluation Date: ',
         value: `${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} • ${brand.code} QA`,
@@ -1095,23 +1205,28 @@ export async function generateSemesterComparativePDF(
 
   const totalStudents = report.totalStudents ?? report.totalResponses;
 
+  const resolvedLevel = resolveAcademicLevel(
+    report.academicLevel,
+    `${report.title} ${report.branch} ${report.semester}`
+  );
+
   // Metadata Table Grid (2 Columns, dynamic wrapped row heights)
   const metadataRows: MetadataRow[] = [
     {
       left: { label: 'Branch / Department: ', value: report.branch || 'N/A' },
-      right: { label: 'Academic Session: ', value: report.academicYear || 'N/A' },
+      right: { label: 'Academic Level: ', value: resolvedLevel },
     },
     {
       left: { label: 'Semester Level: ', value: report.semester || 'N/A' },
-      right: {
+      right: { label: 'Academic Session: ', value: report.academicYear || 'N/A' },
+    },
+    {
+      left: {
         label: 'Feedback Type: ',
         value: report.formType === 'SEMESTER_FEEDBACK'
           ? 'Multi-Faculty Semester Evaluation'
           : (report.formType || 'SEMESTER_FEEDBACK'),
       },
-    },
-    {
-      left: { label: 'Form Title: ', value: report.title || 'Semester Feedback Form' },
       right: {
         label: 'Submissions: ',
         value: report.excludedCount && report.excludedCount > 0
@@ -1120,7 +1235,7 @@ export async function generateSemesterComparativePDF(
       },
     },
     {
-      left: { label: 'System: ', value: `${brand.name} Feedback System` },
+      left: { label: 'Form Title: ', value: report.title || 'Semester Feedback Form' },
       right: {
         label: 'Faculty Evaluated: ',
         value: `${report.facultyGrids?.length || 0} Faculty-Subject Evaluations`,
@@ -1457,6 +1572,7 @@ export interface StudentResponsePDFData {
   registrationNumber?: string | null;
   studentEmail: string;
   academicYear: string;
+  academicLevel?: string | null;
   branch: string;
   semester: string;
   formTitle: string;
@@ -1486,12 +1602,22 @@ export async function generateStudentResponsePDF(
   branding?: CollegeBranding
 ): Promise<Buffer> {
   const brand = branding || DEFAULT_BRANDING;
+  const showSubmissionMeta = shouldShowSubmissionMetadata(data.academicYear);
+  const resolvedLevel = resolveAcademicLevel(
+    data.academicLevel,
+    `${data.formTitle} ${data.branch} ${data.semester}`
+  );
+
+  const docTitle = showSubmissionMeta
+    ? `Feedback Submission Record — ${data.studentEmail}`
+    : `Feedback Submission Record — ${resolvedLevel} — ${data.registrationNumber || 'Student'}`;
+
   const doc = new PDFDocument({
     size: 'A4',
     margin: 36,
     autoFirstPage: true,
     info: {
-      Title: `Feedback Submission Record — ${data.studentEmail}`,
+      Title: docTitle,
       Author: brand.name,
       Subject: 'Student Feedback Submission Receipt',
       Keywords: `${brand.code}, Student Response, Feedback Receipt`,
@@ -1524,68 +1650,106 @@ export async function generateStudentResponsePDF(
       })
     : 'Recorded in Google Sheet';
 
-  // Metadata Table Grid (2 Columns, dynamic wrapped row heights)
-  const showSubmissionMeta = shouldShowSubmissionMetadata(data.academicYear);
+  // Metadata Table Grid (dynamic wrapped row heights, supporting full-width rows)
+  const metadataRows: MetadataRow[] = [];
 
-  const metadataRows: MetadataRow[] = [
-    {
-      left: {
-        label: 'Student Name: ',
-        value: data.studentName || 'Confidential / Registered Student',
+  if (!showSubmissionMeta) {
+    // Academic Session <= 2025-2026:
+    // Strictly hide Verified Email, Submission Date, and Submission ID.
+    metadataRows.push(
+      {
+        left: {
+          label: 'Student Name: ',
+          value: data.studentName || 'Confidential / Registered Student',
+        },
+        right: {
+          label: 'Academic Level: ',
+          value: resolvedLevel,
+        },
       },
-      right: {
-        label: 'Branch / Discipline: ',
-        value: data.branch || 'N/A',
+      {
+        left: {
+          label: 'Registration Number: ',
+          value: data.registrationNumber || 'N/A',
+        },
+        right: {
+          label: 'Branch / Discipline: ',
+          value: data.branch || 'N/A',
+        },
       },
-    },
-    {
-      left: {
-        label: 'Registration Number: ',
-        value: data.registrationNumber || 'N/A',
+      {
+        left: {
+          label: 'Semester: ',
+          value: data.semester || 'N/A',
+        },
+        right: {
+          label: 'Academic Session: ',
+          value: data.academicYear || 'N/A',
+        },
       },
-      right: {
-        label: 'Semester: ',
-        value: data.semester || 'N/A',
+      {
+        left: {
+          label: 'Feedback Form: ',
+          value: data.formTitle || 'N/A',
+        },
+        fullWidth: true,
+      }
+    );
+  } else {
+    // Academic Session >= 2026-2027:
+    // Display full verified metadata alongside Academic Level in structured 2-column rows.
+    metadataRows.push(
+      {
+        left: {
+          label: 'Student Name: ',
+          value: data.studentName || 'Confidential / Registered Student',
+        },
+        right: {
+          label: 'Academic Level: ',
+          value: resolvedLevel,
+        },
       },
-    },
-    {
-      left: {
-        label: 'Verified Email: ',
-        value: formatSafeCellText(data.studentEmail, 28),
+      {
+        left: {
+          label: 'Registration Number: ',
+          value: data.registrationNumber || 'N/A',
+        },
+        right: {
+          label: 'Branch / Discipline: ',
+          value: data.branch || 'N/A',
+        },
       },
-      right: {
-        label: 'Academic Session: ',
-        value: data.academicYear || 'N/A',
+      {
+        left: {
+          label: 'Verified Email: ',
+          value: formatSafeCellText(data.studentEmail, 28),
+        },
+        right: {
+          label: 'Semester: ',
+          value: data.semester || 'N/A',
+        },
       },
-    },
-    {
-      left: {
-        label: 'Feedback Form: ',
-        value: data.formTitle || 'N/A',
+      {
+        left: {
+          label: 'Feedback Form: ',
+          value: data.formTitle || 'N/A',
+        },
+        right: {
+          label: 'Academic Session: ',
+          value: data.academicYear || 'N/A',
+        },
       },
-      right: showSubmissionMeta
-        ? {
-            label: 'Submission Date: ',
-            value: formattedDate,
-          }
-        : {
-            label: '',
-            value: '',
-          },
-    },
-  ];
-
-  if (showSubmissionMeta) {
-    metadataRows.push({
-      left: {
-        label: '',
-        value: '',
-      },
-      right: {
-        label: 'Submission ID: ',
-        value: formatSafeCellText(data.submissionId, 28) || 'Recorded',
-      },
-    });
+      {
+        left: {
+          label: 'Submission ID: ',
+          value: formatSafeCellText(data.submissionId, 28) || 'Recorded',
+        },
+        right: {
+          label: 'Submission Date: ',
+          value: formattedDate,
+        },
+      }
+    );
   }
 
   const metaHeight = renderMetadataGrid(doc, currentY, contentWidth, margin, metadataRows);

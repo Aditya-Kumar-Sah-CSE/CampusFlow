@@ -19,6 +19,7 @@ import type {
 } from '@/lib/analytics/types';
 import { isGoogleConfigured } from '@/lib/google/auth';
 import { isValidUUID } from '@/lib/validation';
+import { resolveAcademicLevel } from '@/lib/analytics/pdf-generator';
 
 async function getAdminDb(client?: any) {
   return createAdminClient() || client || (await createClient());
@@ -282,6 +283,10 @@ export async function getFormAnalyticsData(
   }
 
   report.collegeId = form.college_id;
+  report.academicLevel = resolveAcademicLevel(
+    (form.semester as any)?.programme?.name || (form.semester as any)?.programme?.code || null,
+    `${form.title} ${form.branch?.name} ${form.semester?.name}`
+  );
 
   return { success: true, report };
 }
@@ -510,6 +515,11 @@ export async function getOverallAnalyticsData(
       }
     }
 
+    singleReport.academicLevel = resolveAcademicLevel(
+      (form.semester as any)?.programme?.name || (form.semester as any)?.programme?.code || null,
+      `${form.title} ${form.branch?.name} ${form.semester?.name}`
+    );
+
     formReports.push(singleReport);
   }
 
@@ -560,6 +570,10 @@ export async function getOverallAnalyticsData(
   });
 
   aggregated.collegeId = targetCollegeId;
+  aggregated.academicLevel = resolveAcademicLevel(
+    formReports.find(r => r.academicLevel)?.academicLevel,
+    `${scopeTitle} ${branchName} ${semesterName}`
+  );
 
   return { success: true, report: aggregated };
 }

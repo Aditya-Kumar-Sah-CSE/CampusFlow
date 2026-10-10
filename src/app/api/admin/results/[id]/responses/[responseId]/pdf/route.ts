@@ -4,7 +4,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { fetchSingleResponseFromSheet } from '@/lib/google/sheets';
 import { syncFormResponsesToSheet } from '@/lib/google/sync';
 import { BCE_FEEDBACK_PARAMETERS } from '@/lib/google/template';
-import { generateStudentResponsePDF, StudentResponsePDFData } from '@/lib/analytics/pdf-generator';
+import {
+  generateStudentResponsePDF,
+  StudentResponsePDFData,
+  resolveAcademicLevel,
+} from '@/lib/analytics/pdf-generator';
 import { getCollegeBranding } from '@/lib/tenant/branding';
 import { isValidUUID } from '@/lib/validation';
 import { assertPdfAccess } from '@/lib/billing/access-control';
@@ -83,7 +87,7 @@ export async function GET(
         google_sheet_id,
         google_sheet_url,
         branch:branches(name),
-        semester:semesters(name),
+        semester:semesters(name, programme_id),
         academic_year:academic_years(name),
         faculty:faculties(name),
         subject:subjects(name, code),
@@ -332,11 +336,32 @@ export async function GET(
 
     // 11. Generate Student Response PDF Binary with Tenant Branding
     const branding = await getCollegeBranding(form.college_id);
+
+    let programmeName: string | null = null;
+    if ((form.semester as any)?.programme_id) {
+      try {
+        const { data: prog } = await supabase
+          .from('academic_programmes')
+          .select('name, code')
+          .eq('id', (form.semester as any).programme_id)
+          .maybeSingle();
+        if (prog) {
+          programmeName = prog.name || prog.code;
+        }
+      } catch {}
+    }
+
+    const academicLevel = resolveAcademicLevel(
+      programmeName,
+      `${form.title} ${(form.branch as any)?.name} ${(form.semester as any)?.name}`
+    );
+
     const pdfBuffer = await generateStudentResponsePDF({
       studentName,
       registrationNumber,
       studentEmail,
       academicYear: (form.academic_year as any)?.name || 'Academic Session',
+      academicLevel,
       branch: (form.branch as any)?.name || 'Engineering',
       semester: (form.semester as any)?.name || 'Semester',
       formTitle: form.title,

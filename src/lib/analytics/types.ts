@@ -87,6 +87,7 @@ export interface FormAnalyticsReport {
   collegeId?: string;
   title: string;
   academicYear: string;
+  academicLevel?: string;
   branch: string;
   semester: string;
   facultyName: string;
@@ -135,6 +136,7 @@ export interface FacultyComparisonItem {
 export interface AggregatedAnalyticsReport {
   scopeTitle: string;
   collegeId?: string;
+  academicLevel?: string;
   filters: {
     academicYearId?: string;
     academicYearName?: string;
