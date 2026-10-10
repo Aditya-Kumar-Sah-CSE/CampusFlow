@@ -24,6 +24,7 @@ import {
   organizeFormAndSheetInDrive,
   organizeAllCollegeFeedbackFormsInDrive,
 } from '@/lib/google/feedback-drive';
+import { shareNewFormWithApprovedEditors } from '@/lib/google/editor-permissions';
 import {
   generateFeedbackFormTitle,
   generateFeedbackFormDescription,
@@ -733,6 +734,17 @@ export async function provisionGoogleFormAndSheetAction(params: {
       });
     } catch (driveErr: any) {
       console.warn('[provisionGoogleFormAndSheetAction] Drive folder organization notice:', driveErr?.message || driveErr);
+    }
+
+    // Auto-share with all approved editors for this college for lifetime instant edit access
+    try {
+      await shareNewFormWithApprovedEditors({
+        collegeId: targetCollegeId,
+        googleFormId: googleFormResult.formId,
+        googleSheetId: googleSheetResult.spreadsheetId,
+      });
+    } catch (shareErr) {
+      console.warn('[provisionGoogleFormAndSheetAction] Auto-share notice:', shareErr);
     }
 
     // If multi-faculty items exist, save to feedback_form_items junction table

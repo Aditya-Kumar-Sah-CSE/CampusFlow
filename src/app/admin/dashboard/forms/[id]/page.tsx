@@ -153,6 +153,7 @@ export default async function FeedbackFormDetailPage({
         auditLogs={(auditLogs || []) as AuditLog[]}
         currentUserEmail={session.admin?.email || session.user?.email || ''}
         hasAnalyticsAccess={analyticsAccess.allowed}
+        isSuperAdmin={Boolean(session.isSuperAdmin || session.isPlatformSuperAdmin)}
       />
     </div>
   );

@@ -37,24 +37,27 @@ import {
   Lock,
   Loader2,
 } from 'lucide-react';
+import { GoogleFormEditPermissionModal } from './GoogleFormEditPermissionModal';
 
 interface Props {
   form: FeedbackForm;
   auditLogs: AuditLog[];
   currentUserEmail: string;
   hasAnalyticsAccess?: boolean;
+  isSuperAdmin?: boolean;
 }
-
 
 export function FormDetailConsole({
   form: initialForm,
   auditLogs,
   currentUserEmail,
   hasAnalyticsAccess = false,
+  isSuperAdmin = false,
 }: Props) {
   const router = useRouter();
   const hydrated = useHydrated();
   const [form, setForm] = useState<FeedbackForm>(initialForm);
+  const [showEditPermModal, setShowEditPermModal] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [pendingAction, setPendingAction] = useState<
     'PUBLISH' | 'CLOSE' | 'REOPEN' | 'ARCHIVE' | 'RESTORE' | 'DELETE' | 'SYNC' | null
@@ -64,6 +67,7 @@ export function FormDetailConsole({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const isNative = form.response_destination_type === 'NATIVE_SHEET';
+  const targetGoogleFormEditUrl = form.google_form_edit_url || (form.google_form_id ? `https://docs.google.com/forms/d/${form.google_form_id}/edit` : null);
 
   const handleCopyLink = () => {
     if (form.google_form_url) {
@@ -244,25 +248,16 @@ export function FormDetailConsole({
               </>
             )}
 
-            {form.google_form_edit_url ? (
-              <ExternalActionLink
-                href={form.google_form_edit_url}
-                openingText="Opening Google Forms..."
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-medium transition-colors"
+            {targetGoogleFormEditUrl && (
+              <button
+                type="button"
+                onClick={() => setShowEditPermModal(true)}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-medium transition-colors cursor-pointer inline-flex items-center gap-1.5"
               >
                 <span>Edit in Google Forms</span>
                 <ExternalLink className="w-3 h-3 text-slate-400" />
-              </ExternalActionLink>
-            ) : form.google_form_id ? (
-              <ExternalActionLink
-                href={`https://docs.google.com/forms/d/${form.google_form_id}/edit`}
-                openingText="Opening Google Forms..."
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-medium transition-colors"
-              >
-                <span>Edit in Google Forms</span>
-                <ExternalLink className="w-3 h-3 text-slate-400" />
-              </ExternalActionLink>
-            ) : null}
+              </button>
+            )}
 
             {form.google_sheet_url || form.google_sheet_id ? (
               <ExternalActionLink
@@ -737,6 +732,18 @@ export function FormDetailConsole({
           </div>
         </div>
       </div>
+
+      {targetGoogleFormEditUrl && (
+        <GoogleFormEditPermissionModal
+          isOpen={showEditPermModal}
+          onClose={() => setShowEditPermModal(false)}
+          collegeId={form.college_id || ''}
+          formTitle={form.title}
+          currentUserEmail={currentUserEmail}
+          googleFormEditUrl={targetGoogleFormEditUrl}
+          isSuperAdmin={isSuperAdmin}
+        />
+      )}
     </div>
   );
 }

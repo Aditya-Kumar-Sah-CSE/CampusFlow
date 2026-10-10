@@ -177,6 +177,8 @@ export interface FeedbackForm {
   google_form_url?: string | null;
   google_form_edit_url?: string | null;
   google_sheet_url?: string | null;
+  college_id?: string | null;
+  college?: any;
   response_destination_type?: 'NATIVE_SHEET' | 'APPLICATION_MANAGED' | string | null;
   response_count?: number;
   last_synced_at?: string | null;
@@ -369,5 +371,43 @@ export interface BillingOverviewItem {
   trialHistory?: CollegeTrialEntitlement[];
   membersCount?: number;
   admins?: Array<{ id: string; email: string; name: string }>;
+}
+
+export type GoogleFormEditorRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface GoogleFormEditorRequest {
+  id: string;
+  college_id: string;
+  admin_id?: string | null;
+  admin_email: string;
+  admin_name: string;
+  status: GoogleFormEditorRequestStatus;
+  requested_at: string;
+  reviewed_by?: string | null;
+  reviewed_by_email?: string | null;
+  reviewed_at?: string | null;
+  rejection_reason?: string | null;
+  created_at: string;
+  updated_at: string;
+  college?: {
+    id: string;
+    name: string;
+    code: string;
+    slug: string;
+  } | null;
+}
+
+export interface CollegeGoogleFormEditor {
+  id: string;
+  college_id: string;
+  admin_id?: string | null;
+  admin_email: string;
+  admin_name?: string | null;
+  granted_by?: string | null;
+  granted_by_email?: string | null;
+  granted_at: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 

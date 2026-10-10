@@ -24,12 +24,14 @@ import {
   ShieldPlus,
   Sparkles,
   GraduationCap,
+  FolderSync,
 } from 'lucide-react';
 import type { Admin, AdminRequest } from '@/types/database';
 import { useHydrated, formatDateShort, formatTime } from '@/lib/hooks/use-hydrated';
 import { isPrimarySuperAdmin } from '@/lib/auth/admin-auth-shared';
 import { AdminSessionsCard } from '../AdminSessionsCard';
 import { SignedUpStudentsSection } from './SignedUpStudentsSection';
+import { GoogleFormEditorsManagementSection } from './GoogleFormEditorsManagementSection';
 import type { AdminStudentItem } from '@/app/admin/actions';
 
 interface Props {
@@ -60,17 +62,17 @@ export function AdminManagementTab({
   const [isPending, startTransition] = useTransition();
   const [admins, setAdmins] = useState<Admin[]>(adminsList);
   const [requests, setRequests] = useState<AdminRequest[]>(adminRequests);
-  const [subTab, setSubTab] = useState<'admins' | 'students'>(
-    initialSubTab === 'students' ? 'students' : 'admins'
+  const [subTab, setSubTab] = useState<'admins' | 'students' | 'editors'>(
+    initialSubTab === 'students' ? 'students' : initialSubTab === 'editors' ? 'editors' : 'admins'
   );
 
   useEffect(() => {
-    if (initialSubTab === 'students' || initialSubTab === 'admins') {
+    if (initialSubTab === 'students' || initialSubTab === 'admins' || initialSubTab === 'editors') {
       setSubTab(initialSubTab);
     }
   }, [initialSubTab]);
 
-  const handleSubTabChange = (tab: 'admins' | 'students') => {
+  const handleSubTabChange = (tab: 'admins' | 'students' | 'editors') => {
     setSubTab(tab);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -356,6 +358,19 @@ export function AdminManagementTab({
             {initialStudents?.length ?? 0}
           </span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => handleSubTabChange('editors')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+            subTab === 'editors'
+              ? 'bg-bce-navy text-white shadow-xs font-bold'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          <FolderSync className="w-4 h-4 text-amber-400" />
+          <span>Google Form Editors</span>
+        </button>
       </div>
 
       {subTab === 'students' ? (
@@ -365,6 +380,12 @@ export function AdminManagementTab({
           isSuperAdmin={isSuperAdmin}
           activeCollegeId={activeCollegeId}
           activeCollegeName={activeCollegeName}
+        />
+      ) : subTab === 'editors' ? (
+        <GoogleFormEditorsManagementSection
+          activeCollegeId={activeCollegeId}
+          activeCollegeName={activeCollegeName}
+          isSuperAdmin={isSuperAdmin}
         />
       ) : (
         <>
