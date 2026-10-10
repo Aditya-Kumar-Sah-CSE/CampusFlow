@@ -90,7 +90,36 @@ export default async function AdminDashboardPage({
     branch:branches(id, name, code),
     semester:semesters(id, name)
   `, { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 19);
-  const formQuery = adminDb.from('feedback_forms').select('id, title, form_type, status, slug, academic_year_id, branch_id, semester_id, faculty_id, subject_id, response_count, created_at, published_at, closed_at, google_form_url, google_sheet_url, public_url', { count: 'exact' }).eq('college_id', targetCollegeId).order('created_at', { ascending: false }).range(0, 49);
+  const formQuery = adminDb
+    .from('feedback_forms')
+    .select(`
+      id,
+      title,
+      description,
+      form_type,
+      status,
+      slug,
+      academic_year_id,
+      branch_id,
+      semester_id,
+      faculty_id,
+      subject_id,
+      response_count,
+      response_destination_type,
+      created_at,
+      published_at,
+      closed_at,
+      google_form_url,
+      google_sheet_url,
+      faculty:faculties(id, name, department),
+      subject:subjects(id, name, code),
+      academic_year:academic_years(id, name),
+      branch:branches(id, name, code),
+      semester:semesters(id, name)
+    `, { count: 'exact' })
+    .eq('college_id', targetCollegeId)
+    .order('created_at', { ascending: false })
+    .range(0, 49);
   const auditQuery = adminDb.from('audit_logs').select('id, college_id, actor_user_id, actor_email, action, entity_type, entity_id, details, metadata, created_at').eq('college_id', targetCollegeId).order('created_at', { ascending: false }).limit(20);
   const activeFacultyCountQuery = adminDb.from('faculties').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
   const activeSubjectCountQuery = adminDb.from('subjects').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
@@ -106,7 +135,7 @@ export default async function AdminDashboardPage({
     { data: assignments, count: totalAssignmentsCount },
     { data: adminRequests, error: adminReqError },
     { data: adminsList, error: adminsListError },
-    { data: feedbackForms, count: totalFormsCount },
+    { data: feedbackForms, count: totalFormsCount, error: formError },
     { data: auditLogs },
     { count: activeFacultiesCount },
     { count: activeSubjectsCount },
@@ -138,6 +167,9 @@ export default async function AdminDashboardPage({
   }
   if (adminsListError) {
     console.error('[ADMINS_LIST_QUERY]', { error: adminsListError.message, code: adminsListError.code });
+  }
+  if (formError) {
+    console.error('[ADMIN_FORM_QUERY_ERROR]', { error: formError.message, code: formError.code });
   }
 
   // Resolve admin user profiles from auth.users (strictly replacing legacy admins table)
@@ -248,7 +280,7 @@ export default async function AdminDashboardPage({
     totalSubjects: totalSubjectsCount ?? (subjects?.length || 0),
     activeSubjects: activeSubjectsCount ?? 0,
     totalAssignments: totalAssignmentsCount ?? (assignments?.length || 0),
-    totalForms: totalFormsCount ?? (feedbackForms?.length || 0),
+    totalForms: Math.max(totalFormsCount ?? (feedbackForms?.length || 0), publishedFormsCount ?? 0),
     publishedForms: publishedFormsCount ?? 0,
   };
 
@@ -267,7 +299,7 @@ export default async function AdminDashboardPage({
         assignments={(assignments as unknown as FacultySubjectAssignment[]) || []}
         adminRequests={resolvedAdminRequests}
         adminsList={resolvedAdminsList}
-        feedbackForms={(feedbackForms as FeedbackForm[]) || []}
+        feedbackForms={(feedbackForms as unknown as FeedbackForm[]) || []}
         auditLogs={(auditLogs as AuditLog[]) || []}
         isSuperAdmin={session.isSuperAdmin}
         hasFullAnalytics={hasFullAnalytics}
