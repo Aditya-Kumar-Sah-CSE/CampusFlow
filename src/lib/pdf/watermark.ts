@@ -92,12 +92,13 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
 
   const logoBuf = getCampusFlowLogoBuffer();
   const brandName = 'CampusFlow';
-  const url = 'https://campusflow.in';
+  const urlDisplay = '143campusflow.vercel.app';
+  const fullUrl = 'https://143campusflow.vercel.app';
   const effectiveCollege = collegeName && collegeName.trim() ? collegeName.trim() : 'Institution';
   const trialText = `CampusFlow provides FREE TRIAL to ${effectiveCollege}`;
 
   // 4 evenly spaced diagonal bands covering the entire page from top to bottom
-  const yPositions = [175, 365, 545, 720];
+  const yPositions = [185, 370, 550, 725];
 
   for (const yCenter of yPositions) {
     doc.save();
@@ -106,13 +107,13 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
     // Opacity: strictly between 50% - 70%
     doc.opacity(0.60);
 
-    doc.font('Helvetica-Bold').fontSize(15);
+    doc.font('Helvetica-Bold').fontSize(14);
     const brandW = doc.widthOfString(brandName);
-    doc.font('Helvetica').fontSize(10);
-    const dotUrlW = doc.widthOfString('   •   ' + url);
+    doc.font('Helvetica').fontSize(9.5);
+    const dotUrlW = doc.widthOfString('   •   ' + urlDisplay);
 
-    const iconSize = 18;
-    const gap = 8;
+    const iconSize = 17;
+    const gap = 7;
     const hasLogo = Boolean(logoBuf);
     const headerTotalW = (hasLogo ? iconSize + gap : 0) + brandW + dotUrlW;
     const headerStartX = (pageWidth - headerTotalW) / 2;
@@ -120,7 +121,7 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
     let curX = headerStartX;
     if (hasLogo && logoBuf) {
       try {
-        doc.image(logoBuf, curX, yCenter - 13, { width: iconSize, height: iconSize });
+        doc.image(logoBuf, curX, yCenter - 12, { width: iconSize, height: iconSize });
       } catch {
         // Fallback gracefully if image render fails
       }
@@ -129,21 +130,23 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
 
     doc
       .font('Helvetica-Bold')
-      .fontSize(15)
+      .fontSize(14)
       .fillColor('#334155')
-      .text(brandName, curX, yCenter - 11, { continued: true })
+      .text(brandName, curX, yCenter - 10, { continued: true })
       .font('Helvetica')
-      .fontSize(10)
+      .fontSize(9.5)
       .fillColor('#2563EB')
-      .text('   •   ' + url);
+      .text('   •   ' + urlDisplay, {
+        link: fullUrl,
+      });
 
-    doc.font('Helvetica-Bold').fontSize(9.5);
+    doc.font('Helvetica-Bold').fontSize(9);
     const trialW = doc.widthOfString(trialText);
     const trialStartX = (pageWidth - trialW) / 2;
 
     doc
       .font('Helvetica-Bold')
-      .fontSize(9.5)
+      .fontSize(9)
       .fillColor('#64748B')
       .text(trialText, trialStartX, yCenter + 7);
 
