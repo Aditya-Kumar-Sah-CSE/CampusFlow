@@ -25,7 +25,7 @@ export function PdfDownloadUpgradeModal({
 
   const handleUpgradeNow = () => {
     onClose();
-    router.push('/admin/billing');
+    router.push('/admin/dashboard?tab=billing');
   };
 
   return (
