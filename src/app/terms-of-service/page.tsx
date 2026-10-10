@@ -280,9 +280,9 @@ export default function TermsOfServicePage() {
                 rel="noopener noreferrer"
                 className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
               >
-                Dr. Avinav
+                Dr. Abhinav Kumar
               </a>
-              {' '}(Assistant Professor)
+              {' '}(Assistant Professor; BCE, Bhagalpur)
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4 text-[11px] text-slate-500">

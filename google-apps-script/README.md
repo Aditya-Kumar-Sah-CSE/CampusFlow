@@ -2,7 +2,7 @@
 
 **Runner Account**: `iambestadi@gmail.com`  
 **Platform**: CampusFlow  
-**Developer**: Mr. Aditya Kumar Sah (under the guidance of Dr. Avinav (Assistant Professor))
+**Developer**: Mr. Aditya Kumar Sah (under the guidance of Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur))
 
 ---
 

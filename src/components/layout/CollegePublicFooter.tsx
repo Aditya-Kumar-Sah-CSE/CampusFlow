@@ -124,9 +124,9 @@ export function CollegePublicFooter({
               rel="noopener noreferrer"
               className={`transition-colors ${authorLinkClass}`}
             >
-              Dr. Avinav
+              Dr. Abhinav Kumar
             </a>
-            {' '}(Assistant Professor)
+            {' '}(Assistant Professor; BCE, Bhagalpur)
           </p>
         )}
 

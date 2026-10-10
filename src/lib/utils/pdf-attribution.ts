@@ -12,7 +12,7 @@ export interface PdfAttributionOptions {
 
 /**
  * Standard PDF Attribution Text:
- * "Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)"
+ * "Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur)"
  * Renders vector-sharp, clickable hyperlinks in PDFKit pointing to both respective portfolios/profiles.
  */
 export function renderPdfAttributionFooter(
@@ -27,7 +27,7 @@ export function renderPdfAttributionFooter(
   const t1 = 'Designed and developed by ';
   const t2 = 'Mr. Aditya Kumar Sah';
   const t3 = ' under the guidance of ';
-  const t4 = 'Dr. Avinav (Assistant Professor)';
+  const t4 = 'Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur)';
 
   // Measure exact widths to center precisely
   doc.font('Helvetica').fontSize(fontSize);

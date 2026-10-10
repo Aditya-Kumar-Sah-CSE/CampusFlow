@@ -227,9 +227,9 @@ export default async function AdminDashboardLayout({
               rel="noopener noreferrer"
               className="font-medium text-bce-cobalt hover:underline"
             >
-              Dr. Avinav
+              Dr. Abhinav Kumar
             </a>
-            {' '}(Assistant Professor)
+            {' '}(Assistant Professor; BCE, Bhagalpur)
           </span>
           <span className="truncate max-w-full">
             Authenticated as: <strong className="text-slate-700 font-mono">{adminEmail}</strong>

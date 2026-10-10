@@ -283,9 +283,9 @@ export default function AboutPage() {
               rel="noopener noreferrer"
               className="text-amber-400 hover:underline font-semibold"
             >
-              Dr. Avinav
+              Dr. Abhinav Kumar
             </a>{' '}
-            (Assistant Professor, Bhagalpur College of Engineering).
+            (Assistant Professor; BCE, Bhagalpur).
           </p>
         </section>
 

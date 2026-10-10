@@ -116,7 +116,7 @@ Access More Feedback Forms for Your Institution:
 ${portalUrl}
 
 CampusFlow
-Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)`;
+Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur)`;
 }
 
 export const FORM_CONFIRMATION_MESSAGE = getFormConfirmationMessage();
@@ -146,7 +146,7 @@ Explore More Campus Events:
 ${portalUrl}
 
 CampusFlow
-Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Avinav (Assistant Professor)`;
+Designed and developed by Mr. Aditya Kumar Sah under the guidance of Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur)`;
 }
 
 export const EVENT_CONFIRMATION_MESSAGE = getEventRegistrationConfirmationMessage();

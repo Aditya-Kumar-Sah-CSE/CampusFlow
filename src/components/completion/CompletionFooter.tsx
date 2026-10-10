@@ -42,14 +42,14 @@ export function CompletionFooter({ collegeName, collegeSlug, className = '' }: P
           </a>
           <br className="sm:hidden" />
           {' '}under the guidance of{' '}
-          <a
-            href="https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-slate-600 hover:text-blue-600 underline decoration-slate-300 transition-colors"
-          >
-            Dr. Avinav (Assistant Professor)
-          </a>
+            <a
+              href="https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-slate-600 hover:text-blue-600 underline decoration-slate-300 transition-colors"
+            >
+              Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur)
+            </a>
         </p>
 
         {/* System copyright */}

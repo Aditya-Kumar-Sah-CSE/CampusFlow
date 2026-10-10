@@ -182,9 +182,9 @@ export default async function TenantDirectFeedbackPage({
                 rel="noopener noreferrer"
                 className="text-amber-400 hover:underline font-medium"
               >
-                Dr. Avinav
+                Dr. Abhinav Kumar
               </a>
-              {' '}(Assistant Professor)
+              {' '}(Assistant Professor; BCE, Bhagalpur)
             </div>
           </div>
           <div className="flex items-center gap-3">
