@@ -115,46 +115,6 @@ export function PublicTenantNavbar({
 
           {/* Right: Desktop Navigation Items */}
           <div className="hidden md:flex items-center gap-2 shrink-0">
-            {showFeedbacks && (
-              <Link
-                href={`/${tenant.slug}/feedback`}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
-                  isFeedbackActive
-                    ? 'bg-blue-50 text-blue-700 border-blue-200 shadow-2xs'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5 text-blue-600" />
-                <span>Browse All Forms</span>
-              </Link>
-            )}
-
-            {showEvents && (
-              <Link
-                href={`/${tenant.slug}/events`}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
-                  isEventsActive
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                    : 'text-blue-700 bg-blue-50 hover:bg-blue-100 border-blue-200/80'
-                }`}
-              >
-                <Ticket className="w-3.5 h-3.5" />
-                <span>Events</span>
-              </Link>
-            )}
-
-            <Link
-              href={`/${tenant.slug}/exams`}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border ${
-                isExamsActive
-                  ? 'bg-bce-navy text-amber-300 border-bce-navy shadow-2xs'
-                  : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100 border-slate-200'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
-              <span>Exams</span>
-            </Link>
-
             <StudentStatusBadge compact={true} tenantSlug={tenant.slug} />
 
             {!isAuthenticated && (
