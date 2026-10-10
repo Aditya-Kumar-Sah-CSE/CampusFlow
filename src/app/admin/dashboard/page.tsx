@@ -40,10 +40,15 @@ export default async function AdminDashboardPage({
     redirect('/admin/dashboard/results');
   }
 
-  // Route alias: map sub-tabs or common aliases (students, attendance, etc.) to academic structure
-  const academicSubTabs = ['faculties', 'faculty', 'subjects', 'assignments', 'years', 'branches', 'semesters', 'students', 'attendance'];
+  // Route alias: if tab=students, redirect to admin management students subtab
+  if (rawTab === 'students') {
+    redirect('/admin/dashboard?tab=admins&subtab=students');
+  }
+
+  // Route alias: map sub-tabs or common aliases (attendance, etc.) to academic structure
+  const academicSubTabs = ['faculties', 'faculty', 'subjects', 'assignments', 'years', 'branches', 'semesters', 'attendance'];
   if (rawTab && academicSubTabs.includes(rawTab)) {
-    const targetSub = (rawTab === 'faculty' || rawTab === 'students' || rawTab === 'attendance') ? 'faculties' : rawTab;
+    const targetSub = (rawTab === 'faculty' || rawTab === 'attendance') ? 'faculties' : rawTab;
     redirect(`/admin/dashboard?tab=academic&subtab=${targetSub}`);
   }
 
@@ -124,6 +129,45 @@ export default async function AdminDashboardPage({
   const activeFacultyCountQuery = adminDb.from('faculties').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
   const activeSubjectCountQuery = adminDb.from('subjects').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('is_active', true);
   const pubFormCountQuery = adminDb.from('feedback_forms').select('id', { count: 'exact', head: true }).eq('college_id', targetCollegeId).eq('status', 'PUBLISHED');
+  const studentsQuery = session.isPlatformSuperAdmin
+    ? adminDb
+        .from('students')
+        .select(`
+          id,
+          user_id,
+          college_id,
+          email,
+          full_name,
+          registration_number,
+          is_active,
+          email_verified,
+          created_at,
+          updated_at,
+          college:colleges(id, name, code, slug, logo_url)
+        `)
+        .order('created_at', { ascending: false })
+    : adminDb
+        .from('students')
+        .select(`
+          id,
+          user_id,
+          college_id,
+          email,
+          full_name,
+          registration_number,
+          is_active,
+          email_verified,
+          created_at,
+          updated_at,
+          college:colleges(id, name, code, slug, logo_url)
+        `)
+        .eq('college_id', targetCollegeId)
+        .order('created_at', { ascending: false });
+  const allCollegesQuery = adminDb
+    .from('colleges')
+    .select('id, name, code, slug')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
 
   // Parallel lean data fetching for the admin portal with exact counts & range limits
   const [
@@ -140,6 +184,8 @@ export default async function AdminDashboardPage({
     { count: activeFacultiesCount },
     { count: activeSubjectsCount },
     { count: publishedFormsCount },
+    { data: initialStudents },
+    { data: allCollegesList },
   ] = await Promise.all([
     yearQuery,
     branchQuery,
@@ -157,6 +203,8 @@ export default async function AdminDashboardPage({
     activeFacultyCountQuery,
     activeSubjectCountQuery,
     pubFormCountQuery,
+    studentsQuery,
+    allCollegesQuery,
   ]);
 
   // Structured logging for admin request queries
@@ -314,6 +362,8 @@ export default async function AdminDashboardPage({
         activeCollegeLogoUrl={session.activeCollege?.logoUrl || undefined}
         initialTab={rawTab}
         initialSubTab={rawSubTab}
+        initialStudents={(initialStudents as any[]) || []}
+        allColleges={(allCollegesList as any[]) || []}
         googleStatus={
           googleStatus
             ? {

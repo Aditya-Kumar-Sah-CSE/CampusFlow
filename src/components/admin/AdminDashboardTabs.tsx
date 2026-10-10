@@ -309,6 +309,8 @@ interface Props {
   } | null;
   initialTab?: string;
   initialSubTab?: string;
+  initialStudents?: any[];
+  allColleges?: any[];
 }
 
 export function AdminDashboardTabs({
@@ -336,6 +338,8 @@ export function AdminDashboardTabs({
   googleStatus,
   initialTab,
   initialSubTab,
+  initialStudents,
+  allColleges,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -697,6 +701,11 @@ export function AdminDashboardTabs({
             adminsList={adminsList}
             isSuperAdmin={isSuperAdmin}
             currentUserEmail={currentUserEmail}
+            initialSubTab={initialSubTab}
+            initialStudents={initialStudents}
+            allColleges={allColleges}
+            activeCollegeId={activeCollegeId}
+            activeCollegeName={activeCollegeName}
           />
         )}
 

@@ -23,17 +23,25 @@ import {
   Building2,
   ShieldPlus,
   Sparkles,
+  GraduationCap,
 } from 'lucide-react';
 import type { Admin, AdminRequest } from '@/types/database';
 import { useHydrated, formatDateShort, formatTime } from '@/lib/hooks/use-hydrated';
 import { isPrimarySuperAdmin } from '@/lib/auth/admin-auth-shared';
 import { AdminSessionsCard } from '../AdminSessionsCard';
+import { SignedUpStudentsSection } from './SignedUpStudentsSection';
+import type { AdminStudentItem } from '@/app/admin/actions';
 
 interface Props {
   adminRequests: AdminRequest[];
   adminsList: Admin[];
   isSuperAdmin: boolean;
   currentUserEmail: string;
+  initialSubTab?: string;
+  initialStudents?: AdminStudentItem[];
+  allColleges?: Array<{ id: string; name: string; code: string; slug: string }>;
+  activeCollegeId?: string;
+  activeCollegeName?: string;
 }
 
 export function AdminManagementTab({
@@ -41,12 +49,36 @@ export function AdminManagementTab({
   adminsList,
   isSuperAdmin,
   currentUserEmail,
+  initialSubTab,
+  initialStudents = [],
+  allColleges = [],
+  activeCollegeId,
+  activeCollegeName,
 }: Props) {
   const hydrated = useHydrated();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [admins, setAdmins] = useState<Admin[]>(adminsList);
   const [requests, setRequests] = useState<AdminRequest[]>(adminRequests);
+  const [subTab, setSubTab] = useState<'admins' | 'students'>(
+    initialSubTab === 'students' ? 'students' : 'admins'
+  );
+
+  useEffect(() => {
+    if (initialSubTab === 'students' || initialSubTab === 'admins') {
+      setSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
+  const handleSubTabChange = (tab: 'admins' | 'students') => {
+    setSubTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', 'admins');
+      url.searchParams.set('subtab', tab);
+      window.history.pushState(null, '', url.toString());
+    }
+  };
 
   useEffect(() => {
     setAdmins(adminsList);
@@ -285,7 +317,58 @@ export function AdminManagementTab({
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
-      {/* Header Banner */}
+      {/* Subtab Navigation (Admin Privileges vs Signed-Up Students) */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => handleSubTabChange('admins')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+            subTab === 'admins'
+              ? 'bg-bce-navy text-white shadow-xs font-bold'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>Administrators & Requests</span>
+          {pendingRequests.length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+              {pendingRequests.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleSubTabChange('students')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+            subTab === 'students'
+              ? 'bg-bce-navy text-white shadow-xs font-bold'
+              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          <span>Signed-Up Students (प्रत्येक कॉलेज के छात्र)</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+              subTab === 'students' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+            }`}
+          >
+            {initialStudents?.length ?? 0}
+          </span>
+        </button>
+      </div>
+
+      {subTab === 'students' ? (
+        <SignedUpStudentsSection
+          initialStudents={initialStudents}
+          allColleges={allColleges}
+          isSuperAdmin={isSuperAdmin}
+          activeCollegeId={activeCollegeId}
+          activeCollegeName={activeCollegeName}
+        />
+      ) : (
+        <>
+          {/* Header Banner */}
       <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
         <div>
           <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -1192,6 +1275,8 @@ export function AdminManagementTab({
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

@@ -2993,4 +2993,186 @@ export async function deleteAcademicYearAction(id: string, targetCollegeId?: str
   return { success: true };
 }
 
+// =============================================================
+// SIGNED-UP STUDENTS MANAGEMENT (EACH COLLEGE STUDENT DIRECTORY)
+// =============================================================
+
+export interface AdminStudentItem {
+  id: string;
+  user_id: string;
+  college_id: string;
+  email: string;
+  full_name: string | null;
+  registration_number: string | null;
+  is_active: boolean;
+  email_verified: boolean;
+  created_at: string;
+  updated_at?: string;
+  college: {
+    id: string;
+    name: string;
+    code: string;
+    slug: string;
+    logo_url?: string | null;
+  } | null;
+}
+
+export async function getSignedUpStudentsAction(collegeId?: string): Promise<{
+  success: boolean;
+  students?: AdminStudentItem[];
+  colleges?: Array<{ id: string; name: string; code: string; slug: string; studentCount: number }>;
+  totalCount?: number;
+  error?: string;
+}> {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized: Active administrator session required.' };
+  }
+
+  const supabase = await getAdminDb();
+  const isSuper = session.isPlatformSuperAdmin;
+
+  let filterCollegeId: string | null = null;
+  if (isSuper) {
+    if (collegeId && collegeId !== 'ALL' && isValidUUID(collegeId)) {
+      filterCollegeId = collegeId;
+    }
+  } else {
+    filterCollegeId = session.activeCollegeId || null;
+    if (!filterCollegeId) {
+      return { success: false, error: 'No active college associated with your administrator account.' };
+    }
+  }
+
+  try {
+    let query = supabase
+      .from('students')
+      .select(`
+        id,
+        user_id,
+        college_id,
+        email,
+        full_name,
+        registration_number,
+        is_active,
+        email_verified,
+        created_at,
+        updated_at,
+        college:colleges(id, name, code, slug, logo_url)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (filterCollegeId) {
+      query = query.eq('college_id', filterCollegeId);
+    }
+
+    const { data: students, error } = await query;
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    // Also get all colleges summary if super admin or for college selector
+    let collegesSummary: Array<{ id: string; name: string; code: string; slug: string; studentCount: number }> = [];
+    if (isSuper) {
+      const { data: allColleges } = await supabase
+        .from('colleges')
+        .select('id, name, code, slug')
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      // Group students count per college
+      const { data: allStudentsCounts } = await supabase
+        .from('students')
+        .select('college_id');
+
+      const countMap = new Map<string, number>();
+      (allStudentsCounts || []).forEach((s: any) => {
+        if (s.college_id) {
+          countMap.set(s.college_id, (countMap.get(s.college_id) || 0) + 1);
+        }
+      });
+
+      collegesSummary = (allColleges || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+        slug: c.slug,
+        studentCount: countMap.get(c.id) || 0,
+      }));
+    }
+
+    return {
+      success: true,
+      students: (students as unknown as AdminStudentItem[]) || [],
+      colleges: collegesSummary,
+      totalCount: students?.length || 0,
+    };
+  } catch (err: any) {
+    console.error('[GET_SIGNED_UP_STUDENTS_ERROR]', err);
+    return { success: false, error: err?.message || 'Failed to fetch student directory.' };
+  }
+}
+
+export async function toggleStudentStatusAction(
+  studentId: string,
+  isActive: boolean
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized: Active administrator session required.' };
+  }
+
+  if (!isValidUUID(studentId)) {
+    return { success: false, error: 'Invalid student identifier.' };
+  }
+
+  const supabase = await getAdminDb();
+
+  // Fetch student record to verify college access
+  const { data: student, error: fetchErr } = await supabase
+    .from('students')
+    .select('id, email, full_name, college_id')
+    .eq('id', studentId)
+    .single();
+
+  if (fetchErr || !student) {
+    return { success: false, error: 'Student record not found.' };
+  }
+
+  // Tenant authorization check
+  const isSuper = session.isPlatformSuperAdmin;
+  const isCollegeMember = session.colleges.some(
+    (c) => c.collegeId === student.college_id && c.status === 'ACTIVE'
+  );
+
+  if (!isSuper && !isCollegeMember) {
+    return { success: false, error: 'Forbidden: You do not have permission to manage students for this institution.' };
+  }
+
+  const { error: updateErr } = await supabase
+    .from('students')
+    .update({
+      is_active: isActive,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', studentId);
+
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  await logAuditAction(
+    supabase,
+    { adminId: session.admin?.id, email: session.user?.email },
+    isActive ? 'ACTIVATE_STUDENT' : 'DEACTIVATE_STUDENT',
+    'students',
+    studentId,
+    `${isActive ? 'Activated' : 'Deactivated'} student account ${student.email} (${student.full_name || 'Student'})`
+  );
+
+  revalidatePath('/admin/dashboard');
+
+  return { success: true };
+}
+
 
