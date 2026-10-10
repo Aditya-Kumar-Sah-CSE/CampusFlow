@@ -15,12 +15,20 @@ import {
   Layers,
   User,
   Clock,
+  Lock,
+  CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   PublicActiveFormsResult,
   getPublicActiveFormsAction,
 } from '@/app/feedback/actions';
 import { useHydrated, formatDateShort } from '@/lib/hooks/use-hydrated';
+import { useStudentSession } from '@/lib/auth/use-student-session';
+import {
+  checkBatchStudentFormSubmissionsAction,
+  checkStudentFormEligibilityAction,
+} from '@/app/auth/student/actions';
 
 /** Forms per page — desktop shows a 3×2 grid */
 const PAGE_SIZE = 6;
@@ -67,7 +75,7 @@ function getPageNumbers(current: number, total: number): (number | '...')[] {
   return pages;
 }
 
-export function AllFeedbackFormsSection({ initialData, collegeId, initialSearch = '' }: Props) {
+export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, initialSearch = '' }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -76,6 +84,59 @@ export function AllFeedbackFormsSection({ initialData, collegeId, initialSearch 
   const [currentPage, setCurrentPage] = useState(initialData.page || 1);
   const [isPending, startTransition] = useTransition();
   const hydrated = useHydrated();
+
+  // Student auth session & submission tracking
+  const { isAuthenticated, loading: sessionLoading } = useStudentSession();
+  const [submittedFormIds, setSubmittedFormIds] = useState<Set<string>>(new Set());
+
+  // Check submissions for displayed forms whenever forms or auth state change
+  useEffect(() => {
+    if (isAuthenticated && data.forms?.length) {
+      const ids = data.forms.map((f) => f.id).filter(Boolean);
+      checkBatchStudentFormSubmissionsAction(ids).then((res) => {
+        if (res.submittedFormIds?.length) {
+          setSubmittedFormIds(new Set(res.submittedFormIds));
+        }
+      });
+    } else if (!isAuthenticated) {
+      setSubmittedFormIds(new Set());
+    }
+  }, [isAuthenticated, data.forms]);
+
+  const handleFormAction = async (form: any, e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
+      router.push(`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
+
+    const isAlreadySubmitted = submittedFormIds.has(form.id);
+    if (isAlreadySubmitted) {
+      e.preventDefault();
+      const slug = tenantSlug || form.college?.slug || '';
+      router.push(`/feedback/confirmation?formId=${form.id}${slug ? `&tenant=${slug}` : ''}`);
+      return;
+    }
+
+    // Pre-flight check in case response was just synced to Google Sheets
+    e.preventDefault();
+    try {
+      const elig = await checkStudentFormEligibilityAction(form.id);
+      if (elig.alreadySubmitted) {
+        setSubmittedFormIds((prev) => new Set([...prev, form.id]));
+        const slug = tenantSlug || form.college?.slug || '';
+        router.push(`/feedback/confirmation?formId=${form.id}${slug ? `&tenant=${slug}` : ''}`);
+        return;
+      }
+    } catch {
+      // non-fatal
+    }
+
+    if (form.googleFormUrl) {
+      window.open(form.googleFormUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   // Debounce timer ref for search
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -300,16 +361,33 @@ export function AllFeedbackFormsSection({ initialData, collegeId, initialSearch 
 
                 {/* Card Action */}
                 <div className="pt-3 sm:pt-4 mt-2.5 sm:mt-3 border-t border-slate-100">
-                  {form.googleFormUrl ? (
-                    <a
-                      href={form.googleFormUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-bce-navy hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-xs group-hover:shadow-md"
+                  {!isAuthenticated && !sessionLoading ? (
+                    <button
+                      type="button"
+                      onClick={(e) => handleFormAction(form, e)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-xs group-hover:shadow-md cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Sign In to Start Feedback</span>
+                    </button>
+                  ) : submittedFormIds.has(form.id) ? (
+                    <button
+                      type="button"
+                      onClick={(e) => handleFormAction(form, e)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs transition-all shadow-xs cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Already Submitted — View Receipt</span>
+                    </button>
+                  ) : form.googleFormUrl ? (
+                    <button
+                      type="button"
+                      onClick={(e) => handleFormAction(form, e)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-bce-navy hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-xs group-hover:shadow-md cursor-pointer"
                     >
                       <span>Start Feedback</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-                    </a>
+                      <ExternalLink className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    </button>
                   ) : (
                     <button
                       disabled

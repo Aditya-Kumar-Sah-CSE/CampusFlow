@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Clock,
   HelpCircle,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   RotateCcw,
   BookOpen,
+  Lock,
 } from 'lucide-react';
 import {
   startExamAttemptAction,
@@ -22,6 +24,7 @@ import {
   saveAnswerIncrementalAction,
   submitExamAttemptAction,
 } from '@/app/exams/actions';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 import type { Exam, ExamAttempt, ExamQuestion } from '@/types/exams';
 
 interface StudentExamPortalProps {
@@ -31,6 +34,7 @@ interface StudentExamPortalProps {
 
 export function StudentExamPortal({ exam, tenantSlug }: StudentExamPortalProps) {
   const router = useRouter();
+  const { session, isAuthenticated, user, student, loading: sessionLoading } = useStudentSession();
 
   // Mode: 'PRE_EXAM' (credentials entry) | 'ACTIVE_TEST' (taking test) | 'SUBMITTING'
   const [mode, setMode] = useState<'PRE_EXAM' | 'ACTIVE_TEST' | 'SUBMITTING'>('PRE_EXAM');
@@ -44,6 +48,22 @@ export function StudentExamPortal({ exam, tenantSlug }: StudentExamPortalProps) 
     exam.branches && exam.branches.length > 0 ? exam.branches[0].id : ''
   );
   const [acknowledgedRules, setAcknowledgedRules] = useState<boolean>(false);
+
+  // Auto-fill student profile details when authenticated
+  useEffect(() => {
+    if (user?.email) {
+      setStudentEmail(user.email);
+    }
+    if (student?.fullName || user?.user_metadata?.name) {
+      setStudentName(student?.fullName || user?.user_metadata?.name || '');
+    }
+    if (student?.registrationNumber) {
+      setRegistrationNumber(student.registrationNumber);
+    }
+    if ((student as any)?.rollNumber) {
+      setRollNumber((student as any).rollNumber);
+    }
+  }, [user, student]);
 
   // Active attempt state
   const [attempt, setAttempt] = useState<ExamAttempt | null>(null);
@@ -154,6 +174,10 @@ export function StudentExamPortal({ exam, tenantSlug }: StudentExamPortalProps) 
 
     if (!studentName.trim() || !rollNumber.trim() || !registrationNumber.trim()) {
       setErrorMessage('Please fill in your Student Name, Roll Number, and Registration Number.');
+      return;
+    }
+    if (!studentEmail.trim()) {
+      setErrorMessage('Student sign-in is required to take this examination.');
       return;
     }
     if (!acknowledgedRules) {
@@ -327,6 +351,67 @@ export function StudentExamPortal({ exam, tenantSlug }: StudentExamPortalProps) 
   // VIEW 1: PRE-EXAM REGISTRATION & INSTRUCTIONS
   // ========================================================
   if (mode === 'PRE_EXAM') {
+    if (!isAuthenticated && !sessionLoading) {
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+      return (
+        <div className="max-w-2xl mx-auto py-8 px-4 space-y-6 animate-in fade-in duration-300">
+          {/* Exam Title & Instructions Card */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <span className="text-xs font-mono font-bold text-bce-navy bg-slate-100 px-2.5 py-1 rounded-lg">
+                {exam.exam_code}
+              </span>
+              <span className="text-xs font-bold text-slate-500">
+                Duration: {exam.duration_minutes} Minutes
+              </span>
+            </div>
+
+            <div>
+              <h1 className="text-xl font-extrabold text-bce-navy">{exam.title}</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Subject: {(exam.subjects || []).map(s => s.name).join(', ') || 'N/A'} • Total Questions: {exam.total_questions || 'N/A'}
+              </p>
+            </div>
+          </div>
+
+          {/* Locked for Guests Card */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 space-y-4 text-center">
+            <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto border border-slate-200">
+              <Lock className="w-7 h-7 text-slate-700" />
+            </div>
+            <div className="space-y-1">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                <Lock className="w-3.5 h-3.5" />
+                <span>Student Sign In Required</span>
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                Sign In to Start Examination
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+                Examination access is strictly locked to verified student accounts to protect academic integrity and verify student scorecards. Please sign in to begin.
+              </p>
+            </div>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href={`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-bce-navy hover:bg-slate-900 text-white font-bold text-xs sm:text-sm shadow-md transition-colors"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Sign In with Student Account</span>
+              </Link>
+              <Link
+                href={`/auth/student/signup?redirect=${encodeURIComponent(returnUrl)}`}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm transition-colors"
+              >
+                <span>New Student Signup</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-2xl mx-auto py-6 px-4 space-y-6">
         {/* Exam Title & Instructions Card */}
@@ -432,15 +517,22 @@ export function StudentExamPortal({ exam, tenantSlug }: StudentExamPortalProps) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Email Address (Optional)
+                  Verified Student Email <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="email"
-                  value={studentEmail}
-                  onChange={e => setStudentEmail(e.target.value)}
-                  placeholder="rahul@example.com"
-                  className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/30"
-                />
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    readOnly
+                    value={studentEmail}
+                    placeholder="student@institution.edu"
+                    className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 font-medium text-slate-700 cursor-not-allowed focus:outline-none"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Verified</span>
+                  </div>
+                </div>
               </div>
 
               {exam.branches && exam.branches.length > 0 && (

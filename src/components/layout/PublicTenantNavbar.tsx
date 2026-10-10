@@ -20,6 +20,7 @@ import type { TenantContext } from '@/types/tenant';
 import { CollegeInstallButton } from '@/components/pwa/CollegeInstallButton';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 
 export interface PublicTenantNavbarProps {
   tenant: TenantContext;
@@ -35,6 +36,7 @@ export function PublicTenantNavbar({
 }: PublicTenantNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { isAuthenticated } = useStudentSession();
 
   // Close mobile drawer on route change
   useEffect(() => {
@@ -153,28 +155,32 @@ export function PublicTenantNavbar({
               <span>Exams</span>
             </Link>
 
-            <StudentStatusBadge compact={true} />
+            <StudentStatusBadge compact={true} tenantSlug={tenant.slug} />
 
-            <Link
-              href={`/${tenant.slug}/admin/login`}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-all shrink-0 active:scale-98"
-            >
-              <UserCheck className="w-4 h-4 text-blue-600 shrink-0" />
-              <span>Faculty / Admin</span>
-            </Link>
+            {!isAuthenticated && (
+              <Link
+                href={`/${tenant.slug}/admin/login`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 rounded-full border border-slate-200/90 transition-all shrink-0 active:scale-98 shadow-2xs"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <span>Faculty / Admin</span>
+              </Link>
+            )}
           </div>
 
           {/* Right: Mobile Hamburger Trigger */}
           <div className="flex md:hidden items-center gap-1.5 shrink-0">
-            <StudentStatusBadge compact={true} />
-            <Link
-              href={`/${tenant.slug}/admin/login`}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-colors"
-              title="Faculty / Admin Login"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden xs:inline">Admin</span>
-            </Link>
+            <StudentStatusBadge compact={true} tenantSlug={tenant.slug} />
+            {!isAuthenticated && (
+              <Link
+                href={`/${tenant.slug}/admin/login`}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full border border-slate-200/90 transition-colors shadow-2xs"
+                title="Faculty / Admin Login"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                <span className="hidden xs:inline">Admin</span>
+              </Link>
+            )}
 
             <button
               type="button"

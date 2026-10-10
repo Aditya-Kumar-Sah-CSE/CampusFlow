@@ -233,13 +233,30 @@ export async function checkStudentFormEligibility(
   let submittedAt: string | null = null;
 
   try {
-    const { data: existingResponse } = await db
+    let { data: existingResponse } = await db
       .from('feedback_response_records')
       .select('id, submitted_at')
       .eq('form_id', formId)
       .ilike('student_email', session.user.email)
       .limit(1)
       .maybeSingle();
+
+    if (!existingResponse) {
+      try {
+        const { syncFormResponsesToSheet } = await import('@/lib/google/sync');
+        await syncFormResponsesToSheet({ formId, skipAuthCheck: true });
+        const { data: syncedResponse } = await db
+          .from('feedback_response_records')
+          .select('id, submitted_at')
+          .eq('form_id', formId)
+          .ilike('student_email', session.user.email)
+          .limit(1)
+          .maybeSingle();
+        existingResponse = syncedResponse;
+      } catch (syncErr) {
+        // non-fatal fallback
+      }
+    }
 
     if (existingResponse) {
       alreadySubmitted = true;

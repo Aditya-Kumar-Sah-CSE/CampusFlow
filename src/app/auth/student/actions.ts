@@ -8,7 +8,7 @@ import { appUrl } from '@/lib/config/app';
 import { checkRateLimit, StudentRateLimits } from '@/lib/security/rate-limit';
 import { sendStudentVerificationEmail, sendStudentPasswordResetEmail } from '@/lib/email/service';
 import { getStudentSession, checkStudentFormEligibility } from '@/lib/auth/student-auth';
-import type { StudentSignupInput, StudentLoginInput, StudentFormEligibility } from '@/types/student';
+import type { StudentSignupInput, StudentLoginInput, StudentFormEligibility, StudentSession } from '@/types/student';
 
 /**
  * Zod validation schemas
@@ -610,10 +610,61 @@ export async function studentSignOutAction(): Promise<{ success: boolean }> {
 }
 
 /**
+ * Retrieves the current authenticated student session
+ */
+export async function getStudentSessionAction(): Promise<StudentSession> {
+  return getStudentSession();
+}
+
+/**
  * Checks feedback form eligibility for currently logged in student
  */
 export async function checkStudentFormEligibilityAction(
   formId: string
 ): Promise<StudentFormEligibility> {
   return checkStudentFormEligibility(formId);
+}
+
+/**
+ * Checks which forms among a list have already been submitted by the currently logged-in student.
+ * Returns a map of formId -> boolean (alreadySubmitted) and confirmationUrl.
+ */
+export async function checkBatchStudentFormSubmissionsAction(
+  formIds: string[]
+): Promise<{
+  isAuthenticated: boolean;
+  userEmail: string | null;
+  submittedFormIds: string[];
+}> {
+  const session = await getStudentSession();
+  if (!session.isAuthenticated || !session.user?.email || !formIds.length) {
+    return {
+      isAuthenticated: Boolean(session.isAuthenticated),
+      userEmail: session.user?.email || null,
+      submittedFormIds: [],
+    };
+  }
+
+  const db = createAdminClient() || (await createClient());
+  try {
+    const { data: records } = await db
+      .from('feedback_response_records')
+      .select('form_id')
+      .in('form_id', formIds)
+      .ilike('student_email', session.user.email);
+
+    const submitted = (records || []).map((r: any) => r.form_id).filter(Boolean);
+    return {
+      isAuthenticated: true,
+      userEmail: session.user.email,
+      submittedFormIds: submitted,
+    };
+  } catch (err) {
+    console.warn('[checkBatchStudentFormSubmissionsAction] Query warning:', err);
+    return {
+      isAuthenticated: true,
+      userEmail: session.user.email,
+      submittedFormIds: [],
+    };
+  }
 }

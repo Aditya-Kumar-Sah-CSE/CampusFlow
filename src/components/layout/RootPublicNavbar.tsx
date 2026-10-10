@@ -15,12 +15,15 @@ import {
 } from 'lucide-react';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
+import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 
 export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; tenantCode?: string | null } = {}) {
   const brand = getCampusFlowBrand({ code: tenantCode });
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const [unreadInvitations, setUnreadInvitations] = useState(0);
+  const { isAuthenticated } = useStudentSession();
 
   useEffect(() => {
     if (!eventId) { setUnreadInvitations(0); return; }
@@ -97,25 +100,31 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
               Services
             </Link>
             {eventId && <Link href={`/events/invitations?eventId=${encodeURIComponent(eventId)}`} aria-label="Team invitation notifications" className="relative rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-800"><Bell className="h-4 w-4"/>{unreadInvitations > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-violet-700 px-1 text-center text-[9px] font-bold text-white">{unreadInvitations}</span>}</Link>}
-            <Link
-              href="/admin/login"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-lg shadow-2xs transition-all shrink-0 active:scale-98"
-            >
-              <span>Super Admin Login</span>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </Link>
+            <StudentStatusBadge compact={true} adminLoginUrl="/admin/login" />
+            {!isAuthenticated && (
+              <Link
+                href="/admin/login"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-full shadow-2xs transition-all shrink-0 active:scale-98"
+              >
+                <span>Super Admin Login</span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+              </Link>
+            )}
           </div>
 
           {/* Right: Mobile Hamburger & Login */}
           <div className="flex md:hidden items-center gap-1.5 shrink-0">
             {eventId && <Link href={`/events/invitations?eventId=${encodeURIComponent(eventId)}`} aria-label="Team invitation notifications" className="relative rounded-lg border border-violet-200 bg-violet-50 p-2 text-violet-800"><Bell className="h-4 w-4"/>{unreadInvitations > 0 && <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-violet-700 px-1 text-center text-[9px] font-bold text-white">{unreadInvitations}</span>}</Link>}
-            <Link
-              href="/admin/login"
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition-colors"
-            >
-              <span>Admin</span>
-              <ArrowRight className="w-3 h-3 text-slate-400" />
-            </Link>
+            <StudentStatusBadge compact={true} adminLoginUrl="/admin/login" />
+            {!isAuthenticated && (
+              <Link
+                href="/admin/login"
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full border border-slate-200 transition-colors"
+              >
+                <span>Admin</span>
+                <ArrowRight className="w-3 h-3 text-slate-400" />
+              </Link>
+            )}
 
             <button
               type="button"
@@ -210,6 +219,14 @@ export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; te
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </Link>
+              </div>
+
+              {/* Student Portal Card */}
+              <div className="pt-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">
+                  Student Account
+                </p>
+                <StudentStatusBadge compact={false} />
               </div>
 
               {/* Super Admin Login Card */}

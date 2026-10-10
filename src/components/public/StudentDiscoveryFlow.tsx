@@ -18,6 +18,10 @@ import {
   PublicFormSummary,
 } from '@/app/feedback/actions';
 import { PublicFeedbackCard } from '@/components/public/PublicFeedbackCard';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import { useStudentSession } from '@/lib/auth/use-student-session';
+import { checkStudentFormEligibilityAction } from '@/app/auth/student/actions';
 import {
   Calendar,
   Layers,
@@ -31,6 +35,8 @@ import {
   Info,
   ExternalLink,
   Users,
+  Lock,
+  CheckCircle2,
 } from 'lucide-react';
 
 
@@ -47,6 +53,11 @@ export function StudentDiscoveryFlow({
   semesters,
   collegeId,
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, loading: sessionLoading } = useStudentSession();
+  const [semesterFormSubmitted, setSemesterFormSubmitted] = useState<boolean>(false);
+
   // Dynamic branches state initialized from server props, refreshed dynamically and live via Realtime
   const [branchList, setBranchList] = useState<Branch[]>(branches);
   const [loadingBranches, setLoadingBranches] = useState<boolean>(false);
@@ -166,8 +177,16 @@ export function StudentDiscoveryFlow({
       if (isMounted) {
         if (res.success && res.form && res.status === 'PUBLISHED') {
           setSemesterFormResult(res);
+          if (isAuthenticated && res.form.id) {
+            checkStudentFormEligibilityAction(res.form.id).then((elig) => {
+              if (isMounted && elig.alreadySubmitted) {
+                setSemesterFormSubmitted(true);
+              }
+            }).catch(() => {});
+          }
         } else {
           setSemesterFormResult(null);
+          setSemesterFormSubmitted(false);
         }
       }
     });
@@ -469,17 +488,50 @@ export function StudentDiscoveryFlow({
               </p>
             </div>
 
-            {semesterFormResult.form.google_form_url && (
-              <a
-                href={semesterFormResult.form.google_form_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shrink-0 active:scale-95"
+            {!isAuthenticated && !sessionLoading ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
+                  router.push(`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all shadow-md shrink-0 active:scale-95 cursor-pointer border border-slate-700"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Sign In to Start Feedback</span>
+              </button>
+            ) : semesterFormSubmitted && semesterFormResult?.form ? (
+              <Link
+                href={`/feedback/confirmation?formId=${semesterFormResult.form.id}`}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shrink-0 active:scale-95"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-slate-950" />
+                <span>Already Submitted — View Receipt</span>
+              </Link>
+            ) : semesterFormResult?.form?.google_form_url ? (
+              <button
+                type="button"
+                onClick={async () => {
+                  const targetForm = semesterFormResult?.form;
+                  if (!targetForm) return;
+                  try {
+                    const elig = await checkStudentFormEligibilityAction(targetForm.id);
+                    if (elig.alreadySubmitted) {
+                      setSemesterFormSubmitted(true);
+                      router.push(`/feedback/confirmation?formId=${targetForm.id}`);
+                      return;
+                    }
+                  } catch {}
+                  if (targetForm.google_form_url) {
+                    window.open(targetForm.google_form_url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shrink-0 active:scale-95 cursor-pointer"
               >
                 <span>Start Feedback</span>
                 <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
+              </button>
+            ) : null}
           </div>
         )}
 

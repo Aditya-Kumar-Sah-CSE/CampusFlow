@@ -28,6 +28,8 @@ import { identifyStudentAction } from '@/app/admin/events/event-registration-act
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
 import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
 
+import { useStudentSession } from '@/lib/auth/use-student-session';
+
 interface Props {
   event: CollegeEvent;
   collegeName: string;
@@ -43,6 +45,7 @@ export function EventPassVerificationClient({
   tenantSlug,
   collegeLogoUrl,
 }: Props) {
+  const { session: studentSession, isAuthenticated, user, student, loading: sessionLoading } = useStudentSession();
   const [query, setQuery] = useState(initialRegNumber.trim());
   const [loading, setLoading] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
@@ -89,12 +92,15 @@ export function EventPassVerificationClient({
   const eventHomePath = tenantSlug ? `/${tenantSlug}/events/${event.slug}` : `/events/${event.slug}`;
   const myRegistrationsPath = `${eventHomePath}/my-registrations`;
 
-  // Verify on initial load if reg query was passed
+  // Verify on initial load if reg query was passed or auto-verify for logged-in student
   useEffect(() => {
     if (initialRegNumber.trim()) {
       handleVerify(initialRegNumber.trim());
+    } else if (user?.email) {
+      setQuery(user.email);
+      handleVerify(user.email);
     }
-  }, [initialRegNumber, event.id]);
+  }, [initialRegNumber, user?.email, event.id]);
 
   const handleVerify = async (identifier: string) => {
     const clean = identifier.trim();
@@ -115,6 +121,20 @@ export function EventPassVerificationClient({
       );
 
       if (res.success && res.isRegistered && res.participant) {
+        // Enforce ownership: student can only view their own pass
+        if (
+          user?.email &&
+          res.participant.email &&
+          res.participant.email.toLowerCase().trim() !== user.email.toLowerCase().trim()
+        ) {
+          setResult({
+            searched: true,
+            isRegistered: false,
+            error: `Access restricted: This entry pass belongs to another student (${res.participant.email}). You are signed in as ${user.email}. Students can only view their own passes.`,
+          });
+          return;
+        }
+
         setResult({
           searched: true,
           isRegistered: true,
@@ -187,6 +207,57 @@ export function EventPassVerificationClient({
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  if (!isAuthenticated && !sessionLoading) {
+    const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+    return (
+      <div className="max-w-xl mx-auto space-y-6 py-6 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between">
+          <Link
+            href={eventHomePath}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to {event.title}</span>
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 space-y-4 text-center">
+          <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto border border-slate-200">
+            <Lock className="w-7 h-7 text-slate-700" />
+          </div>
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Student Sign In Required</span>
+            </span>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Sign In to Access Event Pass
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+              Official event entry passes are locked to verified student accounts. Please sign in or create an account to view and download your pass for <span className="font-semibold text-slate-900">{event.title}</span>.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href={`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-colors"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Sign In with Student Account</span>
+            </Link>
+            <Link
+              href={`/auth/student/signup?redirect=${encodeURIComponent(returnUrl)}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm transition-colors"
+            >
+              <span>New Student Signup</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

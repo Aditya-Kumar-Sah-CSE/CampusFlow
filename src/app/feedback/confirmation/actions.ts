@@ -98,13 +98,28 @@ export async function getConfirmationByTokenAction(
 /**
  * Looks up a verified submission by student email and formId, returning a signed token
  */
+import { getStudentSession } from '@/lib/auth/student-auth';
+
 export async function verifyStudentSubmissionAction(params: {
   formId: string;
-  email: string;
+  email?: string;
 }): Promise<{ success: boolean; data?: VerifiedConfirmationData; token?: string; message: string }> {
-  const { formId, email } = params;
+  const session = await getStudentSession();
+  if (!session.isAuthenticated || !session.user?.email) {
+    return {
+      success: false,
+      message: 'Please sign in with your student account to access and download your feedback receipt.',
+    };
+  }
 
-  const rawQuery = (email || '').trim();
+  const sessionEmail = session.user.email.toLowerCase().trim();
+  const isAdmin =
+    session.user.user_metadata?.role === 'SUPER_ADMIN' ||
+    session.user.user_metadata?.role === 'COLLEGE_SUPER_ADMIN';
+
+  // Fallback to session user email if none provided
+  const { formId, email } = params;
+  const rawQuery = (email || sessionEmail).trim();
   if (!formId || !rawQuery) {
     return {
       success: false,
@@ -114,6 +129,15 @@ export async function verifyStudentSubmissionAction(params: {
 
   const normalizedQuery = rawQuery.toLowerCase();
   const isEmail = rawQuery.includes('@');
+
+  // Security check: non-admin student can only query their own email
+  if (!isAdmin && isEmail && normalizedQuery !== sessionEmail) {
+    return {
+      success: false,
+      message: `Access restricted: You are signed in as ${sessionEmail}. You can only retrieve feedback receipts for your own student account.`,
+    };
+  }
+
   const supabase = createAdminClient();
   if (!supabase) {
     return {

@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   AlertCircle,
   GraduationCap,
+  Lock,
 } from 'lucide-react';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 import type { Exam } from '@/types/exams';
 
 interface PublicExamDiscoveryProps {
@@ -29,6 +31,7 @@ export function PublicExamDiscovery({
   collegeLogo,
   tenantSlug,
 }: PublicExamDiscoveryProps) {
+  const { isAuthenticated, loading: sessionLoading } = useStudentSession();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [branchFilter, setBranchFilter] = useState<string>('ALL');
 
@@ -189,13 +192,23 @@ export function PublicExamDiscovery({
                 </div>
 
                 <div className="pt-2">
-                  <Link
-                    href={getExamLink(exam.id)}
-                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-bce-navy hover:bg-slate-900 shadow-xs transition-all cursor-pointer active:scale-95 group-hover:shadow-md"
-                  >
-                    <span>Begin Examination</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
+                  {!isAuthenticated && !sessionLoading ? (
+                    <Link
+                      href={`/auth/student/login?redirect=${encodeURIComponent(getExamLink(exam.id))}`}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 shadow-xs transition-all cursor-pointer active:scale-95"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Sign In to Begin Examination</span>
+                    </Link>
+                  ) : (
+                    <Link
+                      href={getExamLink(exam.id)}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-bce-navy hover:bg-slate-900 shadow-xs transition-all cursor-pointer active:scale-95 group-hover:shadow-md"
+                    >
+                      <span>Begin Examination</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  )}
                 </div>
               </div>
             );

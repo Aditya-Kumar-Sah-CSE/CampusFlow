@@ -40,6 +40,7 @@ import {
 import type { CollegeEvent } from '@/types/events';
 import type { Branch, Semester } from '@/types/database';
 import { formatOrdinal } from '@/lib/events/academic-formatter';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 
 interface Props {
   event: CollegeEvent;
@@ -100,6 +101,8 @@ export function EventRegistrationForm({
   const [semester, setSemester] = useState('');
   const [gender, setGender] = useState('');
 
+  const { isAuthenticated, user, student, loading: sessionLoading } = useStudentSession();
+
   // Lookup fields
   const [lookupInput, setLookupInput] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -112,6 +115,19 @@ export function EventRegistrationForm({
   const [copied, setCopied] = useState(false);
   const [downloadingPass, setDownloadingPass] = useState(false);
   const [moreEvents, setMoreEvents] = useState<CollegeEvent[]>([]);
+
+  // Auto-fill student profile details when authenticated
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+    if (student?.fullName || user?.user_metadata?.name) {
+      setFullName(student?.fullName || user?.user_metadata?.name || '');
+    }
+    if (student?.registrationNumber) {
+      setStudentId(student.registrationNumber);
+    }
+  }, [user, student]);
 
   useEffect(() => {
     if (successRegNumber && event.college_id) {
@@ -216,6 +232,12 @@ export function EventRegistrationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    if (!isAuthenticated) {
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+      router.push(`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`);
+      return;
+    }
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setErrorMsg('You are offline. Event registration requires an active internet connection. Please reconnect and try again.');
@@ -492,7 +514,48 @@ export function EventRegistrationForm({
   }
 
   // ============================================================
-  // VIEW 3: REGISTRATION / LOOKUP FORM VIEW
+  // VIEW 3: NOT AUTHENTICATED -> LOCK FOR GUESTS
+  // ============================================================
+  if (!isAuthenticated && !sessionLoading) {
+    const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+    return (
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 w-full max-w-xl mx-auto space-y-4 text-center animate-in fade-in duration-300">
+        <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto border border-slate-200">
+          <Lock className="w-7 h-7 text-slate-700" />
+        </div>
+        <div className="space-y-1">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            <Lock className="w-3.5 h-3.5" />
+            <span>Sign In Required</span>
+          </span>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+            Student Sign In Required
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+            Event registrations are locked to verified student accounts. Please sign in or create an account to register for <span className="font-semibold text-slate-900">{event.title}</span>.
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href={`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-colors"
+          >
+            <Lock className="w-4 h-4" />
+            <span>Sign In with Student Account</span>
+          </Link>
+          <Link
+            href={`/auth/student/signup?redirect=${encodeURIComponent(returnUrl)}`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm transition-colors"
+          >
+            <span>New Student Signup</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // VIEW 4: REGISTRATION / LOOKUP FORM VIEW
   // ============================================================
   return (
     <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 md:p-8 w-full max-w-xl mx-auto space-y-5 sm:space-y-6">

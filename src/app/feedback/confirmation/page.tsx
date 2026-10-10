@@ -17,6 +17,9 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Lock,
+  RefreshCw,
+  UserCheck,
 } from 'lucide-react';
 import {
   getConfirmationByTokenAction,
@@ -28,6 +31,7 @@ import {
 } from './actions';
 import { getMorePublishedFormsForCollegeAction, PublicFormSummary } from '@/app/feedback/actions';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 import {
   CompletionPage,
   SuccessState,
@@ -39,6 +43,8 @@ function ConfirmationContent() {
   const token = searchParams.get('token');
   const formIdParam = searchParams.get('formId') || searchParams.get('form');
   const tenantParam = searchParams.get('tenant');
+
+  const { isAuthenticated, user, loading: sessionLoading } = useStudentSession();
 
   const [confirmationData, setConfirmationData] = useState<VerifiedConfirmationData | null>(null);
   const [formContext, setFormContext] = useState<{
@@ -146,6 +152,27 @@ function ConfirmationContent() {
       isMounted = false;
     };
   }, [token, formIdParam, tenantParam]);
+
+  // Auto-retrieve submission receipt for logged in student
+  useEffect(() => {
+    let isMounted = true;
+    if (user?.email && formIdParam && !confirmationData && !token) {
+      setLookupEmail(user.email);
+      verifyStudentSubmissionAction({
+        formId: formIdParam,
+        email: user.email,
+      })
+        .then((res) => {
+          if (isMounted && res.success && res.data) {
+            setConfirmationData(res.data);
+          }
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.email, formIdParam, confirmationData, token]);
 
   const handleManualLookup = (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,44 +366,66 @@ function ConfirmationContent() {
               </button>
 
               {showLookupBox && (
-                <div className="mt-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3">
-                  <div className="text-xs font-bold text-slate-800">
-                    Verify & Download Official PDF Receipt
-                  </div>
-                  {lookupError && (
-                    <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
-                      <span>{lookupError}</span>
+                !isAuthenticated && !sessionLoading ? (
+                  <div className="mt-3 p-5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mx-auto">
+                      <Lock className="w-5 h-5 text-slate-600" />
                     </div>
-                  )}
-                  <form onSubmit={handleManualLookup} className="space-y-3">
-                    <input
-                      type="hidden"
-                      value={lookupFormId}
-                    />
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Registered Student Email
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="your.email@institution.edu"
-                        value={lookupEmail}
-                        onChange={(e) => setLookupEmail(e.target.value)}
-                        required
-                        className="w-full px-3 py-2 rounded-xl bg-white border border-slate-200 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
+                    <div className="text-xs font-bold text-slate-800">
+                      Student Sign In Required
                     </div>
-                    <button
-                      type="submit"
-                      disabled={isPending}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+                    <p className="text-[11px] text-slate-500 max-w-xs mx-auto">
+                      Please sign in with your student account to retrieve and download your official response receipt.
+                    </p>
+                    <Link
+                      href={`/auth/student/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors"
                     >
-                      {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                      <span>Retrieve Response Receipt</span>
-                    </button>
-                  </form>
-                </div>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Sign In to Access Receipt</span>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="mt-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3">
+                    <div className="text-xs font-bold text-slate-800">
+                      Verify & Download Official PDF Receipt
+                    </div>
+                    {lookupError && (
+                      <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+                        <span>{lookupError}</span>
+                      </div>
+                    )}
+                    <form onSubmit={handleManualLookup} className="space-y-3">
+                      <input
+                        type="hidden"
+                        value={lookupFormId}
+                      />
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                          <span>Registered Student Email</span>
+                          <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                            <UserCheck className="w-3 h-3" /> Logged In
+                          </span>
+                        </label>
+                        <input
+                          type="email"
+                          value={user?.email || lookupEmail}
+                          readOnly
+                          className="w-full px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 text-xs text-slate-700 font-semibold cursor-not-allowed focus:outline-none"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isPending}
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        <span>Retrieve Response Receipt</span>
+                      </button>
+                    </form>
+                  </div>
+                )
               )}
             </div>
           )}
@@ -403,61 +452,85 @@ function ConfirmationContent() {
             </p>
           </div>
 
-          {lookupError && (
-            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-              <span>{lookupError}</span>
+          {!isAuthenticated && !sessionLoading ? (
+            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center mx-auto">
+                <Lock className="w-6 h-6 text-slate-600" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Sign In Required</h3>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Feedback receipts are tied to verified student accounts. Please sign in to search and download your response receipt.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href={`/auth/student/login?redirect=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '')}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Sign In with Student Account</span>
+                </Link>
+              </div>
             </div>
-          )}
-
-          <form onSubmit={handleManualLookup} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Feedback Form Identifier
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. 1a2b3c4d-..."
-                value={lookupFormId}
-                onChange={(e) => setLookupFormId(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                Found on the feedback form link or portal.
-              </span>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Registered Student Email
-              </label>
-              <input
-                type="email"
-                placeholder="student.email@institution.edu"
-                value={lookupEmail}
-                onChange={(e) => setLookupEmail(e.target.value)}
-                required
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
-              <span className="text-[11px] text-slate-400 mt-1 block">
-                Must match the email address recorded during submission.
-              </span>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
-            >
-              {isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <ShieldCheck className="w-4 h-4" />
+          ) : (
+            <>
+              {lookupError && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                  <span>{lookupError}</span>
+                </div>
               )}
-              <span>Verify & Retrieve Confirmation</span>
-            </button>
-          </form>
+
+              <form onSubmit={handleManualLookup} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Feedback Form Identifier
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1a2b3c4d-..."
+                    value={lookupFormId}
+                    onChange={(e) => setLookupFormId(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Found on the feedback form link or portal.
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Registered Student Email</span>
+                    <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                      <UserCheck className="w-3 h-3" /> Logged In
+                    </span>
+                  </label>
+                  <input
+                    type="email"
+                    value={user?.email || lookupEmail}
+                    readOnly
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-300 text-xs text-slate-700 font-semibold cursor-not-allowed focus:outline-none"
+                  />
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Receipts are automatically verified for your logged-in student account.
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="w-4 h-4" />
+                  )}
+                  <span>Verify & Retrieve Confirmation</span>
+                </button>
+              </form>
+            </>
+          )}
 
           <div className="text-center pt-4 border-t border-slate-100">
             <Link

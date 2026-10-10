@@ -21,6 +21,7 @@ import {
   Lock,
   Sparkles,
   ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import type { CollegeEvent } from '@/types/events';
 import type { EventSessionPayload } from '@/lib/events/event-session';
@@ -37,6 +38,7 @@ import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
 import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
 import { getMyTeamInvitationsAction } from '@/app/events/invitations/actions';
 import { getMyJoinRequestsAction } from '@/app/events/join-requests/actions';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 
 interface Props {
   event: CollegeEvent;
@@ -55,6 +57,7 @@ export function StudentMyRegistrationsClient({
   collegeName,
   tenantSlug,
 }: Props) {
+  const { session: studentAuthSession, isAuthenticated, user, student, loading: sessionLoading } = useStudentSession();
   const [session, setSession] = useState<EventSessionPayload | null>(initialSession);
   const [programs, setPrograms] = useState<StudentProgramRegistrationItem[]>(initialPrograms);
   const [selectedTeamProgram, setSelectedTeamProgram] = useState<StudentProgramRegistrationItem | null>(null);
@@ -77,6 +80,13 @@ export function StudentMyRegistrationsClient({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [unreadInvitationCount, setUnreadInvitationCount] = useState(0);
   const [unreadJoinRequestCount, setUnreadJoinRequestCount] = useState(0);
+
+  // Auto-fill student email when authenticated
+  useEffect(() => {
+    if (user?.email) {
+      setLoginEmail(user.email);
+    }
+  }, [user]);
 
   // Find Team modal state
   const [findTeamProgram, setFindTeamProgram] = useState<{
@@ -180,6 +190,11 @@ export function StudentMyRegistrationsClient({
       return;
     }
 
+    if (user?.email && loginEmail.trim().toLowerCase() !== user.email.toLowerCase().trim()) {
+      setErrorMsg(`Access restricted: You are signed in as ${user.email}. You can only access your own registrations.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await loginToEventAction({
@@ -257,6 +272,44 @@ export function StudentMyRegistrationsClient({
 
   // NOT LOGGED IN VIEW
   if (!session) {
+    if (!isAuthenticated && !sessionLoading) {
+      const returnUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+      return (
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10 max-w-md w-full mx-auto space-y-4 text-center animate-in fade-in duration-300">
+          <div className="w-14 h-14 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center mx-auto border border-slate-200">
+            <Lock className="w-7 h-7 text-slate-700" />
+          </div>
+          <div className="space-y-1">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Student Sign In Required</span>
+            </span>
+            <h2 className="text-xl font-bold text-slate-900">
+              Sign In to View Registrations
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Official event registrations, pass downloads, and team memberships are locked to verified student accounts.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col gap-2.5">
+            <Link
+              href={`/auth/student/login?redirect=${encodeURIComponent(returnUrl)}`}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-colors"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Sign In with Student Account</span>
+            </Link>
+            <Link
+              href={`/auth/student/signup?redirect=${encodeURIComponent(returnUrl)}`}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-bold text-xs sm:text-sm transition-colors"
+            >
+              <span>New Student Signup</span>
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-8 max-w-md w-full mx-auto space-y-5 sm:space-y-6">
         <div className="text-center space-y-2">
@@ -293,16 +346,22 @@ export function StudentMyRegistrationsClient({
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-700">
-              Registered Email Address
+              Verified Student Email Address
             </label>
-            <input
-              type="email"
-              required
-              placeholder="student@college.ac.in"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 text-xs sm:text-sm transition-all"
-            />
+            <div className="relative">
+              <input
+                type="email"
+                required
+                readOnly
+                placeholder="student@college.ac.in"
+                value={loginEmail}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 font-medium text-slate-700 cursor-not-allowed focus:outline-none text-xs sm:text-sm"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Verified</span>
+              </div>
+            </div>
           </div>
 
           <button
