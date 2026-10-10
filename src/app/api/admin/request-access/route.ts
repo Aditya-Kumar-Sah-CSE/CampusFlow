@@ -41,25 +41,50 @@ export async function POST(request: Request) {
       const adminClient = createAdminClient();
       if (adminClient) {
         try {
-          const { data: userListData } = await adminClient.auth.admin.listUsers();
-          const matchedUser = userListData?.users?.find(
-            (u) => u.email?.toLowerCase() === cleanEmail
-          );
-          if (matchedUser) {
-            resolvedUserId = matchedUser.id;
-          } else if (
+          if (
             body.password &&
             typeof body.password === 'string' &&
             body.password.length >= 6
           ) {
-            const { data: newAuthData } = await adminClient.auth.admin.createUser({
+            // 1. Attempt direct confirmed creation (bypasses SMTP email sending, avoids 504 timeouts)
+            const { data: newAuthData, error: createErr } = await adminClient.auth.admin.createUser({
               email: cleanEmail,
               password: body.password,
               email_confirm: true,
               user_metadata: { name: formattedName },
             });
+
             if (newAuthData?.user) {
               resolvedUserId = newAuthData.user.id;
+            } else if (
+              createErr?.message?.toLowerCase().includes('already') ||
+              (createErr as any)?.code === 'email_exists'
+            ) {
+              // User already registered in Auth: lookup their ID and update password
+              const { data: userListData } = await adminClient.auth.admin.listUsers();
+              const matchedUser = userListData?.users?.find(
+                (u) => u.email?.toLowerCase() === cleanEmail
+              );
+              if (matchedUser) {
+                resolvedUserId = matchedUser.id;
+                // Keep password in sync and confirmed
+                await adminClient.auth.admin.updateUserById(matchedUser.id, {
+                  password: body.password,
+                  email_confirm: true,
+                  user_metadata: { name: formattedName },
+                });
+              }
+            }
+          }
+
+          // Fallback user lookup if not resolved yet
+          if (!resolvedUserId) {
+            const { data: userListData } = await adminClient.auth.admin.listUsers();
+            const matchedUser = userListData?.users?.find(
+              (u) => u.email?.toLowerCase() === cleanEmail
+            );
+            if (matchedUser) {
+              resolvedUserId = matchedUser.id;
             }
           }
         } catch (lookupErr) {

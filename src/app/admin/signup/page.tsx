@@ -77,58 +77,60 @@ function AdminSignupForm() {
       return;
     }
 
+    if (!password || password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+      const formattedName = name.trim();
 
-      // 1. Register with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: cleanEmail,
-        password,
-        options: {
-          data: {
-            name,
-          },
-        },
-      });
-
-      const currentUserId = authData?.user?.id;
-      if (authError && !authError.message.toLowerCase().includes('already registered')) {
-        setErrorMsg(authError.message);
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Submit pending request via Server Action or API
+      // Submit request directly to Server API (creates confirmed user without SMTP email timeouts)
       const reqRes = await fetch('/api/admin/request-access', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUserId,
-          name,
+          name: formattedName,
           email: cleanEmail,
           password,
           collegeId: selectedCollegeId,
         }),
       });
 
-      const reqData = await reqRes.json();
+      let reqData: any;
+      try {
+        reqData = await reqRes.json();
+      } catch {
+        throw new Error(`Server returned unexpected response (Status: ${reqRes.status})`);
+      }
 
-      if (!reqRes.ok) {
-        setErrorMsg(reqData.error || 'Failed to submit admin request.');
+      if (!reqRes.ok || !reqData) {
+        setErrorMsg(reqData?.error || 'Failed to submit admin request.');
         setIsLoading(false);
         return;
       }
 
-      // 3. If auto-promoted (Super Admin)
+      // Automatically establish session via password login (instant, ~300ms)
+      try {
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+      } catch {
+        // Non-fatal if session isn't immediately created in browser
+      }
+
+      // If auto-promoted (Super Admin)
       if (reqData.isSuperAdmin) {
         router.push(targetDestination);
         router.refresh();
         return;
       }
 
-      // 4. If request is already pending
+      // If request is already pending
       if (reqData.alreadyPending) {
         setSuccessMsg(
           reqData.message ||
@@ -136,17 +138,17 @@ function AdminSignupForm() {
         );
         setTimeout(() => {
           router.push('/admin/pending');
-        }, 1500);
+        }, 1200);
         return;
       }
 
-      // 5. Standard pending notification
+      // Standard pending notification
       setSuccessMsg(
         'Your request for administrator access has been registered and is pending approval.'
       );
       setTimeout(() => {
         router.push('/admin/pending');
-      }, 1500);
+      }, 1200);
     } catch (err: unknown) {
       console.error('Signup error:', err);
       const msg =
