@@ -7,6 +7,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export interface CollegeBranding {
+  id?: string;
   name: string;
   code: string;
   slug: string;
@@ -21,6 +22,7 @@ export interface CollegeBranding {
   contactPhone?: string;
   address?: string;
   websiteUrl?: string;
+  isPaidActive?: boolean;
 }
 
 /**
@@ -34,6 +36,7 @@ export const DEFAULT_BRANDING: CollegeBranding = {
   primaryColor: '#1B365D',
   secondaryColor: '#334155',
   accentColor: '#2563EB',
+  isPaidActive: false,
 };
 
 /**
@@ -52,18 +55,37 @@ export async function getCollegeBranding(collegeId: string): Promise<CollegeBran
     const supabase = createAdminClient();
     if (!supabase) return DEFAULT_BRANDING;
 
-    const { data, error } = await supabase
-      .from('colleges')
-      .select(
-        'name, code, slug, tagline, established_year, affiliated_university, logo_url, primary_color, secondary_color, accent_color, contact_email, contact_phone, address, website_url'
-      )
-      .eq('id', collegeId)
-      .eq('is_active', true)
-      .maybeSingle();
+    const [collegeRes, billingRes] = await Promise.all([
+      supabase
+        .from('colleges')
+        .select(
+          'id, name, code, slug, tagline, established_year, affiliated_university, logo_url, primary_color, secondary_color, accent_color, contact_email, contact_phone, address, website_url'
+        )
+        .eq('id', collegeId)
+        .eq('is_active', true)
+        .maybeSingle(),
+      supabase
+        .from('college_billing_accounts')
+        .select('plan_type, access_status, expires_at')
+        .eq('college_id', collegeId)
+        .maybeSingle(),
+    ]);
 
-    if (error || !data) return DEFAULT_BRANDING;
+    const data = collegeRes.data;
+    if (collegeRes.error || !data) return DEFAULT_BRANDING;
+
+    const billing = billingRes.data;
+    const now = new Date();
+    const rawPlan = (billing?.plan_type || 'FREE').toUpperCase();
+    const isPaid = rawPlan !== 'FREE';
+    const isUnlocked = billing?.access_status === 'UNLOCKED';
+    const isExpired = Boolean(
+      isPaid && billing?.expires_at && new Date(billing.expires_at) <= now
+    );
+    const isPaidActive = Boolean(isPaid && !isExpired && isUnlocked);
 
     return {
+      id: data.id || collegeId,
       name: data.name || DEFAULT_BRANDING.name,
       code: data.code || DEFAULT_BRANDING.code,
       slug: data.slug || DEFAULT_BRANDING.slug,
@@ -78,6 +100,7 @@ export async function getCollegeBranding(collegeId: string): Promise<CollegeBran
       contactPhone: data.contact_phone || undefined,
       address: data.address || undefined,
       websiteUrl: data.website_url || undefined,
+      isPaidActive,
     };
   } catch {
     return DEFAULT_BRANDING;

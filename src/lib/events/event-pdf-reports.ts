@@ -9,6 +9,7 @@ import { formatSemesterDisplay, formatBranchDisplay } from '@/lib/events/academi
 import type { CollegeEvent, EventRegistration, EventStats, GoogleFormParticipantResponse } from '@/types/events';
 import type { EventProgram } from '@/types/programs';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
+import { applyTrialWatermarksIfRequired } from '@/lib/pdf/watermark';
 
 // ============================================================
 // COLOR PALETTE & STYLES (Print-ready professional navy/slate)
@@ -856,7 +857,7 @@ export function renderOfficialSignatureBlock(
   return y + blockHeight;
 }
 
-export function renderOfficialFooter(doc: PDFKit.PDFDocument, collegeName: string) {
+export async function renderOfficialFooter(doc: PDFKit.PDFDocument, collegeName: string) {
   const range = doc.bufferedPageRange();
   const margin = 36;
   const pageWidth = doc.page.width;
@@ -888,6 +889,8 @@ export function renderOfficialFooter(doc: PDFKit.PDFDocument, collegeName: strin
   }
 
   doc.page.margins.bottom = originalBottomMargin;
+
+  await applyTrialWatermarksIfRequired(doc, collegeName);
 }
 
 // ============================================================
@@ -902,6 +905,7 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `All Teams — ${program.name}`,
       Author: `${college.name} Event Management`,
@@ -1026,7 +1030,7 @@ export async function generateProgramTeamsPDF(data: ProgramReportData): Promise<
   }
 
   y = renderOfficialSignatureBlock(doc, y);
-  renderOfficialFooter(doc, college.name);
+  await renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
 }
@@ -1047,6 +1051,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `Team Registration — ${team ? team.teamName : 'Team'}`,
       Author: `${college.name} Event Management`,
@@ -1073,7 +1078,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
     doc.rect(margin, y, contentWidth, 40).fillAndStroke(PDF_COLORS.bgLight, PDF_COLORS.border);
     doc.font('Helvetica-Bold').fontSize(10).fillColor(PDF_COLORS.danger)
       .text('Team record not found for the requested Team ID.', margin, y + 14, { width: contentWidth, align: 'center' });
-    renderOfficialFooter(doc, college.name);
+    await renderOfficialFooter(doc, college.name);
     doc.end();
     return bufferPromise;
   }
@@ -1251,7 +1256,7 @@ export async function generateIndividualTeamPDF(data: ProgramReportData, targetT
   y += bottomCardH + 10;
   y = renderOfficialSignatureBlock(doc, y);
 
-  renderOfficialFooter(doc, college.name);
+  await renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
 }
@@ -1268,6 +1273,7 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `Individual Participants — ${program.name}`,
       Author: `${college.name} Event Management`,
@@ -1387,7 +1393,7 @@ export async function generateProgramIndividualsPDF(data: ProgramReportData): Pr
   }
 
   y = renderOfficialSignatureBlock(doc, y);
-  renderOfficialFooter(doc, college.name);
+  await renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
 }
@@ -1404,6 +1410,7 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `Complete Participant Report — ${program.name}`,
       Author: `${college.name} Event Management`,
@@ -1721,7 +1728,7 @@ export async function generateProgramCompleteReportPDF(data: ProgramReportData):
     .text(finalSummaryText, margin + 8, y + 8, { width: contentWidth - 16, align: 'center' });
 
   y = renderOfficialSignatureBlock(doc, y + 26);
-  renderOfficialFooter(doc, college.name);
+  await renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
 }
@@ -1738,6 +1745,7 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `${event.title} - Complete Event Programs Report`,
       Author: `${college.name} Event Management`,
@@ -1912,7 +1920,7 @@ export async function generateCompleteEventProgramsPDF(data: EventReportData): P
   }
 
   y = renderOfficialSignatureBlock(doc, y);
-  renderOfficialFooter(doc, college.name);
+  await renderOfficialFooter(doc, college.name);
   doc.end();
   return bufferPromise;
 }
@@ -1937,6 +1945,7 @@ export async function generateEventEnrollmentPDF(params: {
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `${event.title} - Official Enrollment Record`,
       Author: `${collegeName} Event Management`,
@@ -2090,7 +2099,7 @@ export async function generateEventEnrollmentPDF(params: {
     y = margin;
   }
   y = renderOfficialSignatureBlock(doc, y);
-  renderOfficialFooter(doc, collegeName);
+  await renderOfficialFooter(doc, collegeName);
   doc.end();
   return bufferPromise;
 }
@@ -2115,6 +2124,7 @@ export async function generateGoogleEventEnrollmentPDF(params: {
     size: 'A4',
     layout: 'portrait',
     margin: 36,
+    bufferPages: true,
     info: {
       Title: `${event.title} - Event Registrations`,
       Author: `${collegeName} Event Management`,
@@ -2260,7 +2270,7 @@ export async function generateGoogleEventEnrollmentPDF(params: {
     y = margin;
   }
   y = renderOfficialSignatureBlock(doc, y);
-  renderOfficialFooter(doc, collegeName);
+  await renderOfficialFooter(doc, collegeName);
   doc.end();
   return bufferPromise;
 }

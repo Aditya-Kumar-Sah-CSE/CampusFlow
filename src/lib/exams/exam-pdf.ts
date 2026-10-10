@@ -6,6 +6,7 @@ import { getExamResultsDashboard } from './exam-service';
 import { getExamDbClient } from './exam-permission';
 import { BCE_BGP_LOGO_DATA_URI } from '@/lib/events/college-logos';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
+import { applyTrialWatermarksIfRequired } from '@/lib/pdf/watermark';
 import type { ExamAttemptResult } from '@/types/exams';
 
 const COLORS = {
@@ -403,6 +404,8 @@ export async function generateStudentResultPdf(attemptId: string): Promise<Buffe
     renderPdfAttributionFooter(doc, footerY + 11, { fontSize: 6.2 });
   }
 
+  await applyTrialWatermarksIfRequired(doc, attempt.college?.name || collegeName);
+
   doc.end();
   return await streamToBuffer(doc);
 }
@@ -640,6 +643,8 @@ export async function generateExamRosterPdf(examId: string, collegeId: string): 
 
     renderPdfAttributionFooter(doc, footerY + 11, { fontSize: 6.2 });
   }
+
+  await applyTrialWatermarksIfRequired(doc, (exam as any).college?.name || 'Institution');
 
   doc.end();
   return await streamToBuffer(doc);

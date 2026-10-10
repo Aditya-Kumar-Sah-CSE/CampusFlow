@@ -12,6 +12,7 @@ import { calculatePerformanceGrade } from './engine';
 import { CollegeBranding, DEFAULT_BRANDING } from '@/lib/tenant/branding';
 import { BCE_BGP_LOGO_DATA_URI } from '@/lib/events/college-logos';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
+import { applyTrialWatermarksIfRequired } from '@/lib/pdf/watermark';
 
 // Palette Tokens
 const COLORS = {
@@ -582,6 +583,7 @@ export async function generateIndividualFacultyPDF(
     size: 'A4',
     margin: 36,
     autoFirstPage: true,
+    bufferPages: true,
     info: {
       Title: `Faculty Feedback Report — ${report.facultyName} — ${report.subjectCode}`,
       Author: brand.name,
@@ -880,6 +882,8 @@ export async function generateIndividualFacultyPDF(
   // Draw Footer
   drawFooter(doc, 1, 1, brand);
 
+  await applyTrialWatermarksIfRequired(doc, brand);
+
   doc.end();
   return bufferPromise;
 }
@@ -896,6 +900,7 @@ export async function generateOverallFeedbackPDF(
     size: 'A4',
     margin: 36,
     autoFirstPage: true,
+    bufferPages: true,
     info: {
       Title: `Overall Feedback Analysis Report — ${report.scopeTitle}`,
       Author: brand.name,
@@ -1159,6 +1164,8 @@ export async function generateOverallFeedbackPDF(
   // Footer on Page 1
   drawFooter(doc, 1, 1, brand);
 
+  await applyTrialWatermarksIfRequired(doc, brand);
+
   doc.end();
   return bufferPromise;
 }
@@ -1180,6 +1187,7 @@ export async function generateSemesterComparativePDF(
     size: 'A4',
     margin: 36,
     autoFirstPage: true,
+    bufferPages: true,
     info: {
       Title: `Semester Feedback Comparative Report — ${report.branch} — ${report.semester}`,
       Author: brand.name,
@@ -1560,6 +1568,8 @@ export async function generateSemesterComparativePDF(
 
   drawFooter(doc, currentPage, currentPage, brand);
 
+  await applyTrialWatermarksIfRequired(doc, brand);
+
   doc.end();
   return bufferPromise;
 }
@@ -1616,6 +1626,7 @@ export async function generateStudentResponsePDF(
     size: 'A4',
     margin: 36,
     autoFirstPage: true,
+    bufferPages: true,
     info: {
       Title: docTitle,
       Author: brand.name,
@@ -1870,6 +1881,9 @@ export async function generateStudentResponsePDF(
   }
 
   drawFooter(doc, currentPage, currentPage, brand);
+
+  await applyTrialWatermarksIfRequired(doc, brand);
+
   doc.end();
   return bufferPromise;
 }
