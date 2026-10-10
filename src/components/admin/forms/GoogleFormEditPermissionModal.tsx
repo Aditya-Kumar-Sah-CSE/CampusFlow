@@ -61,12 +61,6 @@ export function GoogleFormEditPermissionModal({
         setRequestStatus(res.requestStatus);
         setRequestedAt(res.requestedAt || null);
         setConnectedAccountEmail(res.connectedAccountEmail || null);
-
-        // If already approved, auto-open immediately
-        if (res.hasAccess) {
-          window.open(googleFormEditUrl, '_blank', 'noopener,noreferrer');
-          onClose();
-        }
       }
     } catch {
       // Ignore
@@ -94,12 +88,8 @@ export function GoogleFormEditPermissionModal({
           setRequestStatus('APPROVED');
           setFeedback({
             type: 'success',
-            text: res.message || 'Access granted! Opening Google Forms...',
+            text: res.message || 'Google Drive editor access granted! Click "Open Google Forms" below to edit.',
           });
-          setTimeout(() => {
-            window.open(googleFormEditUrl, '_blank', 'noopener,noreferrer');
-            onClose();
-          }, 800);
         } else {
           setRequestStatus('PENDING');
           setFeedback({

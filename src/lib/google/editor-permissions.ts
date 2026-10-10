@@ -43,12 +43,7 @@ export async function isGoogleFormEditorApproved(
     return { approved: true, isOwner: true };
   }
 
-  // 2. Primary Super Admin always has full bypass
-  if (isPrimarySuperAdmin({ email: normalizedEmail })) {
-    return { approved: true, isOwner: true };
-  }
-
-  // 3. Check approved editors table (fail-safe for schema migration)
+  // 2. Check approved editors table (must have been actually granted on Google Drive)
   try {
     const { data: editorRecord, error } = await db
       .from('college_google_form_editors')
