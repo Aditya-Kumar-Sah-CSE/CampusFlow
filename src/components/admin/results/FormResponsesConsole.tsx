@@ -33,6 +33,7 @@ import {
 } from '@/app/admin/results/responses/actions';
 import { syncSingleFormResponsesAction } from '@/app/admin/results/actions';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
+import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
 
 interface Props {
   formId: string;
@@ -111,7 +112,13 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
     }
   };
 
-  const handleDownloadResponsePdf = async (responseId: string) => {
+  const [pendingResponsePdfId, setPendingResponsePdfId] = useState<string | null>(null);
+
+  const handleInitiateResponsePdf = (responseId: string) => {
+    setPendingResponsePdfId(responseId);
+  };
+
+  const executeDownloadResponsePdf = async (responseId: string) => {
     if (!responseId) {
       setDownloadNotification({
         type: 'error',
@@ -151,6 +158,13 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
     } finally {
       setDownloadingPdfId(null);
     }
+  };
+
+  const handleProceedWithWatermark = async () => {
+    if (!pendingResponsePdfId) return;
+    const respId = pendingResponsePdfId;
+    setPendingResponsePdfId(null);
+    await executeDownloadResponsePdf(respId);
   };
 
   // Fetch responses on search, filter, or pagination changes
@@ -839,7 +853,7 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
 
                           <button
                             type="button"
-                            onClick={() => handleDownloadResponsePdf(row.googleResponseId || row.id)}
+                            onClick={() => handleInitiateResponsePdf(row.googleResponseId || row.id)}
                             disabled={downloadingPdfId === (row.googleResponseId || row.id)}
                             aria-busy={downloadingPdfId === (row.googleResponseId || row.id) ? 'true' : undefined}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer"
@@ -981,7 +995,7 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
 
                     <button
                       type="button"
-                      onClick={() => handleDownloadResponsePdf(row.googleResponseId || row.id)}
+                      onClick={() => handleInitiateResponsePdf(row.googleResponseId || row.id)}
                       disabled={downloadingPdfId === (row.googleResponseId || row.id)}
                       className="inline-flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors min-h-[38px] cursor-pointer"
                     >
@@ -1394,7 +1408,7 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleDownloadResponsePdf(selectedDetail.responseId)}
+                  onClick={() => handleInitiateResponsePdf(selectedDetail.responseId)}
                   disabled={downloadingPdfId === selectedDetail.responseId}
                   aria-busy={downloadingPdfId === selectedDetail.responseId ? 'true' : undefined}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
@@ -1453,6 +1467,15 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
           </div>
         </div>
       )}
+
+      {/* PDF Download Upgrade / Watermark Choice Modal */}
+      <PdfDownloadUpgradeModal
+        isOpen={Boolean(pendingResponsePdfId)}
+        onClose={() => setPendingResponsePdfId(null)}
+        onProceedWithWatermark={handleProceedWithWatermark}
+        isDownloading={Boolean(downloadingPdfId)}
+        documentTitle={`Student Response Submission Record — #${(pendingResponsePdfId || '').slice(0, 8)}`}
+      />
     </div>
   );
 }

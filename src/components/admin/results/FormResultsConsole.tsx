@@ -13,6 +13,7 @@ import { getPerformanceGradeInfo } from '@/lib/analytics/engine';
 import { syncSingleFormResponsesAction, getFormAnalyticsAction } from '@/app/admin/results/actions';
 import { useHydrated, formatDateTimeFull } from '@/lib/hooks/use-hydrated';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
+import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
 import { ExternalActionLink } from '@/components/ui/ExternalActionLink';
 import {
   ArrowLeft,
@@ -44,7 +45,16 @@ export function FormResultsConsole({ initialReport }: Props) {
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isNavigatingResponses, setIsNavigatingResponses] = useState(false);
   const [downloadingPdfType, setDownloadingPdfType] = useState<string | null>(null);
+  const [pendingPdfDownload, setPendingPdfDownload] = useState<{
+    url: string;
+    defaultFilename: string;
+    typeKey: string;
+  } | null>(null);
   const hydrated = useHydrated();
+
+  const handleInitiatePdfDownload = (url: string, defaultFilename: string, typeKey: string) => {
+    setPendingPdfDownload({ url, defaultFilename, typeKey });
+  };
 
   const handleDownloadPdf = async (url: string, defaultFilename: string, typeKey: string) => {
     if (downloadingPdfType) return;
@@ -72,6 +82,13 @@ export function FormResultsConsole({ initialReport }: Props) {
     } finally {
       setDownloadingPdfType(null);
     }
+  };
+
+  const handleProceedWithWatermark = async () => {
+    if (!pendingPdfDownload) return;
+    const { url, defaultFilename, typeKey } = pendingPdfDownload;
+    setPendingPdfDownload(null);
+    await handleDownloadPdf(url, defaultFilename, typeKey);
   };
 
   const handleSync = () => {
@@ -193,7 +210,7 @@ export function FormResultsConsole({ initialReport }: Props) {
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleDownloadPdf(semesterOverviewPdfUrl, `semester-report-${report.formId}.pdf`, 'SEMESTER')}
+                  onClick={() => handleInitiatePdfDownload(semesterOverviewPdfUrl, `semester-report-${report.formId}.pdf`, 'SEMESTER')}
                   disabled={Boolean(downloadingPdfType)}
                   aria-busy={downloadingPdfType === 'SEMESTER' ? 'true' : undefined}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
@@ -208,7 +225,7 @@ export function FormResultsConsole({ initialReport }: Props) {
                 {activeFacultyGrid && (
                   <button
                     type="button"
-                    onClick={() => handleDownloadPdf(facultyPdfUrl, `faculty-${encodeURIComponent(activeFacultyGrid.facultyName)}.pdf`, 'FACULTY_GRID')}
+                    onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-${encodeURIComponent(activeFacultyGrid.facultyName)}.pdf`, 'FACULTY_GRID')}
                     disabled={Boolean(downloadingPdfType)}
                     aria-busy={downloadingPdfType === 'FACULTY_GRID' ? 'true' : undefined}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-300 disabled:opacity-50 cursor-pointer"
@@ -225,7 +242,7 @@ export function FormResultsConsole({ initialReport }: Props) {
             ) : (
               <button
                 type="button"
-                onClick={() => handleDownloadPdf(facultyPdfUrl, `faculty-report-${report.formId}.pdf`, 'FACULTY')}
+                onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-report-${report.formId}.pdf`, 'FACULTY')}
                 disabled={Boolean(downloadingPdfType)}
                 aria-busy={downloadingPdfType === 'FACULTY' ? 'true' : undefined}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
@@ -693,6 +710,21 @@ export function FormResultsConsole({ initialReport }: Props) {
           </div>
         )}
       </div>
+
+      {/* PDF Download Upgrade / Watermark Choice Modal */}
+      <PdfDownloadUpgradeModal
+        isOpen={Boolean(pendingPdfDownload)}
+        onClose={() => setPendingPdfDownload(null)}
+        onProceedWithWatermark={handleProceedWithWatermark}
+        isDownloading={Boolean(downloadingPdfType)}
+        documentTitle={
+          pendingPdfDownload?.typeKey === 'SEMESTER'
+            ? `Semester Feedback Comparative Evaluation — ${report.branch} (${report.semester})`
+            : activeFacultyGrid
+            ? `Faculty Feedback Report — ${activeFacultyGrid.facultyName} (${activeFacultyGrid.subjectName})`
+            : `Faculty Feedback Report — ${report.facultyName}`
+        }
+      />
     </div>
   );
 }

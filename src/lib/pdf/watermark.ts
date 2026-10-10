@@ -97,7 +97,26 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
   const effectiveCollege = collegeName && collegeName.trim() ? collegeName.trim() : 'Institution';
   const trialText = `CampusFlow provides FREE TRIAL to ${effectiveCollege}`;
 
-  // 4 evenly spaced diagonal bands covering the entire page from top to bottom
+  // 1. Prominent Large-Size CampusFlow Logo in the center of the page ("centrer me large size logo")
+  if (logoBuf) {
+    const centerLogoSize = 150;
+    const centerLogoX = (pageWidth - centerLogoSize) / 2;
+    const centerLogoY = (pageHeight - centerLogoSize) / 2;
+
+    doc.save();
+    doc.opacity(0.55); // 55% opacity (in 50% - 70% range)
+    try {
+      doc.image(logoBuf, centerLogoX, centerLogoY, {
+        width: centerLogoSize,
+        height: centerLogoSize,
+      });
+    } catch {
+      // Non-blocking fallback
+    }
+    doc.restore();
+  }
+
+  // 2. Evenly spaced diagonal watermark bands across the page
   const yPositions = [185, 370, 550, 725];
 
   for (const yCenter of yPositions) {

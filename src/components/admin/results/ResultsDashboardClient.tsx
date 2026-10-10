@@ -19,6 +19,7 @@ import {
   FeedbackForm,
 } from '@/types/database';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
+import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
 import {
   FileDown,
   RefreshCw,
@@ -60,8 +61,14 @@ export function ResultsDashboardClient({
   const [downloadingPdfFormId, setDownloadingPdfFormId] = useState<string | null>(null);
   const [downloadingScopePdf, setDownloadingScopePdf] = useState(false);
   const [pdfNotification, setPdfNotification] = useState<string | null>(null);
+  const [pendingPdfDownload, setPendingPdfDownload] = useState<{
+    url: string;
+    defaultFilename: string;
+    title: string;
+    onDownload: () => Promise<void>;
+  } | null>(null);
 
-  const handleDownloadFormPdf = async (formId: string, facultyName?: string) => {
+  const executeDownloadFormPdf = async (formId: string, facultyName?: string) => {
     if (downloadingPdfFormId) return;
     setDownloadingPdfFormId(formId);
     setPdfNotification(null);
@@ -79,7 +86,7 @@ export function ResultsDashboardClient({
     }
   };
 
-  const handleDownloadScopePdf = async () => {
+  const executeDownloadScopePdf = async () => {
     if (downloadingScopePdf) return;
     setDownloadingScopePdf(true);
     setPdfNotification(null);
@@ -95,6 +102,31 @@ export function ResultsDashboardClient({
     } finally {
       setDownloadingScopePdf(false);
     }
+  };
+
+  const handleInitiateFormPdf = (formId: string, facultyName?: string, formTitle?: string) => {
+    setPendingPdfDownload({
+      url: `/api/admin/results/${formId}/pdf`,
+      defaultFilename: facultyName ? `evaluation-${encodeURIComponent(facultyName)}.pdf` : `form-report-${formId}.pdf`,
+      title: formTitle || (facultyName ? `Evaluation Report — ${facultyName}` : 'Form Feedback Report'),
+      onDownload: () => executeDownloadFormPdf(formId, facultyName),
+    });
+  };
+
+  const handleInitiateScopePdf = () => {
+    setPendingPdfDownload({
+      url: pdfExportUrl,
+      defaultFilename: 'institutional-feedback-report.pdf',
+      title: `Institutional Feedback Evaluation — ${report.scopeTitle || 'Overview'}`,
+      onDownload: () => executeDownloadScopePdf(),
+    });
+  };
+
+  const handleProceedWithWatermark = async () => {
+    if (!pendingPdfDownload) return;
+    const downloadFn = pendingPdfDownload.onDownload;
+    setPendingPdfDownload(null);
+    await downloadFn();
   };
 
   // Filter states
@@ -202,7 +234,7 @@ export function ResultsDashboardClient({
             </Link>
             <button
               type="button"
-              onClick={handleDownloadScopePdf}
+              onClick={handleInitiateScopePdf}
               disabled={downloadingScopePdf}
               aria-busy={downloadingScopePdf}
               className="inline-flex items-center gap-2 px-4 py-2 bg-bce-navy hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
@@ -606,7 +638,7 @@ export function ResultsDashboardClient({
                           </Link>
                           <button
                             type="button"
-                            onClick={() => handleDownloadFormPdf(form.id, form.faculty?.name)}
+                            onClick={() => handleInitiateFormPdf(form.id, form.faculty?.name, form.title)}
                             disabled={Boolean(downloadingPdfFormId)}
                             aria-busy={downloadingPdfFormId === form.id ? 'true' : undefined}
                             className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
@@ -692,7 +724,7 @@ export function ResultsDashboardClient({
                         </Link>
                         <button
                           type="button"
-                          onClick={() => handleDownloadFormPdf(form.id, form.faculty?.name)}
+                          onClick={() => handleInitiateFormPdf(form.id, form.faculty?.name, form.title)}
                           disabled={Boolean(downloadingPdfFormId)}
                           aria-busy={downloadingPdfFormId === form.id ? 'true' : undefined}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
@@ -713,6 +745,15 @@ export function ResultsDashboardClient({
           </>
         )}
       </div>
+
+      {/* PDF Download Upgrade / Watermark Choice Modal */}
+      <PdfDownloadUpgradeModal
+        isOpen={Boolean(pendingPdfDownload)}
+        onClose={() => setPendingPdfDownload(null)}
+        onProceedWithWatermark={handleProceedWithWatermark}
+        isDownloading={Boolean(downloadingPdfFormId || downloadingScopePdf)}
+        documentTitle={pendingPdfDownload?.title || 'Feedback Report'}
+      />
     </div>
   );
 }
