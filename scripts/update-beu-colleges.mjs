@@ -34,7 +34,7 @@ const BEU_COLLEGES_DATA = [
     logo_url: '/images/colleges/mit-muzaffarpur.png',
     address: 'MIT Campus, Brahmpura, Muzaffarpur, Bihar - 842003',
     contact_email: 'principal@mitmuzaffarpur.org',
-    contact_phone: '+91-621-2262018',
+    contact_phone: '+91-0621-2262442',
     established_year: 1954,
     tagline: 'Dept. of Science, Technology & Technical Education, Govt. of Bihar',
   },

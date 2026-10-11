@@ -54,7 +54,7 @@ const POLYTECHNIC_COLLEGES = [
   { name: 'Government Polytechnic, Munger',                       code: 'GP-137',  slug: 'gp-munger',          district: 'Munger',         year: 2019, website_url: 'https://gpmunger.org.in' },
   { name: 'Government Polytechnic, Sheikhpura',                   code: 'GP-138',  slug: 'gp-sheikhpura',      district: 'Sheikhpura',     year: 2019, website_url: 'https://gpsheikhpura.org.in' },
   { name: 'Government Polytechnic, Jamui',                        code: 'GP-139',  slug: 'gp-jamui',           district: 'Jamui',          year: 2019, website_url: 'https://gpjamui.org.in' },
-  { name: 'Government Polytechnic, Banka',                        code: 'GP-140',  slug: 'gp-banka',           district: 'Banka',          year: 2019, website_url: 'https://gpbanka.ac.in', logo_url: '/images/colleges/gp-banka.png' },
+  { name: 'Government Polytechnic, Banka',                        code: 'GP-140',  slug: 'gp-banka',           district: 'Banka',          year: 2019, website_url: 'https://www.gpbanka.ac.in', logo_url: '/images/colleges/gp-banka.png' },
   { name: 'Government Polytechnic, Tekari',                       code: 'GP-141',  slug: 'gp-tekari',          district: 'Gaya',           year: 2019, website_url: 'https://gptekari.org.in' },
   { name: 'Government Polytechnic, Kaimur',                       code: 'GP-142',  slug: 'gp-kaimur',          district: 'Kaimur',         year: 2019, website_url: 'https://gpkaimur.org.in' },
   { name: 'Government Polytechnic, Buxar',                        code: 'GP-143',  slug: 'gp-buxar',           district: 'Buxar',          year: 2019, website_url: 'https://gpbuxar.ac.in' },
