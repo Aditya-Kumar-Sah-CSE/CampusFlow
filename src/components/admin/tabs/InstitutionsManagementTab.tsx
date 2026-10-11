@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Building2,
@@ -23,6 +23,7 @@ import {
   toggleInstitutionStatusAction,
   updateLandingTogglesAction,
 } from '@/app/admin/institutions/actions';
+import { PaginationControl } from '@/components/ui/PaginationControl';
 import type { College } from '@/types/tenant';
 import type { CreateCollegeInput, UpdateCollegeInput } from '@/lib/validation';
 
@@ -30,6 +31,8 @@ export function InstitutionsManagementTab() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -273,16 +276,34 @@ export function InstitutionsManagementTab() {
   };
 
   // Filtered colleges list
-  const filteredColleges = colleges.filter((c) => {
+  const filteredColleges = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      c.name.toLowerCase().includes(q) ||
-      c.code.toLowerCase().includes(q) ||
-      c.slug.toLowerCase().includes(q) ||
-      (c.address && c.address.toLowerCase().includes(q))
-    );
-  });
+    const qClean = q.replace(/[^a-z0-9]/g, '');
+    if (!q) return colleges;
+    return colleges.filter((c) => {
+      const name = c.name.toLowerCase();
+      const code = (c.code || '').toLowerCase();
+      const codeClean = code.replace(/[^a-z0-9]/g, '');
+      const slug = (c.slug || '').toLowerCase();
+      const slugClean = slug.replace(/[^a-z0-9]/g, '');
+      const addr = (c.address || '').toLowerCase();
+      return (
+        name.includes(q) ||
+        code.includes(q) ||
+        slug.includes(q) ||
+        addr.includes(q) ||
+        (qClean && (codeClean.includes(qClean) || slugClean.includes(qClean)))
+      );
+    });
+  }, [colleges, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredColleges.length / pageSize));
+  const validPage = Math.min(currentPage, totalPages);
+
+  const paginatedColleges = useMemo(() => {
+    const start = (validPage - 1) * pageSize;
+    return filteredColleges.slice(start, start + pageSize);
+  }, [filteredColleges, validPage, pageSize]);
 
   const activeCount = colleges.filter((c) => c.is_active).length;
   const inactiveCount = colleges.length - activeCount;
@@ -364,9 +385,25 @@ export function InstitutionsManagementTab() {
             type="text"
             placeholder="Search colleges, codes, slugs..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full pl-9 pr-8 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setCurrentPage(1);
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -386,7 +423,8 @@ export function InstitutionsManagementTab() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs min-w-[620px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
@@ -400,7 +438,7 @@ export function InstitutionsManagementTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredColleges.map((col) => {
+                {paginatedColleges.map((col) => {
                   return (
                     <tr
                       key={col.id}
@@ -561,6 +599,21 @@ export function InstitutionsManagementTab() {
               </tbody>
             </table>
           </div>
+
+            <PaginationControl
+              currentPage={validPage}
+              totalPages={totalPages}
+              totalItems={filteredColleges.length}
+              pageSize={pageSize}
+              onPageChange={(p) => setCurrentPage(p)}
+              onPageSizeChange={(newSize) => {
+                setPageSize(newSize);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[10, 20, 50, 100]}
+              isLoading={loading}
+            />
+          </>
         )}
       </div>
 

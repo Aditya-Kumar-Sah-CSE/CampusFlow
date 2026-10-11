@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Loader2,
@@ -21,6 +21,9 @@ import {
   TrendingUp,
   ShieldX,
   History,
+  Search,
+  X,
+  Filter,
 } from 'lucide-react';
 import {
   getAdminBillingOverviewAction,
@@ -40,6 +43,7 @@ import { ExtendTrialModal } from '@/components/admin/billing/ExtendTrialModal';
 import { RevokeTrialModal } from '@/components/admin/billing/RevokeTrialModal';
 import { TrialHistoryModal } from '@/components/admin/billing/TrialHistoryModal';
 import { ReplaceTrialModal } from '@/components/admin/billing/ReplaceTrialModal';
+import { PaginationControl } from '@/components/ui/PaginationControl';
 import type { PaymentSettings, Admin, AdminTrialEntitlement, BillingOverviewItem } from '@/types/database';
 
 export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { currentUserEmail?: string }) {
@@ -65,6 +69,87 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
   const [revokeModalData, setRevokeModalData] = useState<{ admin: Admin; trial: AdminTrialEntitlement } | null>(null);
   const [replaceModalData, setReplaceModalData] = useState<{ admin: Admin; currentTrial?: AdminTrialEntitlement | null } | null>(null);
   const [historyModalAdmin, setHistoryModalAdmin] = useState<Admin | null>(null);
+
+  // Smart Search, Filtering & Pagination States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [accessFilter, setAccessFilter] = useState<'ALL' | 'UNLOCKED' | 'LOCKED'>('ALL');
+  const [planFilter, setPlanFilter] = useState<'ALL' | 'FREE' | 'TRIAL' | 'PAID' | 'EXPIRED_TRIAL'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredData = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    const qClean = q.replace(/[^a-z0-9]/g, '');
+
+    return data.filter((item) => {
+      // 1. Smart Text Search Filter (name, code, slug, admin email)
+      if (q) {
+        const name = (item.college?.name || '').toLowerCase();
+        const code = (item.college?.code || '').toLowerCase();
+        const codeClean = code.replace(/[^a-z0-9]/g, '');
+        const slug = (item.college?.slug || '').toLowerCase();
+        const slugClean = slug.replace(/[^a-z0-9]/g, '');
+        const email = (item.admin?.email || '').toLowerCase();
+
+        const matchesText =
+          name.includes(q) ||
+          code.includes(q) ||
+          slug.includes(q) ||
+          email.includes(q) ||
+          (qClean && (codeClean.includes(qClean) || slugClean.includes(qClean)));
+
+        if (!matchesText) return false;
+      }
+
+      // 2. Access Filter
+      const accessStatus = item.billing?.access_status || 'LOCKED';
+      if (accessFilter === 'UNLOCKED' && accessStatus !== 'UNLOCKED') return false;
+      if (accessFilter === 'LOCKED' && accessStatus !== 'LOCKED') return false;
+
+      // 3. Plan / Trial Filter
+      const planType = item.billing?.plan_type || 'FREE';
+      const hasActiveTrial = Boolean(item.activeTrial);
+      if (planFilter === 'TRIAL' && !hasActiveTrial) return false;
+      if (planFilter === 'FREE' && (planType !== 'FREE' || hasActiveTrial)) return false;
+      if (planFilter === 'PAID' && (planType === 'FREE' || hasActiveTrial)) return false;
+      if (planFilter === 'EXPIRED_TRIAL') {
+        const latestTrial = item.trialHistory && item.trialHistory[0];
+        if (!latestTrial || latestTrial.status !== 'EXPIRED') return false;
+      }
+
+      return true;
+    });
+  }, [data, searchQuery, accessFilter, planFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const validPage = Math.min(currentPage, totalPages);
+
+  const paginatedData = useMemo(() => {
+    const start = (validPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, validPage, pageSize]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCurrentPage(1);
+  };
+
+  const handleAccessFilterChange = (val: 'ALL' | 'UNLOCKED' | 'LOCKED') => {
+    setAccessFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handlePlanFilterChange = (val: 'ALL' | 'FREE' | 'TRIAL' | 'PAID' | 'EXPIRED_TRIAL') => {
+    setPlanFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setAccessFilter('ALL');
+    setPlanFilter('ALL');
+    setCurrentPage(1);
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -206,7 +291,11 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
             <CreditCard className="w-5 h-5 text-bce-cobalt shrink-0" />
             <span>Billing & Access Management</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">{data.length} colleges total</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            {filteredData.length === data.length
+              ? `${data.length} colleges total`
+              : `${filteredData.length} of ${data.length} colleges matched`}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setShowSettings(!showSettings)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition cursor-pointer">
@@ -353,6 +442,100 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
         </div>
       )}
 
+      {/* Fast & Smart Search Bar + Filters */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs space-y-3">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+          {/* Smart Search Bar */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search by college name, code (e.g. 108, GP-157), slug, or admin email..."
+              className="w-full pl-9 pr-9 py-2 bg-slate-50/70 border border-slate-200 focus:bg-white focus:border-bce-cobalt focus:ring-4 focus:ring-bce-cobalt/10 rounded-xl text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 transition-all outline-hidden font-medium"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => handleSearchChange('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 transition cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Quick Filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Access Filter */}
+            <select
+              value={accessFilter}
+              onChange={(e) => handleAccessFilterChange(e.target.value as any)}
+              className="px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 cursor-pointer"
+            >
+              <option value="ALL">All Access</option>
+              <option value="UNLOCKED">Unlocked Only</option>
+              <option value="LOCKED">Locked Only</option>
+            </select>
+
+            {/* Plan / Trial Filter */}
+            <select
+              value={planFilter}
+              onChange={(e) => handlePlanFilterChange(e.target.value as any)}
+              className="px-3 py-2 bg-slate-50/80 border border-slate-200 rounded-xl text-xs text-slate-700 font-semibold focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 cursor-pointer"
+            >
+              <option value="ALL">All Plans & Trials</option>
+              <option value="TRIAL">Active Free Trial</option>
+              <option value="FREE">Free Plan</option>
+              <option value="PAID">Paid (Monthly/Yearly)</option>
+              <option value="EXPIRED_TRIAL">Expired Trial</option>
+            </select>
+
+            {/* Active filter count / clear */}
+            {(searchQuery || accessFilter !== 'ALL' || planFilter !== 'ALL') && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="px-2.5 py-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl border border-rose-200 transition cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Count summary & indicators */}
+        <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5 px-0.5 border-t border-slate-100 flex-wrap gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>
+              Showing <strong className="text-slate-800 font-bold">{filteredData.length}</strong> of{' '}
+              <strong className="text-slate-800 font-bold">{data.length}</strong> college tenants
+            </span>
+            {searchQuery && (
+              <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold text-[10px]">
+                Query: &quot;{searchQuery}&quot;
+              </span>
+            )}
+            {accessFilter !== 'ALL' && (
+              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-[10px]">
+                Access: {accessFilter}
+              </span>
+            )}
+            {planFilter !== 'ALL' && (
+              <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold text-[10px]">
+                Filter: {planFilter}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-slate-400">Page {validPage} of {totalPages}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Admin Billing Table */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs w-full min-w-0">
         <div className="overflow-x-auto min-w-0">
@@ -369,7 +552,29 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {data.map(item => {
+              {filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="max-w-sm mx-auto space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+                        <Search className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-800">No college tenants match your criteria</p>
+                      <p className="text-xs text-slate-500">
+                        Try searching with a different college name, code, or clear active filters.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleClearFilters}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-bce-cobalt text-white text-xs font-bold hover:bg-bce-navy transition shadow-xs cursor-pointer"
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((item) => {
                 const isExpanded = expandedAdmin === item.college.id;
                 const accessStatus = item.billing?.access_status || 'LOCKED';
                 const planType = item.billing?.plan_type || 'FREE';
@@ -599,14 +804,29 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
 
+        {/* Pagination Controls */}
+        <PaginationControl
+          currentPage={validPage}
+          totalPages={totalPages}
+          totalItems={filteredData.length}
+          pageSize={pageSize}
+          onPageChange={(p) => setCurrentPage(p)}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          pageSizeOptions={[10, 20, 50, 100]}
+          isLoading={loading}
+        />
+
         {/* Expanded Payment History */}
         {expandedAdmin && (() => {
-          const item = data.find(d => d.admin.id === expandedAdmin);
+          const item = data.find(d => d.college.id === expandedAdmin || d.admin.id === expandedAdmin);
           if (!item || !item.paymentRequests.length) return (
             <div className="border-t border-slate-200 p-4 text-xs text-slate-400">No payment history recorded.</div>
           );
