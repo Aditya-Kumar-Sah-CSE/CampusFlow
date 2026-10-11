@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
@@ -155,6 +155,27 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
 
   const selectedCollege = colleges.find((c) => c.id === selectedCollegeId);
 
+  const { engineeringColleges, polytechnicColleges } = useMemo(() => {
+    const isPoly = (c: CollegeItem) => {
+      const code = (c.code || '').toUpperCase();
+      const slug = (c.slug || '').toLowerCase();
+      const name = (c.name || '').toLowerCase();
+      return (
+        code.startsWith('GP-') ||
+        code.startsWith('GWP-') ||
+        slug.startsWith('gp-') ||
+        slug.startsWith('gwp-') ||
+        slug.startsWith('ngp-') ||
+        slug.includes('polytechnic') ||
+        name.includes('polytechnic')
+      );
+    };
+    return {
+      engineeringColleges: colleges.filter((c: CollegeItem) => !isPoly(c)),
+      polytechnicColleges: colleges.filter((c: CollegeItem) => isPoly(c)),
+    };
+  }, [colleges]);
+
   return (
     <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200/90 text-slate-800">
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate>
@@ -192,11 +213,24 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
             <option value="">
               {loadingColleges ? 'Loading institutions...' : '-- Choose your College / Institute --'}
             </option>
-            {colleges.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.code || c.slug})
-              </option>
-            ))}
+            {engineeringColleges.length > 0 && (
+              <optgroup label="Bihar Engineering Colleges (BEU)">
+                {engineeringColleges.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code || c.slug})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {polytechnicColleges.length > 0 && (
+              <optgroup label="Bihar Polytechnic Colleges (SBTE)">
+                {polytechnicColleges.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code || c.slug})
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
 
           {selectedCollege && (

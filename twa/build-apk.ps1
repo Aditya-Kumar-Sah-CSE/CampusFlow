@@ -158,10 +158,24 @@ try {
   $env:BUBBLEWRAP_KEYSTORE_PASSWORD = $pw
   $env:BUBBLEWRAP_KEY_PASSWORD = $pw
 
+  # Extract host from $AppUrl
+  $targetHost = "143campusflow.vercel.app"
+  if ($AppUrl) {
+    try {
+      $uri = [System.Uri]$AppUrl
+      if ($uri.Host) {
+        $targetHost = $uri.Host
+      }
+    } catch {
+      $targetHost = $AppUrl.TrimStart("https://").TrimStart("http://").TrimEnd("/")
+    }
+  }
+  $env:TWA_HOST_NAME = $targetHost
+
   foreach ($cfg in $targetVariants) {
     Write-Host "`n----------------------------------------------------------" -ForegroundColor Cyan
     Write-Host "  Building Variant: $($cfg.Name) ($($cfg.PackageId))" -ForegroundColor Cyan
-    Write-Host "  Launch URL: $($cfg.LaunchUrl)" -ForegroundColor Cyan
+    Write-Host "  Launch URL: https://${targetHost}$($cfg.LaunchUrl)" -ForegroundColor Cyan
     Write-Host "----------------------------------------------------------" -ForegroundColor Cyan
 
     $flavor = $cfg.Flavor
@@ -170,7 +184,7 @@ try {
 
     # 1. Assemble Debug APK
     Write-Host "  -> Assembling Debug APK (assemble${flavor}Debug)..." -ForegroundColor Yellow
-    & .\gradlew.bat "assemble${flavor}Debug"
+    & .\gradlew.bat "assemble${flavor}Debug" "-PTWA_HOST_NAME=$targetHost"
     if ($LASTEXITCODE -ne 0) {
       throw "Gradle assemble${flavor}Debug failed with exit code $LASTEXITCODE"
     }
@@ -196,7 +210,7 @@ try {
     if (-not $DebugOnly) {
       # 2. Assemble Release Signed APK
       Write-Host "  -> Assembling Signed Release APK (assemble${flavor}Release)..." -ForegroundColor Yellow
-      & .\gradlew.bat "assemble${flavor}Release"
+      & .\gradlew.bat "assemble${flavor}Release" "-PTWA_HOST_NAME=$targetHost"
       if ($LASTEXITCODE -ne 0) {
         throw "Gradle assemble${flavor}Release failed with exit code $LASTEXITCODE"
       }
@@ -238,7 +252,7 @@ try {
 
       # 3. Bundle Release AAB (Google Play Store)
       Write-Host "  -> Bundling Play Store Release AAB (bundle${flavor}Release)..." -ForegroundColor Yellow
-      & .\gradlew.bat "bundle${flavor}Release"
+      & .\gradlew.bat "bundle${flavor}Release" "-PTWA_HOST_NAME=$targetHost"
       if ($LASTEXITCODE -ne 0) {
         throw "Gradle bundle${flavor}Release failed with exit code $LASTEXITCODE"
       }

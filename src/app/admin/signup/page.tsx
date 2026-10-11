@@ -193,11 +193,24 @@ function AdminSignupForm() {
               className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all cursor-pointer"
             >
               <option value="" disabled>Select your institution...</option>
-              {colleges.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.code})
-                </option>
-              ))}
+              <optgroup label="Bihar Engineering Colleges (BEU)">
+                {colleges
+                  .filter((c) => !c.code?.startsWith('GP-') && !c.code?.startsWith('GWP-') && !c.name?.toLowerCase().includes('polytechnic'))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+              </optgroup>
+              <optgroup label="Bihar Polytechnic Colleges (SBTE)">
+                {colleges
+                  .filter((c) => c.code?.startsWith('GP-') || c.code?.startsWith('GWP-') || c.name?.toLowerCase().includes('polytechnic'))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.code})
+                    </option>
+                  ))}
+              </optgroup>
             </select>
           </div>
         </div>
