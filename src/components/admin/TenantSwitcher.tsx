@@ -301,23 +301,35 @@ export function TenantSwitcher({
                         isActive ? 'bg-slate-700/60 text-amber-300 font-medium' : 'text-slate-200'
                       }`}
                     >
-                      <div className="flex flex-col min-w-0 pr-2">
-                        <div className="flex items-center gap-1.5">
-                          <span className="truncate font-medium">{col.name}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span
-                            className={`text-[9px] font-mono px-1 py-0.2 rounded font-semibold ${
-                              isPoly
-                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/40'
-                                : 'bg-blue-950/80 text-blue-300 border border-blue-700/40'
-                            }`}
-                          >
-                            {col.code}
-                          </span>
-                          <span className="text-[10px] text-slate-400 font-mono truncate">
-                            /{col.slug}
-                          </span>
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        {col.logoUrl ? (
+                          <div className="w-6 h-6 rounded-md bg-white border border-slate-600/60 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={col.logoUrl} alt="" className="max-w-full max-h-full object-contain" />
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 rounded-md bg-slate-750 border border-slate-700 flex items-center justify-center shrink-0 text-slate-400">
+                            <School className="w-3.5 h-3.5" />
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate font-medium">{col.name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span
+                              className={`text-[9px] font-mono px-1 py-0.2 rounded font-semibold ${
+                                isPoly
+                                  ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/40'
+                                  : 'bg-blue-950/80 text-blue-300 border border-blue-700/40'
+                              }`}
+                            >
+                              {col.code}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono truncate">
+                              /{col.slug}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       {isActive && (

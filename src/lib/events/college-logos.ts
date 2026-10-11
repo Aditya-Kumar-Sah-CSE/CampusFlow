@@ -40,6 +40,10 @@ export const DEFAULT_COLLEGE_LOGOS: Record<string, string> = {
   // Bihar Engineering University, Patna (BEU)
   'beu': '/images/colleges/beu-bihar.png',
   'beu-bihar': '/images/colleges/beu-bihar.png',
+
+  // Government Polytechnic, Banka (SBTE)
+  'gp-banka': '/images/colleges/gp-banka.png',
+  'gp-140': '/images/colleges/gp-banka.png',
 };
 
 export function resolveCollegeLogoUrl(details?: {
@@ -81,6 +85,7 @@ export function resolveCollegeLogoUrl(details?: {
     if (nameLower.includes('motihari')) return DEFAULT_COLLEGE_LOGOS['mce-motihari'];
     if (nameLower.includes('darbhanga')) return DEFAULT_COLLEGE_LOGOS['dce-darbhanga'];
     if (nameLower.includes('nalanda') || nameLower.includes('chandi')) return DEFAULT_COLLEGE_LOGOS['nce-chandi'];
+    if (nameLower.includes('banka')) return DEFAULT_COLLEGE_LOGOS['gp-banka'];
   }
 
   // 4. Custom URL override if provided
