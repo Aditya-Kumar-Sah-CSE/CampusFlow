@@ -670,13 +670,15 @@ export async function checkBatchStudentFormSubmissionsAction(
 }
 
 /**
- * Updates the registration number for the currently authenticated student.
+ * Updates the profile (Full Name and/or Registration Number) for the currently authenticated student.
  * Validates session and synchronizes both public.students and auth.users user_metadata.
  */
-export async function updateStudentRegistrationNumberAction(
-  registrationNumber: string
-): Promise<{
+export async function updateStudentProfileAction(input: {
+  fullName?: string;
+  registrationNumber?: string | null;
+}): Promise<{
   success: boolean;
+  fullName?: string;
   registrationNumber?: string | null;
   error?: string;
 }> {
@@ -691,49 +693,131 @@ export async function updateStudentRegistrationNumberAction(
       return { success: false, error: 'Unauthorized: Please log in to update your profile.' };
     }
 
-    const cleanReg = (registrationNumber || '').trim();
+    // 1. Validate full name if provided
+    let cleanFullName: string | undefined = undefined;
+    if (input.fullName !== undefined) {
+      cleanFullName = input.fullName.trim();
+      if (!cleanFullName) {
+        return { success: false, error: 'Full name cannot be empty.' };
+      }
+      if (cleanFullName.length < 2) {
+        return { success: false, error: 'Full name must be at least 2 characters long.' };
+      }
+      if (cleanFullName.length > 100) {
+        return { success: false, error: 'Full name cannot exceed 100 characters.' };
+      }
+    }
 
-    if (cleanReg.length > 50) {
-      return { success: false, error: 'Registration number cannot exceed 50 characters.' };
+    // 2. Validate registration number if provided
+    let cleanReg: string | null | undefined = undefined;
+    if (input.registrationNumber !== undefined) {
+      const trimmed = (input.registrationNumber || '').trim();
+      if (trimmed.length > 50) {
+        return { success: false, error: 'Registration number cannot exceed 50 characters.' };
+      }
+      cleanReg = trimmed || null;
     }
 
     const adminDb = createAdminClient() || supabase;
 
-    // 1. Update students table
-    const { error: studentUpdateError } = await adminDb
-      .from('students')
-      .update({
-        registration_number: cleanReg || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
-
-    if (studentUpdateError) {
-      console.error('[updateStudentRegistrationNumberAction] DB update error:', studentUpdateError);
-      return { success: false, error: 'Failed to update registration number in database.' };
+    // 3. Prepare payload for public.students table
+    const updatePayload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (cleanFullName !== undefined) {
+      updatePayload.full_name = cleanFullName;
+    }
+    if (cleanReg !== undefined) {
+      updatePayload.registration_number = cleanReg;
     }
 
-    // 2. Update user_metadata in auth.users so metadata stays in sync
+    // Update students table (or insert if record is missing)
+    const { data: existingStudent } = await adminDb
+      .from('students')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingStudent) {
+      const { error: studentUpdateError } = await adminDb
+        .from('students')
+        .update(updatePayload)
+        .eq('user_id', user.id);
+
+      if (studentUpdateError) {
+        console.error('[updateStudentProfileAction] DB update error:', studentUpdateError);
+        return { success: false, error: 'Failed to update student profile in database.' };
+      }
+    } else if (user.user_metadata?.college_id) {
+      try {
+        await adminDb.from('students').insert({
+          user_id: user.id,
+          college_id: user.user_metadata.college_id,
+          email: user.email?.toLowerCase().trim() || '',
+          full_name: cleanFullName || user.user_metadata?.name || 'Student',
+          registration_number: cleanReg !== undefined ? cleanReg : (user.user_metadata?.registration_number || null),
+          is_active: true,
+          email_verified: Boolean(user.email_confirmed_at || user.user_metadata?.email_verified),
+          updated_at: new Date().toISOString(),
+        });
+      } catch (insertErr) {
+        console.warn('[updateStudentProfileAction] Insert fallback warning:', insertErr);
+      }
+    }
+
+    // 4. Update user_metadata in auth.users so metadata stays in sync
+    const updatedMetadata = {
+      ...(user.user_metadata || {}),
+      ...(cleanFullName !== undefined ? { name: cleanFullName } : {}),
+      ...(cleanReg !== undefined ? { registration_number: cleanReg } : {}),
+    };
+
     try {
       if (adminDb.auth?.admin?.updateUserById) {
         await adminDb.auth.admin.updateUserById(user.id, {
-          user_metadata: {
-            ...(user.user_metadata || {}),
-            registration_number: cleanReg || null,
-          },
+          user_metadata: updatedMetadata,
         });
       }
     } catch (metaErr) {
-      console.warn('[updateStudentRegistrationNumberAction] Metadata sync warning:', metaErr);
+      console.warn('[updateStudentProfileAction] Admin metadata sync warning:', metaErr);
+    }
+
+    // Also update current active session user so client-side session immediately reflects the new metadata
+    try {
+      await supabase.auth.updateUser({
+        data: updatedMetadata,
+      });
+    } catch (userErr) {
+      console.warn('[updateStudentProfileAction] supabase.auth.updateUser warning:', userErr);
     }
 
     return {
       success: true,
-      registrationNumber: cleanReg || null,
+      fullName: cleanFullName !== undefined ? cleanFullName : (user.user_metadata?.name || 'Student'),
+      registrationNumber: cleanReg !== undefined ? cleanReg : (user.user_metadata?.registration_number || null),
     };
   } catch (err: any) {
-    console.error('[updateStudentRegistrationNumberAction] Error:', err);
+    console.error('[updateStudentProfileAction] Error:', err);
     return { success: false, error: err?.message || 'An unexpected error occurred.' };
   }
+}
+
+/**
+ * Updates the registration number for the currently authenticated student.
+ * Maintained for backwards compatibility.
+ */
+export async function updateStudentRegistrationNumberAction(
+  registrationNumber: string
+): Promise<{
+  success: boolean;
+  registrationNumber?: string | null;
+  error?: string;
+}> {
+  const res = await updateStudentProfileAction({ registrationNumber });
+  return {
+    success: res.success,
+    registrationNumber: res.registrationNumber,
+    error: res.error,
+  };
 }
 

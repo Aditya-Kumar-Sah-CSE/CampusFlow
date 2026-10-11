@@ -263,7 +263,7 @@ export function StudentStatusBadge({
                         Edit Profile
                       </p>
                       <p className="text-[10px] text-slate-400 font-normal">
-                        {registrationNumber ? `Reg #${registrationNumber}` : 'Set Registration Number'}
+                        {registrationNumber ? `${displayName} • Reg #${registrationNumber}` : 'Update name & registration'}
                       </p>
                     </div>
                   </div>
@@ -409,7 +409,7 @@ export function StudentStatusBadge({
                 className="text-[11px] text-blue-600 hover:text-blue-800 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <Pencil className="w-2.5 h-2.5" />
-                <span>{registrationNumber ? 'Edit' : 'Add Reg. Number'}</span>
+                <span>Edit Profile</span>
               </button>
             </div>
           </div>
