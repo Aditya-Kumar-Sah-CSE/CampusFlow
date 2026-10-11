@@ -4,6 +4,7 @@ import { useState, useTransition, useMemo, useEffect, useCallback } from 'react'
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
+  AcademicProgramme,
   AcademicYear,
   Branch,
   Semester,
@@ -31,6 +32,7 @@ import {
   CheckSquare,
   Square,
   Info,
+  GraduationCap,
 } from 'lucide-react';
 
 interface Props {
@@ -42,6 +44,7 @@ interface Props {
   assignments: FacultySubjectAssignment[];
   googleStatus: GoogleConfigStatus;
   initialStep?: string | number;
+  programmes?: AcademicProgramme[];
 }
 
 function parseFormWizardStep(val: string | number | null | undefined): number {
@@ -62,6 +65,7 @@ export function CreateGoogleFormWizard({
   assignments,
   googleStatus,
   initialStep,
+  programmes = [],
 }: Props) {
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
@@ -113,6 +117,95 @@ export function CreateGoogleFormWizard({
       }
     }
   }, [searchParams, currentStep]);
+
+  // Synthesize or resolve all available programmes for this college
+  const availableProgrammes = useMemo(() => {
+    const progMap = new Map<string, { id: string; name: string; code: string; programme_type?: string; badge?: string }>();
+
+    // 1. From passed programmes prop
+    if (programmes && programmes.length > 0) {
+      for (const p of programmes) {
+        if (p.id) {
+          const isDiploma = p.programme_type === 'DIPLOMA' || p.code?.toUpperCase() === 'DIPLOMA' || p.name?.toLowerCase().includes('diploma');
+          const isPg = p.programme_type === 'POSTGRADUATE' || p.code?.toUpperCase() === 'MTECH' || p.name?.toLowerCase().includes('m.tech');
+          const isSchool = p.programme_type === 'SCHOOL' || p.code?.toUpperCase() === 'SCHOOL';
+          const badge = isDiploma ? 'Diploma' : isPg ? 'PG' : isSchool ? 'School' : 'UG';
+          progMap.set(p.id, {
+            id: p.id,
+            name: p.name,
+            code: p.code || p.name,
+            programme_type: p.programme_type,
+            badge,
+          });
+        }
+      }
+    }
+
+    // 2. From joined programme objects on semesters
+    for (const s of semesters) {
+      if (s.programme && s.programme.id && !progMap.has(s.programme.id)) {
+        const p = s.programme;
+        const isDiploma = p.programme_type === 'DIPLOMA' || p.code?.toUpperCase() === 'DIPLOMA' || p.name?.toLowerCase().includes('diploma');
+        const isPg = p.programme_type === 'POSTGRADUATE' || p.code?.toUpperCase() === 'MTECH' || p.name?.toLowerCase().includes('m.tech');
+        const isSchool = p.programme_type === 'SCHOOL' || p.code?.toUpperCase() === 'SCHOOL';
+        const badge = isDiploma ? 'Diploma' : isPg ? 'PG' : isSchool ? 'School' : 'UG';
+        progMap.set(p.id, {
+          id: p.id,
+          name: p.name,
+          code: p.code || p.name,
+          programme_type: p.programme_type,
+          badge,
+        });
+      }
+    }
+
+    // 3. Fallback: If no programmes found in DB, check if duplicate semesters exist
+    if (progMap.size === 0) {
+      const hasClass = semesters.some(s => s.level_type === 'CLASS' || Boolean(s.class_number));
+      const sem1Count = semesters.filter(s => s.semester_number === 1 || s.name?.toLowerCase().includes('1')).length;
+      if (sem1Count > 1) {
+        progMap.set('prog-btech', { id: 'prog-btech', name: 'B.Tech', code: 'BTECH', badge: 'UG' });
+        progMap.set('prog-diploma', { id: 'prog-diploma', name: 'Diploma', code: 'DIPLOMA', badge: 'Diploma' });
+      } else {
+        progMap.set('prog-btech', { id: 'prog-btech', name: 'B.Tech', code: 'BTECH', badge: 'UG' });
+      }
+      if (hasClass) {
+        progMap.set('prog-school', { id: 'prog-school', name: 'School', code: 'SCHOOL', badge: 'School' });
+      }
+    }
+
+    return Array.from(progMap.values());
+  }, [programmes, semesters]);
+
+  const getSemesterProgramme = useCallback(
+    (s: Semester) => {
+      if (!s) return null;
+      if (s.programme) return s.programme;
+      if (s.programme_id) {
+        return availableProgrammes.find(p => p.id === s.programme_id) || null;
+      }
+      // Deduce from display_name or code
+      if (s.display_name?.toLowerCase().includes('diploma')) {
+        return availableProgrammes.find(p => p.code?.toUpperCase() === 'DIPLOMA' || p.name?.toLowerCase().includes('diploma')) || null;
+      }
+      return null;
+    },
+    [availableProgrammes]
+  );
+
+  // Programme filter state for Step 2
+  const [selectedProgrammeFilter, setSelectedProgrammeFilter] = useState<string>('ALL');
+
+  // Filtered semesters for Step 2
+  const filteredSemesters = useMemo(() => {
+    if (selectedProgrammeFilter === 'ALL') {
+      return semesters;
+    }
+    return semesters.filter(s => {
+      const p = getSemesterProgramme(s);
+      return p?.id === selectedProgrammeFilter || s.programme_id === selectedProgrammeFilter;
+    });
+  }, [semesters, selectedProgrammeFilter, getSemesterProgramme]);
 
   // Form selections
   const [academicYearId, setAcademicYearId] = useState<string>(
@@ -268,17 +361,20 @@ export function CreateGoogleFormWizard({
     const sem = selectedSem?.name || '[Semester]';
     const br = selectedBranch?.name || '[Branch]';
     const yr = selectedYear?.name || '[Academic Session]';
+    const prog = selectedSem ? getSemesterProgramme(selectedSem) : null;
+    const progName = prog?.name;
+    const progLabel = progName && !sem.toLowerCase().includes(progName.toLowerCase()) ? ` (${progName})` : '';
 
     if (scope === 'SEMESTER_FEEDBACK') {
-      return `Semester Feedback — ${br} — ${sem} — ${yr}`;
+      return `Semester Feedback — ${br} — ${sem}${progLabel} — ${yr}`;
     } else {
       const fac = selectedFaculty?.name || '[Faculty Name]';
       const sub = selectedSubject?.name
         ? `${selectedSubject.name}${selectedSubject.code ? ` (${selectedSubject.code})` : ''}`
         : '[Subject Name]';
-      return `Faculty Feedback — ${fac} — ${sub} — ${sem} — ${yr}`;
+      return `Faculty Feedback — ${fac} — ${sub} — ${sem}${progLabel} — ${yr}`;
     }
-  }, [scope, selectedBranch, selectedSem, selectedYear, selectedFaculty, selectedSubject]);
+  }, [scope, selectedBranch, selectedSem, selectedYear, selectedFaculty, selectedSubject, getSemesterProgramme]);
 
   // Validation before progressing
   const canGoToNext = () => {
@@ -758,31 +854,151 @@ export function CreateGoogleFormWizard({
                 {/* Step 2: Semester */}
                 {currentStep === 2 && (
                   <div className="space-y-4">
-                    <div className="border-b border-slate-100 pb-3">
-                      <h3 className="text-base font-bold text-slate-900">Step 2: Select Semester</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Select the semester level for the student cohort submitting feedback.
-                      </p>
+                    <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <span>Step 2: Select Programme & Semester</span>
+                          {availableProgrammes.length > 1 && (
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                              {availableProgrammes.length} Degrees
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Select the degree programme (B.Tech, Diploma, M.Tech) and semester cohort submitting feedback.
+                        </p>
+                      </div>
                     </div>
 
+                    {/* Multi-Programme Filter Tabs (shown when multiple programmes exist) */}
+                    {availableProgrammes.length > 1 && (
+                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                            <GraduationCap className="w-3.5 h-3.5 text-bce-cobalt" />
+                            <span>Filter by Degree / Programme:</span>
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            Select degree to avoid confusion
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProgrammeFilter('ALL')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              selectedProgrammeFilter === 'ALL'
+                                ? 'bg-bce-navy text-white shadow-xs'
+                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                            }`}
+                          >
+                            All Degrees ({semesters.length})
+                          </button>
+
+                          {availableProgrammes.map(prog => {
+                            const isCurrent = selectedProgrammeFilter === prog.id;
+                            const count = semesters.filter(s => {
+                              const p = getSemesterProgramme(s);
+                              return p?.id === prog.id || s.programme_id === prog.id;
+                            }).length;
+
+                            return (
+                              <button
+                                key={prog.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedProgrammeFilter(prog.id);
+                                  const progSems = semesters.filter(s => {
+                                    const p = getSemesterProgramme(s);
+                                    return p?.id === prog.id || s.programme_id === prog.id;
+                                  });
+                                  if (progSems.length > 0 && !progSems.some(s => s.id === semesterId)) {
+                                    setSemesterId(progSems[0].id);
+                                  }
+                                }}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                  isCurrent
+                                    ? 'bg-bce-cobalt text-white shadow-xs'
+                                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                                }`}
+                              >
+                                <span>{prog.name}</span>
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                                  isCurrent ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {count} Sems
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Semester Cards Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {semesters.map(s => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => setSemesterId(s.id)}
-                          className={`p-4 rounded-2xl border text-center transition-all ${
-                            semesterId === s.id
-                              ? 'bg-blue-50/80 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="font-bold text-base text-slate-900">{s.name}</div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            Year {s.year_number} • Sem {s.semester_number}
-                          </div>
-                        </button>
-                      ))}
+                      {filteredSemesters.map(s => {
+                        const isSelected = semesterId === s.id;
+                        const prog = getSemesterProgramme(s);
+                        const progName = prog?.name || (s.level_type === 'CLASS' ? 'School' : 'B.Tech');
+                        const isDiploma = progName.toLowerCase().includes('diploma') || prog?.code?.toUpperCase() === 'DIPLOMA';
+                        const isMtech = progName.toLowerCase().includes('m.tech') || prog?.code?.toUpperCase() === 'MTECH';
+                        const isBtech = progName.toLowerCase().includes('b.tech') || prog?.code?.toUpperCase() === 'BTECH' || prog?.code?.toUpperCase() === 'BE';
+
+                        const yearNum = s.year_number || Math.ceil((s.semester_number || s.level_number || 1) / 2);
+                        const semNum = s.semester_number || s.level_number || 1;
+
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSemesterId(s.id)}
+                            className={`relative p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-between min-h-[96px] ${
+                              isSelected
+                                ? 'bg-blue-50/90 border-bce-cobalt ring-2 ring-bce-cobalt/25 shadow-xs'
+                                : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                            }`}
+                          >
+                            {/* Degree / Programme Badge */}
+                            <div className="flex items-center justify-between gap-1 mb-2">
+                              <span
+                                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border tracking-wide ${
+                                  isDiploma
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    : isMtech
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : isBtech
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {progName}
+                              </span>
+
+                              {isSelected && (
+                                <span className="w-5 h-5 rounded-full bg-bce-cobalt text-white flex items-center justify-center shrink-0 shadow-2xs">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Semester Main Name */}
+                            <div>
+                              <div className="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-bce-cobalt transition-colors">
+                                {s.name}
+                              </div>
+                              <div className="text-[11px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
+                                {s.level_type === 'CLASS' ? (
+                                  <span>Class {s.class_number || semNum}</span>
+                                ) : (
+                                  <span>Year {yearNum} • Sem {semNum}</span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1285,8 +1501,17 @@ export function CreateGoogleFormWizard({
                     <span className="font-semibold text-slate-800">{selectedYear?.name || '—'}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-400">Programme:</span>
+                    <span className="font-semibold text-slate-800">
+                      {selectedSem ? getSemesterProgramme(selectedSem)?.name || 'Undergraduate' : '—'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="text-slate-400">Semester:</span>
-                    <span className="font-semibold text-slate-800">{selectedSem?.name || '—'}</span>
+                    <span className="font-semibold text-slate-800">
+                      {selectedSem?.name || '—'}
+                      {selectedSem ? ` (Year ${selectedSem.year_number || Math.ceil((selectedSem.semester_number || 1) / 2)} • Sem ${selectedSem.semester_number || selectedSem.level_number || 1})` : ''}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="text-slate-400">Branch:</span>
