@@ -43,7 +43,7 @@ const BEU_COLLEGES_DATA = [
     slug: 'bce-bgp',
     name: 'Bhagalpur College of Engineering',
     website_url: 'https://www.bcebhagalpur.ac.in',
-    logo_url: '/images/colleges/bce-bgp.png',
+    logo_url: '/images/colleges/bhce-logo.gif',
     address: 'Post - Sabour, Bhagalpur, Bihar - 813210',
     contact_email: 'principal@bcebhagalpur.ac.in',
     contact_phone: '+91-641-2451034',

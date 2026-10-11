@@ -9,9 +9,9 @@ export const BCE_BGP_LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhE
 
 export const DEFAULT_COLLEGE_LOGOS: Record<string, string> = {
   // Bhagalpur College of Engineering
-  'bce-bgp': BCE_BGP_LOGO_DATA_URI,
-  '108': BCE_BGP_LOGO_DATA_URI,
-  'bce': BCE_BGP_LOGO_DATA_URI,
+  'bce-bgp': '/images/colleges/bhce-logo.gif',
+  '108': '/images/colleges/bhce-logo.gif',
+  'bce': '/images/colleges/bhce-logo.gif',
 
   // Bakhtiyarpur College of Engineering
   'bce-bakhtiyarpur': '/images/colleges/bce-bakhtiyarpur.png',
@@ -66,7 +66,7 @@ export function resolveCollegeLogoUrl(details?: {
     codeKey === 'bce' ||
     nameLower.includes('bhagalpur')
   ) {
-    return BCE_BGP_LOGO_DATA_URI;
+    return '/images/colleges/bhce-logo.gif';
   }
 
   // 2. Direct slug/code match in local registry
