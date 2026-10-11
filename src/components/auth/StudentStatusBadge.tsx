@@ -229,37 +229,16 @@ export function StudentStatusBadge({
                     </p>
                   )}
                   {registrationNumber ? (
-                    <div className="flex items-center gap-1.5 pt-1">
-                      <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200/90 px-1.5 py-0.2 rounded">
+                    <div className="pt-1">
+                      <span className="inline-block text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200/90 px-1.5 py-0.5 rounded">
                         Reg #{registrationNumber}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setIsEditProfileOpen(true);
-                        }}
-                        className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:text-blue-800 font-semibold hover:underline cursor-pointer"
-                        title="Edit registration number"
-                      >
-                        <Pencil className="w-2.5 h-2.5" />
-                        <span>Edit</span>
-                      </button>
                     </div>
                   ) : (
-                    <div className="pt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          setIsEditProfileOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 transition-colors cursor-pointer shadow-2xs"
-                        title="Add university / board registration number"
-                      >
-                        <Pencil className="w-2.5 h-2.5" />
-                        <span>+ Add Reg. Number</span>
-                      </button>
+                    <div className="pt-1">
+                      <span className="inline-block text-[10px] font-medium text-slate-400 bg-slate-50 border border-slate-200/60 px-1.5 py-0.5 rounded italic">
+                        Reg: Not Set
+                      </span>
                     </div>
                   )}
                 </div>
