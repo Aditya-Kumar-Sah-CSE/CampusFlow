@@ -17,10 +17,13 @@ import {
   Loader2,
   FileText,
   Ticket,
+  Pencil,
+  UserCog,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { studentSignOutAction } from '@/app/auth/student/actions';
 import { useStudentSession } from '@/lib/auth/use-student-session';
+import { StudentEditProfileModal } from './StudentEditProfileModal';
 
 function getStudentInitials(name?: string | null, email?: string | null): string {
   if (name && name.trim()) {
@@ -48,6 +51,7 @@ export function StudentStatusBadge({
 }) {
   const { session, isAuthenticated, user, student, loading, refreshSession } = useStudentSession();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -224,12 +228,68 @@ export function StudentStatusBadge({
                       <span>{collegeName}</span>
                     </p>
                   )}
-                  {registrationNumber && (
-                    <p className="text-[10px] font-mono font-semibold text-slate-400">
-                      Reg #{registrationNumber}
-                    </p>
+                  {registrationNumber ? (
+                    <div className="flex items-center gap-1.5 pt-1">
+                      <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200/90 px-1.5 py-0.2 rounded">
+                        Reg #{registrationNumber}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setIsEditProfileOpen(true);
+                        }}
+                        className="inline-flex items-center gap-0.5 text-[10px] text-blue-600 hover:text-blue-800 font-semibold hover:underline cursor-pointer"
+                        title="Edit registration number"
+                      >
+                        <Pencil className="w-2.5 h-2.5" />
+                        <span>Edit</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          setIsEditProfileOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 transition-colors cursor-pointer shadow-2xs"
+                        title="Add university / board registration number"
+                      >
+                        <Pencil className="w-2.5 h-2.5" />
+                        <span>+ Add Reg. Number</span>
+                      </button>
+                    </div>
                   )}
                 </div>
+              </div>
+
+              {/* Edit Profile Action */}
+              <div className="py-1 px-1.5 border-b border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setIsEditProfileOpen(true);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-blue-50/70 transition-colors group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-2xs">
+                      <UserCog className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-xs text-slate-800 group-hover:text-blue-900 leading-tight">
+                        Edit Profile
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-normal">
+                        {registrationNumber ? `Reg #${registrationNumber}` : 'Set Registration Number'}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5" />
+                </button>
               </div>
 
               {/* Student Portal Navigation */}
@@ -308,6 +368,18 @@ export function StudentStatusBadge({
               </div>
             </div>
           )}
+
+          {/* Student Edit Profile Modal Dialog */}
+          <StudentEditProfileModal
+            isOpen={isEditProfileOpen}
+            onClose={() => setIsEditProfileOpen(false)}
+            student={student}
+            userEmail={email}
+            userName={displayName}
+            onUpdated={() => {
+              refreshSession();
+            }}
+          />
         </div>
       );
     }
@@ -342,6 +414,25 @@ export function StudentStatusBadge({
             <p className="text-[11px] text-slate-500 truncate mt-0.5">
               {email} {collegeName ? `• ${collegeName}` : ''}
             </p>
+            <div className="flex items-center gap-2 mt-1">
+              {registrationNumber ? (
+                <span className="text-[10px] font-mono font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md">
+                  Reg #{registrationNumber}
+                </span>
+              ) : (
+                <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md font-semibold">
+                  Reg. Number Not Set
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(true)}
+                className="text-[11px] text-blue-600 hover:text-blue-800 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <Pencil className="w-2.5 h-2.5" />
+                <span>{registrationNumber ? 'Edit' : 'Add Reg. Number'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -375,6 +466,17 @@ export function StudentStatusBadge({
             <span>Sign Out</span>
           </button>
         </div>
+
+        <StudentEditProfileModal
+          isOpen={isEditProfileOpen}
+          onClose={() => setIsEditProfileOpen(false)}
+          student={student}
+          userEmail={email}
+          userName={displayName}
+          onUpdated={() => {
+            refreshSession();
+          }}
+        />
       </div>
     );
   }

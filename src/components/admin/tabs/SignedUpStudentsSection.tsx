@@ -20,11 +20,13 @@ import {
   School,
   X,
   Filter,
+  Pencil,
 } from 'lucide-react';
 import { useHydrated, formatDateShort, formatTime } from '@/lib/hooks/use-hydrated';
 import {
   getSignedUpStudentsAction,
   toggleStudentStatusAction,
+  updateAdminStudentRegistrationNumberAction,
   type AdminStudentItem,
 } from '@/app/admin/actions';
 
@@ -58,6 +60,49 @@ export function SignedUpStudentsSection({
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [togglingStudent, setTogglingStudent] = useState<AdminStudentItem | null>(null);
+
+  // Admin edit registration number modal state
+  const [editingRegStudent, setEditingRegStudent] = useState<AdminStudentItem | null>(null);
+  const [regInput, setRegInput] = useState('');
+  const [isUpdatingReg, setIsUpdatingReg] = useState(false);
+
+  const handleSaveRegNumber = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRegStudent) return;
+    setIsUpdatingReg(true);
+    try {
+      const res = await updateAdminStudentRegistrationNumberAction(
+        editingRegStudent.id,
+        regInput
+      );
+      if (res.success) {
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.id === editingRegStudent.id
+              ? { ...s, registration_number: res.registrationNumber || null }
+              : s
+          )
+        );
+        setMessage({
+          type: 'success',
+          text: `Registration number updated for ${editingRegStudent.full_name || editingRegStudent.email}.`,
+        });
+        setEditingRegStudent(null);
+      } else {
+        setMessage({
+          type: 'error',
+          text: res.error || 'Failed to update registration number.',
+        });
+      }
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err?.message || 'Error updating registration number.',
+      });
+    } finally {
+      setIsUpdatingReg(false);
+    }
+  };
 
   // Group counts per college for quick filter pills
   const collegeCountMap = useMemo(() => {
@@ -624,13 +669,26 @@ export function SignedUpStudentsSection({
 
                         {/* Registration Number */}
                         <td className="px-4 py-3.5">
-                          {student.registration_number ? (
-                            <span className="font-mono font-semibold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                              {student.registration_number}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400 text-[11px] italic">Not Set</span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {student.registration_number ? (
+                              <span className="font-mono font-semibold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                {student.registration_number}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[11px] italic">Not Set</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingRegStudent(student);
+                                setRegInput(student.registration_number || '');
+                              }}
+                              className="text-slate-400 hover:text-blue-600 p-1 rounded-md transition-colors cursor-pointer"
+                              title="Edit registration number"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          </div>
                         </td>
 
                         {/* Joined On */}
@@ -731,9 +789,22 @@ export function SignedUpStudentsSection({
                       </div>
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="text-[11px] text-slate-500">Registration:</span>
-                        <span className="font-mono font-semibold text-slate-800">
-                          {student.registration_number || 'Not Set'}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-semibold text-slate-800">
+                            {student.registration_number || 'Not Set'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRegStudent(student);
+                              setRegInput(student.registration_number || '');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 p-0.5 cursor-pointer"
+                            title="Edit registration number"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-slate-600">
                         <span className="text-[11px] text-slate-500">Email Status:</span>
@@ -778,6 +849,90 @@ export function SignedUpStudentsSection({
           </>
         )}
       </div>
+
+      {/* Admin Edit Student Registration Number Modal */}
+      {editingRegStudent && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isUpdatingReg) setEditingRegStudent(null);
+          }}
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-blue-600" />
+                <h3 className="font-bold text-slate-900 text-sm">
+                  Update Registration Number
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingRegStudent(null)}
+                disabled={isUpdatingReg}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRegNumber} className="p-5 space-y-4">
+              <div>
+                <p className="text-xs font-bold text-slate-800">
+                  {editingRegStudent.full_name || 'Student'}
+                </p>
+                <p className="text-[11px] font-mono text-slate-500">
+                  {editingRegStudent.email}
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Registration Number (विश्वविद्यालय / बोर्ड नंबर)
+                </label>
+                <input
+                  type="text"
+                  value={regInput}
+                  onChange={(e) => setRegInput(e.target.value)}
+                  placeholder="e.g. 20108108001"
+                  maxLength={50}
+                  autoFocus
+                  disabled={isUpdatingReg}
+                  className="w-full px-3.5 py-2.5 border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-xl text-xs sm:text-sm font-mono font-bold text-slate-900 outline-hidden"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Leave blank to reset to &ldquo;Not Set&rdquo;.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingRegStudent(null)}
+                  disabled={isUpdatingReg}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingReg}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 inline-flex items-center gap-1.5 shadow-xs"
+                >
+                  {isUpdatingReg ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Number</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

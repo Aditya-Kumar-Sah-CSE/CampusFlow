@@ -3175,4 +3175,89 @@ export async function toggleStudentStatusAction(
   return { success: true };
 }
 
+export async function updateAdminStudentRegistrationNumberAction(
+  studentId: string,
+  registrationNumber: string
+): Promise<{ success: boolean; registrationNumber?: string | null; error?: string }> {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated || !session.isActive) {
+    return { success: false, error: 'Unauthorized: Active administrator session required.' };
+  }
+
+  if (!isValidUUID(studentId)) {
+    return { success: false, error: 'Invalid student identifier.' };
+  }
+
+  const cleanReg = (registrationNumber || '').trim();
+  if (cleanReg.length > 50) {
+    return { success: false, error: 'Registration number cannot exceed 50 characters.' };
+  }
+
+  const supabase = await getAdminDb();
+
+  // Fetch student record to verify college access
+  const { data: student, error: fetchErr } = await supabase
+    .from('students')
+    .select('id, user_id, email, full_name, college_id')
+    .eq('id', studentId)
+    .single();
+
+  if (fetchErr || !student) {
+    return { success: false, error: 'Student record not found.' };
+  }
+
+  // Tenant authorization check
+  const isSuper = session.isPlatformSuperAdmin;
+  const isCollegeMember = session.colleges.some(
+    (c) => c.collegeId === student.college_id && c.status === 'ACTIVE'
+  );
+
+  if (!isSuper && !isCollegeMember) {
+    return { success: false, error: 'Forbidden: You do not have permission to manage students for this institution.' };
+  }
+
+  const { error: updateErr } = await supabase
+    .from('students')
+    .update({
+      registration_number: cleanReg || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', studentId);
+
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  // Synchronize auth.users user_metadata
+  try {
+    if (student.user_id && supabase.auth?.admin?.updateUserById) {
+      const { data: authUser } = await supabase.auth.admin.getUserById(student.user_id);
+      if (authUser?.user) {
+        await supabase.auth.admin.updateUserById(student.user_id, {
+          user_metadata: {
+            ...(authUser.user.user_metadata || {}),
+            registration_number: cleanReg || null,
+          },
+        });
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Metadata sync warning:', syncErr);
+  }
+
+  await logAuditAction(
+    supabase,
+    { adminId: session.admin?.id, email: session.user?.email },
+    'UPDATE_STUDENT_REG_NUMBER',
+    'students',
+    studentId,
+    `Updated registration number for ${student.email} to "${cleanReg || 'Not Set'}"`
+  );
+
+  revalidatePath('/admin/dashboard');
+
+  return { success: true, registrationNumber: cleanReg || null };
+}
+
+
 

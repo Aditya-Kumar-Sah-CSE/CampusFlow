@@ -668,3 +668,72 @@ export async function checkBatchStudentFormSubmissionsAction(
     };
   }
 }
+
+/**
+ * Updates the registration number for the currently authenticated student.
+ * Validates session and synchronizes both public.students and auth.users user_metadata.
+ */
+export async function updateStudentRegistrationNumberAction(
+  registrationNumber: string
+): Promise<{
+  success: boolean;
+  registrationNumber?: string | null;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized: Please log in to update your profile.' };
+    }
+
+    const cleanReg = (registrationNumber || '').trim();
+
+    if (cleanReg.length > 50) {
+      return { success: false, error: 'Registration number cannot exceed 50 characters.' };
+    }
+
+    const adminDb = createAdminClient() || supabase;
+
+    // 1. Update students table
+    const { error: studentUpdateError } = await adminDb
+      .from('students')
+      .update({
+        registration_number: cleanReg || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id);
+
+    if (studentUpdateError) {
+      console.error('[updateStudentRegistrationNumberAction] DB update error:', studentUpdateError);
+      return { success: false, error: 'Failed to update registration number in database.' };
+    }
+
+    // 2. Update user_metadata in auth.users so metadata stays in sync
+    try {
+      if (adminDb.auth?.admin?.updateUserById) {
+        await adminDb.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...(user.user_metadata || {}),
+            registration_number: cleanReg || null,
+          },
+        });
+      }
+    } catch (metaErr) {
+      console.warn('[updateStudentRegistrationNumberAction] Metadata sync warning:', metaErr);
+    }
+
+    return {
+      success: true,
+      registrationNumber: cleanReg || null,
+    };
+  } catch (err: any) {
+    console.error('[updateStudentRegistrationNumberAction] Error:', err);
+    return { success: false, error: err?.message || 'An unexpected error occurred.' };
+  }
+}
+
