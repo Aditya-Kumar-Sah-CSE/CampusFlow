@@ -16,6 +16,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import type { TenantContext } from '@/types/tenant';
+import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
 
 interface CollegeGridProps {
   colleges: TenantContext[];
@@ -246,23 +247,26 @@ export function CollegeGrid({ colleges }: CollegeGridProps) {
                 key={college.collegeId}
                 className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs hover:shadow transition-all duration-200 flex flex-col p-3.5 sm:p-6 text-center group"
               >
-                {/* College Logo or Fallback Monogram */}
+                {/* College Logo or Fallback App Icon */}
                 <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2.5 sm:mb-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center p-2 text-slate-700 overflow-hidden shrink-0">
-                  {college.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={college.logo}
-                      alt={`${college.name} Logo`}
-                      className="max-w-full max-h-full object-contain"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-slate-600">
-                      <School className="w-6 h-6 text-slate-500 mb-0.5" />
-                      <span className="text-[10px] font-bold tracking-tight text-slate-700 uppercase">
-                        {(college.shortName || college.code || 'COL').slice(0, 4)}
-                      </span>
-                    </div>
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={
+                      college.logo ||
+                      resolveCollegeLogoUrl({
+                        collegeCode: college.code,
+                        collegeSlug: college.slug,
+                        collegeName: college.name,
+                      }) ||
+                      '/icon-192.png'
+                    }
+                    alt={`${college.name} Logo`}
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      // Fallback to app icon if image fails loading
+                      (e.currentTarget as HTMLImageElement).src = '/icon-192.png';
+                    }}
+                  />
                 </div>
 
                 {/* College Name */}

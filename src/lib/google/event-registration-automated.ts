@@ -26,6 +26,7 @@ import PDFDocument from 'pdfkit';
 import { streamToBuffer, fetchLogoBuffer, PDF_COLORS, formatDateTime } from '@/lib/events/event-pdf-reports';
 import { generateRegistrationNumber } from '@/lib/events/program-registrations-service';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
+import { drawPdfHeaderLogo } from '@/lib/pdf/pdf-logo';
 
 // ============================================================
 // CONSTANTS & SCHEMAS
@@ -2129,15 +2130,8 @@ export async function generateGoogleEventParticipantPdf(params: {
 
   // Header Box
   let y = 56;
-  if (logoBuffer) {
-    try {
-      doc.image(logoBuffer, 45, y, { fit: [50, 50] });
-    } catch {
-      // fallback if logo fails
-    }
-  }
-
-  const headerLeft = logoBuffer ? 105 : 45;
+  drawPdfHeaderLogo(doc, 45, y, 50, logoBuffer);
+  const headerLeft = 105;
 
   doc.font('Helvetica-Bold')
     .fontSize(16)

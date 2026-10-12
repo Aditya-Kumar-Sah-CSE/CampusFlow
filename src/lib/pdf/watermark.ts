@@ -57,22 +57,10 @@ export async function isCollegePaidSubscriptionActive(
   }
 }
 
-/** Cache logo buffer in memory to avoid reading disk repeatedly */
-let cachedLogoBuffer: Buffer | null = null;
-let logoLoadAttempted = false;
+import { getAppIconBuffer } from './pdf-logo';
 
 function getCampusFlowLogoBuffer(): Buffer | null {
-  if (logoLoadAttempted) return cachedLogoBuffer;
-  logoLoadAttempted = true;
-  try {
-    const logoPath = path.join(process.cwd(), 'public', 'icon-192.png');
-    if (fs.existsSync(logoPath)) {
-      cachedLogoBuffer = fs.readFileSync(logoPath);
-    }
-  } catch {
-    cachedLogoBuffer = null;
-  }
-  return cachedLogoBuffer;
+  return getAppIconBuffer();
 }
 
 /**

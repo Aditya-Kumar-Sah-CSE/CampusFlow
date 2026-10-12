@@ -7,6 +7,7 @@ import { getExamDbClient } from './exam-permission';
 import { BCE_BGP_LOGO_DATA_URI } from '@/lib/events/college-logos';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
 import { applyTrialWatermarksIfRequired } from '@/lib/pdf/watermark';
+import { resolvePdfLogoBuffer, drawPdfHeaderLogo } from '@/lib/pdf/pdf-logo';
 import type { ExamAttemptResult } from '@/types/exams';
 
 const COLORS = {
@@ -31,61 +32,19 @@ function streamToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   });
 }
 
-const logoBufferCache = new Map<string, { buffer: Buffer; timestamp: number }>();
-const LOGO_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
 /**
  * Fetches logo buffer handling Data URI, local static file, and fallbacks.
  */
-async function fetchCollegeLogoBuffer(logoUrl?: string | null): Promise<Buffer | null> {
-  if (logoUrl) {
-    const cached = logoBufferCache.get(logoUrl);
-    if (cached && Date.now() - cached.timestamp < LOGO_CACHE_TTL) {
-      return cached.buffer;
-    }
-  }
-
-  if (logoUrl && logoUrl.startsWith('data:image/')) {
-    try {
-      const base64Data = logoUrl.split(',')[1];
-      if (base64Data) {
-        const buf = Buffer.from(base64Data, 'base64');
-        logoBufferCache.set(logoUrl, { buffer: buf, timestamp: Date.now() });
-        return buf;
-      }
-    } catch {}
-  }
-
-  if (logoUrl && logoUrl.startsWith('/')) {
-    try {
-      const localPath = path.join(process.cwd(), 'public', logoUrl.replace(/^\//, ''));
-      if (fs.existsSync(localPath)) {
-        const buf = fs.readFileSync(localPath);
-        logoBufferCache.set(logoUrl, { buffer: buf, timestamp: Date.now() });
-        return buf;
-      }
-    } catch {}
-  }
-
-  if (logoUrl && logoUrl.startsWith('http')) {
-    try {
-      const res = await fetch(logoUrl, { signal: AbortSignal.timeout(3500) });
-      if (res.ok) {
-        const ab = await res.arrayBuffer();
-        const buf = Buffer.from(ab);
-        logoBufferCache.set(logoUrl, { buffer: buf, timestamp: Date.now() });
-        return buf;
-      }
-    } catch {}
-  }
-
-  // Fallback to BCE built-in logo
-  try {
-    const base64 = BCE_BGP_LOGO_DATA_URI.split(',')[1];
-    if (base64) return Buffer.from(base64, 'base64');
-  } catch {}
-
-  return null;
+async function fetchCollegeLogoBuffer(
+  logoUrl?: string | null,
+  collegeMeta?: { slug?: string | null; code?: string | null; name?: string | null }
+): Promise<Buffer | null> {
+  return resolvePdfLogoBuffer({
+    url: logoUrl,
+    slug: collegeMeta?.slug,
+    code: collegeMeta?.code,
+    name: collegeMeta?.name,
+  });
 }
 
 /**
@@ -114,13 +73,8 @@ export async function generateStudentResultPdf(attemptId: string): Promise<Buffe
 
   // Header Section
   const logoSize = 44;
-  if (collegeLogoBuffer) {
-    try {
-      doc.image(collegeLogoBuffer, margin, 35, { width: logoSize, height: logoSize, fit: [logoSize, logoSize] });
-    } catch {}
-  }
-
-  const headerLeft = collegeLogoBuffer ? margin + logoSize + 14 : margin;
+  drawPdfHeaderLogo(doc, margin, 35, logoSize, collegeLogoBuffer);
+  const headerLeft = margin + logoSize + 14;
   const collegeName = attempt.college?.name || 'INSTITUTION EXAMINATION AUTHORITY';
 
   doc
@@ -436,13 +390,8 @@ export async function generateExamRosterPdf(examId: string, collegeId: string): 
 
   // Header Section
   const logoSize = 40;
-  if (collegeLogoBuffer) {
-    try {
-      doc.image(collegeLogoBuffer, margin, 34, { width: logoSize, height: logoSize, fit: [logoSize, logoSize] });
-    } catch {}
-  }
-
-  const headerLeft = collegeLogoBuffer ? margin + logoSize + 14 : margin;
+  drawPdfHeaderLogo(doc, margin, 34, logoSize, collegeLogoBuffer);
+  const headerLeft = margin + logoSize + 14;
   const collegeName = (exam as any).college?.name || 'INSTITUTION EXAMINATION AUTHORITY';
 
   doc

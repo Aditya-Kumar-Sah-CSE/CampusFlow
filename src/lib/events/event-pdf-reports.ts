@@ -10,6 +10,7 @@ import type { CollegeEvent, EventRegistration, EventStats, GoogleFormParticipant
 import type { EventProgram } from '@/types/programs';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
 import { applyTrialWatermarksIfRequired } from '@/lib/pdf/watermark';
+import { resolvePdfLogoBuffer, drawPdfHeaderLogo } from '@/lib/pdf/pdf-logo';
 
 // ============================================================
 // COLOR PALETTE & STYLES (Print-ready professional navy/slate)
@@ -139,55 +140,16 @@ export function streamToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   });
 }
 
-export async function fetchLogoBuffer(url?: string | null): Promise<Buffer | null> {
-  if (!url || typeof url !== 'string') {
-    const defaultLocalPath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
-    if (fs.existsSync(defaultLocalPath)) {
-      return fs.readFileSync(defaultLocalPath);
-    }
-    return null;
-  }
-
-  // 1. Data URI
-  if (url.startsWith('data:image/')) {
-    const base64Data = url.split(',')[1];
-    if (base64Data) return Buffer.from(base64Data, 'base64');
-  }
-
-  // 2. Local relative file
-  if (url.startsWith('/')) {
-    const localPath = path.join(process.cwd(), 'public', url);
-    if (fs.existsSync(localPath)) {
-      return fs.readFileSync(localPath);
-    }
-  }
-
-  // 3. Known BCE CDN URL mapping to local asset
-  if (url.includes('q7sxHkG7V5h.png')) {
-    const bceLocalPath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
-    if (fs.existsSync(bceLocalPath)) return fs.readFileSync(bceLocalPath);
-  }
-
-  // 4. Remote HTTP/S
-  if (url.startsWith('http')) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(3500) });
-      if (res.ok) {
-        const arrayBuffer = await res.arrayBuffer();
-        return Buffer.from(arrayBuffer);
-      }
-    } catch {
-      // fallback
-    }
-  }
-
-  // Fallback to local BCE logo
-  const fallbackPath = path.join(process.cwd(), 'public', 'images', 'colleges', 'bce-bgp.png');
-  if (fs.existsSync(fallbackPath)) {
-    return fs.readFileSync(fallbackPath);
-  }
-
-  return null;
+export async function fetchLogoBuffer(
+  url?: string | null,
+  collegeMeta?: { slug?: string | null; code?: string | null; name?: string | null }
+): Promise<Buffer | null> {
+  return resolvePdfLogoBuffer({
+    url,
+    slug: collegeMeta?.slug,
+    code: collegeMeta?.code,
+    name: collegeMeta?.name,
+  });
 }
 
 // Safe formatting for currencies to avoid PDFKit WinAnsiEncoding glitches
@@ -686,24 +648,9 @@ export function renderOfficialHeader(
   const logoX = margin + 10;
   const logoY = y + Math.floor((headerH - logoBoxSize) / 2);
 
-  if (logoBuffer) {
-    try {
-      doc.image(logoBuffer, logoX, logoY, {
-        fit: [logoBoxSize, logoBoxSize],
-        align: 'center',
-        valign: 'center',
-      });
-    } catch {
-      // Fallback monogram
-      doc.rect(logoX, logoY, logoBoxSize, logoBoxSize).fill(college.primary_color || PDF_COLORS.primary);
-      doc.fillColor(PDF_COLORS.white).fontSize(14).font('Helvetica-Bold')
-        .text((college.code || 'COL').slice(0, 4), logoX, logoY + 18, { width: logoBoxSize, align: 'center' });
-    }
-  } else {
-    doc.rect(logoX, logoY, logoBoxSize, logoBoxSize).fill(college.primary_color || PDF_COLORS.primary);
-    doc.fillColor(PDF_COLORS.white).fontSize(14).font('Helvetica-Bold')
-      .text((college.code || 'COL').slice(0, 4), logoX, logoY + 18, { width: logoBoxSize, align: 'center' });
-  }
+  // Logo box card outline
+  doc.rect(logoX, logoY, logoBoxSize, logoBoxSize).fillAndStroke(PDF_COLORS.white, PDF_COLORS.border);
+  drawPdfHeaderLogo(doc, logoX + 2, logoY + 2, logoBoxSize - 4, logoBuffer);
 
   // Right Block: Report Title Badge & Generation Time
   // Placed first with strictly bounded coordinates so it NEVER overlaps middle college text
