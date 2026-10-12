@@ -120,7 +120,16 @@ export default async function AdminDashboardPage({
       subject:subjects(id, name, code),
       academic_year:academic_years(id, name),
       branch:branches(id, name, code),
-      semester:semesters(id, name)
+      semester:semesters(id, name),
+      items:feedback_form_items(
+        id,
+        grid_title,
+        order_index,
+        faculty_id,
+        subject_id,
+        faculty:faculties(id, name, department),
+        subject:subjects(id, name, code)
+      )
     `, { count: 'exact' })
     .eq('college_id', targetCollegeId)
     .order('created_at', { ascending: false })

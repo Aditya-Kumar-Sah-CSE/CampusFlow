@@ -124,7 +124,16 @@ export default async function FeedbackFormsPage({
       subject:subjects(id, name, code),
       academic_year:academic_years(id, name),
       branch:branches(id, name, code),
-      semester:semesters(id, name)
+      semester:semesters(id, name),
+      items:feedback_form_items(
+        id,
+        grid_title,
+        order_index,
+        faculty_id,
+        subject_id,
+        faculty:faculties(id, name, department),
+        subject:subjects(id, name, code)
+      )
     `, { count: 'exact' })
     .order('created_at', { ascending: false });
 
@@ -417,19 +426,56 @@ export default async function FeedbackFormsPage({
                       </td>
 
                       <td className="px-5 py-3.5">
-                        <div className="font-semibold text-slate-800">
-                          {faculty?.name || 'Faculty'}
-                        </div>
-                        <div className="text-slate-500 text-[11px]">
-                          {subject?.name || 'Subject'} {subject?.code ? `(${subject.code})` : ''}
-                        </div>
+                        {form.form_type === 'SEMESTER_FEEDBACK' || (form.items && form.items.length > 0) ? (
+                          <div className="space-y-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                              Multi-Faculty ({form.items?.length || 0})
+                            </span>
+                            {form.items && form.items.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-xs mt-1">
+                                {Array.from(
+                                  new Set(
+                                    form.items
+                                      .map((it: any) => it.faculty?.name || it.grid_title?.split(/—|-/)[1]?.trim())
+                                      .filter(Boolean)
+                                  )
+                                ).map((name: any, i) => (
+                                  <span
+                                    key={i}
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-medium bg-slate-100 text-slate-800 border border-slate-200"
+                                  >
+                                    {name}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-slate-500 text-[11px] mt-0.5">
+                                All Semester Assigned Courses
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="font-semibold text-slate-800">
+                              {faculty?.name || 'Faculty'}
+                            </div>
+                            <div className="text-slate-500 text-[11px]">
+                              {subject?.name || 'Subject'} {subject?.code ? `(${subject.code})` : ''}
+                            </div>
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-5 py-3.5 text-slate-600">
-                        <div>{branch?.name || 'Branch'} ({branch?.code})</div>
-                        <div className="text-[11px] text-slate-400">
-                          {semester?.name || 'Sem'} • {form.academic_year?.name || 'Session'}
+                        <div className="font-semibold text-slate-800">{branch?.name || 'Branch'} ({branch?.code})</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {semester?.name || 'Sem'}
                         </div>
+                        {form.academic_year?.name && (
+                          <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                            <span>Session {form.academic_year.name}</span>
+                          </div>
+                        )}
                       </td>
 
                       <td className="px-5 py-3.5">

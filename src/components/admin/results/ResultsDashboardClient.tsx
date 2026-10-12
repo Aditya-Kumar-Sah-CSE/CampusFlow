@@ -193,13 +193,96 @@ export function ResultsDashboardClient({
     return `/api/admin/results/export-pdf${qs ? `?${qs}` : ''}`;
   })();
 
+  interface FormFacultyItem {
+    name: string;
+    department?: string | null;
+  }
+
+  interface FormSubjectItem {
+    name: string;
+    code?: string | null;
+  }
+
+  const getFormFacultyList = (form: FeedbackForm): FormFacultyItem[] => {
+    const list: FormFacultyItem[] = [];
+    const seen = new Set<string>();
+
+    if (form.items && form.items.length > 0) {
+      const sorted = [...form.items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      for (const item of sorted) {
+        let name = item.faculty?.name;
+        const dept = item.faculty?.department;
+        if (!name && item.grid_title) {
+          const parts = item.grid_title.split(/—|-/);
+          if (parts.length > 1) {
+            name = parts[parts.length - 1].trim();
+          }
+        }
+        if (name && !seen.has(name.toLowerCase())) {
+          seen.add(name.toLowerCase());
+          list.push({ name, department: dept });
+        }
+      }
+    }
+
+    if (list.length === 0 && form.faculty?.name) {
+      list.push({ name: form.faculty.name, department: form.faculty.department });
+    }
+
+    return list;
+  };
+
+  const getFormSubjectList = (form: FeedbackForm): FormSubjectItem[] => {
+    const list: FormSubjectItem[] = [];
+    const seen = new Set<string>();
+
+    if (form.items && form.items.length > 0) {
+      const sorted = [...form.items].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      for (const item of sorted) {
+        let name = item.subject?.name;
+        let code = item.subject?.code;
+        if (!name && item.grid_title) {
+          const subjectPart = item.grid_title.split(/—|-/)[0]?.trim();
+          const codeMatch = subjectPart?.match(/\(([^)]+)\)/);
+          code = codeMatch ? codeMatch[1] : '';
+          name = subjectPart?.replace(/\([^)]+\)/, '').trim() || subjectPart;
+        }
+        const key = `${(name || '').toLowerCase()}-${(code || '').toLowerCase()}`;
+        if (name && !seen.has(key)) {
+          seen.add(key);
+          list.push({ name, code });
+        }
+      }
+    }
+
+    if (list.length === 0 && form.subject?.name) {
+      list.push({ name: form.subject.name, code: form.subject.code });
+    }
+
+    return list;
+  };
+
+  const getFormSessionName = (form: FeedbackForm): string => {
+    if (form.academic_year?.name) return form.academic_year.name;
+    const match = academicYears.find(y => y.id === form.academic_year_id);
+    return match?.name || '';
+  };
+
   // Filter matching forms for the table
   const matchingForms = forms.filter(f => {
     if (academicYearId !== 'ALL' && f.academic_year_id !== academicYearId) return false;
     if (branchId !== 'ALL' && f.branch_id !== branchId) return false;
     if (semesterId !== 'ALL' && f.semester_id !== semesterId) return false;
-    if (facultyId !== 'ALL' && f.faculty_id !== facultyId) return false;
-    if (subjectId !== 'ALL' && f.subject_id !== subjectId) return false;
+    if (facultyId !== 'ALL') {
+      const directMatch = f.faculty_id === facultyId;
+      const itemMatch = f.items?.some(it => it.faculty_id === facultyId || (it as any).faculty?.id === facultyId);
+      if (!directMatch && !itemMatch) return false;
+    }
+    if (subjectId !== 'ALL') {
+      const directMatch = f.subject_id === subjectId;
+      const itemMatch = f.items?.some(it => it.subject_id === subjectId || (it as any).subject?.id === subjectId);
+      if (!directMatch && !itemMatch) return false;
+    }
     return true;
   });
 
@@ -576,7 +659,7 @@ export function ResultsDashboardClient({
                   <tr className="bg-slate-50 text-slate-600 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
                     <th className="px-4 py-3">Faculty Member</th>
                     <th className="px-4 py-3">Subject & Code</th>
-                    <th className="px-4 py-3">Branch & Sem</th>
+                    <th className="px-4 py-3">Branch, Sem & Session</th>
                     <th className="px-4 py-3">Responses</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3 text-right">Actions</th>
@@ -588,21 +671,93 @@ export function ResultsDashboardClient({
                     const respCount = compItem ? compItem.responseCount : form.response_count || 0;
                     const score = compItem ? compItem.averageScore : null;
 
+                    const facultyList = getFormFacultyList(form);
+                    const subjectList = getFormSubjectList(form);
+                    const sessionName = getFormSessionName(form);
+                    const isMultiFaculty = form.form_type === 'SEMESTER_FEEDBACK' || (form.items && form.items.length > 0);
+                    const facultyPdfName = facultyList.map(f => f.name).join(', ') || form.faculty?.name;
+
                     return (
                       <tr key={form.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="px-4 py-3.5">
-                          <div className="font-bold text-slate-900">{form.faculty?.name}</div>
-                          <div className="text-[11px] text-slate-500">{form.faculty?.department}</div>
+                        <td className="px-4 py-3.5 align-top">
+                          {isMultiFaculty && facultyList.length > 0 ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs">
+                                  <Users className="w-3 h-3 text-purple-700" />
+                                  <span>Multi-Faculty ({facultyList.length})</span>
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {facultyList.map((fac, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200/90 shadow-2xs hover:bg-purple-50 hover:border-purple-200 transition-colors"
+                                    title={fac.department ? `${fac.name} (${fac.department})` : fac.name}
+                                  >
+                                    {fac.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : facultyList.length > 0 ? (
+                            <div>
+                              <div className="font-bold text-slate-900 text-xs sm:text-sm">{facultyList[0].name}</div>
+                              {facultyList[0].department && (
+                                <div className="text-[11px] text-slate-500 mt-0.5">{facultyList[0].department}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="font-bold text-slate-700 text-xs italic">Faculty Unassigned</div>
+                            </div>
+                          )}
                         </td>
-                        <td className="px-4 py-3.5">
-                          <div className="font-semibold text-slate-800">{form.subject?.name}</div>
-                          <div className="font-mono text-[10px] text-slate-400">{form.subject?.code}</div>
+                        <td className="px-4 py-3.5 align-top">
+                          {isMultiFaculty && subjectList.length > 0 ? (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                  <span>{subjectList.length} Courses</span>
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {subjectList.map((sub, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-medium bg-slate-50 text-slate-700 border border-slate-200"
+                                  >
+                                    <span>{sub.name}</span>
+                                    {sub.code && (
+                                      <span className="font-mono text-[9px] text-slate-400 font-semibold">({sub.code})</span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : subjectList.length > 0 ? (
+                            <div>
+                              <div className="font-semibold text-slate-800 text-xs sm:text-sm">{subjectList[0].name}</div>
+                              {subjectList[0].code && (
+                                <div className="font-mono text-[10px] text-slate-400 mt-0.5">{subjectList[0].code}</div>
+                              )}
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="font-semibold text-slate-600 text-xs italic">Subject Unassigned</div>
+                            </div>
+                          )}
                         </td>
-                        <td className="px-4 py-3.5 text-slate-600">
-                          <div>{form.branch?.code || form.branch?.name}</div>
-                          <div className="text-[11px] text-slate-400">{form.semester?.name}</div>
+                        <td className="px-4 py-3.5 align-top text-slate-600">
+                          <div className="font-bold text-slate-900">{form.branch?.code || form.branch?.name}</div>
+                          <div className="text-[11px] text-slate-500 font-medium">{form.semester?.name}</div>
+                          {sessionName && (
+                            <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                              <span>Session {sessionName}</span>
+                            </div>
+                          )}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 align-top">
                           <span className="font-bold text-slate-900">{respCount}</span>
                           {score !== null && (
                             <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
@@ -610,7 +765,7 @@ export function ResultsDashboardClient({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5 align-top">
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               form.status === 'PUBLISHED'
@@ -623,7 +778,7 @@ export function ResultsDashboardClient({
                             {form.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3.5 text-right space-x-2">
+                        <td className="px-4 py-3.5 align-top text-right space-x-2">
                           <Link
                             href={`/admin/dashboard/results/${form.id}`}
                             onClick={() => setNavigatingFormId(form.id)}
@@ -638,7 +793,7 @@ export function ResultsDashboardClient({
                           </Link>
                           <button
                             type="button"
-                            onClick={() => handleInitiateFormPdf(form.id, form.faculty?.name, form.title)}
+                            onClick={() => handleInitiateFormPdf(form.id, facultyPdfName, form.title)}
                             disabled={Boolean(downloadingPdfFormId)}
                             aria-busy={downloadingPdfFormId === form.id ? 'true' : undefined}
                             className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
@@ -665,12 +820,39 @@ export function ResultsDashboardClient({
                 const respCount = compItem ? compItem.responseCount : form.response_count || 0;
                 const score = compItem ? compItem.averageScore : null;
 
+                const facultyList = getFormFacultyList(form);
+                const subjectList = getFormSubjectList(form);
+                const sessionName = getFormSessionName(form);
+                const isMultiFaculty = form.form_type === 'SEMESTER_FEEDBACK' || (form.items && form.items.length > 0);
+                const facultyPdfName = facultyList.map(f => f.name).join(', ') || form.faculty?.name;
+
                 return (
                   <div key={form.id} className="p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 sm:space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{form.faculty?.name}</h4>
-                        <p className="text-[11px] text-slate-500">{form.faculty?.department}</p>
+                      <div className="min-w-0">
+                        {isMultiFaculty && facultyList.length > 0 ? (
+                          <div className="space-y-1.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs">
+                              <Users className="w-3 h-3 text-purple-700" />
+                              <span>Multi-Faculty ({facultyList.length})</span>
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {facultyList.map((fac, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs"
+                                >
+                                  {fac.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-sm">{facultyList[0]?.name || 'Faculty Member'}</h4>
+                            <p className="text-[11px] text-slate-500">{facultyList[0]?.department}</p>
+                          </div>
+                        )}
                       </div>
                       <span
                         className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
@@ -685,16 +867,35 @@ export function ResultsDashboardClient({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-100">
                       <div>
-                        <span className="text-[10px] text-slate-400 block font-medium">Subject</span>
-                        <span className="font-semibold text-slate-800 text-[11px] line-clamp-1">{form.subject?.name}</span>
-                        <span className="font-mono text-[9px] text-slate-400">{form.subject?.code}</span>
+                        <span className="text-[10px] text-slate-400 block font-medium">
+                          {isMultiFaculty ? 'Courses' : 'Subject'}
+                        </span>
+                        {isMultiFaculty ? (
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {subjectList.map((sub, idx) => (
+                              <span key={idx} className="text-[10.5px] font-medium text-slate-800">
+                                {sub.name}{sub.code ? ` (${sub.code})` : ''}{idx < subjectList.length - 1 ? ',' : ''}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-semibold text-slate-800 text-[11px] line-clamp-1">{subjectList[0]?.name}</span>
+                            <span className="font-mono text-[9px] text-slate-400">{subjectList[0]?.code}</span>
+                          </>
+                        )}
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block font-medium">Cohort</span>
+                        <span className="text-[10px] text-slate-400 block font-medium">Cohort & Session</span>
                         <span className="font-semibold text-slate-700 text-[11px] block">{form.branch?.code || form.branch?.name}</span>
-                        <span className="text-[10px] text-slate-400">{form.semester?.name}</span>
+                        <span className="text-[10px] text-slate-500 block">{form.semester?.name}</span>
+                        {sessionName && (
+                          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                            Session {sessionName}
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -724,7 +925,7 @@ export function ResultsDashboardClient({
                         </Link>
                         <button
                           type="button"
-                          onClick={() => handleInitiateFormPdf(form.id, form.faculty?.name, form.title)}
+                          onClick={() => handleInitiateFormPdf(form.id, facultyPdfName, form.title)}
                           disabled={Boolean(downloadingPdfFormId)}
                           aria-busy={downloadingPdfFormId === form.id ? 'true' : undefined}
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"

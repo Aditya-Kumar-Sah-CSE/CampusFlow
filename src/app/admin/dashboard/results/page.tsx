@@ -43,7 +43,16 @@ export default async function AdminResultsHubPage() {
       subject:subjects(id, name, code),
       academic_year:academic_years(id, name),
       branch:branches(id, name, code),
-      semester:semesters(id, name, semester_number)
+      semester:semesters(id, name, semester_number),
+      items:feedback_form_items(
+        id,
+        grid_title,
+        order_index,
+        faculty_id,
+        subject_id,
+        faculty:faculties(id, name, department),
+        subject:subjects(id, name, code)
+      )
     `)
     .order('created_at', { ascending: false });
 
