@@ -20,6 +20,7 @@ import {
 } from '@/types/database';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
 import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
+import { PaginationControl } from '@/components/ui/PaginationControl';
 import {
   FileDown,
   RefreshCw,
@@ -135,6 +136,8 @@ export function ResultsDashboardClient({
   const [semesterId, setSemesterId] = useState<string>('ALL');
   const [facultyId, setFacultyId] = useState<string>('ALL');
   const [subjectId, setSubjectId] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
 
   const activeBranches = useMemo(
     () => (branches || []).filter(b => b.is_active).sort((a, b) => a.name.localeCompare(b.name)),
@@ -157,6 +160,7 @@ export function ResultsDashboardClient({
     newFac = facultyId,
     newSub = subjectId
   ) => {
+    setCurrentPage(1);
     startTransition(async () => {
       const res = await getOverallAnalyticsAction({
         academicYearId: newYear !== 'ALL' ? newYear : undefined,
@@ -178,6 +182,7 @@ export function ResultsDashboardClient({
     setSemesterId('ALL');
     setFacultyId('ALL');
     setSubjectId('ALL');
+    setCurrentPage(1);
     handleFilterChange('ALL', 'ALL', 'ALL', 'ALL', 'ALL');
   };
 
@@ -285,6 +290,16 @@ export function ResultsDashboardClient({
     }
     return true;
   });
+
+  // Pagination calculations
+  const totalItems = matchingForms.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const validPage = Math.min(currentPage, totalPages);
+
+  const paginatedForms = useMemo(() => {
+    const from = (validPage - 1) * pageSize;
+    return matchingForms.slice(from, from + pageSize);
+  }, [matchingForms, validPage, pageSize]);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -637,12 +652,18 @@ export function ResultsDashboardClient({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900">
-              Faculty Feedback Forms in Selected Scope ({matchingForms.length})
+              Faculty Feedback Forms in Selected Scope ({totalItems})
             </h3>
             <p className="text-xs text-slate-500">
               Access individual faculty analytics dashboards and export faculty PDF reports.
             </p>
           </div>
+          {totalPages > 1 && (
+            <div className="text-xs font-semibold text-slate-500 self-start sm:self-center">
+              Page <span className="font-bold text-slate-900">{validPage}</span> of{' '}
+              <span className="font-bold text-slate-900">{totalPages}</span>
+            </div>
+          )}
         </div>
 
         {matchingForms.length === 0 ? (
@@ -666,7 +687,7 @@ export function ResultsDashboardClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {matchingForms.map(form => {
+                  {paginatedForms.map(form => {
                     const compItem = report.facultyComparisons.find(c => c.formId === form.id);
                     const respCount = compItem ? compItem.responseCount : form.response_count || 0;
                     const score = compItem ? compItem.averageScore : null;
@@ -815,7 +836,7 @@ export function ResultsDashboardClient({
 
             {/* Mobile Cards View */}
             <div className="md:hidden space-y-2.5 sm:space-y-3">
-              {matchingForms.map(form => {
+              {paginatedForms.map(form => {
                 const compItem = report.facultyComparisons.find(c => c.formId === form.id);
                 const respCount = compItem ? compItem.responseCount : form.response_count || 0;
                 const score = compItem ? compItem.averageScore : null;
@@ -942,6 +963,23 @@ export function ResultsDashboardClient({
                   </div>
                 );
               })}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="pt-2 border-t border-slate-100">
+              <PaginationControl
+                currentPage={validPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={(p) => setCurrentPage(p)}
+                onPageSizeChange={(newSize) => {
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+                pageSizeOptions={[5, 10, 20, 50]}
+                isLoading={isPending}
+              />
             </div>
           </>
         )}
