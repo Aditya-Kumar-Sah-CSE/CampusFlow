@@ -648,9 +648,8 @@ export function renderOfficialHeader(
   const logoX = margin + 10;
   const logoY = y + Math.floor((headerH - logoBoxSize) / 2);
 
-  // Logo box card outline
-  doc.rect(logoX, logoY, logoBoxSize, logoBoxSize).fillAndStroke(PDF_COLORS.white, PDF_COLORS.border);
-  drawPdfHeaderLogo(doc, logoX + 2, logoY + 2, logoBoxSize - 4, logoBuffer);
+  // Draw logo cleanly without rectangular border
+  drawPdfHeaderLogo(doc, logoX, logoY, logoBoxSize, logoBuffer);
 
   // Right Block: Report Title Badge & Generation Time
   // Placed first with strictly bounded coordinates so it NEVER overlaps middle college text

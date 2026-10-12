@@ -94,19 +94,14 @@ function drawHeader(
   // Top decorative color bar
   doc.rect(margin, 30, contentWidth, 5).fill(accentColor);
 
-  // Top-left institution logo or fallback app icon (never plain text code)
+  // Top-left institution logo (clean borderless emblem)
   const logoX = margin;
   const logoY = 38;
   const logoSize = 48;
 
-  // Subtle clean card backing for logo
-  doc
-    .roundedRect(logoX, logoY, logoSize, logoSize, 6)
-    .fillAndStroke(COLORS.bgLight, COLORS.border);
-
-  // Draw logo image (College PNG logo -> App Icon / Meta Icon fallback)
+  // Draw logo image directly without rectangular card border
   const activeLogoBuffer = logoBuffer || resolveDefaultLogoBuffer(brand);
-  drawPdfHeaderLogo(doc, logoX + 2, logoY + 2, logoSize - 4, activeLogoBuffer);
+  drawPdfHeaderLogo(doc, logoX, logoY, logoSize, activeLogoBuffer);
 
   // Institution Header
   const institutionName = (brand.name || DEFAULT_BRANDING.name).toUpperCase();
