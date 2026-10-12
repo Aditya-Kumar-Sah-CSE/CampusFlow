@@ -129,6 +129,7 @@ export interface FacultyComparisonItem {
   subjectCode: string;
   branch: string;
   semester: string;
+  academicYear?: string;
   responseCount: number;
   averageScore: number;
 }

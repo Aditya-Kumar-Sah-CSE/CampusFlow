@@ -610,18 +610,37 @@ export function aggregateAnalytics(
   const performanceGradeInfo = getPerformanceGradeInfo(averageOverallScore, hasData);
 
   // Build faculty comparison array for forms with responses
-  const facultyComparisons: FacultyComparisonItem[] = formsWithData
-    .map(f => ({
-      formId: f.formId,
-      facultyName: f.facultyName,
-      subjectName: f.subjectName,
-      subjectCode: f.subjectCode,
-      branch: f.branch,
-      semester: f.semester,
-      responseCount: f.totalStudents ?? f.totalResponses,
-      averageScore: f.averageOverallScore || f.compositeAverageScore,
-    }))
-    .sort((a, b) => b.averageScore - a.averageScore);
+  const facultyComparisons: FacultyComparisonItem[] = [];
+  for (const f of formsWithData) {
+    if (f.facultyGrids && f.facultyGrids.length > 0) {
+      for (const grid of f.facultyGrids) {
+        facultyComparisons.push({
+          formId: f.formId,
+          facultyName: grid.facultyName || f.facultyName,
+          subjectName: grid.subjectName || f.subjectName,
+          subjectCode: grid.subjectCode || f.subjectCode,
+          branch: f.branch,
+          semester: f.semester,
+          academicYear: f.academicYear,
+          responseCount: grid.report?.totalStudents ?? grid.report?.totalResponses ?? (f.totalStudents ?? f.totalResponses),
+          averageScore: grid.report?.averageOverallScore || grid.report?.compositeAverageScore || f.averageOverallScore,
+        });
+      }
+    } else {
+      facultyComparisons.push({
+        formId: f.formId,
+        facultyName: f.facultyName,
+        subjectName: f.subjectName,
+        subjectCode: f.subjectCode,
+        branch: f.branch,
+        semester: f.semester,
+        academicYear: f.academicYear,
+        responseCount: f.totalStudents ?? f.totalResponses,
+        averageScore: f.averageOverallScore || f.compositeAverageScore,
+      });
+    }
+  }
+  facultyComparisons.sort((a, b) => b.averageScore - a.averageScore);
 
   return {
     scopeTitle,

@@ -1021,42 +1021,59 @@ export async function generateOverallFeedbackPDF(
     doc.font('Helvetica-Bold').fontSize(10).fillColor(COLORS.primary).text('FACULTY FEEDBACK PERFORMANCE MATRIX (ACTUAL DATA ONLY)', margin, currentY);
     currentY += 14;
 
-    const compColWidths = [150, 150, 80, 70, 73];
-    const compHeaders = ['Faculty Member', 'Subject', 'Branch', 'Responses', 'Avg Rating'];
+    const compColWidths = [120, 110, 75, 45, 65, 48, 60];
+    const compHeaders = ['Faculty Member', 'Subject', 'Branch', 'Sem', 'Session', 'Responses', 'Avg Rating'];
 
-    doc.rect(margin, currentY, contentWidth, 16).fill('#334155');
-    let fX = margin;
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.white);
-    compHeaders.forEach((ch, ci) => {
-      const align = ci < 3 ? 'left' : 'center';
-      doc.text(ch, fX + 4, currentY + 4, { width: compColWidths[ci] - 8, align });
-      fX += compColWidths[ci];
-    });
+    const renderMatrixHeader = () => {
+      doc.rect(margin, currentY, contentWidth, 16).fill('#334155');
+      let fX = margin;
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.white);
+      compHeaders.forEach((ch, ci) => {
+        const align = ci < 3 ? 'left' : 'center';
+        doc.text(ch, fX + 4, currentY + 4, { width: compColWidths[ci] - 8, align });
+        fX += compColWidths[ci];
+      });
+      currentY += 16;
+    };
 
-    currentY += 16;
+    renderMatrixHeader();
 
-    // Show up to top 7 faculties on page 1
-    const displayList = report.facultyComparisons.slice(0, 7);
-    displayList.forEach((fc, fIdx) => {
+    report.facultyComparisons.forEach((fc, fIdx) => {
       const rowHeight = 18;
+      if (currentY + rowHeight > pageHeight - 75) {
+        doc.addPage();
+        drawHeader(doc, 'Institutional Feedback Analytics Report', brand, logoBuffer);
+        currentY = 104;
+        doc.font('Helvetica-Bold').fontSize(10).fillColor(COLORS.primary).text('FACULTY FEEDBACK PERFORMANCE MATRIX (CONTINUED)', margin, currentY);
+        currentY += 14;
+        renderMatrixHeader();
+      }
+
       if (fIdx % 2 === 1) doc.rect(margin, currentY, contentWidth, rowHeight).fill('#F8FAFC');
       doc.strokeColor('#E2E8F0').lineWidth(0.5).moveTo(margin, currentY + rowHeight).lineTo(margin + contentWidth, currentY + rowHeight).stroke();
 
       let cellX = margin;
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary).text(fc.facultyName, cellX + 4, currentY + 5, { width: compColWidths[0] - 8 });
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary).text(fc.facultyName, cellX + 4, currentY + 5, { width: compColWidths[0] - 8, ellipsis: true });
       cellX += compColWidths[0];
 
-      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fc.subjectName, cellX + 4, currentY + 5, { width: compColWidths[1] - 8 });
+      const fullSubText = fc.subjectCode ? `${fc.subjectName} (${fc.subjectCode})` : fc.subjectName;
+      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fullSubText, cellX + 4, currentY + 5, { width: compColWidths[1] - 8, ellipsis: true });
       cellX += compColWidths[1];
 
-      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fc.branch, cellX + 4, currentY + 5, { width: compColWidths[2] - 8 });
+      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fc.branch, cellX + 4, currentY + 5, { width: compColWidths[2] - 8, ellipsis: true });
       cellX += compColWidths[2];
 
-      doc.font('Helvetica').fontSize(7.5).fillColor('#334155').text(String(fc.responseCount), cellX + 2, currentY + 5, { width: compColWidths[3] - 4, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(7).fillColor('#475569').text(fc.semester || 'N/A', cellX + 2, currentY + 5, { width: compColWidths[3] - 4, align: 'center', ellipsis: true });
       cellX += compColWidths[3];
 
+      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fc.academicYear || 'All Sessions', cellX + 2, currentY + 5, { width: compColWidths[4] - 4, align: 'center', ellipsis: true });
+      cellX += compColWidths[4];
+
+      doc.font('Helvetica').fontSize(7.5).fillColor('#334155').text(String(fc.responseCount), cellX + 2, currentY + 5, { width: compColWidths[5] - 4, align: 'center' });
+      cellX += compColWidths[5];
+
       const fScoreColor = fc.averageScore >= 4.0 ? '#4F46E5' : fc.averageScore >= 3.0 ? '#059669' : fc.averageScore >= 2.0 ? '#D97706' : '#DC2626';
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(fScoreColor).text(`${fc.averageScore.toFixed(2)}/5.00`, cellX + 2, currentY + 5, { width: compColWidths[4] - 4, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(fScoreColor).text(`${fc.averageScore.toFixed(2)}/5.00`, cellX + 2, currentY + 5, { width: compColWidths[6] - 4, align: 'center' });
 
       currentY += rowHeight;
     });
@@ -1072,8 +1089,12 @@ export async function generateOverallFeedbackPDF(
     align: 'right',
   });
 
-  // Footer on Page 1
-  drawFooter(doc, 1, 1, brand);
+  // Footer stamped on all buffered pages
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    drawFooter(doc, i + 1, range.count, brand);
+  }
 
   await applyTrialWatermarksIfRequired(doc, brand);
 

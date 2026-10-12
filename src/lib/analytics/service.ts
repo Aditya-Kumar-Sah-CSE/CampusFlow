@@ -130,7 +130,16 @@ export async function getFormAnalyticsData(
       subject:subjects(*),
       academic_year:academic_years(*),
       branch:branches(*),
-      semester:semesters(*)
+      semester:semesters(*),
+      items:feedback_form_items(
+        id,
+        grid_title,
+        order_index,
+        faculty_id,
+        subject_id,
+        faculty:faculties(id, name, department),
+        subject:subjects(id, name, code)
+      )
     `)
     .eq('id', formId)
     .single();
@@ -247,6 +256,23 @@ export async function getFormAnalyticsData(
     }
   }
 
+  const itemFaculties = ((form as any).items || [])
+    .map((it: any) => it.faculty?.name || (it.grid_title ? it.grid_title.split(/—|-/)[1]?.trim() : ''))
+    .filter(Boolean);
+  const uniqueFaculties = Array.from(new Set(itemFaculties));
+  const itemSubjects = ((form as any).items || [])
+    .map((it: any) => it.subject?.name || (it.grid_title ? it.grid_title.split(/—|-/)[0]?.trim() : ''))
+    .filter(Boolean);
+  const uniqueSubjects = Array.from(new Set(itemSubjects));
+
+  const effectiveFacultyName = uniqueFaculties.length > 0
+    ? uniqueFaculties.join(', ')
+    : form.faculty?.name || (isSemester ? 'Assigned Faculty Members' : 'Faculty Member');
+
+  const effectiveSubjectName = uniqueSubjects.length > 0
+    ? uniqueSubjects.join(', ')
+    : form.subject?.name || (isSemester ? 'Semester Subjects' : 'Subject');
+
   // 5. Compute Unified Analytics (strictly using INCLUDED canonical responses)
   const report = calculateFormAnalytics({
     formId: form.id,
@@ -254,8 +280,8 @@ export async function getFormAnalyticsData(
     academicYear: form.academic_year?.name || 'Academic Session',
     branch: form.branch?.name || 'Branch',
     semester: form.semester?.name || 'Semester',
-    facultyName: isSemester ? 'All Assigned Faculty' : form.faculty?.name || 'Faculty Member',
-    subjectName: isSemester ? 'All Semester Subjects' : form.subject?.name || 'Subject',
+    facultyName: effectiveFacultyName,
+    subjectName: effectiveSubjectName,
     subjectCode: form.subject?.code || '',
     formType: form.form_type || 'FACULTY_SPECIFIC',
     status: form.status,
@@ -274,6 +300,22 @@ export async function getFormAnalyticsData(
   report.excludedCount = excludedStudents;
 
   if (isSemester) {
+    if (facultyGrids.length === 0 && (form as any).items && (form as any).items.length > 0) {
+      facultyGrids = (form as any).items.map((item: any) => {
+        const facName = item.faculty?.name || (item.grid_title ? item.grid_title.split(/—|-/)[1]?.trim() : '') || 'Faculty Member';
+        const subName = item.subject?.name || (item.grid_title ? item.grid_title.split(/—|-/)[0]?.trim() : '') || 'Subject';
+        const subCode = item.subject?.code || '';
+        return {
+          gridTitle: item.grid_title || `${subName} — ${facName}`,
+          facultyId: item.faculty_id,
+          subjectId: item.subject_id,
+          facultyName: facName,
+          subjectName: subName,
+          subjectCode: subCode,
+          report,
+        };
+      });
+    }
     report.isSemesterForm = true;
     report.facultyGrids = facultyGrids;
     if (includedStudents > 0) {
@@ -368,7 +410,16 @@ export async function getOverallAnalyticsData(
       subject:subjects(*),
       academic_year:academic_years(*),
       branch:branches(*),
-      semester:semesters(*)
+      semester:semesters(*),
+      items:feedback_form_items(
+        id,
+        grid_title,
+        order_index,
+        faculty_id,
+        subject_id,
+        faculty:faculties(id, name, department),
+        subject:subjects(id, name, code)
+      )
     `)
     .order('created_at', { ascending: false });
 
@@ -481,14 +532,31 @@ export async function getOverallAnalyticsData(
       }
     }
 
+    const itemFaculties = ((form as any).items || [])
+      .map((it: any) => it.faculty?.name || (it.grid_title ? it.grid_title.split(/—|-/)[1]?.trim() : ''))
+      .filter(Boolean);
+    const uniqueFaculties = Array.from(new Set(itemFaculties));
+    const itemSubjects = ((form as any).items || [])
+      .map((it: any) => it.subject?.name || (it.grid_title ? it.grid_title.split(/—|-/)[0]?.trim() : ''))
+      .filter(Boolean);
+    const uniqueSubjects = Array.from(new Set(itemSubjects));
+
+    const effectiveFacultyName = uniqueFaculties.length > 0
+      ? uniqueFaculties.join(', ')
+      : form.faculty?.name || (isSemesterForm ? 'Assigned Faculty Members' : 'Faculty Member');
+
+    const effectiveSubjectName = uniqueSubjects.length > 0
+      ? uniqueSubjects.join(', ')
+      : form.subject?.name || (isSemesterForm ? 'Semester Subjects' : 'Subject');
+
     const singleReport = calculateFormAnalytics({
       formId: form.id,
       title: form.title,
       academicYear: form.academic_year?.name || 'Academic Session',
       branch: form.branch?.name || 'Branch',
       semester: form.semester?.name || 'Semester',
-      facultyName: isSemesterForm ? 'All Assigned Faculty' : form.faculty?.name || 'Faculty Member',
-      subjectName: isSemesterForm ? 'All Semester Subjects' : form.subject?.name || 'Subject',
+      facultyName: effectiveFacultyName,
+      subjectName: effectiveSubjectName,
       subjectCode: form.subject?.code || '',
       formType: form.form_type || 'FACULTY_SPECIFIC',
       status: form.status,
@@ -507,6 +575,22 @@ export async function getOverallAnalyticsData(
     singleReport.excludedCount = excludedStudents;
 
     if (isSemesterForm) {
+      if (facultyGrids.length === 0 && (form as any).items && (form as any).items.length > 0) {
+        facultyGrids = (form as any).items.map((item: any) => {
+          const facName = item.faculty?.name || (item.grid_title ? item.grid_title.split(/—|-/)[1]?.trim() : '') || 'Faculty Member';
+          const subName = item.subject?.name || (item.grid_title ? item.grid_title.split(/—|-/)[0]?.trim() : '') || 'Subject';
+          const subCode = item.subject?.code || '';
+          return {
+            gridTitle: item.grid_title || `${subName} — ${facName}`,
+            facultyId: item.faculty_id,
+            subjectId: item.subject_id,
+            facultyName: facName,
+            subjectName: subName,
+            subjectCode: subCode,
+            report: singleReport,
+          };
+        });
+      }
       singleReport.isSemesterForm = true;
       singleReport.facultyGrids = facultyGrids;
       if (includedStudents > 0) {
