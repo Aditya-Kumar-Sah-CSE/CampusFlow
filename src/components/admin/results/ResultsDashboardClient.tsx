@@ -305,27 +305,27 @@ export function ResultsDashboardClient({
     <div className="space-y-4 sm:space-y-6">
       {/* Page Title & Scope Card */}
       <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 sm:space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-bce-navy text-amber-400 rounded-xl">
+            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+              <span className="p-2 bg-bce-navy text-amber-400 rounded-xl shrink-0 mt-0.5 sm:mt-0">
                 <BarChart3 className="w-5 h-5" />
               </span>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
                   Faculty Feedback Results & Analytics
                 </h1>
-                <p className="text-xs text-slate-500">
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">
                   Institutional Quality Assurance & Objective Evaluation Metrics
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
             <Link
               href="/admin/dashboard"
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-bold rounded-xl transition-all border border-slate-200 shadow-2xs cursor-pointer select-none"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 text-xs font-bold rounded-xl transition-all border border-slate-200 shadow-2xs cursor-pointer select-none"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Dashboard</span>
@@ -335,7 +335,7 @@ export function ResultsDashboardClient({
               onClick={handleInitiateScopePdf}
               disabled={downloadingScopePdf}
               aria-busy={downloadingScopePdf}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-bce-navy hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 bg-bce-navy hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
             >
               {downloadingScopePdf ? (
                 <Loader2 className="w-4 h-4 text-amber-400 animate-spin" />
@@ -355,29 +355,29 @@ export function ResultsDashboardClient({
         )}
 
         {/* Scope Indicator Badge */}
-        <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+        <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] shrink-0">
               Active Scope:
             </span>
-            <span className="font-semibold text-bce-cobalt bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200/60">
+            <span className="font-semibold text-bce-cobalt bg-blue-50 px-2.5 py-1 sm:py-0.5 rounded-md border border-blue-200/60 break-words max-w-full text-[11px] sm:text-xs">
               {report.scopeTitle}
             </span>
             {isPending && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 font-medium">
+              <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 font-medium shrink-0">
                 <RefreshCw className="w-3 h-3 animate-spin" /> Recalculating...
               </span>
             )}
           </div>
 
-          <span className="text-[11px] text-slate-500">
+          <span className="text-[11px] text-slate-500 font-medium shrink-0">
             Evaluating {report.formsWithResponses} active forms ({report.totalResponses} total student responses)
           </span>
         </div>
 
         {/* Multi-tier Filter Bar */}
         <div className="pt-3 border-t border-slate-100">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
               <Filter className="w-3.5 h-3.5 text-bce-cobalt" />
               <span>Filter Institutional Scope:</span>
@@ -391,13 +391,13 @@ export function ResultsDashboardClient({
             <button
               type="button"
               onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-              className="md:hidden text-xs font-semibold text-bce-cobalt hover:underline flex items-center gap-1 cursor-pointer"
+              className="md:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 transition-all cursor-pointer select-none"
             >
-              <span>{mobileFiltersOpen ? 'Collapse ▲' : 'Expand Filters ▼'}</span>
+              <span>{mobileFiltersOpen ? 'Hide Filters ▲' : 'Filter Options ▼'}</span>
             </button>
           </div>
 
-          <div className={`${mobileFiltersOpen ? 'grid' : 'hidden md:grid'} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3`}>
+          <div className={`${mobileFiltersOpen ? 'grid' : 'hidden md:grid'} grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3`}>
             {/* Academic Year */}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
@@ -409,7 +409,7 @@ export function ResultsDashboardClient({
                   setAcademicYearId(e.target.value);
                   handleFilterChange(e.target.value, branchId, semesterId, facultyId, subjectId);
                 }}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 sm:py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
               >
                 <option value="ALL">All Sessions</option>
                 {academicYears.map(y => (
@@ -432,7 +432,7 @@ export function ResultsDashboardClient({
                   handleFilterChange(academicYearId, e.target.value, semesterId, facultyId, subjectId);
                 }}
                 aria-label="Filter Branch / Discipline"
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 sm:py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
               >
                 <option value="ALL">All Branches</option>
                 {activeBranches.map(b => (
@@ -454,7 +454,7 @@ export function ResultsDashboardClient({
                   setSemesterId(e.target.value);
                   handleFilterChange(academicYearId, branchId, e.target.value, facultyId, subjectId);
                 }}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 sm:py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
               >
                 <option value="ALL">All Semesters</option>
                 {semesters.map(s => (
@@ -476,7 +476,7 @@ export function ResultsDashboardClient({
                   setFacultyId(e.target.value);
                   handleFilterChange(academicYearId, branchId, semesterId, e.target.value, subjectId);
                 }}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 sm:py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
               >
                 <option value="ALL">All Faculty</option>
                 {faculties.map(f => (
@@ -498,7 +498,7 @@ export function ResultsDashboardClient({
                   setSubjectId(e.target.value);
                   handleFilterChange(academicYearId, branchId, semesterId, facultyId, e.target.value);
                 }}
-                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
+                className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 sm:py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
               >
                 <option value="ALL">All Subjects</option>
                 {subjects.map(sub => (
@@ -513,7 +513,7 @@ export function ResultsDashboardClient({
             <div className="flex items-end">
               <button
                 onClick={handleResetFilters}
-                className="w-full px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+                className="w-full py-2.5 sm:py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer border border-slate-200/80"
               >
                 Reset Filters
               </button>
@@ -527,10 +527,10 @@ export function ResultsDashboardClient({
         {/* Total Forms */}
         <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Active Forms</span>
-            <FileSpreadsheet className="w-4 h-4 text-bce-cobalt" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider truncate">Active Forms</span>
+            <FileSpreadsheet className="w-4 h-4 text-bce-cobalt shrink-0" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
             {report.formsWithResponses}{' '}
             <span className="text-[11px] sm:text-xs font-medium text-slate-400">/ {report.totalForms}</span>
           </div>
@@ -540,10 +540,10 @@ export function ResultsDashboardClient({
         {/* Total Responses */}
         <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Total Responses</span>
-            <Users className="w-4 h-4 text-blue-600" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider truncate">Total Responses</span>
+            <Users className="w-4 h-4 text-blue-600 shrink-0" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
             {report.totalResponses}
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
@@ -554,10 +554,10 @@ export function ResultsDashboardClient({
         {/* Overall Scope Score */}
         <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Scope Rating</span>
-            <Star className="w-4 h-4 text-amber-500 fill-amber-400/20" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider truncate">Scope Rating</span>
+            <Star className="w-4 h-4 text-amber-500 fill-amber-400/20 shrink-0" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
             {report.hasData ? (
               <>
                 {report.averageOverallScore.toFixed(2)}{' '}
@@ -577,10 +577,10 @@ export function ResultsDashboardClient({
         {/* Satisfaction Index */}
         <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Positive Rating</span>
-            <CheckCircle2 className="w-4 h-4 text-amber-500" />
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider truncate">Positive Rating</span>
+            <CheckCircle2 className="w-4 h-4 text-amber-500 shrink-0" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
             {report.hasData ? (
               `${(report.distribution.excellentPct + report.distribution.veryGoodPct + report.distribution.goodPct).toFixed(1)}%`
             ) : (
@@ -848,9 +848,9 @@ export function ResultsDashboardClient({
                 const facultyPdfName = facultyList.map(f => f.name).join(', ') || form.faculty?.name;
 
                 return (
-                  <div key={form.id} className="p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5 sm:space-y-3">
+                  <div key={form.id} className="p-3.5 sm:p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5 sm:space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         {isMultiFaculty && facultyList.length > 0 ? (
                           <div className="space-y-1.5">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs">
@@ -861,7 +861,7 @@ export function ResultsDashboardClient({
                               {facultyList.map((fac, idx) => (
                                 <span
                                   key={idx}
-                                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs"
+                                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-white text-slate-800 border border-slate-200 shadow-2xs break-words max-w-full"
                                 >
                                   {fac.name}
                                 </span>
@@ -870,8 +870,8 @@ export function ResultsDashboardClient({
                           </div>
                         ) : (
                           <div>
-                            <h4 className="font-bold text-slate-900 text-sm">{facultyList[0]?.name || 'Faculty Member'}</h4>
-                            <p className="text-[11px] text-slate-500">{facultyList[0]?.department}</p>
+                            <h4 className="font-bold text-slate-900 text-sm leading-snug">{facultyList[0]?.name || 'Faculty Member'}</h4>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{facultyList[0]?.department}</p>
                           </div>
                         )}
                       </div>
@@ -888,16 +888,20 @@ export function ResultsDashboardClient({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-lg border border-slate-100">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-white p-2.5 rounded-xl border border-slate-200/80">
                       <div>
-                        <span className="text-[10px] text-slate-400 block font-medium">
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider mb-0.5">
                           {isMultiFaculty ? 'Courses' : 'Subject'}
                         </span>
                         {isMultiFaculty ? (
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {subjectList.map((sub, idx) => (
-                              <span key={idx} className="text-[10.5px] font-medium text-slate-800">
-                                {sub.name}{sub.code ? ` (${sub.code})` : ''}{idx < subjectList.length - 1 ? ',' : ''}
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10.5px] font-medium bg-slate-50 text-slate-700 border border-slate-200"
+                              >
+                                <span>{sub.name}</span>
+                                {sub.code && <span className="font-mono text-[9px] text-slate-400">({sub.code})</span>}
                               </span>
                             ))}
                           </div>
@@ -909,7 +913,7 @@ export function ResultsDashboardClient({
                         )}
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block font-medium">Cohort & Session</span>
+                        <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider mb-0.5">Cohort & Session</span>
                         <span className="font-semibold text-slate-700 text-[11px] block">{form.branch?.code || form.branch?.name}</span>
                         <span className="text-[10px] text-slate-500 block">{form.semester?.name}</span>
                         {sessionName && (
@@ -920,41 +924,41 @@ export function ResultsDashboardClient({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-1.5 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-200/70">
+                      <div className="flex items-center gap-2 text-xs">
                         <span className="text-slate-500 font-medium">Responses:</span>
                         <span className="font-bold text-slate-900">{respCount}</span>
                         {score !== null && (
-                          <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            {score.toFixed(2)}/5.00
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            {score.toFixed(2)} / 5.00
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Link
                           href={`/admin/dashboard/results/${form.id}`}
                           onClick={() => setNavigatingFormId(form.id)}
                           aria-busy={navigatingFormId === form.id ? 'true' : undefined}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-bce-navy text-amber-400 hover:bg-slate-800 rounded-lg text-xs font-semibold transition-colors"
+                          className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-2 bg-bce-navy text-amber-400 hover:bg-slate-800 rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
                         >
                           {navigatingFormId === form.id ? (
-                            <Loader2 className="w-3 h-3 text-amber-400 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
                           ) : null}
                           <span>{navigatingFormId === form.id ? 'Opening...' : 'Analytics'}</span>
-                          {navigatingFormId !== form.id && <ChevronRight className="w-3 h-3" />}
+                          {navigatingFormId !== form.id && <ChevronRight className="w-3.5 h-3.5" />}
                         </Link>
                         <button
                           type="button"
                           onClick={() => handleInitiateFormPdf(form.id, facultyPdfName, form.title)}
                           disabled={Boolean(downloadingPdfFormId)}
                           aria-busy={downloadingPdfFormId === form.id ? 'true' : undefined}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                          className="flex-1 sm:flex-none justify-center inline-flex items-center gap-1.5 px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-all disabled:opacity-50 active:scale-95 cursor-pointer"
                         >
                           {downloadingPdfFormId === form.id ? (
-                            <Loader2 className="w-3 h-3 text-slate-600 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 text-slate-600 animate-spin" />
                           ) : (
-                            <FileDown className="w-3 h-3 text-slate-600" />
+                            <FileDown className="w-3.5 h-3.5 text-slate-600" />
                           )}
                           <span>{downloadingPdfFormId === form.id ? 'Downloading...' : 'PDF'}</span>
                         </button>

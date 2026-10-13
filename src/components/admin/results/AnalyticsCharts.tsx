@@ -30,9 +30,29 @@ const RATING_COLORS = {
 };
 
 /**
+ * Hook to detect viewport width for responsive chart tuning
+ */
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const updateSize = () => {
+      setIsMobile(window.innerWidth < breakpoint);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
+/**
  * Parameter-wise Average Score Bar Chart (1.00 to 5.00)
  */
 export function ParameterScoreBarChart({ parameters, hasData }: ParameterChartProps) {
+  const isMobile = useIsMobile(640);
+
   if (!hasData || parameters.every(p => p.validCount === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-slate-900/40 rounded-xl border border-slate-800 p-6 text-center">
@@ -48,19 +68,19 @@ export function ParameterScoreBarChart({ parameters, hasData }: ParameterChartPr
   }
 
   const data = parameters.map(p => ({
-    name: p.title.length > 15 ? `${p.title.slice(0, 13)}…` : p.title,
+    name: p.title.length > (isMobile ? 12 : 15) ? `${p.title.slice(0, isMobile ? 10 : 13)}…` : p.title,
     fullName: `${p.parameterId}. ${p.title}`,
     score: p.averageScore,
     validCount: p.validCount,
   }));
 
   return (
-    <div className="w-full h-80">
+    <div className="w-full h-72 sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
           layout="vertical"
-          margin={{ top: 10, right: 20, left: -5, bottom: 10 }}
+          margin={{ top: 10, right: isMobile ? 12 : 20, left: isMobile ? -15 : -5, bottom: 10 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} horizontal={false} />
           <XAxis
@@ -68,15 +88,15 @@ export function ParameterScoreBarChart({ parameters, hasData }: ParameterChartPr
             domain={[0, 5]}
             ticks={[0, 1, 2, 3, 4, 5]}
             stroke="#94A3B8"
-            fontSize={11}
+            fontSize={isMobile ? 10 : 11}
             tickFormatter={val => `${val}.0`}
           />
           <YAxis
             type="category"
             dataKey="name"
             stroke="#94A3B8"
-            fontSize={11}
-            width={105}
+            fontSize={isMobile ? 10 : 11}
+            width={isMobile ? 85 : 105}
             tickLine={false}
           />
           <Tooltip
@@ -97,7 +117,7 @@ export function ParameterScoreBarChart({ parameters, hasData }: ParameterChartPr
               return null;
             }}
           />
-          <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={18}>
+          <Bar dataKey="score" radius={[0, 4, 4, 0]} barSize={isMobile ? 15 : 18}>
             {data.map((entry, index) => {
               const color =
                 entry.score >= 4.0
@@ -123,6 +143,8 @@ export function ParameterDistributionStackedChart({
   parameters,
   hasData,
 }: ParameterChartProps) {
+  const isMobile = useIsMobile(640);
+
   if (!hasData || parameters.every(p => p.validCount === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-slate-900/40 rounded-xl border border-slate-800 p-6 text-center">
@@ -139,6 +161,7 @@ export function ParameterDistributionStackedChart({
 
   const data = parameters.map(p => ({
     name: p.title.length > 16 ? `${p.title.slice(0, 14)}…` : p.title,
+    pCode: `P${p.parameterId}`,
     fullName: `${p.parameterId}. ${p.title}`,
     Excellent: p.excellentPct,
     'Very Good': p.veryGoodPct,
@@ -149,72 +172,85 @@ export function ParameterDistributionStackedChart({
   }));
 
   return (
-    <div className="w-full h-80">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          margin={{ top: 15, right: 15, left: -15, bottom: 45 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-          <XAxis
-            dataKey="name"
-            stroke="#94A3B8"
-            fontSize={10}
-            angle={-35}
-            textAnchor="end"
-            interval={0}
-            height={45}
-          />
-          <YAxis
-            domain={[0, 100]}
-            stroke="#94A3B8"
-            fontSize={11}
-            tickFormatter={val => `${val}%`}
-          />
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (active && payload && payload.length) {
-                const item = data.find(d => d.name === label);
-                return (
-                  <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl text-xs space-y-1">
-                    <p className="font-semibold text-white border-b border-slate-800 pb-1">
-                      {item?.fullName || label}
-                    </p>
-                    <p className="text-indigo-400">
-                      Excellent: <span className="font-semibold">{item?.Excellent}%</span>
-                    </p>
-                    <p className="text-emerald-400">
-                      Very Good: <span className="font-semibold">{item?.['Very Good']}%</span>
-                    </p>
-                    <p className="text-blue-400">
-                      Good: <span className="font-semibold">{item?.Good}%</span>
-                    </p>
-                    <p className="text-amber-400">
-                      Satisfactory: <span className="font-semibold">{item?.Satisfactory}%</span>
-                    </p>
-                    <p className="text-red-400">
-                      Unsatisfactory: <span className="font-semibold">{item?.Unsatisfactory}%</span>
-                    </p>
-                    <p className="text-slate-400 pt-1 border-t border-slate-800">
-                      Total Valid: {item?.totalValid}
-                    </p>
-                  </div>
-                );
-              }
-              return null;
+    <div className="w-full space-y-1.5">
+      <div className="w-full h-72 sm:h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{
+              top: 15,
+              right: isMobile ? 10 : 15,
+              left: isMobile ? -20 : -15,
+              bottom: isMobile ? 15 : 45,
             }}
-          />
-          <Legend
-            verticalAlign="top"
-            wrapperStyle={{ paddingBottom: '12px', fontSize: '12px' }}
-          />
-          <Bar dataKey="Excellent" stackId="a" fill={RATING_COLORS.excellent} />
-          <Bar dataKey="Very Good" stackId="a" fill={RATING_COLORS.veryGood} />
-          <Bar dataKey="Good" stackId="a" fill={RATING_COLORS.good} />
-          <Bar dataKey="Satisfactory" stackId="a" fill={RATING_COLORS.satisfactory} />
-          <Bar dataKey="Unsatisfactory" stackId="a" fill={RATING_COLORS.unsatisfactory} />
-        </BarChart>
-      </ResponsiveContainer>
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+            <XAxis
+              dataKey={isMobile ? 'pCode' : 'name'}
+              stroke="#94A3B8"
+              fontSize={10}
+              angle={isMobile ? 0 : -35}
+              textAnchor={isMobile ? 'middle' : 'end'}
+              interval={0}
+              height={isMobile ? 24 : 45}
+            />
+            <YAxis
+              domain={[0, 100]}
+              stroke="#94A3B8"
+              fontSize={isMobile ? 10 : 11}
+              tickFormatter={val => `${val}%`}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const item = payload[0].payload;
+                  return (
+                    <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl text-xs space-y-1">
+                      <p className="font-semibold text-white border-b border-slate-800 pb-1">
+                        {item?.fullName}
+                      </p>
+                      <p className="text-indigo-400">
+                        Excellent: <span className="font-semibold">{item?.Excellent}%</span>
+                      </p>
+                      <p className="text-emerald-400">
+                        Very Good: <span className="font-semibold">{item?.['Very Good']}%</span>
+                      </p>
+                      <p className="text-blue-400">
+                        Good: <span className="font-semibold">{item?.Good}%</span>
+                      </p>
+                      <p className="text-amber-400">
+                        Satisfactory: <span className="font-semibold">{item?.Satisfactory}%</span>
+                      </p>
+                      <p className="text-red-400">
+                        Unsatisfactory: <span className="font-semibold">{item?.Unsatisfactory}%</span>
+                      </p>
+                      <p className="text-slate-400 pt-1 border-t border-slate-800">
+                        Total Valid: {item?.totalValid}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Legend
+              verticalAlign="top"
+              wrapperStyle={{ paddingBottom: '8px', fontSize: isMobile ? '10px' : '12px' }}
+              iconSize={isMobile ? 8 : 10}
+            />
+            <Bar dataKey="Excellent" stackId="a" fill={RATING_COLORS.excellent} />
+            <Bar dataKey="Very Good" stackId="a" fill={RATING_COLORS.veryGood} />
+            <Bar dataKey="Good" stackId="a" fill={RATING_COLORS.good} />
+            <Bar dataKey="Satisfactory" stackId="a" fill={RATING_COLORS.satisfactory} />
+            <Bar dataKey="Unsatisfactory" stackId="a" fill={RATING_COLORS.unsatisfactory} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      {isMobile && (
+        <p className="text-[10px] text-slate-400 text-center">
+          P1 to P8 correspond to Canonical Evaluation Parameters 1–8.
+        </p>
+      )}
     </div>
   );
 }
@@ -229,6 +265,8 @@ export function OverallDonutChart({
   distribution: OverallDistribution;
   hasData: boolean;
 }) {
+  const isMobile = useIsMobile(640);
+
   if (!hasData || distribution.totalValidRatings === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-slate-900/40 rounded-xl border border-slate-800 p-6 text-center">
@@ -259,8 +297,8 @@ export function OverallDonutChart({
             data={pieData}
             cx="50%"
             cy="50%"
-            innerRadius={55}
-            outerRadius={85}
+            innerRadius={isMobile ? 42 : 55}
+            outerRadius={isMobile ? 70 : 85}
             paddingAngle={3}
             dataKey="value"
           >
@@ -286,9 +324,10 @@ export function OverallDonutChart({
           />
           <Legend
             verticalAlign="bottom"
-            height={36}
+            height={isMobile ? 44 : 36}
+            iconSize={isMobile ? 8 : 10}
             formatter={(value, entry: any) => (
-              <span className="text-xs text-slate-300">
+              <span className="text-[11px] sm:text-xs text-slate-300">
                 {value} ({entry.payload.pct}%)
               </span>
             )}
@@ -307,6 +346,8 @@ export function FacultyComparisonBarChart({
 }: {
   comparisons: FacultyComparisonItem[];
 }) {
+  const isMobile = useIsMobile(640);
+
   if (!comparisons || comparisons.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 bg-slate-900/40 rounded-xl border border-slate-800 p-6 text-center">
@@ -321,8 +362,9 @@ export function FacultyComparisonBarChart({
     );
   }
 
-  const data = comparisons.slice(0, 10).map(c => ({
-    name: c.facultyName.length > 15 ? `${c.facultyName.slice(0, 13)}…` : c.facultyName,
+  const maxItems = isMobile ? 6 : 10;
+  const data = comparisons.slice(0, maxItems).map(c => ({
+    name: c.facultyName.length > (isMobile ? 10 : 15) ? `${c.facultyName.slice(0, isMobile ? 8 : 13)}…` : c.facultyName,
     fullName: c.facultyName,
     subject: `${c.subjectName} (${c.subjectCode})`,
     score: c.averageScore,
@@ -330,20 +372,28 @@ export function FacultyComparisonBarChart({
   }));
 
   return (
-    <div className="w-full h-80">
+    <div className="w-full h-72 sm:h-80">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 15, left: -10, bottom: 50 }}>
+        <BarChart
+          data={data}
+          margin={{
+            top: 20,
+            right: isMobile ? 10 : 15,
+            left: isMobile ? -15 : -10,
+            bottom: isMobile ? 45 : 50,
+          }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
           <XAxis
             dataKey="name"
             stroke="#94A3B8"
-            fontSize={10}
+            fontSize={isMobile ? 9 : 10}
             angle={-35}
             textAnchor="end"
             interval={0}
-            height={50}
+            height={isMobile ? 45 : 50}
           />
-          <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} stroke="#94A3B8" fontSize={11} />
+          <YAxis domain={[0, 5]} ticks={[0, 1, 2, 3, 4, 5]} stroke="#94A3B8" fontSize={isMobile ? 10 : 11} />
           <Tooltip
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
@@ -362,7 +412,7 @@ export function FacultyComparisonBarChart({
               return null;
             }}
           />
-          <Bar dataKey="score" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={28}>
+          <Bar dataKey="score" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={isMobile ? 18 : 28}>
             {data.map((entry, index) => {
               const color =
                 entry.score >= 4.0

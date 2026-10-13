@@ -140,19 +140,19 @@ export function FormResultsConsole({ initialReport }: Props) {
     <div className="space-y-4 sm:space-y-6">
       {/* Top Header & Action Console */}
       <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 sm:space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start sm:items-center gap-2 sm:gap-2.5">
               <Link
                 href="/admin/dashboard/results"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 mt-0.5 sm:mt-0"
                 title="Back to All Results"
               >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-slate-900">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
                     {isSemester
                       ? selectedGridIndex === -1
                         ? `Semester Feedback — ${report.branch} (${report.semester})`
@@ -160,12 +160,12 @@ export function FormResultsConsole({ initialReport }: Props) {
                       : report.facultyName}
                   </h1>
                   {isSemester && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
                       Multi-Faculty Semester Form
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 font-medium">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 font-medium mt-1">
                   <span>{report.branch} • {report.semester} • {report.academicYear}</span>
                   {isSemester && report.facultyGrids ? <span>• {report.facultyGrids.length} Teachers Evaluated</span> : null}
                   <span className="text-slate-300">•</span>
@@ -179,12 +179,12 @@ export function FormResultsConsole({ initialReport }: Props) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full md:w-auto">
             <button
               onClick={handleSync}
               disabled={isSyncing}
               aria-busy={isSyncing ? 'true' : undefined}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 bg-bce-cobalt hover:bg-bce-navy text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-xs ${
+              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-bce-cobalt hover:bg-bce-navy text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-xs cursor-pointer ${
                 isSyncing ? 'btn-request-active' : ''
               }`}
             >
@@ -196,7 +196,7 @@ export function FormResultsConsole({ initialReport }: Props) {
               href={`/admin/dashboard/results/${report.formId}/responses`}
               onClick={() => setIsNavigatingResponses(true)}
               aria-busy={isNavigatingResponses ? 'true' : undefined}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-200 shadow-xs"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-200 shadow-xs"
             >
               {isNavigatingResponses ? (
                 <Loader2 className="w-3.5 h-3.5 text-indigo-600 animate-spin" />
@@ -207,13 +207,13 @@ export function FormResultsConsole({ initialReport }: Props) {
             </Link>
 
             {isSemester ? (
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => handleInitiatePdfDownload(semesterOverviewPdfUrl, `semester-report-${report.formId}.pdf`, 'SEMESTER')}
                   disabled={Boolean(downloadingPdfType)}
                   aria-busy={downloadingPdfType === 'SEMESTER' ? 'true' : undefined}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                 >
                   {downloadingPdfType === 'SEMESTER' ? (
                     <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
@@ -228,7 +228,7 @@ export function FormResultsConsole({ initialReport }: Props) {
                     onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-${encodeURIComponent(activeFacultyGrid.facultyName)}.pdf`, 'FACULTY_GRID')}
                     disabled={Boolean(downloadingPdfType)}
                     aria-busy={downloadingPdfType === 'FACULTY_GRID' ? 'true' : undefined}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-300 disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-300 disabled:opacity-50 cursor-pointer"
                   >
                     {downloadingPdfType === 'FACULTY_GRID' ? (
                       <Loader2 className="w-3.5 h-3.5 text-bce-cobalt animate-spin" />
@@ -245,7 +245,7 @@ export function FormResultsConsole({ initialReport }: Props) {
                 onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-report-${report.formId}.pdf`, 'FACULTY')}
                 disabled={Boolean(downloadingPdfType)}
                 aria-busy={downloadingPdfType === 'FACULTY' ? 'true' : undefined}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {downloadingPdfType === 'FACULTY' ? (
                   <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
@@ -484,7 +484,8 @@ export function FormResultsConsole({ initialReport }: Props) {
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs text-left min-w-[550px]">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
@@ -539,7 +540,7 @@ export function FormResultsConsole({ initialReport }: Props) {
                       <td className="py-3 px-3 text-right">
                         <button
                           onClick={() => setSelectedGridIndex(idx)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-bce-cobalt bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          className="px-2.5 py-1 text-[11px] font-bold text-bce-cobalt bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
                         >
                           View Details →
                         </button>
@@ -549,6 +550,65 @@ export function FormResultsConsole({ initialReport }: Props) {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="md:hidden space-y-2.5">
+            {report.facultyGrids.map((fg, idx) => {
+              const score = fg.report.compositeAverageScore;
+              const scoreBadgeColor =
+                score >= 4.0
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  : score >= 3.0
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : score >= 2.0
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-red-50 text-red-700 border-red-200';
+
+              return (
+                <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm leading-snug">{fg.facultyName}</h4>
+                      <p className="text-xs text-slate-600 mt-0.5">
+                        {fg.subjectName} {fg.subjectCode && <span className="font-mono text-[10px] text-slate-400">({fg.subjectCode})</span>}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${scoreBadgeColor}`}>
+                      {fg.report.hasData ? `${score.toFixed(2)} / 5.00` : 'No Data'}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500">
+                      <span>Submissions: <strong className="text-slate-800">{fg.report.validResponses}</strong></span>
+                      <span>Benchmark: {fg.report.hasData ? `${Math.round((score / 5) * 100)}%` : '0%'}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-1.5 rounded-full ${
+                          score >= 4.0
+                            ? 'bg-indigo-500'
+                            : score >= 3.0
+                            ? 'bg-emerald-500'
+                            : score >= 2.0
+                            ? 'bg-amber-500'
+                            : 'bg-red-500'
+                        }`}
+                        style={{ width: `${fg.report.hasData ? (score / 5) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedGridIndex(idx)}
+                    className="w-full py-2 text-xs font-bold text-bce-cobalt bg-white hover:bg-blue-50 border border-blue-200/80 rounded-xl transition-all shadow-2xs active:scale-98 cursor-pointer text-center"
+                  >
+                    View Details →
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

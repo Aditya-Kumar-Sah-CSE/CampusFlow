@@ -53,9 +53,9 @@ export function PaginationControl({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="px-4 py-3 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+    <div className="px-2.5 sm:px-4 py-3 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
       {/* Item summary & Page size */}
-      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+      <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start text-[11px] sm:text-xs">
         <span>
           Showing <strong className="font-semibold text-slate-900">{startItem}</strong>–
           <strong className="font-semibold text-slate-900">{endItem}</strong> of{' '}
@@ -85,7 +85,7 @@ export function PaginationControl({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-wrap justify-center">
         {/* Previous button */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
@@ -98,11 +98,11 @@ export function PaginationControl({
         </button>
 
         {/* Page buttons */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap justify-center">
           {pageNumbers.map((p, idx) => {
             if (p === '...') {
               return (
-                <span key={`ellipsis-${idx}`} className="px-2 py-1 text-slate-400">
+                <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-slate-400 text-xs">
                   …
                 </span>
               );
