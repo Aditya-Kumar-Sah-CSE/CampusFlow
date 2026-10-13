@@ -139,6 +139,68 @@ export function countUniqueStudentResponses(responses: CanonicalResponseRow[]): 
 }
 
 /**
+ * Normalizes 5-tier rating counts into 1-decimal percentages such that
+ * their sum never exceeds 100% due to independent float rounding, and
+ * calculates the true positive rating index strictly bounded between 0 and 100%.
+ */
+export function calculateDistributionPercentages(
+  counts: [number, number, number, number, number],
+  total: number
+): {
+  excellentPct: number;
+  veryGoodPct: number;
+  goodPct: number;
+  satisfactoryPct: number;
+  unsatisfactoryPct: number;
+  positivePct: number;
+} {
+  if (total <= 0) {
+    return {
+      excellentPct: 0,
+      veryGoodPct: 0,
+      goodPct: 0,
+      satisfactoryPct: 0,
+      unsatisfactoryPct: 0,
+      positivePct: 0,
+    };
+  }
+
+  const pcts = counts.map(c => Number(((c / total) * 100).toFixed(1)));
+  const sum = Number((pcts[0] + pcts[1] + pcts[2] + pcts[3] + pcts[4]).toFixed(1));
+
+  // If counts add up to total, normalize sum to exactly 100.0% if there is rounding drift
+  if (sum !== 100 && counts.reduce((a, b) => a + b, 0) === total) {
+    const diff = Number((100 - sum).toFixed(1));
+    let maxIdx = 0;
+    let maxCount = -1;
+    for (let i = 0; i < counts.length; i++) {
+      if (counts[i] > maxCount) {
+        maxCount = counts[i];
+        maxIdx = i;
+      }
+    }
+    if (maxCount > 0) {
+      pcts[maxIdx] = Number((pcts[maxIdx] + diff).toFixed(1));
+    }
+  }
+
+  // Calculate positive percentage directly from counts (Excellent + Very Good + Good)
+  const positiveCount = counts[0] + counts[1] + counts[2];
+  const positivePct = Number(
+    Math.min(100, Math.max(0, (positiveCount / total) * 100)).toFixed(1)
+  );
+
+  return {
+    excellentPct: pcts[0],
+    veryGoodPct: pcts[1],
+    goodPct: pcts[2],
+    satisfactoryPct: pcts[3],
+    unsatisfactoryPct: pcts[4],
+    positivePct,
+  };
+}
+
+/**
  * Computes analytics for a single feedback form from normalized canonical responses.
  */
 export function calculateFormAnalytics(params: {
@@ -211,11 +273,16 @@ export function calculateFormAnalytics(params: {
     globalSatisfactory += sCount;
     globalUnsatisfactory += uCount;
 
-    const excellentPct = validCount > 0 ? Number(((exCount / validCount) * 100).toFixed(1)) : 0;
-    const veryGoodPct = validCount > 0 ? Number(((vgCount / validCount) * 100).toFixed(1)) : 0;
-    const goodPct = validCount > 0 ? Number(((gCount / validCount) * 100).toFixed(1)) : 0;
-    const satisfactoryPct = validCount > 0 ? Number(((sCount / validCount) * 100).toFixed(1)) : 0;
-    const unsatisfactoryPct = validCount > 0 ? Number(((uCount / validCount) * 100).toFixed(1)) : 0;
+    const pDist = calculateDistributionPercentages(
+      [exCount, vgCount, gCount, sCount, uCount],
+      validCount
+    );
+
+    const excellentPct = pDist.excellentPct;
+    const veryGoodPct = pDist.veryGoodPct;
+    const goodPct = pDist.goodPct;
+    const satisfactoryPct = pDist.satisfactoryPct;
+    const unsatisfactoryPct = pDist.unsatisfactoryPct;
 
     // Weighted average: (EX*5 + VG*4 + G*3 + S*2 + U*1) / validCount
     let averageScore = 0;
@@ -265,6 +332,11 @@ export function calculateFormAnalytics(params: {
   const totalValidRatings =
     globalExcellent + globalVeryGood + globalGood + globalSatisfactory + globalUnsatisfactory;
 
+  const globalDist = calculateDistributionPercentages(
+    [globalExcellent, globalVeryGood, globalGood, globalSatisfactory, globalUnsatisfactory],
+    totalValidRatings
+  );
+
   const distribution: OverallDistribution = {
     excellentCount: globalExcellent,
     veryGoodCount: globalVeryGood,
@@ -272,11 +344,12 @@ export function calculateFormAnalytics(params: {
     satisfactoryCount: globalSatisfactory,
     unsatisfactoryCount: globalUnsatisfactory,
     totalValidRatings,
-    excellentPct: totalValidRatings > 0 ? Number(((globalExcellent / totalValidRatings) * 100).toFixed(1)) : 0,
-    veryGoodPct: totalValidRatings > 0 ? Number(((globalVeryGood / totalValidRatings) * 100).toFixed(1)) : 0,
-    goodPct: totalValidRatings > 0 ? Number(((globalGood / totalValidRatings) * 100).toFixed(1)) : 0,
-    satisfactoryPct: totalValidRatings > 0 ? Number(((globalSatisfactory / totalValidRatings) * 100).toFixed(1)) : 0,
-    unsatisfactoryPct: totalValidRatings > 0 ? Number(((globalUnsatisfactory / totalValidRatings) * 100).toFixed(1)) : 0,
+    excellentPct: globalDist.excellentPct,
+    veryGoodPct: globalDist.veryGoodPct,
+    goodPct: globalDist.goodPct,
+    satisfactoryPct: globalDist.satisfactoryPct,
+    unsatisfactoryPct: globalDist.unsatisfactoryPct,
+    positivePct: globalDist.positivePct,
   };
 
   // Evaluation Parameters (Q1 to Q7) metrics & distribution
@@ -314,6 +387,11 @@ export function calculateFormAnalytics(params: {
   const totalValidParamRatings =
     paramExcellent + paramVeryGood + paramGood + paramSatisfactory + paramUnsatisfactory;
 
+  const paramDist = calculateDistributionPercentages(
+    [paramExcellent, paramVeryGood, paramGood, paramSatisfactory, paramUnsatisfactory],
+    totalValidParamRatings
+  );
+
   const parameterDistribution: OverallDistribution = {
     excellentCount: paramExcellent,
     veryGoodCount: paramVeryGood,
@@ -321,27 +399,38 @@ export function calculateFormAnalytics(params: {
     satisfactoryCount: paramSatisfactory,
     unsatisfactoryCount: paramUnsatisfactory,
     totalValidRatings: totalValidParamRatings,
-    excellentPct: totalValidParamRatings > 0 ? Number(((paramExcellent / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    veryGoodPct: totalValidParamRatings > 0 ? Number(((paramVeryGood / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    goodPct: totalValidParamRatings > 0 ? Number(((paramGood / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    satisfactoryPct: totalValidParamRatings > 0 ? Number(((paramSatisfactory / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    unsatisfactoryPct: totalValidParamRatings > 0 ? Number(((paramUnsatisfactory / totalValidParamRatings) * 100).toFixed(1)) : 0,
+    excellentPct: paramDist.excellentPct,
+    veryGoodPct: paramDist.veryGoodPct,
+    goodPct: paramDist.goodPct,
+    satisfactoryPct: paramDist.satisfactoryPct,
+    unsatisfactoryPct: paramDist.unsatisfactoryPct,
+    positivePct: paramDist.positivePct,
   };
 
   // Question 8 Standalone Overall Rating distribution
   const param8 = parameters.find(p => p.parameterId === 8);
+  const p8Counts: [number, number, number, number, number] = [
+    param8?.excellentCount || 0,
+    param8?.veryGoodCount || 0,
+    param8?.goodCount || 0,
+    param8?.satisfactoryCount || 0,
+    param8?.unsatisfactoryCount || 0,
+  ];
+  const p8Dist = calculateDistributionPercentages(p8Counts, param8?.validCount || 0);
+
   const overallRatingDistribution: OverallDistribution = {
-    excellentCount: param8?.excellentCount || 0,
-    veryGoodCount: param8?.veryGoodCount || 0,
-    goodCount: param8?.goodCount || 0,
-    satisfactoryCount: param8?.satisfactoryCount || 0,
-    unsatisfactoryCount: param8?.unsatisfactoryCount || 0,
+    excellentCount: p8Counts[0],
+    veryGoodCount: p8Counts[1],
+    goodCount: p8Counts[2],
+    satisfactoryCount: p8Counts[3],
+    unsatisfactoryCount: p8Counts[4],
     totalValidRatings: param8?.validCount || 0,
-    excellentPct: param8?.excellentPct || 0,
-    veryGoodPct: param8?.veryGoodPct || 0,
-    goodPct: param8?.goodPct || 0,
-    satisfactoryPct: param8?.satisfactoryPct || 0,
-    unsatisfactoryPct: param8?.unsatisfactoryPct || 0,
+    excellentPct: p8Dist.excellentPct,
+    veryGoodPct: p8Dist.veryGoodPct,
+    goodPct: p8Dist.goodPct,
+    satisfactoryPct: p8Dist.satisfactoryPct,
+    unsatisfactoryPct: p8Dist.unsatisfactoryPct,
+    positivePct: p8Dist.positivePct,
   };
 
   // Composite average across all parameters: strictly SUM(weights) / COUNT(ratings)
@@ -454,11 +543,10 @@ export function aggregateAnalytics(
     globalSatisfactory += acc.s;
     globalUnsatisfactory += acc.u;
 
-    const excellentPct = validCount > 0 ? Number(((acc.ex / validCount) * 100).toFixed(1)) : 0;
-    const veryGoodPct = validCount > 0 ? Number(((acc.vg / validCount) * 100).toFixed(1)) : 0;
-    const goodPct = validCount > 0 ? Number(((acc.g / validCount) * 100).toFixed(1)) : 0;
-    const satisfactoryPct = validCount > 0 ? Number(((acc.s / validCount) * 100).toFixed(1)) : 0;
-    const unsatisfactoryPct = validCount > 0 ? Number(((acc.u / validCount) * 100).toFixed(1)) : 0;
+    const pDist = calculateDistributionPercentages(
+      [acc.ex, acc.vg, acc.g, acc.s, acc.u],
+      validCount
+    );
 
     let averageScore = 0;
     if (validCount > 0) {
@@ -490,11 +578,11 @@ export function aggregateAnalytics(
       unsatisfactoryCount: acc.u,
       validCount,
       unansweredCount: acc.unanswered,
-      excellentPct,
-      veryGoodPct,
-      goodPct,
-      satisfactoryPct,
-      unsatisfactoryPct,
+      excellentPct: pDist.excellentPct,
+      veryGoodPct: pDist.veryGoodPct,
+      goodPct: pDist.goodPct,
+      satisfactoryPct: pDist.satisfactoryPct,
+      unsatisfactoryPct: pDist.unsatisfactoryPct,
       averageScore,
       interpretation,
     };
@@ -503,6 +591,11 @@ export function aggregateAnalytics(
   const totalValidRatings =
     globalExcellent + globalVeryGood + globalGood + globalSatisfactory + globalUnsatisfactory;
 
+  const globalDistPcts = calculateDistributionPercentages(
+    [globalExcellent, globalVeryGood, globalGood, globalSatisfactory, globalUnsatisfactory],
+    totalValidRatings
+  );
+
   const distribution: OverallDistribution = {
     excellentCount: globalExcellent,
     veryGoodCount: globalVeryGood,
@@ -510,11 +603,12 @@ export function aggregateAnalytics(
     satisfactoryCount: globalSatisfactory,
     unsatisfactoryCount: globalUnsatisfactory,
     totalValidRatings,
-    excellentPct: totalValidRatings > 0 ? Number(((globalExcellent / totalValidRatings) * 100).toFixed(1)) : 0,
-    veryGoodPct: totalValidRatings > 0 ? Number(((globalVeryGood / totalValidRatings) * 100).toFixed(1)) : 0,
-    goodPct: totalValidRatings > 0 ? Number(((globalGood / totalValidRatings) * 100).toFixed(1)) : 0,
-    satisfactoryPct: totalValidRatings > 0 ? Number(((globalSatisfactory / totalValidRatings) * 100).toFixed(1)) : 0,
-    unsatisfactoryPct: totalValidRatings > 0 ? Number(((globalUnsatisfactory / totalValidRatings) * 100).toFixed(1)) : 0,
+    excellentPct: globalDistPcts.excellentPct,
+    veryGoodPct: globalDistPcts.veryGoodPct,
+    goodPct: globalDistPcts.goodPct,
+    satisfactoryPct: globalDistPcts.satisfactoryPct,
+    unsatisfactoryPct: globalDistPcts.unsatisfactoryPct,
+    positivePct: globalDistPcts.positivePct,
   };
 
   // Evaluation Parameters (Q1 to Q7) metrics & distribution
@@ -552,6 +646,11 @@ export function aggregateAnalytics(
   const totalValidParamRatings =
     paramExcellent + paramVeryGood + paramGood + paramSatisfactory + paramUnsatisfactory;
 
+  const paramDistPcts = calculateDistributionPercentages(
+    [paramExcellent, paramVeryGood, paramGood, paramSatisfactory, paramUnsatisfactory],
+    totalValidParamRatings
+  );
+
   const parameterDistribution: OverallDistribution = {
     excellentCount: paramExcellent,
     veryGoodCount: paramVeryGood,
@@ -559,27 +658,41 @@ export function aggregateAnalytics(
     satisfactoryCount: paramSatisfactory,
     unsatisfactoryCount: paramUnsatisfactory,
     totalValidRatings: totalValidParamRatings,
-    excellentPct: totalValidParamRatings > 0 ? Number(((paramExcellent / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    veryGoodPct: totalValidParamRatings > 0 ? Number(((paramVeryGood / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    goodPct: totalValidParamRatings > 0 ? Number(((paramGood / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    satisfactoryPct: totalValidParamRatings > 0 ? Number(((paramSatisfactory / totalValidParamRatings) * 100).toFixed(1)) : 0,
-    unsatisfactoryPct: totalValidParamRatings > 0 ? Number(((paramUnsatisfactory / totalValidParamRatings) * 100).toFixed(1)) : 0,
+    excellentPct: paramDistPcts.excellentPct,
+    veryGoodPct: paramDistPcts.veryGoodPct,
+    goodPct: paramDistPcts.goodPct,
+    satisfactoryPct: paramDistPcts.satisfactoryPct,
+    unsatisfactoryPct: paramDistPcts.unsatisfactoryPct,
+    positivePct: paramDistPcts.positivePct,
   };
 
   // Question 8 Standalone Overall Rating distribution
   const param8 = parameters.find(p => p.parameterId === 8);
+  const param8Valid = param8?.validCount || 0;
+  const param8DistPcts = calculateDistributionPercentages(
+    [
+      param8?.excellentCount || 0,
+      param8?.veryGoodCount || 0,
+      param8?.goodCount || 0,
+      param8?.satisfactoryCount || 0,
+      param8?.unsatisfactoryCount || 0,
+    ],
+    param8Valid
+  );
+
   const overallRatingDistribution: OverallDistribution = {
     excellentCount: param8?.excellentCount || 0,
     veryGoodCount: param8?.veryGoodCount || 0,
     goodCount: param8?.goodCount || 0,
     satisfactoryCount: param8?.satisfactoryCount || 0,
     unsatisfactoryCount: param8?.unsatisfactoryCount || 0,
-    totalValidRatings: param8?.validCount || 0,
-    excellentPct: param8?.excellentPct || 0,
-    veryGoodPct: param8?.veryGoodPct || 0,
-    goodPct: param8?.goodPct || 0,
-    satisfactoryPct: param8?.satisfactoryPct || 0,
-    unsatisfactoryPct: param8?.unsatisfactoryPct || 0,
+    totalValidRatings: param8Valid,
+    excellentPct: param8DistPcts.excellentPct,
+    veryGoodPct: param8DistPcts.veryGoodPct,
+    goodPct: param8DistPcts.goodPct,
+    satisfactoryPct: param8DistPcts.satisfactoryPct,
+    unsatisfactoryPct: param8DistPcts.unsatisfactoryPct,
+    positivePct: param8DistPcts.positivePct,
   };
 
   const compositeAverageScore =

@@ -582,7 +582,21 @@ export function ResultsDashboardClient({
           </div>
           <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
             {report.hasData ? (
-              `${(report.distribution.excellentPct + report.distribution.veryGoodPct + report.distribution.goodPct).toFixed(1)}%`
+              (() => {
+                const posCount =
+                  report.distribution.excellentCount +
+                  report.distribution.veryGoodCount +
+                  report.distribution.goodCount;
+                const total = report.distribution.totalValidRatings;
+                const pct =
+                  report.distribution.positivePct !== undefined
+                    ? report.distribution.positivePct
+                    : total > 0
+                    ? (posCount / total) * 100
+                    : 0;
+                const safePct = Math.min(100, Math.max(0, pct));
+                return safePct >= 99.95 ? '100%' : `${safePct.toFixed(1)}%`;
+              })()
             ) : (
               <span className="text-sm sm:text-lg text-slate-400 font-semibold">0%</span>
             )}

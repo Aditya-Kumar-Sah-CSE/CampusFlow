@@ -773,7 +773,19 @@ export async function generateIndividualFacultyPDF(
     doc.text(line2, margin + 14, obsY, { width: obsWidth });
     obsY += doc.heightOfString(line2, { width: obsWidth }) + 3;
 
-    const line3 = `• Overall Feedback Satisfaction: ${(report.distribution.excellentPct + report.distribution.veryGoodPct + report.distribution.goodPct).toFixed(1)}% of all individual ratings were Excellent, Very Good or Good.`;
+    const posCount =
+      report.distribution.excellentCount +
+      report.distribution.veryGoodCount +
+      report.distribution.goodCount;
+    const totalPos = report.distribution.totalValidRatings;
+    const rawPosPct =
+      report.distribution.positivePct !== undefined
+        ? report.distribution.positivePct
+        : totalPos > 0
+        ? (posCount / totalPos) * 100
+        : 0;
+    const posPctDisplay = Math.min(100, Math.max(0, rawPosPct)) >= 99.95 ? '100%' : `${Math.min(100, Math.max(0, rawPosPct)).toFixed(1)}%`;
+    const line3 = `• Overall Feedback Satisfaction: ${posPctDisplay} of all individual ratings were Excellent, Very Good or Good.`;
     doc.text(line3, margin + 14, obsY, { width: obsWidth });
     obsY += doc.heightOfString(line3, { width: obsWidth }) + 3;
 
@@ -1480,7 +1492,19 @@ export async function generateSemesterComparativePDF(
     doc.text(`• Area for Academic Attention: "${lowest.title}" scored ${lowest.averageScore.toFixed(2)}/5.00 (${lowest.unsatisfactoryPct}% Unsatisfactory).`, margin + 12, obsY);
     obsY += 9.5;
 
-    doc.text(`• Overall Feedback Satisfaction: ${(report.distribution.excellentPct + report.distribution.veryGoodPct + report.distribution.goodPct).toFixed(1)}% of all individual ratings were Excellent, Very Good or Good.`, margin + 12, obsY);
+    const posCount =
+      report.distribution.excellentCount +
+      report.distribution.veryGoodCount +
+      report.distribution.goodCount;
+    const totalPos = report.distribution.totalValidRatings;
+    const rawPosPct =
+      report.distribution.positivePct !== undefined
+        ? report.distribution.positivePct
+        : totalPos > 0
+        ? (posCount / totalPos) * 100
+        : 0;
+    const posPctDisplay = Math.min(100, Math.max(0, rawPosPct)) >= 99.95 ? '100%' : `${Math.min(100, Math.max(0, rawPosPct)).toFixed(1)}%`;
+    doc.text(`• Overall Feedback Satisfaction: ${posPctDisplay} of all individual ratings were Excellent, Very Good or Good.`, margin + 12, obsY);
     obsY += 9.5;
 
     doc.text(`• Sample Reliability: ${totalStudents} student submission(s) across ${evaluatedItems} evaluated faculty-subject item(s).`, margin + 12, obsY);

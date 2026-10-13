@@ -54,6 +54,7 @@ export interface OverallDistribution {
   goodPct: number;
   satisfactoryPct: number;
   unsatisfactoryPct: number;
+  positivePct: number;
 }
 
 export interface FacultyGridAnalyticsItem {

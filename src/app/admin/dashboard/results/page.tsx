@@ -115,6 +115,7 @@ export default async function AdminResultsHubPage() {
       goodPct: 0,
       satisfactoryPct: 0,
       unsatisfactoryPct: 0,
+      positivePct: 0,
     },
     facultyComparisons: [],
     hasData: false,
