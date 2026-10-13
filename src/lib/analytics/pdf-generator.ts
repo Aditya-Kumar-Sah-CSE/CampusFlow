@@ -506,6 +506,7 @@ export async function generateIndividualFacultyPDF(
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
   const pageWidth = 595.28;
+  const pageHeight = 841.89;
   const contentWidth = pageWidth - margin * 2;
 
   // Fetch top-left logo buffer
@@ -795,7 +796,6 @@ export async function generateIndividualFacultyPDF(
   }
 
   // Bottom-Right Signature Block
-  const pageHeight = 841.89;
   const sigY = Math.min(pageHeight - 60, Math.max(obsY + 14, pageHeight - 75));
   doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.secondary).text('Signature: ____________________', margin, sigY, {
     width: contentWidth,
@@ -835,6 +835,7 @@ export async function generateOverallFeedbackPDF(
   const bufferPromise = streamToBuffer(doc);
   const margin = 36;
   const pageWidth = 595.28;
+  const pageHeight = 841.89;
   const contentWidth = pageWidth - margin * 2;
 
   // Fetch top-left logo buffer
@@ -1094,7 +1095,6 @@ export async function generateOverallFeedbackPDF(
   }
 
   // Bottom-Right Signature Block
-  const pageHeight = 841.89;
   const sigY = Math.min(pageHeight - 60, Math.max(currentY, pageHeight - 75));
   doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.secondary).text('Signature: ____________________', margin, sigY, {
     width: contentWidth,
