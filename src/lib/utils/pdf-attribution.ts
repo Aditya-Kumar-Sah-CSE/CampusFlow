@@ -3,6 +3,7 @@ import type PDFKit from 'pdfkit';
 export const ADITYA_PORTFOLIO_URL = 'https://portfolio-two-ashen-zseywond41.vercel.app/';
 export const DR_AVINAV_PORTFOLIO_URL = 'https://www.bcebhagalpur.ac.in/faculty/abhinav-kumar/';
 export const DR_ABHINAV_KUMAR_PROFILE_URL = DR_AVINAV_PORTFOLIO_URL;
+export const OFFICIAL_ORDER_URL = 'https://drive.google.com/file/d/1UO0h626GIZf9KES1pGr7t1S-vnCu0eSo/view';
 
 export interface PdfAttributionOptions {
   fontSize?: number;

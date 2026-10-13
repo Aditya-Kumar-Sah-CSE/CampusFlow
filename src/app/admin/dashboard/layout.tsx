@@ -229,7 +229,16 @@ export default async function AdminDashboardLayout({
             >
               Dr. Abhinav Kumar
             </a>
-            {' '}(Assistant Professor; BCE, Bhagalpur)
+            {' '}(Assistant Professor; BCE, Bhagalpur){' '}
+            <a
+              href="https://drive.google.com/file/d/1UO0h626GIZf9KES1pGr7t1S-vnCu0eSo/view"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-bce-cobalt hover:underline"
+              title="Official Order - BCE Bhagalpur"
+            >
+              (Official Order)
+            </a>
           </span>
           <span className="truncate max-w-full">
             Authenticated as: <strong className="text-slate-700 font-mono">{adminEmail}</strong>

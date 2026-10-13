@@ -422,7 +422,16 @@ export default function PrivacyPolicyPage() {
               >
                 Dr. Abhinav Kumar
               </a>
-              {' '}(Assistant Professor; BCE, Bhagalpur)
+              {' '}(Assistant Professor; BCE, Bhagalpur){' '}
+              <a
+                href="https://drive.google.com/file/d/1UO0h626GIZf9KES1pGr7t1S-vnCu0eSo/view"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                title="Official Order - BCE Bhagalpur"
+              >
+                (Official Order)
+              </a>
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4 text-[11px] text-slate-500">

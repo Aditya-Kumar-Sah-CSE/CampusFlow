@@ -215,7 +215,16 @@ export default async function DirectFeedbackPage({
               >
                 Dr. Abhinav Kumar
               </a>
-              {' '}(Assistant Professor; BCE, Bhagalpur)
+              {' '}(Assistant Professor; BCE, Bhagalpur){' '}
+              <a
+                href="https://drive.google.com/file/d/1UO0h626GIZf9KES1pGr7t1S-vnCu0eSo/view"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-amber-400 hover:underline font-medium"
+                title="Official Order - BCE Bhagalpur"
+              >
+                (Official Order)
+              </a>
             </div>
           </div>
           <div className="flex items-center gap-3">

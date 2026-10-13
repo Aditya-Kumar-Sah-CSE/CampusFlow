@@ -50,6 +50,16 @@ export function CompletionFooter({ collegeName, collegeSlug, className = '' }: P
             >
               Dr. Abhinav Kumar (Assistant Professor; BCE, Bhagalpur)
             </a>
+            {' '}
+            <a
+              href="https://drive.google.com/file/d/1UO0h626GIZf9KES1pGr7t1S-vnCu0eSo/view"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-slate-600 hover:text-blue-600 underline decoration-slate-300 transition-colors"
+              title="Official Order - BCE Bhagalpur"
+            >
+              (Official Order)
+            </a>
         </p>
 
         {/* System copyright */}

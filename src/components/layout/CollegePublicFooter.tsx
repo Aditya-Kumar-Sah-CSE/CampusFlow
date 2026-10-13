@@ -126,7 +126,16 @@ export function CollegePublicFooter({
             >
               Dr. Abhinav Kumar
             </a>
-            {' '}(Assistant Professor; BCE, Bhagalpur)
+            {' '}(Assistant Professor; BCE, Bhagalpur){' '}
+            <a
+              href="https://drive.google.com/file/d/1UO0h626GIZf9KES1pGr7t1S-vnCu0eSo/view"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`font-medium transition-colors hover:underline ${authorLinkClass}`}
+              title="Official Order - BCE Bhagalpur"
+            >
+              (Official Order)
+            </a>
           </p>
         )}
 
