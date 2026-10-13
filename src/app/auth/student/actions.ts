@@ -21,6 +21,12 @@ const signupSchema = z
       .trim()
       .min(2, { message: 'Name must be at least 2 characters.' })
       .max(100, { message: 'Name cannot exceed 100 characters.' }),
+    registrationNumber: z
+      .string()
+      .trim()
+      .max(50, { message: 'Registration number cannot exceed 50 characters.' })
+      .optional()
+      .nullable(),
     email: z
       .string()
       .trim()
@@ -142,8 +148,9 @@ export async function studentSignupAction(input: StudentSignupInput): Promise<{
       };
     }
 
-    const { collegeId, fullName, email, password } = parsed.data;
+    const { collegeId, fullName, registrationNumber, email, password } = parsed.data;
     const cleanEmail = email.toLowerCase().trim();
+    const cleanReg = (registrationNumber || '').trim() || null;
 
     const adminDb = createAdminClient();
     if (!adminDb) {
@@ -164,6 +171,27 @@ export async function studentSignupAction(input: StudentSignupInput): Promise<{
         error: 'The selected institution is invalid or currently inactive. Please choose a valid institution.',
         fieldErrors: { collegeId: 'Selected institution is invalid or inactive.' },
       };
+    }
+
+    // 2.1 Validate optional registration number uniqueness within college
+    if (cleanReg) {
+      const { data: duplicateStudent } = await adminDb
+        .from('students')
+        .select('id, user_id, registration_number')
+        .ilike('registration_number', cleanReg)
+        .eq('college_id', college.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (duplicateStudent) {
+        return {
+          success: false,
+          error: `Registration number "${cleanReg}" already exists. This registration number is already registered with another student account.`,
+          fieldErrors: {
+            registrationNumber: `Registration number "${cleanReg}" already exists.`,
+          },
+        };
+      }
     }
 
     // 3. Check if user already exists
@@ -203,6 +231,7 @@ export async function studentSignupAction(input: StudentSignupInput): Promise<{
         user_metadata: {
           role: 'STUDENT',
           name: fullName,
+          registration_number: cleanReg,
           college_id: college.id,
           college_name: college.name,
           college_slug: college.slug,
@@ -226,6 +255,7 @@ export async function studentSignupAction(input: StudentSignupInput): Promise<{
         user_metadata: {
           role: 'STUDENT',
           name: fullName,
+          registration_number: cleanReg,
           college_id: college.id,
           college_name: college.name,
           college_slug: college.slug,
@@ -242,6 +272,7 @@ export async function studentSignupAction(input: StudentSignupInput): Promise<{
           college_id: college.id,
           email: cleanEmail,
           full_name: fullName,
+          registration_number: cleanReg,
           is_active: true,
           email_verified: false,
           updated_at: new Date().toISOString(),

@@ -34,6 +34,7 @@ export interface StudentSession {
 export interface StudentSignupInput {
   collegeId: string;
   fullName: string;
+  registrationNumber?: string | null;
   email: string;
   password: string;
   confirmPassword: string;

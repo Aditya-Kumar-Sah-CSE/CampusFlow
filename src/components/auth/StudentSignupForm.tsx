@@ -8,6 +8,7 @@ import {
   School,
   Building2,
   User,
+  GraduationCap,
   Mail,
   Lock,
   Eye,
@@ -40,6 +41,7 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
   const [loadingColleges, setLoadingColleges] = useState(true);
   const [selectedCollegeId, setSelectedCollegeId] = useState('');
   const [fullName, setFullName] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -127,6 +129,7 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
       const result = await studentSignupAction({
         collegeId: selectedCollegeId,
         fullName: fullName.trim(),
+        registrationNumber: registrationNumber.trim() || undefined,
         email: email.trim().toLowerCase(),
         password,
         confirmPassword,
@@ -271,11 +274,47 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
           )}
         </div>
 
-        {/* 3. Email Address */}
+        {/* 3. Registration No. / Roll No. (Optional) */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <GraduationCap className="w-4 h-4 text-bce-cobalt" />
+              3. Registration No. / Roll No.
+            </span>
+            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+              Optional
+            </span>
+          </label>
+          <input
+            id="student-signup-reg-number"
+            type="text"
+            value={registrationNumber}
+            onChange={(e) => {
+              setRegistrationNumber(e.target.value);
+              setFieldErrors((prev) => ({ ...prev, registrationNumber: '' }));
+            }}
+            placeholder="e.g. 24105108040 or GP-140/2021"
+            maxLength={50}
+            disabled={isLoading}
+            className={`w-full min-h-[46px] rounded-xl border ${
+              fieldErrors.registrationNumber
+                ? 'border-red-400 bg-red-50/30 text-red-900 font-mono font-bold'
+                : 'border-slate-300 bg-slate-50 font-mono'
+            } px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/30 transition-all`}
+          />
+          <p className="mt-1 text-[11px] text-slate-500">
+            University (BEU) or Board (SBTE) registration number printed on admit card or fee receipt.
+          </p>
+          {fieldErrors.registrationNumber && (
+            <p className="mt-1 text-xs text-red-600 font-medium">{fieldErrors.registrationNumber}</p>
+          )}
+        </div>
+
+        {/* 4. Email Address */}
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1.5">
             <Mail className="w-4 h-4 text-bce-cobalt" />
-            3. Email Address *
+            4. Email Address *
           </label>
           <input
             id="student-signup-email"
@@ -301,12 +340,12 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
           )}
         </div>
 
-        {/* 4. Password & Confirm Password */}
+        {/* 5. Password & 6. Confirm Password */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1.5">
               <Lock className="w-4 h-4 text-bce-cobalt" />
-              4. Password *
+              5. Password *
             </label>
             <div className="relative">
               <input
@@ -342,7 +381,7 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5 flex items-center gap-1.5">
               <Lock className="w-4 h-4 text-bce-cobalt" />
-              5. Confirm Password *
+              6. Confirm Password *
             </label>
             <div className="relative">
               <input
