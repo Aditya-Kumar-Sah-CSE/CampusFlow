@@ -720,6 +720,59 @@ export async function updateStudentProfileAction(input: {
 
     const adminDb = createAdminClient() || supabase;
 
+    // Check existing student profile to get college context
+    const { data: existingStudent } = await adminDb
+      .from('students')
+      .select('id, college_id, registration_number')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    // Prevent duplicate registration number in the college
+    if (cleanReg) {
+      const currentCollegeId =
+        existingStudent?.college_id ||
+        user.user_metadata?.college_id;
+
+      let dupQuery = adminDb
+        .from('students')
+        .select('id, user_id, full_name, email, registration_number, college_id')
+        .ilike('registration_number', cleanReg)
+        .neq('user_id', user.id);
+
+      if (currentCollegeId) {
+        dupQuery = dupQuery.eq('college_id', currentCollegeId);
+      }
+
+      const { data: duplicateStudent } = await dupQuery.limit(1).maybeSingle();
+
+      let isDuplicate = Boolean(duplicateStudent);
+
+      if (!isDuplicate && adminDb.auth?.admin?.listUsers) {
+        try {
+          const { data: userList } = await adminDb.auth.admin.listUsers({ perPage: 1000 });
+          const match = userList?.users?.find(
+            (u) =>
+              u.id !== user.id &&
+              u.user_metadata?.registration_number &&
+              u.user_metadata.registration_number.toString().trim().toUpperCase() === cleanReg.toUpperCase() &&
+              (!currentCollegeId || !u.user_metadata.college_id || u.user_metadata.college_id === currentCollegeId)
+          );
+          if (match) {
+            isDuplicate = true;
+          }
+        } catch (listErr) {
+          console.warn('[updateStudentProfileAction] listUsers duplicate check warning:', listErr);
+        }
+      }
+
+      if (isDuplicate) {
+        return {
+          success: false,
+          error: `Registration number "${cleanReg}" already exists. This registration number is already registered with another student account.`,
+        };
+      }
+    }
+
     // 3. Prepare payload for public.students table
     const updatePayload: Record<string, any> = {
       updated_at: new Date().toISOString(),
@@ -730,13 +783,6 @@ export async function updateStudentProfileAction(input: {
     if (cleanReg !== undefined) {
       updatePayload.registration_number = cleanReg;
     }
-
-    // Update students table (or insert if record is missing)
-    const { data: existingStudent } = await adminDb
-      .from('students')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
 
     if (existingStudent) {
       const { error: studentUpdateError } = await adminDb
@@ -820,4 +866,86 @@ export async function updateStudentRegistrationNumberAction(
     error: res.error,
   };
 }
+
+/**
+ * Real-time check to verify if a registration number is already registered with another student account.
+ */
+export async function checkStudentRegistrationNumberAction(
+  registrationNumber: string
+): Promise<{
+  available: boolean;
+  error?: string;
+}> {
+  try {
+    const trimmed = (registrationNumber || '').trim();
+    if (!trimmed) {
+      return { available: true };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const adminDb = createAdminClient() || supabase;
+
+    let currentCollegeId: string | undefined = user?.user_metadata?.college_id;
+    if (user) {
+      const { data: myStudent } = await adminDb
+        .from('students')
+        .select('college_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (myStudent?.college_id) {
+        currentCollegeId = myStudent.college_id;
+      }
+    }
+
+    let dupQuery = adminDb
+      .from('students')
+      .select('id, user_id, registration_number, college_id')
+      .ilike('registration_number', trimmed);
+
+    if (user) {
+      dupQuery = dupQuery.neq('user_id', user.id);
+    }
+    if (currentCollegeId) {
+      dupQuery = dupQuery.eq('college_id', currentCollegeId);
+    }
+
+    const { data: duplicate } = await dupQuery.limit(1).maybeSingle();
+    if (duplicate) {
+      return {
+        available: false,
+        error: `Registration number "${trimmed}" already exists. This registration number is already registered with another student account.`,
+      };
+    }
+
+    if (adminDb.auth?.admin?.listUsers) {
+      try {
+        const { data: userList } = await adminDb.auth.admin.listUsers({ perPage: 1000 });
+        const match = userList?.users?.find(
+          (u) =>
+            (!user || u.id !== user.id) &&
+            u.user_metadata?.registration_number &&
+            u.user_metadata.registration_number.toString().trim().toUpperCase() === trimmed.toUpperCase() &&
+            (!currentCollegeId || !u.user_metadata.college_id || u.user_metadata.college_id === currentCollegeId)
+        );
+        if (match) {
+          return {
+            available: false,
+            error: `Registration number "${trimmed}" already exists. This registration number is already registered with another student account.`,
+          };
+        }
+      } catch (listErr) {
+        console.warn('[checkStudentRegistrationNumberAction] listUsers check warning:', listErr);
+      }
+    }
+
+    return { available: true };
+  } catch {
+    return { available: true };
+  }
+}
+
 

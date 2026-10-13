@@ -16,7 +16,7 @@ import {
   Mail,
   ShieldCheck,
 } from 'lucide-react';
-import { updateStudentProfileAction } from '@/app/auth/student/actions';
+import { updateStudentProfileAction, checkStudentRegistrationNumberAction } from '@/app/auth/student/actions';
 import type { StudentProfile } from '@/types/student';
 
 interface StudentEditProfileModalProps {
@@ -41,6 +41,8 @@ export function StudentEditProfileModal({
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regError, setRegError] = useState<string | null>(null);
+  const [checkingReg, setCheckingReg] = useState(false);
   const [success, setSuccess] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +63,7 @@ export function StudentEditProfileModal({
       setFullName(initialName);
       setRegistrationNumber(initialReg);
       setError(null);
+      setRegError(null);
       setSuccess(false);
 
       // Auto focus the editable full name input
@@ -114,6 +117,11 @@ export function StudentEditProfileModal({
       return;
     }
 
+    if (regError) {
+      setError(regError);
+      return;
+    }
+
     setIsPending(true);
     setError(null);
     setSuccess(false);
@@ -126,6 +134,12 @@ export function StudentEditProfileModal({
 
       if (!res.success) {
         setError(res.error || 'Failed to update profile.');
+        if (
+          res.error?.toLowerCase().includes('registration') ||
+          res.error?.toLowerCase().includes('already exists')
+        ) {
+          setRegError(res.error);
+        }
         setIsPending(false);
         return;
       }
@@ -245,13 +259,26 @@ export function StudentEditProfileModal({
             {/* EDITABLE FIELD 2: Registration Number */}
             <div className="space-y-1.5 pt-1">
               <div className="flex items-center justify-between text-xs">
-                <label htmlFor="student-reg-number" className="font-bold text-slate-900 flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4 text-indigo-600" />
+                <label
+                  htmlFor="student-reg-number"
+                  className={`font-bold flex items-center gap-1.5 transition-colors ${
+                    regError ? 'text-rose-700' : 'text-slate-900'
+                  }`}
+                >
+                  <GraduationCap className={`w-4 h-4 ${regError ? 'text-rose-600' : 'text-indigo-600'}`} />
                   <span>Registration Number (रजिस्ट्रेशन नंबर)</span>
                 </label>
-                <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
-                  Optional
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {checkingReg && (
+                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />
+                      Checking...
+                    </span>
+                  )}
+                  <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">
+                    Optional
+                  </span>
+                </div>
               </div>
 
               <div className="relative">
@@ -259,17 +286,52 @@ export function StudentEditProfileModal({
                   id="student-reg-number"
                   type="text"
                   value={registrationNumber}
-                  onChange={(e) => setRegistrationNumber(e.target.value)}
+                  onChange={(e) => {
+                    setRegistrationNumber(e.target.value);
+                    if (regError) setRegError(null);
+                    if (error) setError(null);
+                  }}
+                  onBlur={async () => {
+                    const trimmed = registrationNumber.trim();
+                    if (!trimmed || trimmed.toUpperCase() === (initialReg || '').trim().toUpperCase()) {
+                      setRegError(null);
+                      return;
+                    }
+                    setCheckingReg(true);
+                    try {
+                      const res = await checkStudentRegistrationNumberAction(trimmed);
+                      if (!res.available) {
+                        setRegError(res.error || `Registration number "${trimmed}" already exists.`);
+                      } else {
+                        setRegError(null);
+                      }
+                    } catch {
+                      // Non-blocking
+                    } finally {
+                      setCheckingReg(false);
+                    }
+                  }}
                   placeholder="e.g. 24105108040 or GP-140/2021"
                   maxLength={50}
                   disabled={isPending}
-                  className="w-full px-3.5 py-2.5 bg-white border-2 border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/15 rounded-xl text-xs sm:text-sm text-slate-900 font-mono font-bold placeholder-slate-400 outline-hidden transition-all shadow-xs"
+                  className={`w-full px-3.5 py-2.5 bg-white border-2 rounded-xl text-xs sm:text-sm font-mono font-bold placeholder-slate-400 outline-hidden transition-all shadow-xs ${
+                    regError
+                      ? 'border-rose-400 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/15 text-rose-900 bg-rose-50/20'
+                      : 'border-slate-200 focus:border-indigo-600 focus:ring-4 focus:ring-indigo-500/15 text-slate-900'
+                  }`}
                 />
               </div>
 
-              <p className="text-[11px] text-slate-500 leading-relaxed pt-0.5">
-                Official University (BEU) or Board (SBTE) registration number printed on your admit card or fee receipt.
-              </p>
+              {regError ? (
+                <div className="flex items-start gap-1.5 text-[11px] font-semibold text-rose-600 pt-0.5 animate-in fade-in duration-150">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                  <span className="leading-snug">{regError}</span>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 leading-relaxed pt-0.5">
+                  Official University (BEU) or Board (SBTE) registration number printed on your admit card or fee receipt.
+                </p>
+              )}
             </div>
 
             {/* Verified Student Info Card (Read-only / Institutional Locked) */}
