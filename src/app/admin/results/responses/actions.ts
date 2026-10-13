@@ -351,7 +351,13 @@ export async function getFormResponsesAction(
     }
 
     const rawEmail = (r.student_email || '').trim().toLowerCase();
-    if (rawEmail && rawEmail.includes('@')) {
+    const isSyntheticEmail =
+      !rawEmail ||
+      rawEmail === 'n/a' ||
+      rawEmail.endsWith('@bcebhagalpur.ac.in') ||
+      rawEmail.endsWith('@student.campusflow.in');
+
+    if (rawEmail && rawEmail.includes('@') && !isSyntheticEmail) {
       emailCounts[rawEmail] = (emailCounts[rawEmail] || 0) + 1;
     }
   }
@@ -364,7 +370,13 @@ export async function getFormResponsesAction(
     const isDupReg = regCount > 1;
 
     const rawEmail = (r.student_email || '').trim().toLowerCase();
-    const isValidEmail = rawEmail && rawEmail.includes('@');
+    const isSyntheticEmail =
+      !rawEmail ||
+      rawEmail === 'n/a' ||
+      rawEmail.endsWith('@bcebhagalpur.ac.in') ||
+      rawEmail.endsWith('@student.campusflow.in');
+
+    const isValidEmail = rawEmail && rawEmail.includes('@') && !isSyntheticEmail;
     const emailCount = isValidEmail ? emailCounts[rawEmail] || 0 : 0;
     const isDupEmail = emailCount > 1;
 
@@ -398,7 +410,7 @@ export async function getFormResponsesAction(
       id: r.id,
       formId: r.form_id,
       googleResponseId: r.google_response_id,
-      studentEmail: r.student_email,
+      studentEmail: isValidEmail ? r.student_email : 'N/A',
       studentName: r.student_name,
       registrationNumber: r.registration_number,
       submittedAt: r.submitted_at,
@@ -728,7 +740,13 @@ export async function getResponseDetailAction(
         }
 
         const emailVal = (currentRec.student_email || studentEmail || '').trim().toLowerCase();
-        if (emailVal && emailVal.includes('@')) {
+        const isSyntheticEmail =
+          !emailVal ||
+          emailVal === 'n/a' ||
+          emailVal.endsWith('@bcebhagalpur.ac.in') ||
+          emailVal.endsWith('@student.campusflow.in');
+
+        if (emailVal && emailVal.includes('@') && !isSyntheticEmail) {
           const matchCount = recData.filter(
             (r: any) => (r.student_email || '').trim().toLowerCase() === emailVal
           ).length;
@@ -740,13 +758,19 @@ export async function getResponseDetailAction(
     console.warn('Could not load record exclusion info for response detail:', err);
   }
 
+  const isSyntheticDetailEmail =
+    !studentEmail ||
+    studentEmail.endsWith('@bcebhagalpur.ac.in') ||
+    studentEmail.endsWith('@student.campusflow.in') ||
+    studentEmail.toUpperCase() === 'N/A';
+
   return {
     success: true,
     detail: {
       responseId,
       studentName,
       registrationNumber,
-      studentEmail,
+      studentEmail: isSyntheticDetailEmail ? 'N/A' : studentEmail,
       submittedAt,
       facultyEvaluations,
       generalFeedback,

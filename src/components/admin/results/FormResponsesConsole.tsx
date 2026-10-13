@@ -742,10 +742,13 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
                       {/* Verified Email & Repeated Email Badge */}
                       <td className="py-3 px-4">
                         <div className="text-slate-600 truncate max-w-[200px]" title={row.studentEmail}>
-                          {row.studentEmail && !row.studentEmail.includes('@student.campusflow.in') ? (
+                          {row.studentEmail &&
+                          row.studentEmail.toUpperCase() !== 'N/A' &&
+                          !row.studentEmail.includes('@bcebhagalpur.ac.in') &&
+                          !row.studentEmail.includes('@student.campusflow.in') ? (
                             row.studentEmail
                           ) : (
-                            <span className="text-slate-400 italic font-normal">Not Provided</span>
+                            <span className="font-mono text-slate-400 font-medium text-xs">N/A</span>
                           )}
                         </div>
                         {row.isDuplicateEmail && (
@@ -962,10 +965,13 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
                   {/* Email & Date metadata */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-500 pt-1 border-t border-slate-100">
                     <div className="truncate text-slate-600" title={row.studentEmail}>
-                      ✉️ {row.studentEmail && !row.studentEmail.includes('@student.campusflow.in') ? (
+                      ✉️ {row.studentEmail &&
+                      row.studentEmail.toUpperCase() !== 'N/A' &&
+                      !row.studentEmail.includes('@bcebhagalpur.ac.in') &&
+                      !row.studentEmail.includes('@student.campusflow.in') ? (
                         row.studentEmail
                       ) : (
-                        <span className="text-slate-400 italic">Not Provided</span>
+                        <span className="font-mono text-slate-400 font-medium">N/A</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1" suppressHydrationWarning>
@@ -1350,10 +1356,13 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
                 <div className="col-span-2 sm:col-span-2">
                   <span className="text-slate-400 block text-[11px]">Verified Email</span>
                   <span className="font-semibold text-indigo-600 truncate block">
-                    {selectedDetail.studentEmail && !selectedDetail.studentEmail.includes('@student.campusflow.in') ? (
+                    {selectedDetail.studentEmail &&
+                    selectedDetail.studentEmail.toUpperCase() !== 'N/A' &&
+                    !selectedDetail.studentEmail.includes('@bcebhagalpur.ac.in') &&
+                    !selectedDetail.studentEmail.includes('@student.campusflow.in') ? (
                       selectedDetail.studentEmail
                     ) : (
-                      <span className="text-slate-400 italic font-normal">Not Provided</span>
+                      <span className="font-mono text-slate-400 font-medium text-xs">N/A</span>
                     )}
                   </span>
                 </div>

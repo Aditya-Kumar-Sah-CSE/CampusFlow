@@ -361,10 +361,16 @@ export async function GET(
       `${form.title} ${(form.branch as any)?.name} ${(form.semester as any)?.name}`
     );
 
+    const isSyntheticEmail =
+      !studentEmail ||
+      studentEmail.toUpperCase() === 'N/A' ||
+      studentEmail.endsWith('@bcebhagalpur.ac.in') ||
+      studentEmail.endsWith('@student.campusflow.in');
+
     const pdfBuffer = await generateStudentResponsePDF({
       studentName,
       registrationNumber,
-      studentEmail,
+      studentEmail: isSyntheticEmail ? 'N/A' : studentEmail,
       academicYear: (form.academic_year as any)?.name || 'Academic Session',
       academicLevel,
       branch: (form.branch as any)?.name || 'Engineering',

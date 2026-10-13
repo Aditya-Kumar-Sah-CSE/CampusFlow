@@ -585,14 +585,14 @@ export async function syncFormResponsesToSheet(params: {
             continue;
           }
 
-          // Generate safe email to strictly satisfy PostgreSQL NOT NULL constraint on student_email
+          // Generate institutional email if student email was not collected in the form
           const safeEmail =
             rawEmail ||
             (regNo
-              ? `${regNo}@student.campusflow.in`
+              ? `${regNo}@bcebhagalpur.ac.in`
               : item.studentName
-              ? `${item.studentName.trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'student'}-${responseId.slice(0, 8)}@student.campusflow.in`
-              : `student-${responseId.slice(0, 8)}@student.campusflow.in`);
+              ? `${item.studentName.trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'student'}-${responseId.slice(0, 8)}@bcebhagalpur.ac.in`
+              : 'N/A');
 
           // Mark in sets to prevent intra-batch duplicates
           existingRespIdSet.add(responseId);
@@ -633,7 +633,9 @@ export async function syncFormResponsesToSheet(params: {
           if (
             email &&
             email.includes('@') &&
+            !email.endsWith('@bcebhagalpur.ac.in') &&
             !email.endsWith('@student.campusflow.in') &&
+            email.toUpperCase() !== 'N/A' &&
             newRec.email_status !== 'EMAIL_NOT_CONFIGURED' &&
             newRec.id
           ) {
