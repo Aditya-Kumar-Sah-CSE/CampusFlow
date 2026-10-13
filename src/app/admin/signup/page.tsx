@@ -24,6 +24,8 @@ function AdminSignupForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [colleges, setColleges] = useState<Array<{ id: string; name: string; code: string }>>([]);
   const [selectedCollegeId, setSelectedCollegeId] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -79,6 +81,11 @@ function AdminSignupForm() {
 
     if (!password || password.length < 6) {
       setErrorMsg('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Passwords do not match. Please verify your password.');
       return;
     }
 
@@ -279,6 +286,46 @@ function AdminSignupForm() {
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+            <span>Confirm Password</span>
+            {confirmPassword && password !== confirmPassword && (
+              <span className="text-[11px] text-rose-400 font-normal">Passwords do not match</span>
+            )}
+          </label>
+          <div className="relative rounded-xl shadow-xs">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <Lock className="w-4 h-4" />
+            </div>
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              required
+              minLength={6}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter password"
+              className={`block w-full pl-10 pr-10 py-2.5 bg-slate-900/90 border rounded-xl text-base sm:text-sm min-h-[44px] text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                confirmPassword && password !== confirmPassword
+                  ? 'border-rose-500/80 focus:ring-rose-500/30 focus:border-rose-500'
+                  : 'border-slate-700 focus:ring-amber-500/30 focus:border-amber-500'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none transition-colors cursor-pointer"
+              title={showConfirmPassword ? 'Hide password' : 'Show password'}
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+            >
+              {showConfirmPassword ? (
                 <EyeOff className="w-4 h-4" />
               ) : (
                 <Eye className="w-4 h-4" />
