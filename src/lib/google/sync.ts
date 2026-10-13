@@ -164,12 +164,47 @@ export async function syncFormResponsesToSheet(params: {
           await cleanDuplicateRowsFromSheet(resolvedSheetId, collegeId);
 
           const meta = await sheets.spreadsheets.get({ spreadsheetId: resolvedSheetId });
-          const sheetTitle = meta.data.sheets?.[0]?.properties?.title || 'Form Responses';
-          const sheetDataRes = await sheets.spreadsheets.values.get({
+          const allSheets = meta.data.sheets || [];
+
+          // Locate responses sheet: check for matching title and rowCount > 1
+          let selectedSheet = allSheets[0];
+          const responseSheets = allSheets.filter(s =>
+            /form[\s_-]*responses?|responses?/i.test(s.properties?.title || '')
+          );
+          if (responseSheets.length > 0) {
+            const withRows = responseSheets.find(s => (s.properties?.gridProperties?.rowCount || 0) > 1);
+            selectedSheet = withRows || responseSheets[0];
+          }
+
+          let sheetTitle = selectedSheet?.properties?.title || 'Form Responses';
+          let sheetDataRes = await sheets.spreadsheets.values.get({
             spreadsheetId: resolvedSheetId,
             range: `'${sheetTitle}'!A1:ZZ`,
           });
-          const allSheetValues = sheetDataRes.data.values || [];
+          let allSheetValues = sheetDataRes.data.values || [];
+
+          // If selected sheet was empty (only headers or 0 rows) but other sheets exist, try them
+          if (allSheetValues.length <= 1 && allSheets.length > 1) {
+            for (const otherSheet of allSheets) {
+              const otherTitle = otherSheet.properties?.title;
+              if (!otherTitle || otherTitle === sheetTitle) continue;
+              try {
+                const otherRes = await sheets.spreadsheets.values.get({
+                  spreadsheetId: resolvedSheetId,
+                  range: `'${otherTitle}'!A1:ZZ`,
+                });
+                const otherValues = otherRes.data.values || [];
+                if (otherValues.length > allSheetValues.length) {
+                  sheetTitle = otherTitle;
+                  allSheetValues = otherValues;
+                  break;
+                }
+              } catch {
+                // Ignore range error on other sheet
+              }
+            }
+          }
+
           sheetHeaders = (allSheetValues[0] || []).map(h => String(h || '').trim());
           sheetDataRows = allSheetValues.slice(1);
         } catch (sheetErr) {
@@ -443,9 +478,43 @@ export async function syncFormResponsesToSheet(params: {
           registrationNumber: string | null;
         }
         const trackingMap = new Map<string, TrackingMetadata>();
-        const seenStudentKeys = new Set<string>();
+        const studentKeyToIdMap = new Map<string, string>();
 
-        // Process Sheet Data Rows first (has actual student email from form sheet)
+        // 1. Process Google Forms API responses FIRST (contains official responseId & timestamps)
+        for (const resp of allResponses) {
+          const responseId = resp.responseId;
+          if (!responseId) continue;
+          let respEmail = (resp.respondentEmail || '').trim();
+          if (!respEmail && resp.answers) {
+            for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
+              const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
+              if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                respEmail = val;
+                break;
+              }
+            }
+          }
+          const studentName = (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || null;
+          const registrationNumber = (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || null;
+
+          const regLower = (registrationNumber || '').toLowerCase();
+          const nameLower = (studentName || '').toLowerCase();
+          const emailLower = respEmail.toLowerCase();
+          const studentKey = regLower ? `reg:${regLower}` : nameLower ? `name:${nameLower}` : emailLower ? `email:${emailLower}` : responseId;
+
+          if (!studentKeyToIdMap.has(studentKey)) {
+            studentKeyToIdMap.set(studentKey, responseId);
+            trackingMap.set(responseId, {
+              responseId,
+              timestamp: resp.lastSubmittedTime || resp.createTime || new Date().toISOString(),
+              email: respEmail,
+              studentName,
+              registrationNumber,
+            });
+          }
+        }
+
+        // 2. Process Sheet Data Rows (correlate with existing Forms API responses or add sheet-only rows)
         if (sheetHeaders.length > 0 && sheetDataRows.length > 0) {
           sheetDataRows.forEach((row, rowIndex) => {
             let rId = String((respIdIdx !== -1 ? row[respIdIdx] : '') || '').trim();
@@ -470,8 +539,15 @@ export async function syncFormResponsesToSheet(params: {
             const emailLower = rowEmail.toLowerCase();
             const studentKey = regLower ? `reg:${regLower}` : nameLower ? `name:${nameLower}` : emailLower ? `email:${emailLower}` : rId;
 
-            if (!seenStudentKeys.has(studentKey)) {
-              seenStudentKeys.add(studentKey);
+            const existingMappedId = studentKeyToIdMap.get(studentKey);
+            if (existingMappedId) {
+              // Correlate: if existing entry had no email but sheet row has email, enrich it
+              const existingItem = trackingMap.get(existingMappedId);
+              if (existingItem && !existingItem.email && rowEmail) {
+                existingItem.email = rowEmail;
+              }
+            } else {
+              studentKeyToIdMap.set(studentKey, rId);
               trackingMap.set(rId, {
                 responseId: rId,
                 timestamp: String((tsIdx !== -1 ? row[tsIdx] : '') || new Date().toISOString()),
@@ -481,40 +557,6 @@ export async function syncFormResponsesToSheet(params: {
               });
             }
           });
-        }
-
-        // Process Forms API responses
-        for (const resp of allResponses) {
-          const responseId = resp.responseId;
-          if (!responseId) continue;
-          let respEmail = (resp.respondentEmail || '').trim();
-          if (!respEmail && resp.answers) {
-            for (const ans of Object.values(resp.answers as Record<string, forms_v1.Schema$Answer>)) {
-              const val = ans.textAnswers?.answers?.[0]?.value?.trim() || '';
-              if (val && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
-                respEmail = val;
-                break;
-              }
-            }
-          }
-          const studentName = (studentNameQuestionId && resp.answers?.[studentNameQuestionId]?.textAnswers?.answers?.[0]?.value) || null;
-          const registrationNumber = (regNoQuestionId && resp.answers?.[regNoQuestionId]?.textAnswers?.answers?.[0]?.value) || null;
-
-          const regLower = (registrationNumber || '').toLowerCase();
-          const nameLower = (studentName || '').toLowerCase();
-          const emailLower = respEmail.toLowerCase();
-          const studentKey = regLower ? `reg:${regLower}` : nameLower ? `name:${nameLower}` : emailLower ? `email:${emailLower}` : responseId;
-
-          if (!seenStudentKeys.has(studentKey)) {
-            seenStudentKeys.add(studentKey);
-            trackingMap.set(responseId, {
-              responseId,
-              timestamp: resp.lastSubmittedTime || resp.createTime || new Date().toISOString(),
-              email: respEmail,
-              studentName,
-              registrationNumber,
-            });
-          }
         }
 
         // Build fast in-memory lookup sets from existing records to eliminate N+1 database queries
@@ -532,32 +574,41 @@ export async function syncFormResponsesToSheet(params: {
         for (const item of trackingMap.values()) {
           const responseId = item.responseId;
           const regNo = item.registrationNumber ? item.registrationNumber.trim().toLowerCase() : null;
-          const email = item.email ? item.email.trim().toLowerCase() : null;
+          const rawEmail = (item.email || '').trim().toLowerCase();
 
           const isExisting =
             existingRespIdSet.has(responseId) ||
             Boolean(regNo && existingRegNoSet.has(regNo)) ||
-            Boolean(email && existingEmailSet.has(email));
+            Boolean(rawEmail && existingEmailSet.has(rawEmail));
 
           if (isExisting) {
             continue;
           }
 
+          // Generate safe email to strictly satisfy PostgreSQL NOT NULL constraint on student_email
+          const safeEmail =
+            rawEmail ||
+            (regNo
+              ? `${regNo}@student.campusflow.in`
+              : item.studentName
+              ? `${item.studentName.trim().toLowerCase().replace(/[^a-z0-9]/g, '') || 'student'}-${responseId.slice(0, 8)}@student.campusflow.in`
+              : `student-${responseId.slice(0, 8)}@student.campusflow.in`);
+
           // Mark in sets to prevent intra-batch duplicates
           existingRespIdSet.add(responseId);
           if (regNo) existingRegNoSet.add(regNo);
-          if (email) existingEmailSet.add(email);
+          if (rawEmail) existingEmailSet.add(rawEmail);
 
           itemsToInsert.push({
             college_id: collegeId,
             form_id: formUuid,
             google_response_id: responseId,
-            student_email: item.email || null,
+            student_email: safeEmail,
             student_name: item.studentName || null,
             registration_number: item.registrationNumber || null,
             submitted_at: item.timestamp,
             synced_at: new Date().toISOString(),
-            email_status: 'PENDING',
+            email_status: rawEmail ? 'PENDING' : 'EMAIL_NOT_CONFIGURED',
           });
         }
 
@@ -567,19 +618,25 @@ export async function syncFormResponsesToSheet(params: {
           const { data: insertedData, error: batchErr } = await supabase
             .from('feedback_response_records')
             .insert(itemsToInsert)
-            .select('id, google_response_id, student_email, student_name, registration_number, submitted_at');
+            .select('id, google_response_id, student_email, student_name, registration_number, submitted_at, email_status');
 
           if (batchErr) {
-            console.warn('[Sync] Batch insert notice:', batchErr.message);
+            console.error('[Sync] Batch insert error on feedback_response_records:', batchErr);
           } else {
             insertedRecords = insertedData || [];
           }
         }
 
-        // Dispatch confirmation emails only for newly inserted student responses
+        // Dispatch confirmation emails only for newly inserted student responses with genuine emails
         for (const newRec of insertedRecords) {
           const email = newRec.student_email;
-          if (email && email.includes('@') && newRec.id) {
+          if (
+            email &&
+            email.includes('@') &&
+            !email.endsWith('@student.campusflow.in') &&
+            newRec.email_status !== 'EMAIL_NOT_CONFIGURED' &&
+            newRec.id
+          ) {
             try {
               const token = generateResponseToken({
                 responseId: newRec.google_response_id,

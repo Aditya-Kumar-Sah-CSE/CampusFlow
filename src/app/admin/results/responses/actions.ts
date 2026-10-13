@@ -567,7 +567,19 @@ export async function getResponseDetailAction(
     return { success: false, error: 'Connected Google Sheet not found.' };
   }
 
-  const sheetData = await fetchSingleResponseFromSheet(sheetId, responseId, form.college_id);
+  const { data: rec } = await supabase
+    .from('feedback_response_records')
+    .select('registration_number, student_email, submitted_at, google_response_id')
+    .eq('form_id', formId)
+    .or(`id.eq.${isValidUUID(responseId) ? responseId : '00000000-0000-0000-0000-000000000000'},google_response_id.eq.${responseId}`)
+    .maybeSingle();
+
+  const targetLookupId = rec?.google_response_id || responseId;
+  const sheetData = await fetchSingleResponseFromSheet(sheetId, targetLookupId, form.college_id, {
+    registrationNumber: rec?.registration_number,
+    studentEmail: rec?.student_email,
+    timestamp: rec?.submitted_at,
+  });
   if (!sheetData) {
     return { success: false, error: 'Response record not found in Google Sheet.' };
   }

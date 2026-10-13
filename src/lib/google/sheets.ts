@@ -274,9 +274,17 @@ export async function cleanDuplicateRowsFromSheet(
   try {
     return await executeWithCollegeGoogleOAuthRetry(collegeId, async ({ sheets }) => {
       const meta = await sheets.spreadsheets.get({ spreadsheetId });
-      const firstSheet = meta.data.sheets?.[0];
-      const sheetTitle = firstSheet?.properties?.title || 'Form Responses 1';
-      const sheetTabId = firstSheet?.properties?.sheetId || 0;
+      const allSheets = meta.data.sheets || [];
+      let selectedSheet = allSheets[0];
+      const candidateSheets = allSheets.filter(s =>
+        /form[\s_-]*responses?|responses?/i.test(s.properties?.title || '')
+      );
+      if (candidateSheets.length > 0) {
+        const withData = candidateSheets.find(s => (s.properties?.gridProperties?.rowCount || 0) > 1);
+        selectedSheet = withData || candidateSheets[0];
+      }
+      const sheetTitle = selectedSheet?.properties?.title || 'Form Responses 1';
+      const sheetTabId = selectedSheet?.properties?.sheetId || 0;
 
       const res = await sheets.spreadsheets.values.get({
         spreadsheetId,
@@ -373,12 +381,44 @@ export async function fetchSingleResponseFromSheet(
       let rows: any[][] = [];
       try {
         const meta = await sheets.spreadsheets.get({ spreadsheetId });
-        const sheetTitle = meta.data.sheets?.[0]?.properties?.title || 'Form Responses 1';
-        const res = await sheets.spreadsheets.values.get({
+        const allSheets = meta.data.sheets || [];
+        let selectedSheet = allSheets[0];
+        const candidateSheets = allSheets.filter(s =>
+          /form[\s_-]*responses?|responses?/i.test(s.properties?.title || '')
+        );
+        if (candidateSheets.length > 0) {
+          const withData = candidateSheets.find(s => (s.properties?.gridProperties?.rowCount || 0) > 1);
+          selectedSheet = withData || candidateSheets[0];
+        }
+        let sheetTitle = selectedSheet?.properties?.title || 'Form Responses 1';
+
+        let res = await sheets.spreadsheets.values.get({
           spreadsheetId,
           range: `'${sheetTitle}'!A1:ZZ`,
         });
         rows = res.data.values || [];
+
+        // If selected sheet was empty (<= 1 row) and other sheets exist, try them
+        if (rows.length <= 1 && allSheets.length > 1) {
+          for (const otherSheet of allSheets) {
+            const otherTitle = otherSheet.properties?.title;
+            if (!otherTitle || otherTitle === sheetTitle) continue;
+            try {
+              const otherRes = await sheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: `'${otherTitle}'!A1:ZZ`,
+              });
+              const otherValues = otherRes.data.values || [];
+              if (otherValues.length > rows.length) {
+                rows = otherValues;
+                sheetTitle = otherTitle;
+                break;
+              }
+            } catch {
+              // Ignore
+            }
+          }
+        }
       } catch {
         try {
           const res = await sheets.spreadsheets.values.get({

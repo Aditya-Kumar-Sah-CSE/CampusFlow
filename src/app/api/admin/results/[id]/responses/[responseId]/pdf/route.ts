@@ -163,9 +163,14 @@ export async function GET(
     }
 
     // 7. Fetch authoritative raw response from Google Sheet using college connection
-    let sheetData = await fetchSingleResponseFromSheet(sheetId, targetGoogleResponseId, form.college_id);
+    const sheetLookupOptions = {
+      registrationNumber: cachedRecord?.registration_number,
+      studentEmail: cachedRecord?.student_email,
+      timestamp: cachedRecord?.submitted_at,
+    };
+    let sheetData = await fetchSingleResponseFromSheet(sheetId, targetGoogleResponseId, form.college_id, sheetLookupOptions);
     if (!sheetData && targetGoogleResponseId !== decodedResponseId) {
-      sheetData = await fetchSingleResponseFromSheet(sheetId, decodedResponseId, form.college_id);
+      sheetData = await fetchSingleResponseFromSheet(sheetId, decodedResponseId, form.college_id, sheetLookupOptions);
     }
 
     if (!sheetData && form.google_form_id) {

@@ -742,7 +742,11 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
                       {/* Verified Email & Repeated Email Badge */}
                       <td className="py-3 px-4">
                         <div className="text-slate-600 truncate max-w-[200px]" title={row.studentEmail}>
-                          {row.studentEmail}
+                          {row.studentEmail && !row.studentEmail.includes('@student.campusflow.in') ? (
+                            row.studentEmail
+                          ) : (
+                            <span className="text-slate-400 italic font-normal">Not Provided</span>
+                          )}
                         </div>
                         {row.isDuplicateEmail && (
                           <div className="mt-1">
@@ -958,7 +962,11 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
                   {/* Email & Date metadata */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs text-slate-500 pt-1 border-t border-slate-100">
                     <div className="truncate text-slate-600" title={row.studentEmail}>
-                      ✉️ {row.studentEmail}
+                      ✉️ {row.studentEmail && !row.studentEmail.includes('@student.campusflow.in') ? (
+                        row.studentEmail
+                      ) : (
+                        <span className="text-slate-400 italic">Not Provided</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1" suppressHydrationWarning>
                       <Clock className="w-3 h-3 text-slate-400 shrink-0" />
@@ -1342,7 +1350,11 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
                 <div className="col-span-2 sm:col-span-2">
                   <span className="text-slate-400 block text-[11px]">Verified Email</span>
                   <span className="font-semibold text-indigo-600 truncate block">
-                    {selectedDetail.studentEmail}
+                    {selectedDetail.studentEmail && !selectedDetail.studentEmail.includes('@student.campusflow.in') ? (
+                      selectedDetail.studentEmail
+                    ) : (
+                      <span className="text-slate-400 italic font-normal">Not Provided</span>
+                    )}
                   </span>
                 </div>
               </div>

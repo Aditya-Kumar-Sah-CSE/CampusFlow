@@ -24,17 +24,48 @@ export async function fetchRawSheetResponses(
 
     // 1. First get spreadsheet metadata to know the exact sheet name
     const meta = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheetTitle =
-      meta.data.sheets?.[0]?.properties?.title || 'Form Responses';
+    const allSheets = meta.data.sheets || [];
+    let selectedSheet = allSheets[0];
+    const candidateSheets = allSheets.filter(s =>
+      /form[\s_-]*responses?|responses?/i.test(s.properties?.title || '')
+    );
+    if (candidateSheets.length > 0) {
+      const withData = candidateSheets.find(s => (s.properties?.gridProperties?.rowCount || 0) > 1);
+      selectedSheet = withData || candidateSheets[0];
+    }
+    let sheetTitle = selectedSheet?.properties?.title || 'Form Responses';
 
-    // 2. Fetch all rows
-    const res = await sheets.spreadsheets.values.get({
+    // 2. Fetch all rows across all columns (A1:ZZ)
+    let res = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `'${sheetTitle}'!A1:Z`,
+      range: `'${sheetTitle}'!A1:ZZ`,
       valueRenderOption: 'UNFORMATTED_VALUE',
     });
 
-    const allValues = (res.data.values || []) as (string | number)[][];
+    let allValues = (res.data.values || []) as (string | number)[][];
+
+    // If selected sheet was empty (<=1 rows) and other sheets exist, try them
+    if (allValues.length <= 1 && allSheets.length > 1) {
+      for (const otherSheet of allSheets) {
+        const otherTitle = otherSheet.properties?.title;
+        if (!otherTitle || otherTitle === sheetTitle) continue;
+        try {
+          const otherRes = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `'${otherTitle}'!A1:ZZ`,
+            valueRenderOption: 'UNFORMATTED_VALUE',
+          });
+          const otherValues = (otherRes.data.values || []) as (string | number)[][];
+          if (otherValues.length > allValues.length) {
+            allValues = otherValues;
+            sheetTitle = otherTitle;
+            break;
+          }
+        } catch {
+          // Ignore range error on other sheet
+        }
+      }
+    }
 
     if (allValues.length === 0) {
       return { headers: [], rows: [], totalRowCount: 0 };
