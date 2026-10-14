@@ -28,7 +28,8 @@ CREATE INDEX IF NOT EXISTS idx_library_settings_college ON public.library_settin
 -- Enable RLS
 ALTER TABLE public.library_settings ENABLE ROW LEVEL SECURITY;
 
--- RLS: Service role has full access (used by server-side API)
+-- 1. Service role has full access (used by server-side API)
+DROP POLICY IF EXISTS "service_role_full_access_library_settings" ON public.library_settings;
 CREATE POLICY "service_role_full_access_library_settings"
   ON public.library_settings
   FOR ALL
@@ -36,18 +37,27 @@ CREATE POLICY "service_role_full_access_library_settings"
   USING (true)
   WITH CHECK (true);
 
--- RLS: Authenticated admins can read their college's settings
-CREATE POLICY "admins_read_own_college_library_settings"
+-- 2. Public / Students can view library settings for active colleges
+DROP POLICY IF EXISTS "Public view active college library settings" ON public.library_settings;
+CREATE POLICY "Public view active college library settings"
   ON public.library_settings
   FOR SELECT
-  TO authenticated
+  TO anon, authenticated
   USING (
-    college_id IN (
-      SELECT ac.college_id FROM public.admin_colleges ac
-      JOIN public.admins a ON a.id = ac.admin_id
-      WHERE a.user_id = auth.uid()
-        AND ac.status = 'ACTIVE'
+    EXISTS (
+      SELECT 1 FROM public.colleges c
+      WHERE c.id = library_settings.college_id
+        AND c.is_active = true
     )
   );
+
+-- 3. Authenticated College Admins can manage their college's library settings
+DROP POLICY IF EXISTS "Admins manage library settings" ON public.library_settings;
+CREATE POLICY "Admins manage library settings"
+  ON public.library_settings
+  FOR ALL
+  TO authenticated
+  USING (public.is_college_admin(auth.uid(), college_id))
+  WITH CHECK (public.is_college_admin(auth.uid(), college_id));
 
 COMMENT ON TABLE public.library_settings IS 'Admin-controlled library configuration per college. Data storage in Google Sheets.';
