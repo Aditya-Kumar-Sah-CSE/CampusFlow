@@ -31,6 +31,7 @@ import {
   CheckCircle2,
   Calendar,
   FileCheck,
+  BookOpen,
 } from 'lucide-react';
 import type {
   AcademicYear,
@@ -117,6 +118,12 @@ const ExamsTab = dynamic(
     loading: () => <TabLoadingSkeleton title="Examinations Management" />,
   }
 );
+const LibraryManagementTab = dynamic(
+  () => import('./tabs/LibraryManagementTab').then((mod) => mod.LibraryManagementTab),
+  {
+    loading: () => <TabLoadingSkeleton title="Library Management" />,
+  }
+);
 
 export type AdminTab =
   | 'overview'
@@ -125,6 +132,7 @@ export type AdminTab =
   | 'forms'
   | 'events'
   | 'exams'
+  | 'library'
   | 'audit'
   | 'billing'
   | 'institutions'
@@ -138,6 +146,7 @@ const VALID_TABS: AdminTab[] = [
   'forms',
   'events',
   'exams',
+  'library',
   'audit',
   'billing',
   'institutions',
@@ -428,6 +437,7 @@ export function AdminDashboardTabs({
     { id: 'forms' as const, label: 'Feedback Forms', icon: FileSpreadsheet },
     { id: 'events' as const, label: 'Events', icon: Calendar },
     { id: 'exams' as const, label: 'Exams & Tests', icon: FileCheck },
+    { id: 'library' as const, label: 'Library', icon: BookOpen },
   ];
 
   const isSettingsActive = [
@@ -511,6 +521,8 @@ export function AdminDashboardTabs({
         return 'Events';
       case 'exams':
         return 'Exams & Tests';
+      case 'library':
+        return 'Library';
       case 'admins':
         return 'Settings: Admins';
       case 'audit':
@@ -744,6 +756,10 @@ export function AdminDashboardTabs({
 
         {activeTab === 'exams' && (
           <ExamsTab activeCollegeId={activeCollegeId} initialSubTab={initialSubTab} />
+        )}
+
+        {activeTab === 'library' && (
+          <LibraryManagementTab activeCollegeId={activeCollegeId} />
         )}
 
         {activeTab === 'audit' && (

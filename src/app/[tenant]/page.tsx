@@ -7,12 +7,14 @@ import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { PublicEventCard } from '@/components/events/PublicEventCard';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
-import { School, UserCheck, ArrowRight, ExternalLink, Ticket, Calendar } from 'lucide-react';
+import { School, UserCheck, ArrowRight, ExternalLink, Ticket, Calendar, BookOpen } from 'lucide-react';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import type { Branch, AcademicYear, Semester } from '@/types/database';
 import type { CollegeEvent } from '@/types/events';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
+import { StudentLibraryBorrowForm } from '@/components/public/StudentLibraryBorrowForm';
+import { getLibrarySettings } from '@/lib/library/service';
 
 export const revalidate = 300;
 
@@ -36,7 +38,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
   // Fetch only active modules based on persistent settings
   const PAGE_SIZE = 6;
   const t1 = performance.now();
-  const [academicData, initialActiveForms, events, pwaInstallCount] = await Promise.all([
+  const [academicData, initialActiveForms, events, pwaInstallCount, librarySettings] = await Promise.all([
     tenant.showFeedbacks
       ? getCachedAcademicMasters(tenant.collegeId)
       : Promise.resolve({ academicYears: [], branches: [], semesters: [] }),
@@ -47,13 +49,15 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
       ? getPublicTenantEvents(tenant.collegeId)
       : Promise.resolve([] as CollegeEvent[]),
     getPwaInstallCount(tenant.collegeId),
+    getLibrarySettings(tenant.collegeId).catch(() => null),
   ]);
   const tData = (performance.now() - t1).toFixed(1);
   console.log(`[PERF] route=/[tenant] op=parallel_data_queries duration_ms=${tData} success=true`);
 
   const { academicYears, branches, semesters } = academicData;
-  const hasNeitherModule = !tenant.showFeedbacks && !tenant.showEvents;
+  const hasNeitherModule = !tenant.showFeedbacks && !tenant.showEvents && !librarySettings?.isEnabled;
   const brand = getCampusFlowBrand(tenant);
+  const isLibraryEnabled = librarySettings?.isEnabled ?? false;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
@@ -193,6 +197,29 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
                 ))}
               </div>
             )}
+          </section>
+        )}
+
+        {/* 3. Library Section */}
+        {isLibraryEnabled && (
+          <section id="library-section" className="space-y-6 pt-4 border-t border-slate-200/80 scroll-mt-16">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold mb-1 border border-purple-200/60">
+                  <BookOpen className="w-3 h-3 text-purple-600" />
+                  <span>Campus Library</span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
+                  Borrow a Book
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500">
+                  Browse available books and submit a borrow request. Admin approval required.
+                </p>
+              </div>
+            </div>
+
+            <StudentLibraryBorrowForm collegeId={tenant.collegeId} />
           </section>
         )}
       </main>
