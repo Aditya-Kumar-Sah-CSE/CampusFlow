@@ -82,7 +82,7 @@ const SERVICES: ServiceItem[] = [
     id: 'google-sheets-sync',
     title: 'Google Sheets Synchronization',
     category: 'Integrations',
-    description: 'Sync responses directly from linked Google Sheets into CampusFlow.',
+    description: 'Sync responses directly from linked Google Sheets into the platform.',
     keywords: ['Google Sheets', 'Response Ingestion', 'Sheet ID Linking', 'Data Collation'],
     route: '/about',
     actionText: 'View Sync Specifications',

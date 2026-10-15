@@ -19,11 +19,14 @@ import {
   Ticket,
   Pencil,
   UserCog,
+  Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { studentSignOutAction } from '@/app/auth/student/actions';
 import { useStudentSession } from '@/lib/auth/use-student-session';
 import { StudentEditProfileModal } from './StudentEditProfileModal';
+import { StudentCoordinatorApplyModal } from './StudentCoordinatorApplyModal';
 
 function getStudentInitials(name?: string | null, email?: string | null): string {
   if (name && name.trim()) {
@@ -52,6 +55,7 @@ export function StudentStatusBadge({
   const { session, isAuthenticated, user, student, loading, refreshSession } = useStudentSession();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isCoordinatorModalOpen, setIsCoordinatorModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -329,6 +333,33 @@ export function StudentStatusBadge({
                 </Link>
               </div>
 
+              {/* Student Leadership: Apply as Event Coordinator */}
+              <div className="pt-1 mt-1 border-t border-slate-100 px-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setIsCoordinatorModalOpen(true);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-purple-900 bg-purple-50/70 hover:bg-purple-100 transition-colors group cursor-pointer border border-purple-200/60"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Calendar className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-xs text-purple-950 leading-tight">
+                        Apply as Event Coordinator
+                      </p>
+                      <p className="text-[10px] text-purple-700/80 font-normal">
+                        Organize events &amp; campus programs
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-purple-400 group-hover:text-purple-600 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              </div>
+
               {/* Account Sign Out Action */}
               <div className="pt-1 mt-1 border-t border-slate-100 px-1.5">
                 <button
@@ -358,6 +389,15 @@ export function StudentStatusBadge({
             onUpdated={() => {
               refreshSession();
             }}
+          />
+
+          {/* Apply as Event Coordinator Modal */}
+          <StudentCoordinatorApplyModal
+            isOpen={isCoordinatorModalOpen}
+            onClose={() => setIsCoordinatorModalOpen(false)}
+            student={student}
+            userEmail={email}
+            userName={displayName}
           />
         </div>
       );
@@ -424,6 +464,14 @@ export function StudentStatusBadge({
               Verify Email
             </Link>
           )}
+          <button
+            type="button"
+            onClick={() => setIsCoordinatorModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 hover:text-purple-900 rounded-xl text-xs font-bold border border-purple-200 transition-colors shadow-2xs cursor-pointer"
+          >
+            <Calendar className="w-3.5 h-3.5 text-purple-600" />
+            <span>Apply as Coordinator</span>
+          </button>
           <Link
             href={targetAdminUrl}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-semibold border border-slate-200 transition-colors shadow-2xs"
@@ -455,6 +503,14 @@ export function StudentStatusBadge({
           onUpdated={() => {
             refreshSession();
           }}
+        />
+
+        <StudentCoordinatorApplyModal
+          isOpen={isCoordinatorModalOpen}
+          onClose={() => setIsCoordinatorModalOpen(false)}
+          student={student}
+          userEmail={email}
+          userName={displayName}
         />
       </div>
     );

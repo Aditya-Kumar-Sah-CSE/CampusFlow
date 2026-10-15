@@ -495,7 +495,7 @@ export function EventSuccessPassCard({
                   <span>Student Account Required</span>
                 </div>
                 <p className="text-[11px] text-blue-200/90 leading-relaxed">
-                  This registration is recorded for <strong>{participant.email}</strong>, but no student account exists for this email on CampusFlow. Please create a student account using this email to activate and download your official VIP pass.
+                  This registration is recorded for <strong>{participant.email}</strong>, but no student account exists for this email on this portal. Please create a student account using this email to activate and download your official VIP pass.
                 </p>
               </div>
 
@@ -648,7 +648,7 @@ export function EventSuccessPassCard({
           className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
         >
           <Home className="w-4 h-4" />
-          <span>Go to CampusFlow</span>
+          <span>Go to Home</span>
         </Link>
       </div>
     </div>

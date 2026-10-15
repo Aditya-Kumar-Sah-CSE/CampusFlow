@@ -276,7 +276,7 @@ export default async function AdminDashboardPage({
           college: m.colleges || null,
           email: u?.email || 'admin@college.local',
           name: (u?.user_metadata?.name as string) || (u?.email ? u.email.split('@')[0] : 'Administrator'),
-          role: (isSuper ? 'SUPER_ADMIN' : 'ADMIN') as any,
+          role: (isSuper ? 'SUPER_ADMIN' : (m.role || 'COLLEGE_ADMIN')) as any,
           status: m.status as any,
           created_at: m.created_at,
         };
@@ -324,6 +324,7 @@ export default async function AdminDashboardPage({
     email: r.email,
     name: r.name,
     status: r.status,
+    requested_role: r.requested_role || 'COLLEGE_ADMIN',
     reviewed_by: r.reviewed_by,
     reviewed_at: r.reviewed_at,
     created_at: r.created_at,
@@ -359,6 +360,8 @@ export default async function AdminDashboardPage({
         feedbackForms={(feedbackForms as unknown as FeedbackForm[]) || []}
         auditLogs={(auditLogs as AuditLog[]) || []}
         isSuperAdmin={session.isSuperAdmin}
+        isPrimaryAdmin={session.isPrimaryAdmin || session.isPlatformSuperAdmin}
+        currentUserRole={session.role || session.collegeRole || 'COLLEGE_ADMIN'}
         hasFullAnalytics={hasFullAnalytics}
         currentUserEmail={session.admin?.email || session.user?.email || ''}
         currentUserName={session.name || session.user?.user_metadata?.name || ''}

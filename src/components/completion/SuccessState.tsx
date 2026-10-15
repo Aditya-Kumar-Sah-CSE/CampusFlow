@@ -219,7 +219,7 @@ export function SuccessState({
               className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
             >
               <Home className="w-4 h-4" />
-              <span>Go to CampusFlow</span>
+              <span>Go to Home</span>
             </Link>
           </div>
 

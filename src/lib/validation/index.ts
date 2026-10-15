@@ -15,6 +15,16 @@ export function isValidUUID(val: unknown): val is string {
 export const requestAccessSchema = z.object({
   name: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100),
   email: z.string().trim().email('Invalid email address format').toLowerCase(),
+  role: z
+    .enum([
+      'PRIMARY_ADMIN',
+      'COLLEGE_ADMIN',
+      'EVENT_COORDINATOR',
+      'LIBRARIAN',
+      'FEEDBACK_EXAM_COORDINATOR',
+    ])
+    .optional()
+    .default('COLLEGE_ADMIN'),
   department: z.string().trim().max(100).optional().nullable(),
   designation: z.string().trim().max(100).optional().nullable(),
   contactNumber: z.string().trim().max(20).optional().nullable(),

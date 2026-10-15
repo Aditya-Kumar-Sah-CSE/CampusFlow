@@ -3,7 +3,12 @@
  */
 
 export type PlatformRole = 'PLATFORM_SUPER_ADMIN';
-export type CollegeRole = 'COLLEGE_ADMIN';
+export type CollegeRole =
+  | 'PRIMARY_ADMIN'
+  | 'COLLEGE_ADMIN'
+  | 'EVENT_COORDINATOR'
+  | 'LIBRARIAN'
+  | 'FEEDBACK_EXAM_COORDINATOR';
 export type MembershipStatus = 'ACTIVE' | 'SUSPENDED';
 export type CollegeAdminRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -60,6 +65,12 @@ export interface AdminSession {
   sessionRevokedReason?: string | null;
   /** The platform that experienced revocation */
   sessionRevokedPlatform?: AdminPlatform | null;
+  /** Granular institutional role (PRIMARY_ADMIN, EVENT_COORDINATOR, etc.) */
+  collegeRole?: CollegeRole | null;
+  /** Generic role string */
+  role?: string;
+  /** Whether the user is the Primary Admin of the active college */
+  isPrimaryAdmin?: boolean;
 }
 
 export type AdminPlatform = 'WEB' | 'ANDROID';
@@ -88,6 +99,7 @@ export interface CollegeAdminRequest {
   designation?: string | null;
   department?: string | null;
   contactNumber?: string | null;
+  requestedRole?: CollegeRole | string;
   status: CollegeAdminRequestStatus;
   reviewedBy?: string | null;
   reviewedAt?: string | null;

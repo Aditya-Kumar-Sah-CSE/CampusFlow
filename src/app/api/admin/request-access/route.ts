@@ -18,9 +18,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, collegeId, collegeSlug } = validation.data;
+    const { name, email, role, collegeId, collegeSlug } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
     const formattedName = name.trim();
+    const requestedRole = role || 'COLLEGE_ADMIN';
 
     // Use SSR client first to respect authentication; fallback to service client if available
     const supabase = await createClient();
@@ -182,6 +183,7 @@ export async function POST(request: Request) {
           user_id: resolvedUserId,
           name: formattedName,
           email: cleanEmail,
+          requested_role: requestedRole,
           status: 'PENDING',
           reviewed_by: null,
           reviewed_at: null,
@@ -206,6 +208,7 @@ export async function POST(request: Request) {
           college_id: targetCollegeId,
           email: cleanEmail,
           name: formattedName,
+          requested_role: requestedRole,
           status: 'PENDING',
         })
         .select('*')
@@ -223,7 +226,7 @@ export async function POST(request: Request) {
       await adminSupabase.from('audit_logs').insert({
         college_id: targetCollegeId,
         action: 'REQUEST_ADMIN_ACCESS',
-        details: `Administrator access requested by ${formattedName} (${cleanEmail})`,
+        details: `Administrator access requested by ${formattedName} (${cleanEmail}) for role: ${requestedRole}`,
       });
     } catch {
       // Non-fatal

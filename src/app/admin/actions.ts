@@ -50,7 +50,7 @@ async function logAuditAction(
 // 1. ADMIN MANAGEMENT (SUPER ADMIN ONLY)
 // -------------------------------------------------------------
 
-export async function approveAdminRequestAction(requestId: string) {
+export async function approveAdminRequestAction(requestId: string, assignedRole?: string) {
   const session = await getAdminSession();
   if (!session.isAuthenticated) {
     return { success: false, error: 'Authentication required.' };
@@ -110,6 +110,9 @@ export async function approveAdminRequestAction(requestId: string) {
       // Non-fatal: proceed with approval even if email confirm fails
     }
 
+    // Determine final role to assign in college_memberships
+    const finalRole = assignedRole || collegeReq.requested_role || 'COLLEGE_ADMIN';
+
     // Upsert into college_memberships
     const { error: memberErr } = await supabase
       .from('college_memberships')
@@ -117,7 +120,7 @@ export async function approveAdminRequestAction(requestId: string) {
         {
           college_id: collegeReq.college_id,
           user_id: targetUserId,
-          role: 'COLLEGE_ADMIN',
+          role: finalRole,
           status: 'ACTIVE',
         },
         { onConflict: 'college_id,user_id' }
@@ -146,7 +149,7 @@ export async function approveAdminRequestAction(requestId: string) {
       'APPROVE_COLLEGE_ADMIN_REQUEST',
       'college_admin_requests',
       requestId,
-      `Approved college admin request for ${collegeReq.email} at college ${collegeReq.college_id}`
+      `Approved college admin request for ${collegeReq.email} with role ${finalRole} at college ${collegeReq.college_id}`
     );
 
     revalidatePath('/admin/dashboard');
@@ -154,6 +157,77 @@ export async function approveAdminRequestAction(requestId: string) {
   }
 
   return { success: false, error: 'Administrator request not found.' };
+}
+
+/**
+ * Allows Primary Admin or Super Admin to change any administrator's role within their college.
+ */
+export async function updateAdminRoleAction(targetAdminId: string, newRole: string) {
+  const session = await getAdminSession();
+  if (!session.isAuthenticated) {
+    return { success: false, error: 'Authentication required.' };
+  }
+
+  const activeCollegeId = session.activeCollegeId;
+  const canControl = session.isPlatformSuperAdmin || session.isPrimaryAdmin;
+  if (!canControl) {
+    return {
+      success: false,
+      error: 'Unauthorized: Only the College Primary Admin or Platform Super Admin can modify administrator roles.',
+    };
+  }
+
+  const validRoles = [
+    'PRIMARY_ADMIN',
+    'COLLEGE_ADMIN',
+    'EVENT_COORDINATOR',
+    'LIBRARIAN',
+    'FEEDBACK_EXAM_COORDINATOR',
+  ];
+  if (!validRoles.includes(newRole)) {
+    return { success: false, error: `Invalid role specified: ${newRole}` };
+  }
+
+  const supabase = await getAdminDb();
+
+  // Find membership
+  let query = supabase.from('college_memberships').select('id, user_id, college_id, role');
+  if (session.isPlatformSuperAdmin && !activeCollegeId) {
+    query = query.or(`id.eq.${targetAdminId},user_id.eq.${targetAdminId}`);
+  } else {
+    query = query
+      .or(`id.eq.${targetAdminId},user_id.eq.${targetAdminId}`)
+      .eq('college_id', activeCollegeId);
+  }
+
+  const { data: membership, error: findErr } = await query.maybeSingle();
+  if (findErr || !membership) {
+    return { success: false, error: 'Administrator membership record not found.' };
+  }
+
+  const { error: updateErr } = await supabase
+    .from('college_memberships')
+    .update({
+      role: newRole,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', membership.id);
+
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  await logAuditAction(
+    supabase,
+    { adminId: session.userId, email: session.email },
+    'UPDATE_ADMIN_ROLE',
+    'college_memberships',
+    membership.id,
+    `Updated administrator role to ${newRole} for user ${membership.user_id} at college ${membership.college_id}`
+  );
+
+  revalidatePath('/admin/dashboard');
+  return { success: true };
 }
 
 export async function rejectAdminRequestAction(requestId: string) {

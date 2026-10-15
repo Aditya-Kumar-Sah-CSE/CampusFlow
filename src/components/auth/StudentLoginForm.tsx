@@ -292,7 +292,7 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
 
       {/* Switch to Signup */}
       <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-600 text-center sm:text-left">
-        <span>New student on CampusFlow?</span>
+        <span>New student? Create an account</span>
         <Link
           href={signupUrl}
           className="font-bold text-bce-cobalt hover:text-bce-navy hover:underline"

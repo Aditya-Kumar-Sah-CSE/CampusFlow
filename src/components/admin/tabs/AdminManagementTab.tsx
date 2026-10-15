@@ -9,6 +9,7 @@ import {
   reactivateAdminAccessAction,
   promoteAdminToSuperAdminAction,
   demoteSuperAdminToAdminAction,
+  updateAdminRoleAction,
 } from '@/app/admin/actions';
 import {
   ShieldAlert,
@@ -25,6 +26,13 @@ import {
   Sparkles,
   GraduationCap,
   FolderSync,
+  Calendar,
+  BookOpen,
+  ClipboardCheck,
+  Crown,
+  Shield,
+  ShieldQuestion,
+  UserCog,
 } from 'lucide-react';
 import type { Admin, AdminRequest } from '@/types/database';
 import { useHydrated, formatDateShort, formatTime } from '@/lib/hooks/use-hydrated';
@@ -38,6 +46,8 @@ interface Props {
   adminRequests: AdminRequest[];
   adminsList: Admin[];
   isSuperAdmin: boolean;
+  isPrimaryAdmin?: boolean;
+  currentUserRole?: string;
   currentUserEmail: string;
   initialSubTab?: string;
   initialStudents?: AdminStudentItem[];
@@ -46,10 +56,60 @@ interface Props {
   activeCollegeName?: string;
 }
 
+export const ADMIN_ROLE_CONFIGS: Record<
+  string,
+  { label: string; badge: string; color: string; desc: string; icon: any }
+> = {
+  SUPER_ADMIN: {
+    label: 'Platform Super Admin',
+    badge: 'Universal Access',
+    color: 'bg-amber-100 text-amber-900 border-amber-300',
+    desc: 'Full universal access across all colleges and tenant institutions.',
+    icon: ShieldCheck,
+  },
+  PRIMARY_ADMIN: {
+    label: 'Primary College Admin',
+    badge: 'Lead Admin (Controls Roles)',
+    color: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+    desc: 'Institutional lead. Full college control and controls other admin roles.',
+    icon: Crown,
+  },
+  EVENT_COORDINATOR: {
+    label: 'Event Coordinator',
+    badge: 'Events Only',
+    color: 'bg-purple-100 text-purple-900 border-purple-300',
+    desc: 'Restricted access: Events, Competitions & Entry Passes tab only.',
+    icon: Calendar,
+  },
+  LIBRARIAN: {
+    label: 'Librarian',
+    badge: 'Library Only',
+    color: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+    desc: 'Restricted access: Library books, borrow requests, timings & fines only.',
+    icon: BookOpen,
+  },
+  FEEDBACK_EXAM_COORDINATOR: {
+    label: 'Feedback & Exam Coordinator',
+    badge: 'Feedback + Exams',
+    color: 'bg-sky-100 text-sky-900 border-sky-300',
+    desc: 'Restricted access: Student feedback forms, academic surveys & exams.',
+    icon: ClipboardCheck,
+  },
+  COLLEGE_ADMIN: {
+    label: 'College Admin',
+    badge: 'College Admin',
+    color: 'bg-blue-100 text-blue-900 border-blue-300',
+    desc: 'Standard administrator with full institutional dashboard access.',
+    icon: Building2,
+  },
+};
+
 export function AdminManagementTab({
   adminRequests,
   adminsList,
   isSuperAdmin,
+  isPrimaryAdmin = false,
+  currentUserRole = 'COLLEGE_ADMIN',
   currentUserEmail,
   initialSubTab,
   initialStudents = [],
@@ -65,6 +125,8 @@ export function AdminManagementTab({
   const [subTab, setSubTab] = useState<'admins' | 'students' | 'editors'>(
     initialSubTab === 'students' ? 'students' : initialSubTab === 'editors' ? 'editors' : 'admins'
   );
+
+  const canControlRoles = isSuperAdmin || isPrimaryAdmin;
 
   useEffect(() => {
     if (initialSubTab === 'students' || initialSubTab === 'admins' || initialSubTab === 'editors') {
@@ -92,15 +154,17 @@ export function AdminManagementTab({
 
   const [activeAction, setActiveAction] = useState<{
     id: string;
-    type: 'APPROVE' | 'REJECT' | 'REVOKE' | 'REACTIVATE' | 'PROMOTE' | 'DEMOTE';
+    type: 'APPROVE' | 'REJECT' | 'REVOKE' | 'REACTIVATE' | 'PROMOTE' | 'DEMOTE' | 'UPDATE_ROLE';
   } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Modals for deliberate Super Admin confirmation
+  // Modals for deliberate Admin confirmation
   const [revokingAdmin, setRevokingAdmin] = useState<Admin | null>(null);
   const [reactivatingAdmin, setReactivatingAdmin] = useState<Admin | null>(null);
   const [promotingAdmin, setPromotingAdmin] = useState<Admin | null>(null);
   const [demotingAdmin, setDemotingAdmin] = useState<Admin | null>(null);
+  const [changingRoleAdmin, setChangingRoleAdmin] = useState<Admin | null>(null);
+  const [selectedNewRole, setSelectedNewRole] = useState<string>('COLLEGE_ADMIN');
   const [revokeReason, setRevokeReason] = useState<string>('');
 
   const pendingRequests = requests.filter((r) => r.status === 'PENDING');
@@ -192,18 +256,19 @@ export function AdminManagementTab({
     });
   };
 
-  const handleApprove = (requestId: string) => {
+  const handleApprove = (requestId: string, assignedRole?: string) => {
     setActiveAction({ id: requestId, type: 'APPROVE' });
     setMessage(null);
     startTransition(async () => {
       try {
-        const res = await approveAdminRequestAction(requestId);
+        const res = await approveAdminRequestAction(requestId, assignedRole);
         if (res.success) {
           const approvedReq = requests.find((r) => r.id === requestId);
           setRequests((prev) =>
             prev.map((r) => (r.id === requestId ? { ...r, status: 'APPROVED' } : r))
           );
           if (approvedReq) {
+            const finalRole = assignedRole || approvedReq.requested_role || 'COLLEGE_ADMIN';
             setAdmins((prev) => {
               const exists = prev.some((a) => a.email.toLowerCase() === approvedReq.email.toLowerCase());
               if (exists) return prev;
@@ -214,7 +279,7 @@ export function AdminManagementTab({
                   user_id: approvedReq.user_id || approvedReq.id,
                   email: approvedReq.email,
                   name: approvedReq.name,
-                  role: 'ADMIN',
+                  role: finalRole as any,
                   status: 'ACTIVE',
                   created_at: new Date().toISOString(),
                   college_id: approvedReq.college_id,
@@ -223,7 +288,12 @@ export function AdminManagementTab({
               ];
             });
           }
-          setMessage({ type: 'success', text: 'Admin request approved successfully.' });
+          setMessage({
+            type: 'success',
+            text: `Admin request approved successfully with role: ${
+              ADMIN_ROLE_CONFIGS[assignedRole || '']?.label || assignedRole || 'College Admin'
+            }.`,
+          });
           router.refresh();
         } else {
           setMessage({ type: 'error', text: res.error || 'Failed to approve request.' });
@@ -235,6 +305,48 @@ export function AdminManagementTab({
         });
       } finally {
         setActiveAction(null);
+      }
+    });
+  };
+
+  const confirmChangeRole = () => {
+    if (!changingRoleAdmin) return;
+    const targetId = changingRoleAdmin.id;
+    const targetName = changingRoleAdmin.name;
+    const newRole = selectedNewRole;
+    setActiveAction({ id: targetId, type: 'UPDATE_ROLE' });
+    setMessage(null);
+
+    startTransition(async () => {
+      try {
+        const res = await updateAdminRoleAction(targetId, newRole);
+        if (res.success) {
+          setAdmins((prev) =>
+            prev.map((a) =>
+              a.id === targetId || a.user_id === targetId ? { ...a, role: newRole as any } : a
+            )
+          );
+          setMessage({
+            type: 'success',
+            text: `Successfully updated ${targetName}'s role to ${
+              ADMIN_ROLE_CONFIGS[newRole]?.label || newRole
+            }.`,
+          });
+          router.refresh();
+        } else {
+          setMessage({
+            type: 'error',
+            text: res.error || 'Failed to update administrator role.',
+          });
+        }
+      } catch (err: any) {
+        setMessage({
+          type: 'error',
+          text: err.message || 'An unexpected error occurred during role update.',
+        });
+      } finally {
+        setActiveAction(null);
+        setChangingRoleAdmin(null);
       }
     });
   };
@@ -450,6 +562,9 @@ export function AdminManagementTab({
               {pendingRequests.map((req) => {
                 const isApproving = isPending && activeAction?.id === req.id && activeAction.type === 'APPROVE';
                 const isRejecting = isPending && activeAction?.id === req.id && activeAction.type === 'REJECT';
+                const roleKey = req.requested_role || 'COLLEGE_ADMIN';
+                const roleCfg = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS.COLLEGE_ADMIN;
+                const RoleIcon = roleCfg.icon;
 
                 return (
                   <div key={req.id} className="p-4 space-y-2.5 min-w-0">
@@ -459,6 +574,14 @@ export function AdminManagementTab({
                         PENDING
                       </span>
                     </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${roleCfg.color}`}>
+                        <RoleIcon className="w-3 h-3" />
+                        Role: {roleCfg.label}
+                      </span>
+                    </div>
+
                     {req.college && (
                       <div className="flex items-center gap-1.5 text-xs text-amber-800 bg-amber-50/80 px-2.5 py-1 rounded-md border border-amber-200/60">
                         <Building2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -474,13 +597,13 @@ export function AdminManagementTab({
                     </div>
                     <div className="flex items-center gap-2 pt-1">
                       <button
-                        onClick={() => handleApprove(req.id)}
+                        onClick={() => handleApprove(req.id, req.requested_role || 'COLLEGE_ADMIN')}
                         disabled={isPending}
                         aria-busy={isApproving}
                         className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
                       >
                         {isApproving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                        <span>{isApproving ? 'Approving...' : 'Approve'}</span>
+                        <span>{isApproving ? 'Approving...' : `Approve as ${roleCfg.badge}`}</span>
                       </button>
                       <button
                         onClick={() => handleReject(req.id)}
@@ -504,6 +627,7 @@ export function AdminManagementTab({
                   <tr>
                     <th className="px-5 py-3">Applicant Name</th>
                     <th className="px-5 py-3">Institution</th>
+                    <th className="px-5 py-3">Requested Role</th>
                     <th className="px-5 py-3">Email Address</th>
                     <th className="px-5 py-3">Request Date</th>
                     <th className="px-5 py-3">Status</th>
@@ -514,6 +638,9 @@ export function AdminManagementTab({
                   {pendingRequests.map((req) => {
                     const isApproving = isPending && activeAction?.id === req.id && activeAction.type === 'APPROVE';
                     const isRejecting = isPending && activeAction?.id === req.id && activeAction.type === 'REJECT';
+                    const roleKey = req.requested_role || 'COLLEGE_ADMIN';
+                    const roleCfg = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS.COLLEGE_ADMIN;
+                    const RoleIcon = roleCfg.icon;
 
                     return (
                       <tr key={req.id} className="hover:bg-slate-50/80 transition-colors">
@@ -537,6 +664,12 @@ export function AdminManagementTab({
                             <span className="text-slate-400 italic text-[11px]">—</span>
                           )}
                         </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border ${roleCfg.color}`}>
+                            <RoleIcon className="w-3.5 h-3.5" />
+                            {roleCfg.label}
+                          </span>
+                        </td>
                         <td className="px-5 py-3.5 font-mono text-slate-600">
                           {req.email}
                         </td>
@@ -551,9 +684,10 @@ export function AdminManagementTab({
                         </td>
                         <td className="px-5 py-3.5 text-right space-x-2">
                           <button
-                            onClick={() => handleApprove(req.id)}
+                            onClick={() => handleApprove(req.id, req.requested_role || 'COLLEGE_ADMIN')}
                             disabled={isPending}
                             aria-busy={isApproving}
+                            title={`Approve as ${roleCfg.label}`}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                           >
                             {isApproving ? (
@@ -634,9 +768,17 @@ export function AdminManagementTab({
                             <ShieldCheck className="w-3 h-3" /> SUPER ADMIN
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-100 text-blue-800">
-                            ADMIN
-                          </span>
+                          (() => {
+                            const roleKey = admin.role || 'COLLEGE_ADMIN';
+                            const roleCfg = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS.COLLEGE_ADMIN;
+                            const RoleIcon = roleCfg.icon;
+                            return (
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${roleCfg.color}`}>
+                                <RoleIcon className="w-3 h-3" />
+                                {roleCfg.badge}
+                              </span>
+                            );
+                          })()
                         )}
                         {admin.status === 'ACTIVE' ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800">
@@ -672,30 +814,45 @@ export function AdminManagementTab({
                         Added: {formatDateShort(admin.created_at, hydrated)}
                       </span>
 
-                      {isSuperAdmin && (
-                        isPrimary ? (
-                          <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded italic">
-                            Primary Super Admin
-                          </span>
-                        ) : isSelf ? (
-                          <span className="text-[10px] text-slate-400 italic">Current Session</span>
-                        ) : admin.role === 'ADMIN' ? (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {admin.status === 'ACTIVE' && (
-                              <button
-                                onClick={() => setPromotingAdmin(admin)}
-                                disabled={isOperating}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 shadow-2xs min-h-[36px] cursor-pointer"
-                              >
-                                {isOperating && activeAction?.type === 'PROMOTE' ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <ShieldPlus className="w-3.5 h-3.5 text-amber-600" />
-                                )}
-                                <span>↑ Make Super Admin</span>
-                              </button>
-                            )}
-                            {admin.status === 'ACTIVE' ? (
+                      {isPrimary ? (
+                        <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded italic">
+                          Primary Super Admin
+                        </span>
+                      ) : isSelf ? (
+                        <span className="text-[10px] text-slate-400 italic">Current Session</span>
+                      ) : (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {canControlRoles && admin.role !== 'SUPER_ADMIN' && admin.status === 'ACTIVE' && (
+                            <button
+                              onClick={() => {
+                                setChangingRoleAdmin(admin);
+                                setSelectedNewRole(admin.role || 'COLLEGE_ADMIN');
+                              }}
+                              disabled={isOperating}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 shadow-2xs min-h-[36px] cursor-pointer"
+                            >
+                              <UserCog className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Role Access</span>
+                            </button>
+                          )}
+
+                          {isSuperAdmin && admin.role !== 'SUPER_ADMIN' && admin.status === 'ACTIVE' && (
+                            <button
+                              onClick={() => setPromotingAdmin(admin)}
+                              disabled={isOperating}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 shadow-2xs min-h-[36px] cursor-pointer"
+                            >
+                              {isOperating && activeAction?.type === 'PROMOTE' ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <ShieldPlus className="w-3.5 h-3.5 text-amber-600" />
+                              )}
+                              <span>↑ Make Super Admin</span>
+                            </button>
+                          )}
+
+                          {canControlRoles && admin.role !== 'SUPER_ADMIN' && (
+                            admin.status === 'ACTIVE' ? (
                               <button
                                 onClick={() => {
                                   setRevokingAdmin(admin);
@@ -724,22 +881,24 @@ export function AdminManagementTab({
                                 )}
                                 <span>Reactivate</span>
                               </button>
-                            )}
-                          </div>
-                        ) : admin.role === 'SUPER_ADMIN' ? (
-                          <button
-                            onClick={() => setDemotingAdmin(admin)}
-                            disabled={isOperating}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50/80 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 min-h-[36px] cursor-pointer"
-                          >
-                            {isOperating && activeAction?.type === 'DEMOTE' ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <ShieldAlert className="w-3.5 h-3.5 text-amber-600 hover:text-rose-600" />
-                            )}
-                            <span>↓ Demote to Admin</span>
-                          </button>
-                        ) : null
+                            )
+                          )}
+
+                          {isSuperAdmin && admin.role === 'SUPER_ADMIN' && (
+                            <button
+                              onClick={() => setDemotingAdmin(admin)}
+                              disabled={isOperating}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50/80 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 min-h-[36px] cursor-pointer"
+                            >
+                              {isOperating && activeAction?.type === 'DEMOTE' ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-600 hover:text-rose-600" />
+                              )}
+                              <span>↓ Demote to Admin</span>
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -755,7 +914,7 @@ export function AdminManagementTab({
                     <th className="px-5 py-3">Admin Name</th>
                     <th className="px-5 py-3">Institution</th>
                     <th className="px-5 py-3">Email</th>
-                    <th className="px-5 py-3">Role</th>
+                    <th className="px-5 py-3">Role &amp; Permissions</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3">Added Date</th>
                     <th className="px-5 py-3 text-right">Access Control</th>
@@ -766,6 +925,9 @@ export function AdminManagementTab({
                     const isOperating = isPending && activeAction?.id === admin.id;
                     const isPrimary = isPrimarySuperAdmin({ email: admin.email, user_id: admin.user_id, id: admin.id });
                     const isSelf = admin.email.toLowerCase() === currentUserEmail.toLowerCase();
+                    const roleKey = admin.role || 'COLLEGE_ADMIN';
+                    const roleCfg = ADMIN_ROLE_CONFIGS[roleKey] || ADMIN_ROLE_CONFIGS.COLLEGE_ADMIN;
+                    const RoleIcon = roleCfg.icon;
 
                     return (
                       <tr key={admin.id} className="hover:bg-slate-50/80 transition-colors">
@@ -807,8 +969,9 @@ export function AdminManagementTab({
                               <ShieldCheck className="w-3 h-3" /> SUPER ADMIN
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-100 text-blue-800">
-                              ADMIN
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${roleCfg.color}`}>
+                              <RoleIcon className="w-3 h-3" />
+                              {roleCfg.label}
                             </span>
                           )}
                         </td>
@@ -827,31 +990,63 @@ export function AdminManagementTab({
                           {formatDateShort(admin.created_at, hydrated)}
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          {isSuperAdmin ? (
-                            isPrimary ? (
-                              <span className="inline-flex items-center text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md italic">
-                                Primary Super Admin
-                              </span>
-                            ) : isSelf ? (
-                              <span className="text-[11px] text-slate-400 italic">Current Session</span>
-                            ) : admin.role === 'ADMIN' ? (
-                              <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
-                                {admin.status === 'ACTIVE' && (
-                                  <button
-                                    onClick={() => setPromotingAdmin(admin)}
-                                    disabled={isOperating}
-                                    title="Promote to Super Admin"
-                                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 shadow-2xs hover:shadow-xs disabled:opacity-50 cursor-pointer"
-                                  >
-                                    {isOperating && activeAction?.type === 'PROMOTE' ? (
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                      <ShieldPlus className="w-3.5 h-3.5 text-amber-600" />
-                                    )}
-                                    <span>↑ Make Super Admin</span>
-                                  </button>
-                                )}
-                                {admin.status === 'ACTIVE' ? (
+                          {isPrimary ? (
+                            <span className="inline-flex items-center text-[11px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-md italic">
+                              Primary Super Admin
+                            </span>
+                          ) : isSelf ? (
+                            <span className="text-[11px] text-slate-400 italic">Current Session</span>
+                          ) : (
+                            <div className="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                              {/* Primary Admin & Super Admin role controller */}
+                              {canControlRoles && admin.role !== 'SUPER_ADMIN' && admin.status === 'ACTIVE' && (
+                                <button
+                                  onClick={() => {
+                                    setChangingRoleAdmin(admin);
+                                    setSelectedNewRole(admin.role || 'COLLEGE_ADMIN');
+                                  }}
+                                  disabled={isOperating}
+                                  title="Change Administrator Role & Tab Permissions"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 shadow-2xs hover:shadow-xs disabled:opacity-50 cursor-pointer"
+                                >
+                                  <UserCog className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Role Access</span>
+                                </button>
+                              )}
+
+                              {isSuperAdmin && admin.role !== 'SUPER_ADMIN' && admin.status === 'ACTIVE' && (
+                                <button
+                                  onClick={() => setPromotingAdmin(admin)}
+                                  disabled={isOperating}
+                                  title="Promote to Super Admin"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300/80 shadow-2xs hover:shadow-xs disabled:opacity-50 cursor-pointer"
+                                >
+                                  {isOperating && activeAction?.type === 'PROMOTE' ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <ShieldPlus className="w-3.5 h-3.5 text-amber-600" />
+                                  )}
+                                  <span>↑ Super Admin</span>
+                                </button>
+                              )}
+
+                              {isSuperAdmin && admin.role === 'SUPER_ADMIN' && (
+                                <button
+                                  onClick={() => setDemotingAdmin(admin)}
+                                  disabled={isOperating}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50/80 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 min-h-[36px] cursor-pointer"
+                                >
+                                  {isOperating && activeAction?.type === 'DEMOTE' ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600 hover:text-rose-600" />
+                                  )}
+                                  <span>↓ Demote to Admin</span>
+                                </button>
+                              )}
+
+                              {canControlRoles && admin.role !== 'SUPER_ADMIN' && (
+                                admin.status === 'ACTIVE' ? (
                                   <button
                                     onClick={() => {
                                       setRevokingAdmin(admin);
@@ -865,7 +1060,7 @@ export function AdminManagementTab({
                                     ) : (
                                       <UserX className="w-3.5 h-3.5 text-rose-600" />
                                     )}
-                                    <span>Revoke Access</span>
+                                    <span>Revoke</span>
                                   </button>
                                 ) : (
                                   <button
@@ -880,25 +1075,9 @@ export function AdminManagementTab({
                                     )}
                                     <span>Reactivate</span>
                                   </button>
-                                )}
-                              </div>
-                            ) : admin.role === 'SUPER_ADMIN' ? (
-                              <button
-                                onClick={() => setDemotingAdmin(admin)}
-                                disabled={isOperating}
-                                title="Demote Super Admin to standard Admin"
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all bg-amber-50/80 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 shadow-2xs hover:shadow-xs disabled:opacity-50 cursor-pointer"
-                              >
-                                {isOperating && activeAction?.type === 'DEMOTE' ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <ShieldAlert className="w-3.5 h-3.5 text-amber-600 hover:text-rose-600" />
-                                )}
-                                <span>↓ Demote to Admin</span>
-                              </button>
-                            ) : null
-                          ) : (
-                            <span className="text-slate-400 italic text-[11px]">Restricted</span>
+                                )
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -910,6 +1089,122 @@ export function AdminManagementTab({
           </>
         )}
       </div>
+
+      {/* Role Access Management Modal */}
+      {changingRoleAdmin && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
+                <Crown className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-base font-bold text-slate-900">
+                  Control Administrator Role &amp; Permissions
+                </h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Assign the designated role for this college administrator. Dashboard tabs will be restricted according to this role.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Administrator:</span>
+                <span className="font-semibold text-slate-800">{changingRoleAdmin.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Email:</span>
+                <span className="font-mono text-slate-700">{changingRoleAdmin.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Current Role:</span>
+                <span className="font-bold text-indigo-700">
+                  {ADMIN_ROLE_CONFIGS[changingRoleAdmin.role]?.label || changingRoleAdmin.role}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Select Designated Role:
+              </label>
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {[
+                  'PRIMARY_ADMIN',
+                  'COLLEGE_ADMIN',
+                  'EVENT_COORDINATOR',
+                  'LIBRARIAN',
+                  'FEEDBACK_EXAM_COORDINATOR',
+                ].map((roleKey) => {
+                  const cfg = ADMIN_ROLE_CONFIGS[roleKey];
+                  const Icon = cfg.icon;
+                  const isSelected = selectedNewRole === roleKey;
+                  return (
+                    <button
+                      key={roleKey}
+                      type="button"
+                      onClick={() => setSelectedNewRole(roleKey)}
+                      className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                        isSelected
+                          ? 'border-indigo-500 bg-indigo-50/70 ring-2 ring-indigo-500/20 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">{cfg.label}</span>
+                          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                            {cfg.badge}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">{cfg.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setChangingRoleAdmin(null)}
+                disabled={isPending}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmChangeRole}
+                disabled={isPending}
+                aria-busy={isPending && activeAction?.type === 'UPDATE_ROLE'}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isPending && activeAction?.type === 'UPDATE_ROLE' ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving Role...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Apply Role &amp; Permissions</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Dialog: Revoke Admin Access */}
       {revokingAdmin && (

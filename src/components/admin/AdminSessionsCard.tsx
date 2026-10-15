@@ -113,7 +113,7 @@ export function AdminSessionsCard() {
             Active Platform Sessions
           </h4>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            CampusFlow allows at most one active Web browser and one active Android session concurrently.
+            System allows at most one active Web browser and one active Android session concurrently.
           </p>
         </div>
         <button

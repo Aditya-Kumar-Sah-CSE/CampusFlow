@@ -281,6 +281,10 @@ export const getAdminSession = cache(async function getAdminSession(
     }
   }
 
+  const collegeRole = activeCollege?.role || (isPlatformSuperAdmin ? 'PRIMARY_ADMIN' : 'COLLEGE_ADMIN');
+  const isPrimaryAdmin = isPlatformSuperAdmin || collegeRole === 'PRIMARY_ADMIN';
+  const effectiveRole = isPlatformSuperAdmin ? 'SUPER_ADMIN' : collegeRole;
+
   return {
     userId,
     email: userEmail,
@@ -289,6 +293,9 @@ export const getAdminSession = cache(async function getAdminSession(
     colleges: authorizedColleges,
     activeCollegeId,
     activeCollege,
+    collegeRole,
+    isPrimaryAdmin,
+    role: effectiveRole,
     isAuthenticated: !sessionRevoked,
     isActive: hasActiveAccess && !sessionRevoked,
     isPending,
@@ -307,7 +314,7 @@ export const getAdminSession = cache(async function getAdminSession(
           user_id: userId,
           email: userEmail,
           name: userName,
-          role: isPlatformSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN',
+          role: effectiveRole,
           status: 'ACTIVE',
         }
       : null,

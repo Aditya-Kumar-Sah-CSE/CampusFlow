@@ -42,8 +42,51 @@ export interface LibrarySettings {
   isEnabled: boolean;
   booksSheetId?: string;
   borrowLogSheetId?: string;
+  operatingDays?: string[];
+  operatingStartTime?: string;
+  operatingEndTime?: string;
+  isTimingEnforced?: boolean;
+  timingTimezone?: string;
+  timingClosureMessage?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface LibraryTimingCheckResult {
+  isOpen: boolean;
+  reason?: string;
+  operatingDays: string[];
+  startTime: string;
+  endTime: string;
+  isTimingEnforced: boolean;
+}
+
+export interface VirtualLibraryCardData {
+  collegeId: string;
+  collegeName: string;
+  collegeCode: string;
+  collegeLogoUrl?: string | null;
+  studentName: string;
+  rollNumber: string;
+  registrationNumber: string;
+  branch: string;
+  academicLevel: string;
+  cardStatus: 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
+  issueDate: string;
+  expiryDate?: string;
+  maxBooksAllowed: number;
+  activeBorrowsCount: number;
+  isMaxCapacityReached: boolean;
+  allocatedBooks: Array<{
+    slotNumber: number;
+    isUsed: boolean;
+    bookId?: string;
+    bookTitle?: string;
+    bookAuthor?: string;
+    borrowedAt?: string;
+    dueDate?: string;
+    status?: BorrowRequestStatus;
+  }>;
 }
 
 export interface LibraryStats {

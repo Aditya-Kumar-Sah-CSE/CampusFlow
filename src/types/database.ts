@@ -1,4 +1,10 @@
-export type AdminRole = 'SUPER_ADMIN' | 'ADMIN';
+export type AdminRole =
+  | 'SUPER_ADMIN'
+  | 'PRIMARY_ADMIN'
+  | 'ADMIN'
+  | 'EVENT_COORDINATOR'
+  | 'LIBRARIAN'
+  | 'FEEDBACK_EXAM_COORDINATOR';
 export type AdminStatus = 'ACTIVE' | 'INACTIVE';
 export type AdminRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type FeedbackFormStatus = 'DRAFT' | 'PUBLISHED' | 'CLOSED' | 'ARCHIVED';
@@ -133,6 +139,7 @@ export interface AdminRequest {
   email: string;
   name: string;
   status: AdminRequestStatus;
+  requested_role?: string | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
   created_at: string;

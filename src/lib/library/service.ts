@@ -6,7 +6,7 @@
  */
 
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { LibrarySettings, LibraryStats } from '@/types/library';
+import type { LibrarySettings, LibraryStats, VirtualLibraryCardData } from '@/types/library';
 import {
   createBooksInventorySheet,
   createBorrowLogSheet,
@@ -21,11 +21,18 @@ import {
 } from '@/lib/google/library-sheets';
 
 // ─── Default Settings ────────────────────────────────────────────
+// ─── Default Settings ────────────────────────────────────────────
 const DEFAULT_SETTINGS: Omit<LibrarySettings, 'collegeId'> = {
   maxBooksPerStudent: 3,
   maxBorrowDays: 15,
   finePerDay: 5,
   isEnabled: false,
+  operatingDays: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+  operatingStartTime: '10:00',
+  operatingEndTime: '16:00',
+  isTimingEnforced: true,
+  timingTimezone: 'Asia/Kolkata',
+  timingClosureMessage: 'Book registration is open Monday to Saturday from 10:00 AM to 04:00 PM.',
 };
 
 // ─── Get / Create Library Settings ───────────────────────────────
@@ -52,6 +59,14 @@ export async function getLibrarySettings(collegeId: string): Promise<LibrarySett
     isEnabled: data.is_enabled ?? false,
     booksSheetId: data.books_sheet_id || undefined,
     borrowLogSheetId: data.borrow_log_sheet_id || undefined,
+    operatingDays: data.operating_days ?? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+    operatingStartTime: data.operating_start_time ?? '10:00',
+    operatingEndTime: data.operating_end_time ?? '16:00',
+    isTimingEnforced: data.is_timing_enforced ?? true,
+    timingTimezone: data.timing_timezone ?? 'Asia/Kolkata',
+    timingClosureMessage:
+      data.timing_closure_message ||
+      'Book registration is open Monday to Saturday from 10:00 AM to 04:00 PM.',
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -65,7 +80,7 @@ export async function saveLibrarySettings(
   const supabase = createAdminClient();
   if (!supabase) throw new Error('Supabase service role not configured');
 
-  const payload = {
+  const payload: any = {
     college_id: collegeId,
     max_books_per_student: settings.maxBooksPerStudent ?? 3,
     max_borrow_days: settings.maxBorrowDays ?? 15,
@@ -73,6 +88,14 @@ export async function saveLibrarySettings(
     is_enabled: settings.isEnabled ?? false,
     books_sheet_id: settings.booksSheetId || null,
     borrow_log_sheet_id: settings.borrowLogSheetId || null,
+    operating_days: settings.operatingDays ?? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+    operating_start_time: settings.operatingStartTime ?? '10:00',
+    operating_end_time: settings.operatingEndTime ?? '16:00',
+    is_timing_enforced: settings.isTimingEnforced ?? true,
+    timing_timezone: settings.timingTimezone ?? 'Asia/Kolkata',
+    timing_closure_message:
+      settings.timingClosureMessage ??
+      'Book registration is open Monday to Saturday from 10:00 AM to 04:00 PM.',
     updated_at: new Date().toISOString(),
   };
 
@@ -93,8 +116,108 @@ export async function saveLibrarySettings(
     isEnabled: data.is_enabled,
     booksSheetId: data.books_sheet_id || undefined,
     borrowLogSheetId: data.borrow_log_sheet_id || undefined,
+    operatingDays: data.operating_days ?? ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+    operatingStartTime: data.operating_start_time ?? '10:00',
+    operatingEndTime: data.operating_end_time ?? '16:00',
+    isTimingEnforced: data.is_timing_enforced ?? true,
+    timingTimezone: data.timing_timezone ?? 'Asia/Kolkata',
+    timingClosureMessage: data.timing_closure_message,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+  };
+}
+
+// ─── Check Operating Timing (IST) ────────────────────────────────
+export function isLibraryTimingOpen(settings: LibrarySettings): {
+  isOpen: boolean;
+  reason?: string;
+  operatingDays: string[];
+  startTime: string;
+  endTime: string;
+  isTimingEnforced: boolean;
+} {
+  const days =
+    settings.operatingDays && settings.operatingDays.length > 0
+      ? settings.operatingDays.map((d) => d.toUpperCase().trim())
+      : ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+  const startTime = settings.operatingStartTime ? settings.operatingStartTime.slice(0, 5) : '10:00';
+  const endTime = settings.operatingEndTime ? settings.operatingEndTime.slice(0, 5) : '16:00';
+  const isEnforced = settings.isTimingEnforced ?? true;
+
+  if (!isEnforced) {
+    return {
+      isOpen: true,
+      operatingDays: days,
+      startTime,
+      endTime,
+      isTimingEnforced: false,
+    };
+  }
+
+  const tz = settings.timingTimezone || 'Asia/Kolkata';
+  const now = new Date();
+
+  // Day of week in target timezone (e.g., 'MON', 'TUE')
+  const dayNameShort = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    timeZone: tz,
+  })
+    .format(now)
+    .toUpperCase(); // e.g. "MON"
+
+  const dayNameFull = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    timeZone: tz,
+  })
+    .format(now)
+    .toUpperCase(); // e.g. "MONDAY"
+
+  const isDayAllowed = days.some(
+    (d) => d === dayNameShort || d === dayNameFull || dayNameFull.startsWith(d)
+  );
+
+  if (!isDayAllowed) {
+    return {
+      isOpen: false,
+      reason:
+        settings.timingClosureMessage ||
+        `Library registration is closed today (${dayNameShort}). Operating schedule: Monday to Saturday from ${startTime} to ${endTime} (${tz}).`,
+      operatingDays: days,
+      startTime,
+      endTime,
+      isTimingEnforced: true,
+    };
+  }
+
+  // Current time in target timezone: HH:mm
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: tz,
+  });
+  const currentTime = timeFormatter.format(now); // e.g. "11:30"
+
+  if (currentTime < startTime || currentTime > endTime) {
+    return {
+      isOpen: false,
+      reason:
+        settings.timingClosureMessage ||
+        `Library book registrations are open from ${startTime} to ${endTime} (${tz}). Current time is ${currentTime}.`,
+      operatingDays: days,
+      startTime,
+      endTime,
+      isTimingEnforced: true,
+    };
+  }
+
+  return {
+    isOpen: true,
+    operatingDays: days,
+    startTime,
+    endTime,
+    isTimingEnforced: true,
   };
 }
 
@@ -175,6 +298,15 @@ export async function submitBorrowRequest(
   if (!settings.isEnabled) throw new Error('Library service is not enabled for this institution.');
   if (!settings.borrowLogSheetId || !settings.booksSheetId) {
     throw new Error('Library not initialized.');
+  }
+
+  // Enforce operating hours schedule
+  const timing = isLibraryTimingOpen(settings);
+  if (!timing.isOpen) {
+    throw new Error(
+      timing.reason ||
+        'Library book registration is currently closed. Operating hours: Monday to Saturday 10:00 AM - 04:00 PM.'
+    );
   }
 
   // Check max books limit
@@ -307,5 +439,135 @@ export async function getLibraryStats(collegeId: string): Promise<LibraryStats> 
     pendingRequests,
     overdueBooks,
     totalFineCollected,
+  };
+}
+
+// ─── Get Student Virtual Library Card Data ───────────────────────
+export async function getStudentLibraryCardData(
+  collegeId: string,
+  identifier?: string,
+  studentProfile?: {
+    fullName?: string;
+    registrationNumber?: string;
+    branch?: string;
+    academicLevel?: string;
+    email?: string;
+  }
+): Promise<VirtualLibraryCardData> {
+  const supabase = createAdminClient();
+  if (!supabase) throw new Error('Supabase client not configured.');
+
+  // Fetch college details
+  const { data: college } = await supabase
+    .from('colleges')
+    .select('id, name, code, slug, logo_url')
+    .eq('id', collegeId)
+    .single();
+
+  const collegeName = college?.name || 'Institution Library';
+  const collegeCode = college?.code || 'LIB';
+  const collegeLogoUrl = college?.logo_url || null;
+
+  // Fetch settings for maxBooksPerStudent
+  const settings = await getLibrarySettings(collegeId);
+  const maxBooksAllowed = settings.maxBooksPerStudent || 3;
+
+  let studentName = studentProfile?.fullName || '';
+  let rollNumber = studentProfile?.registrationNumber || '';
+  let registrationNumber = studentProfile?.registrationNumber || '';
+  let branch = studentProfile?.branch || '';
+  let academicLevel = studentProfile?.academicLevel || '';
+  let studentEmail = studentProfile?.email || '';
+
+  // If identifier provided and fields are missing, lookup in students table
+  if (identifier && identifier.trim() && (!studentName || !registrationNumber)) {
+    const cleanId = identifier.trim();
+    const { data: matchedStudent } = await supabase
+      .from('students')
+      .select('id, email, full_name, registration_number')
+      .eq('college_id', collegeId)
+      .or(`email.ilike.%${cleanId}%,registration_number.ilike.%${cleanId}%,full_name.ilike.%${cleanId}%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (matchedStudent) {
+      studentName = studentName || matchedStudent.full_name || cleanId;
+      registrationNumber = registrationNumber || matchedStudent.registration_number || cleanId;
+      rollNumber = rollNumber || matchedStudent.registration_number || cleanId;
+      studentEmail = studentEmail || matchedStudent.email || '';
+    }
+  }
+
+  // Fallbacks for display (no fake data)
+  studentName = studentName || identifier || 'Student Cardholder';
+  rollNumber = rollNumber || '-';
+  registrationNumber = registrationNumber || '-';
+  branch = branch || 'All Disciplines';
+  academicLevel = academicLevel || 'Undergraduate';
+
+  // Fetch active borrow requests from Google Sheet
+  let activeBorrows: any[] = [];
+  const searchName = (studentName || identifier || '').trim().toLowerCase();
+  const searchEmail = (studentEmail || identifier || '').trim().toLowerCase();
+
+  if (settings.borrowLogSheetId && (searchName || searchEmail)) {
+    try {
+      const allRequests = await fetchAllBorrowRequests(collegeId, settings.borrowLogSheetId);
+      activeBorrows = allRequests.filter((r) => {
+        const matchesName = searchName && r.studentName && r.studentName.toLowerCase().includes(searchName);
+        const matchesEmail = searchEmail && r.studentEmail && r.studentEmail.toLowerCase() === searchEmail;
+        const isActiveStatus = r.status === 'APPROVED' || r.status === 'PENDING' || r.status === 'OVERDUE';
+        return (matchesName || matchesEmail) && isActiveStatus;
+      });
+    } catch (sheetErr) {
+      console.warn('[LIBRARY_CARD_SHEET_LOOKUP_WARNING]', sheetErr);
+    }
+  }
+
+  const activeBorrowsCount = activeBorrows.length;
+  const isMaxCapacityReached = activeBorrowsCount >= maxBooksAllowed;
+
+  // Construct exactly maxBooksAllowed slots (default 3)
+  const allocatedBooks = Array.from({ length: maxBooksAllowed }, (_, idx) => {
+    const slotNumber = idx + 1;
+    const borrow = activeBorrows[idx];
+    if (borrow) {
+      return {
+        slotNumber,
+        isUsed: true,
+        bookId: borrow.bookId,
+        bookTitle: borrow.bookTitle,
+        bookAuthor: borrow.bookAuthor,
+        borrowedAt: borrow.approvedAt || borrow.requestedAt,
+        dueDate: borrow.dueDate,
+        status: borrow.status,
+      };
+    }
+    return {
+      slotNumber,
+      isUsed: false,
+    };
+  });
+
+  return {
+    collegeId,
+    collegeName,
+    collegeCode,
+    collegeLogoUrl,
+    studentName,
+    rollNumber,
+    registrationNumber,
+    branch,
+    academicLevel,
+    cardStatus: 'ACTIVE',
+    issueDate: new Date().toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    }),
+    maxBooksAllowed,
+    activeBorrowsCount,
+    isMaxCapacityReached,
+    allocatedBooks,
   };
 }

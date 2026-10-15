@@ -27,7 +27,7 @@ interface PublicExamDiscoveryProps {
 
 export function PublicExamDiscovery({
   exams,
-  collegeName = 'CampusFlow Examination Hub',
+  collegeName = 'Examination Hub',
   collegeLogo,
   tenantSlug,
 }: PublicExamDiscoveryProps) {

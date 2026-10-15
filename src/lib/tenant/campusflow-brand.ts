@@ -17,8 +17,8 @@ export function getCampusFlowBrand(tenant?: CampusFlowTenantIdentity | null): Ca
   return {
     platformName: 'CampusFlow',
     tenantCode,
-    displayName: tenantCode ? `${tenantCode} CampusFlow` : 'CampusFlow',
-    shortName: tenantCode ? `${tenantCode} CampusFlow` : 'CampusFlow',
+    displayName: tenantCode ? tenantCode.toUpperCase() : 'CampusFlow',
+    shortName: tenantCode ? tenantCode.toUpperCase() : 'CampusFlow',
   };
 }
 

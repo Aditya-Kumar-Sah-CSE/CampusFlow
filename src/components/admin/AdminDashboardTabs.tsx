@@ -320,6 +320,8 @@ interface Props {
   initialSubTab?: string;
   initialStudents?: any[];
   allColleges?: any[];
+  currentUserRole?: string;
+  isPrimaryAdmin?: boolean;
 }
 
 export function AdminDashboardTabs({
@@ -349,23 +351,43 @@ export function AdminDashboardTabs({
   initialSubTab,
   initialStudents,
   allColleges,
+  currentUserRole = 'COLLEGE_ADMIN',
+  isPrimaryAdmin = false,
 }: Props) {
   const searchParams = useSearchParams();
 
+  // Granular Tab Permissions based on Admin Role
+  const allowedTabs: AdminTab[] = (() => {
+    if (isSuperAdmin || isPrimaryAdmin || currentUserRole === 'PRIMARY_ADMIN' || currentUserRole === 'COLLEGE_ADMIN') {
+      return VALID_TABS;
+    }
+    if (currentUserRole === 'EVENT_COORDINATOR') {
+      return ['overview', 'events', 'settings'];
+    }
+    if (currentUserRole === 'LIBRARIAN') {
+      return ['overview', 'library', 'settings'];
+    }
+    if (currentUserRole === 'FEEDBACK_EXAM_COORDINATOR') {
+      return ['overview', 'forms', 'exams', 'academic', 'settings'];
+    }
+    return ['overview', 'settings'];
+  })();
+
   const resolveTab = useCallback((): AdminTab => {
     const param = searchParams?.get('tab');
-    if (param && VALID_TABS.includes(param as AdminTab)) {
+    if (param && allowedTabs.includes(param as AdminTab)) {
       return param as AdminTab;
     }
-    if (initialTab && VALID_TABS.includes(initialTab as AdminTab)) {
+    if (initialTab && allowedTabs.includes(initialTab as AdminTab)) {
       return initialTab as AdminTab;
     }
-    return 'overview';
-  }, [searchParams, initialTab]);
+    return allowedTabs.includes('overview') ? 'overview' : allowedTabs[0] || 'overview';
+  }, [searchParams, initialTab, allowedTabs]);
 
   const [activeTab, setActiveTab] = useState<AdminTab>(() => resolveTab());
 
   const handleSelectTab = useCallback((nextTab: AdminTab, nextSubTab?: string) => {
+    if (!allowedTabs.includes(nextTab)) return;
     setActiveTab(nextTab);
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -382,14 +404,14 @@ export function AdminDashboardTabs({
       }
       window.history.pushState(null, '', url.toString());
     }
-  }, []);
+  }, [allowedTabs]);
 
   // Listen for browser Back/Forward (popstate)
   useEffect(() => {
     const handlePopState = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      if (tabParam && VALID_TABS.includes(tabParam as AdminTab)) {
+      if (tabParam && allowedTabs.includes(tabParam as AdminTab)) {
         setActiveTab(tabParam as AdminTab);
       } else {
         setActiveTab(resolveTab());
@@ -398,20 +420,20 @@ export function AdminDashboardTabs({
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [resolveTab]);
+  }, [resolveTab, allowedTabs]);
 
   // Sync when searchParams change or on client navigation
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
-    const targetTab = (tabParam && VALID_TABS.includes(tabParam as AdminTab))
+    const targetTab = (tabParam && allowedTabs.includes(tabParam as AdminTab))
       ? (tabParam as AdminTab)
       : resolveTab();
 
     if (targetTab !== activeTab) {
       setActiveTab(targetTab);
     }
-  }, [resolveTab, activeTab, searchParams]);
+  }, [resolveTab, activeTab, searchParams, allowedTabs]);
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isNavigatingToResults, setIsNavigatingToResults] = useState(false);
@@ -439,6 +461,8 @@ export function AdminDashboardTabs({
     { id: 'exams' as const, label: 'Exams & Tests', icon: FileCheck },
     { id: 'library' as const, label: 'Library', icon: BookOpen },
   ];
+
+  const visibleDirectTabs = directTabs.filter((tab) => allowedTabs.includes(tab.id));
 
   const isSettingsActive = [
     'admins',
@@ -500,7 +524,9 @@ export function AdminDashboardTabs({
     },
   ];
 
-  const settingsDropdownItems: DropdownItem[] = settingsSubTabs.map((sub) => ({
+  const visibleSettingsSubTabs = settingsSubTabs.filter((sub) => allowedTabs.includes(sub.id));
+
+  const settingsDropdownItems: DropdownItem[] = visibleSettingsSubTabs.map((sub) => ({
     id: `settings-${sub.id}`,
     label: sub.label,
     icon: sub.icon,
@@ -571,13 +597,14 @@ export function AdminDashboardTabs({
           activeCollegeName={activeCollegeName}
           publicSlug={activeCollegeSlug}
           logoUrl={activeCollegeLogoUrl}
+          allowedTabs={allowedTabs}
         />
       </div>
 
       {/* Primary Navigation Tabs (Desktop only; mobile uses the AdminMobileNav drawer above) */}
       <div className="hidden md:flex relative z-30 bg-white p-1 sm:p-2 rounded-2xl border border-slate-200 shadow-xs flex-wrap items-center gap-1 sm:gap-1.5 w-full max-w-full min-w-0 overflow-visible">
-        {/* Direct Tabs: Overview, Academic Structure, Feedback Forms */}
-        {directTabs.map((tab) => {
+        {/* Direct Tabs: Overview, Academic Structure, Feedback Forms, Events, Exams, Library */}
+        {visibleDirectTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -602,16 +629,18 @@ export function AdminDashboardTabs({
         })}
 
         {/* Settings Dropdown: Wraps Admin Management, Audit, Billing, Institution, Google, Preferences */}
-        <NavDropdown
-          label="Settings"
-          icon={Settings}
-          badge={pendingRequestsCount > 0 ? pendingRequestsCount : undefined}
-          isActive={isSettingsActive}
-          isOpen={openDropdown === 'settings'}
-          onToggle={() => setOpenDropdown(openDropdown === 'settings' ? null : 'settings')}
-          onClose={() => setOpenDropdown(null)}
-          items={settingsDropdownItems}
-        />
+        {visibleSettingsSubTabs.length > 0 && (
+          <NavDropdown
+            label="Settings"
+            icon={Settings}
+            badge={pendingRequestsCount > 0 ? pendingRequestsCount : undefined}
+            isActive={isSettingsActive}
+            isOpen={openDropdown === 'settings'}
+            onToggle={() => setOpenDropdown(openDropdown === 'settings' ? null : 'settings')}
+            onClose={() => setOpenDropdown(null)}
+            items={settingsDropdownItems}
+          />
+        )}
 
         {/* Results & Analytics Button: Full Access vs Locked Gate */}
         {hasFullAnalytics || isSuperAdmin ? (
@@ -712,6 +741,8 @@ export function AdminDashboardTabs({
             adminRequests={adminRequests}
             adminsList={adminsList}
             isSuperAdmin={isSuperAdmin}
+            isPrimaryAdmin={isPrimaryAdmin}
+            currentUserRole={currentUserRole}
             currentUserEmail={currentUserEmail}
             initialSubTab={initialSubTab}
             initialStudents={initialStudents}
@@ -864,10 +895,30 @@ export function AdminDashboardTabs({
                     <span className="text-slate-500">System Role</span>
                     <span
                       className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                        isSuperAdmin ? 'bg-amber-100 text-amber-900' : 'bg-blue-100 text-blue-900'
+                        isSuperAdmin
+                          ? 'bg-amber-100 text-amber-900'
+                          : currentUserRole === 'PRIMARY_ADMIN' || isPrimaryAdmin
+                          ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                          : currentUserRole === 'EVENT_COORDINATOR'
+                          ? 'bg-pink-100 text-pink-900 border border-pink-200'
+                          : currentUserRole === 'LIBRARIAN'
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                          : currentUserRole === 'FEEDBACK_EXAM_COORDINATOR'
+                          ? 'bg-indigo-100 text-indigo-900 border border-indigo-200'
+                          : 'bg-blue-100 text-blue-900'
                       }`}
                     >
-                      {isSuperAdmin ? 'Platform Super Admin' : 'College Admin'}
+                      {isSuperAdmin
+                        ? 'Platform Super Admin'
+                        : currentUserRole === 'PRIMARY_ADMIN' || isPrimaryAdmin
+                        ? 'Primary College Admin'
+                        : currentUserRole === 'EVENT_COORDINATOR'
+                        ? 'Event Coordinator'
+                        : currentUserRole === 'LIBRARIAN'
+                        ? 'Librarian'
+                        : currentUserRole === 'FEEDBACK_EXAM_COORDINATOR'
+                        ? 'Feedback & Exam Coordinator'
+                        : 'College Admin'}
                     </span>
                   </div>
                   <div className="flex justify-between py-1.5">

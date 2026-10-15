@@ -15,14 +15,21 @@ import {
   IndianRupee,
   Send,
   ArrowLeft,
+  CreditCard,
+  Calendar,
+  AlertTriangle,
 } from 'lucide-react';
-import type { LibraryBook } from '@/types/library';
+import type { LibraryBook, LibraryTimingCheckResult } from '@/types/library';
+import { VirtualLibraryCard } from '@/components/library/VirtualLibraryCard';
+import { useStudentSession } from '@/lib/auth/use-student-session';
 
 interface Props {
   collegeId: string;
 }
 
 export function StudentLibraryBorrowForm({ collegeId }: Props) {
+  const { student, isAuthenticated } = useStudentSession();
+  const [subView, setSubView] = useState<'catalog' | 'card'>('catalog');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -33,6 +40,7 @@ export function StudentLibraryBorrowForm({ collegeId }: Props) {
   const [maxBooks, setMaxBooks] = useState(3);
   const [maxDays, setMaxDays] = useState(15);
   const [finePerDay, setFinePerDay] = useState(5);
+  const [timing, setTiming] = useState<LibraryTimingCheckResult | null>(null);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBook, setSelectedBook] = useState<LibraryBook | null>(null);
@@ -42,6 +50,17 @@ export function StudentLibraryBorrowForm({ collegeId }: Props) {
     studentPhone: '',
   });
 
+  // Autofill student details from active authenticated student session
+  useEffect(() => {
+    if (isAuthenticated && student) {
+      setFormData((prev) => ({
+        studentName: prev.studentName || student.fullName || '',
+        studentEmail: prev.studentEmail || student.email || '',
+        studentPhone: prev.studentPhone || '',
+      }));
+    }
+  }, [isAuthenticated, student]);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -50,6 +69,7 @@ export function StudentLibraryBorrowForm({ collegeId }: Props) {
       const data = await res.json();
       setLibraryEnabled(data.enabled);
       setBooks(data.books || []);
+      setTiming(data.timing || null);
       setMaxBooks(data.settings?.maxBooksPerStudent ?? 3);
       setMaxDays(data.settings?.maxBorrowDays ?? 15);
       setFinePerDay(data.settings?.finePerDay ?? 5);
@@ -157,30 +177,108 @@ export function StudentLibraryBorrowForm({ collegeId }: Props) {
     );
   }
 
+  const isTimingClosed = timing ? !timing.isOpen : false;
+
   return (
     <div className="space-y-4">
-      {/* Library Info Bar */}
-      <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-[10px] sm:text-xs text-slate-500 bg-white/80 px-3 py-2.5 rounded-xl border border-slate-200/80">
-        <span className="flex items-center gap-1">
-          <BookMarked className="w-3 h-3 text-blue-500" />
-          Max <strong className="text-slate-900">{maxBooks}</strong> books
-        </span>
-        <span className="flex items-center gap-1">
-          <Clock className="w-3 h-3 text-amber-500" />
-          Max <strong className="text-slate-900">{maxDays}</strong> days
-        </span>
-        <span className="flex items-center gap-1">
-          <IndianRupee className="w-3 h-3 text-red-500" />
-          Late fine <strong className="text-slate-900">₹{finePerDay}/day</strong>
-        </span>
+      {/* Tab Switcher: Borrow Catalog vs Virtual Library Card */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 flex-wrap">
+        <button
+          type="button"
+          onClick={() => setSubView('catalog')}
+          className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            subView === 'catalog'
+              ? 'bg-bce-navy text-amber-400 shadow-sm'
+              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>Browse Books &amp; Borrow</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setSubView('card')}
+          className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            subView === 'card'
+              ? 'bg-bce-navy text-amber-400 shadow-sm'
+              : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          <span>Virtual Library Card</span>
+        </button>
       </div>
 
-      {error && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 animate-fade-in">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{error}</span>
-        </div>
-      )}
+      {/* ═════════════════ VIRTUAL LIBRARY CARD VIEW ═════════════════ */}
+      {subView === 'card' ? (
+        <VirtualLibraryCard
+          collegeId={collegeId}
+          studentName={formData.studentName || student?.fullName}
+          registrationNumber={student?.registrationNumber ?? undefined}
+          rollNumber={student?.registrationNumber ?? undefined}
+        />
+      ) : (
+        /* ═════════════════ BORROW CATALOG & FORM VIEW ═════════════════ */
+        <div className="space-y-4">
+          {/* Library Info & Operating Schedule Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-[10px] sm:text-xs text-slate-500">
+              <span className="flex items-center gap-1">
+                <BookMarked className="w-3.5 h-3.5 text-blue-500" />
+                Max <strong className="text-slate-900">{maxBooks}</strong> books
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-amber-500" />
+                Max <strong className="text-slate-900">{maxDays}</strong> days
+              </span>
+              <span className="flex items-center gap-1">
+                <IndianRupee className="w-3.5 h-3.5 text-red-500" />
+                Late fine <strong className="text-slate-900">₹{finePerDay}/day</strong>
+              </span>
+            </div>
+
+            {/* Live Timing Schedule Badge */}
+            {timing && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 font-medium">
+                  Hours: Mon–Sat 10:00 AM – 04:00 PM
+                </span>
+                {timing.isOpen ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Open Now
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                    Closed Now
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Timing Closure Warning Alert */}
+          {isTimingClosed && (
+            <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-xs text-amber-900 flex items-start gap-2.5 shadow-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">Library Book Registrations are Currently Closed</p>
+                <p className="text-[11px] text-amber-800 mt-0.5">
+                  {timing?.reason ||
+                    'Students can submit book borrow requests only from Monday to Saturday between 10:00 AM and 04:00 PM IST.'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 animate-fade-in">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
 
       <form
         onSubmit={handleSubmit}
@@ -334,5 +432,7 @@ export function StudentLibraryBorrowForm({ collegeId }: Props) {
         </div>
       </form>
     </div>
-  );
+  )}
+</div>
+);
 }

@@ -70,7 +70,7 @@ export function CompletionPage({
                 {collegeName || 'CampusFlow'}
               </div>
               <div className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate flex items-center gap-1">
-                <span>CampusFlow Platform</span>
+                <span>Campus Portal</span>
                 <span className="text-slate-300">·</span>
                 <span className="text-emerald-600 font-semibold">Verified</span>
               </div>

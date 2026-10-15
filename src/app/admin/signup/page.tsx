@@ -17,11 +17,64 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  ShieldCheck,
+  Calendar,
+  BookOpen,
+  ClipboardCheck,
+  Sparkles,
 } from 'lucide-react';
 
+const ROLE_OPTIONS = [
+  {
+    id: 'PRIMARY_ADMIN',
+    label: 'Primary College Admin',
+    desc: 'Institutional lead. Controls other admins & full college config.',
+    badge: 'Full Access + Admin Control',
+    icon: ShieldCheck,
+    color: 'border-amber-500/50 bg-amber-500/10 text-amber-400',
+  },
+  {
+    id: 'EVENT_COORDINATOR',
+    label: 'Event Coordinator',
+    desc: 'Organize college events, registrations, competitions & passes.',
+    badge: 'Events Tab',
+    icon: Calendar,
+    color: 'border-purple-500/50 bg-purple-500/10 text-purple-400',
+  },
+  {
+    id: 'LIBRARIAN',
+    label: 'Librarian',
+    desc: 'Manage book inventory, approve student borrows, timings & fines.',
+    badge: 'Library Tab',
+    icon: BookOpen,
+    color: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400',
+  },
+  {
+    id: 'FEEDBACK_EXAM_COORDINATOR',
+    label: 'Feedback & Exam Coordinator',
+    desc: 'Manage student feedback surveys, forms & examination schedules.',
+    badge: 'Feedback + Exams',
+    icon: ClipboardCheck,
+    color: 'border-sky-500/50 bg-sky-500/10 text-sky-400',
+  },
+] as const;
+
+type AdminRoleType = (typeof ROLE_OPTIONS)[number]['id'];
+
 function AdminSignupForm() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const initialRoleParam = searchParams.get('role')?.toUpperCase();
+  const defaultRole: AdminRoleType =
+    initialRoleParam === 'EVENT_COORDINATOR' ||
+    initialRoleParam === 'LIBRARIAN' ||
+    initialRoleParam === 'FEEDBACK_EXAM_COORDINATOR' ||
+    initialRoleParam === 'PRIMARY_ADMIN'
+      ? (initialRoleParam as AdminRoleType)
+      : 'PRIMARY_ADMIN';
+
+  const [role, setRole] = useState<AdminRoleType>(defaultRole);
+  const [name, setName] = useState(searchParams.get('name') || '');
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,8 +86,23 @@ function AdminSignupForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  useEffect(() => {
+    const roleParam = searchParams.get('role')?.toUpperCase();
+    if (
+      roleParam === 'EVENT_COORDINATOR' ||
+      roleParam === 'LIBRARIAN' ||
+      roleParam === 'FEEDBACK_EXAM_COORDINATOR' ||
+      roleParam === 'PRIMARY_ADMIN'
+    ) {
+      setRole(roleParam as AdminRoleType);
+    }
+    const nameParam = searchParams.get('name');
+    if (nameParam && !name) setName(nameParam);
+    const emailParam = searchParams.get('email');
+    if (emailParam && !email) setEmail(emailParam);
+  }, [searchParams]);
 
   useEffect(() => {
     async function loadColleges() {
@@ -104,6 +172,7 @@ function AdminSignupForm() {
           email: cleanEmail,
           password,
           collegeId: selectedCollegeId,
+          role,
         }),
       });
 
@@ -219,6 +288,79 @@ function AdminSignupForm() {
                   ))}
               </optgroup>
             </select>
+          </div>
+        </div>
+
+        {/* Desired Admin Role Selection */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+              Desired Role &amp; Access Level
+            </label>
+            <span className="text-[10px] text-amber-400 font-medium">
+              Role controls assigned dashboard tabs
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {ROLE_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              const isSelected = role === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setRole(opt.id)}
+                  className={`text-left p-3 rounded-xl border transition-all cursor-pointer relative ${
+                    isSelected
+                      ? `${opt.color} ring-2 ring-amber-400/40 shadow-md`
+                      : 'border-slate-700/80 bg-slate-900/60 text-slate-300 hover:border-slate-600 hover:bg-slate-900'
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        isSelected ? 'bg-white/10 text-white' : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-white leading-tight">
+                          {opt.label}
+                        </span>
+                      </div>
+                      <span className="inline-block mt-0.5 text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded bg-black/30 text-amber-300">
+                        {opt.badge}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-1 leading-snug">
+                        {opt.desc}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Student applicant callout */}
+          <div className="mt-2.5 p-2.5 rounded-lg bg-purple-950/40 border border-purple-800/40 flex items-center justify-between gap-2 text-[11px] text-purple-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+              <span>
+                <strong>Students:</strong> You can apply as an <strong>Event Coordinator</strong> for your college!
+              </span>
+            </div>
+            {role !== 'EVENT_COORDINATOR' && (
+              <button
+                type="button"
+                onClick={() => setRole('EVENT_COORDINATOR')}
+                className="text-[10px] font-bold text-amber-300 hover:text-amber-200 underline shrink-0 cursor-pointer"
+              >
+                Select Role
+              </button>
+            )}
           </div>
         </div>
 

@@ -21,8 +21,33 @@ import {
   Search,
   RefreshCw,
   Zap,
+  Calendar,
+  Globe,
+  AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import type { LibraryBook, BorrowRequest, LibrarySettings, LibraryStats } from '@/types/library';
+
+const DAYS_OF_WEEK = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+] as const;
+
+function formatTime12(timeStr?: string): string {
+  if (!timeStr) return '';
+  const [hStr, mStr] = timeStr.split(':');
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr || '0', 10);
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
 
 interface Props {
   activeCollegeId?: string;
@@ -49,12 +74,18 @@ export function LibraryManagementTab({ activeCollegeId }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [requestFilter, setRequestFilter] = useState<string>('ALL');
 
-  // Settings form
+  // Settings form with operating schedule controls
   const [settingsForm, setSettingsForm] = useState({
     maxBooksPerStudent: 3,
     maxBorrowDays: 15,
     finePerDay: 5,
     isEnabled: false,
+    isTimingEnforced: true,
+    operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as string[],
+    operatingStartTime: '10:00',
+    operatingEndTime: '16:00',
+    timingTimezone: 'Asia/Kolkata',
+    timingClosureMessage: 'Online book registration is available only Monday to Saturday, between 10:00 AM and 04:00 PM IST.',
   });
 
   const fetchLibraryData = useCallback(async () => {
@@ -74,6 +105,17 @@ export function LibraryManagementTab({ activeCollegeId }: Props) {
         maxBorrowDays: data.settings?.maxBorrowDays ?? 15,
         finePerDay: data.settings?.finePerDay ?? 5,
         isEnabled: data.settings?.isEnabled ?? false,
+        isTimingEnforced: data.settings?.isTimingEnforced ?? true,
+        operatingDays:
+          data.settings?.operatingDays && data.settings.operatingDays.length > 0
+            ? data.settings.operatingDays
+            : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+        operatingStartTime: data.settings?.operatingStartTime ?? '10:00',
+        operatingEndTime: data.settings?.operatingEndTime ?? '16:00',
+        timingTimezone: data.settings?.timingTimezone ?? 'Asia/Kolkata',
+        timingClosureMessage:
+          data.settings?.timingClosureMessage ??
+          'Online book registration is available only Monday to Saturday, between 10:00 AM and 04:00 PM IST.',
       });
     } catch (err: any) {
       setError(err.message);
@@ -903,6 +945,259 @@ export function LibraryManagementTab({ activeCollegeId }: Props) {
                   }`}
                 />
               </button>
+            </div>
+          </div>
+
+          {/* ─── Operating Timing Controls ─── */}
+          <div className="pt-4 border-t border-slate-100 space-y-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <h5 className="text-xs font-bold text-slate-900 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  Library Operating Schedule &amp; Timing Control
+                </h5>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Restricts students from submitting book borrow registration outside working hours.
+                </p>
+              </div>
+
+              {/* Timing Enforcement Toggle */}
+              <div className="flex items-center gap-2.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-700">Enforce Timing:</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSettingsForm((p) => ({ ...p, isTimingEnforced: !p.isTimingEnforced }))
+                  }
+                  className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
+                    settingsForm.isTimingEnforced ? 'bg-amber-500' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                      settingsForm.isTimingEnforced ? 'translate-x-4' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Live IST Status indicator banner */}
+            {(() => {
+              const preview = (() => {
+                if (!settingsForm.isTimingEnforced) {
+                  return {
+                    isOpen: true,
+                    text: '24/7 OPEN • Timing restrictions are currently OFF',
+                    color: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+                  };
+                }
+                try {
+                  const now = new Date();
+                  const formatter = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'Asia/Kolkata',
+                    weekday: 'long',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  });
+                  const parts = formatter.formatToParts(now);
+                  const day = parts.find((p) => p.type === 'weekday')?.value || '';
+                  const hour = parts.find((p) => p.type === 'hour')?.value || '00';
+                  const minute = parts.find((p) => p.type === 'minute')?.value || '00';
+                  const currentTimeStr = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+
+                  const isDayActive = settingsForm.operatingDays.includes(day);
+                  const isWithinHours =
+                    currentTimeStr >= settingsForm.operatingStartTime &&
+                    currentTimeStr < settingsForm.operatingEndTime;
+
+                  if (!isDayActive) {
+                    return {
+                      isOpen: false,
+                      text: `CLOSED TODAY (${day.toUpperCase()}) • Allowed days: ${settingsForm.operatingDays.map((d) => d.slice(0, 3)).join(', ')}`,
+                      color: 'text-rose-800 bg-rose-50 border-rose-200',
+                    };
+                  }
+                  if (!isWithinHours) {
+                    return {
+                      isOpen: false,
+                      text: `CURRENTLY CLOSED (${formatTime12(currentTimeStr)} IST) • Operating window: ${formatTime12(settingsForm.operatingStartTime)} – ${formatTime12(settingsForm.operatingEndTime)} IST`,
+                      color: 'text-rose-800 bg-rose-50 border-rose-200',
+                    };
+                  }
+                  return {
+                    isOpen: true,
+                    text: `CURRENTLY OPEN (${formatTime12(currentTimeStr)} IST) • Closes at ${formatTime12(settingsForm.operatingEndTime)} IST`,
+                    color: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+                  };
+                } catch {
+                  return {
+                    isOpen: true,
+                    text: 'Operating in Asia/Kolkata (IST)',
+                    color: 'text-blue-800 bg-blue-50 border-blue-200',
+                  };
+                }
+              })();
+
+              return (
+                <div
+                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-between gap-2 ${preview.color}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        preview.isOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                      }`}
+                    />
+                    <span>{preview.text}</span>
+                  </div>
+                  <span className="text-[10px] font-mono opacity-75">Asia/Kolkata (IST)</span>
+                </div>
+              );
+            })()}
+
+            {/* Operating Days */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Operating Days
+                </label>
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSettingsForm((p) => ({
+                        ...p,
+                        operatingDays: [
+                          'Monday',
+                          'Tuesday',
+                          'Wednesday',
+                          'Thursday',
+                          'Friday',
+                          'Saturday',
+                        ],
+                      }))
+                    }
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                  >
+                    Mon – Sat (Standard)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSettingsForm((p) => ({
+                        ...p,
+                        operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                      }))
+                    }
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                  >
+                    Mon – Fri
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSettingsForm((p) => ({
+                        ...p,
+                        operatingDays: [...DAYS_OF_WEEK],
+                      }))
+                    }
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                  >
+                    All 7 Days
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                {DAYS_OF_WEEK.map((day) => {
+                  const isChecked = settingsForm.operatingDays.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        setSettingsForm((p) => {
+                          const has = p.operatingDays.includes(day);
+                          if (has) {
+                            if (p.operatingDays.length <= 1) return p;
+                            return { ...p, operatingDays: p.operatingDays.filter((d) => d !== day) };
+                          }
+                          return { ...p, operatingDays: [...p.operatingDays, day] };
+                        });
+                      }}
+                      className={`p-2 rounded-xl text-xs font-bold text-center border transition-all cursor-pointer ${
+                        isChecked
+                          ? 'bg-bce-navy text-white border-bce-navy shadow-xs'
+                          : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      {day.slice(0, 3)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Operating Hours Window (Start & End Time) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Opening Time (IST)
+                </label>
+                <div className="relative">
+                  <input
+                    type="time"
+                    value={settingsForm.operatingStartTime}
+                    onChange={(e) =>
+                      setSettingsForm((p) => ({ ...p, operatingStartTime: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-mono font-bold text-bce-navy"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Displays as: {formatTime12(settingsForm.operatingStartTime)}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Closing Time (IST)
+                </label>
+                <div className="relative">
+                  <input
+                    type="time"
+                    value={settingsForm.operatingEndTime}
+                    onChange={(e) =>
+                      setSettingsForm((p) => ({ ...p, operatingEndTime: e.target.value }))
+                    }
+                    className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 font-mono font-bold text-bce-navy"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Displays as: {formatTime12(settingsForm.operatingEndTime)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Closure Notice */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Custom Off-Hours Student Notice
+              </label>
+              <textarea
+                rows={2}
+                value={settingsForm.timingClosureMessage}
+                onChange={(e) =>
+                  setSettingsForm((p) => ({ ...p, timingClosureMessage: e.target.value }))
+                }
+                placeholder="Message displayed to students when book registration is closed..."
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 text-slate-700 resize-none"
+              />
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Shown to students in the public library page outside allowed operating hours.
+              </p>
             </div>
           </div>
 

@@ -216,7 +216,7 @@ export function SignedUpStudentsSection({
     const link = document.createElement('a');
     link.href = url;
     const dateStr = new Date().toISOString().slice(0, 10);
-    link.download = `CampusFlow_Registered_Students_${dateStr}.csv`;
+    link.download = `Registered_Students_${dateStr}.csv`;
     link.click();
     URL.revokeObjectURL(url);
 

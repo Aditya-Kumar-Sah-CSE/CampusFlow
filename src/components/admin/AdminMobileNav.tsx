@@ -20,6 +20,7 @@ import {
   Globe,
   Calendar,
   FileCheck,
+  BookOpen,
 } from 'lucide-react';
 import type { AdminTab } from './AdminDashboardTabs';
 
@@ -34,6 +35,7 @@ interface Props {
   activeCollegeName?: string;
   publicSlug?: string;
   logoUrl?: string | null;
+  allowedTabs?: AdminTab[];
 }
 
 export function AdminMobileNav({
@@ -47,10 +49,11 @@ export function AdminMobileNav({
   activeCollegeName,
   publicSlug,
   logoUrl,
+  allowedTabs,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const sections: {
+  const rawSections: {
     title: string;
     items: {
       id: AdminTab;
@@ -67,6 +70,7 @@ export function AdminMobileNav({
         { id: 'forms', label: 'Feedback Forms', icon: FileSpreadsheet },
         { id: 'events', label: 'Events', icon: Calendar },
         { id: 'exams', label: 'Exams & Tests', icon: FileCheck },
+        { id: 'library', label: 'Library', icon: BookOpen },
       ],
     },
     {
@@ -104,6 +108,13 @@ export function AdminMobileNav({
       ],
     },
   ];
+
+  const sections = rawSections
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((item) => (allowedTabs ? allowedTabs.includes(item.id) : true)),
+    }))
+    .filter((s) => s.items.length > 0);
 
   const handleTabClick = (tabId: AdminTab) => {
     onSelectTab(tabId);

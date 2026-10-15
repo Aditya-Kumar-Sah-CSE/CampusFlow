@@ -100,6 +100,12 @@ export async function POST(request: NextRequest) {
           maxBorrowDays: body.maxBorrowDays,
           finePerDay: body.finePerDay,
           isEnabled: body.isEnabled,
+          operatingDays: body.operatingDays,
+          operatingStartTime: body.operatingStartTime,
+          operatingEndTime: body.operatingEndTime,
+          isTimingEnforced: body.isTimingEnforced,
+          timingTimezone: body.timingTimezone,
+          timingClosureMessage: body.timingClosureMessage,
         });
         return NextResponse.json({ success: true, settings: updated });
       }

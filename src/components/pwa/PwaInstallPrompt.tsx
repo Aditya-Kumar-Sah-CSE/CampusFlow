@@ -118,15 +118,15 @@ export function PwaInstallPrompt() {
   const isGec = tenantSlug === 'gec-gaya';
 
   const appDisplayName = isBce
-    ? 'BCE CampusFlow'
+    ? 'BCE BGP'
     : isGec
-    ? 'GEC-GAYA CampusFlow'
+    ? 'GEC GAYA'
     : 'CampusFlow';
 
   const installActionLabel = isBce
-    ? 'Install BCE CampusFlow'
+    ? 'Install BCE BGP'
     : isGec
-    ? 'Install GEC-GAYA CampusFlow'
+    ? 'Install GEC GAYA'
     : 'Install CampusFlow';
 
   const appDescription = isBce

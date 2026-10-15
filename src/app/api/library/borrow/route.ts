@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getLibrarySettings, getLibraryBooks, submitBorrowRequest } from '@/lib/library/service';
+import {
+  getLibrarySettings,
+  getLibraryBooks,
+  submitBorrowRequest,
+  isLibraryTimingOpen,
+} from '@/lib/library/service';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,20 +24,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         enabled: false,
         books: [],
+        timing: {
+          isOpen: false,
+          reason: 'Library module is not active for this institution.',
+          operatingDays: [],
+          startTime: '10:00',
+          endTime: '16:00',
+          isTimingEnforced: true,
+        },
         settings: { maxBooksPerStudent: 0, maxBorrowDays: 0, finePerDay: 0 },
       });
     }
 
+    const timing = isLibraryTimingOpen(settings);
     const books = await getLibraryBooks(collegeId);
     const availableBooks = books.filter((b) => b.availableCopies > 0);
 
     return NextResponse.json({
       enabled: true,
       books: availableBooks,
+      timing,
       settings: {
         maxBooksPerStudent: settings.maxBooksPerStudent,
         maxBorrowDays: settings.maxBorrowDays,
         finePerDay: settings.finePerDay,
+        operatingDays: settings.operatingDays,
+        operatingStartTime: settings.operatingStartTime,
+        operatingEndTime: settings.operatingEndTime,
+        isTimingEnforced: settings.isTimingEnforced,
+        timingClosureMessage: settings.timingClosureMessage,
       },
     });
   } catch (err: any) {
