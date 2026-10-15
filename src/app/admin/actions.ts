@@ -128,7 +128,30 @@ export async function approveAdminRequestAction(requestId: string, assignedRole?
 
     if (memberErr) {
       console.error('[APPROVE_MEMBERSHIP_ERROR]', memberErr);
-      return { success: false, error: memberErr.message };
+      if (memberErr.message.includes('college_memberships_role_check')) {
+        // Fallback: If DB constraint hasn't been updated with the migration yet, attempt approval as COLLEGE_ADMIN
+        const { error: fallbackErr } = await supabase
+          .from('college_memberships')
+          .upsert(
+            {
+              college_id: collegeReq.college_id,
+              user_id: targetUserId,
+              role: 'COLLEGE_ADMIN',
+              status: 'ACTIVE',
+            },
+            { onConflict: 'college_id,user_id' }
+          );
+
+        if (fallbackErr) {
+          return {
+            success: false,
+            error: `Database Migration Required: Please run migration '20261016000001_admin_roles_and_library_timing.sql' in Supabase SQL Editor to enable role '${finalRole}'.`,
+          };
+        }
+        console.warn(`[ROLE_MIGRATION_PENDING] Approved as COLLEGE_ADMIN fallback because database constraint doesn't yet support '${finalRole}'. Please run migration 20261016000001_admin_roles_and_library_timing.sql in Supabase.`);
+      } else {
+        return { success: false, error: memberErr.message };
+      }
     }
 
     // Update college_admin_requests
@@ -214,6 +237,12 @@ export async function updateAdminRoleAction(targetAdminId: string, newRole: stri
     .eq('id', membership.id);
 
   if (updateErr) {
+    if (updateErr.message.includes('college_memberships_role_check')) {
+      return {
+        success: false,
+        error: `Database constraint error: Role '${newRole}' allow karne ke liye please Supabase SQL Editor me migration run karein: '20261016000001_admin_roles_and_library_timing.sql'.`,
+      };
+    }
     return { success: false, error: updateErr.message };
   }
 

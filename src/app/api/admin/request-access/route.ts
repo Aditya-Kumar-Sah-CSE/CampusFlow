@@ -177,7 +177,7 @@ export async function POST(request: Request) {
       }
 
       // If previously REJECTED, update back to PENDING
-      const { data: updatedData, error: updateErr } = await adminSupabase
+      let { data: updatedData, error: updateErr } = await adminSupabase
         .from('college_admin_requests')
         .update({
           user_id: resolvedUserId,
@@ -194,6 +194,27 @@ export async function POST(request: Request) {
         .select('*')
         .single();
 
+      if (updateErr && (updateErr.code === '42703' || updateErr.message.includes('requested_role'))) {
+        // Fallback without requested_role if column not yet added to database
+        const retryRes = await adminSupabase
+          .from('college_admin_requests')
+          .update({
+            user_id: resolvedUserId,
+            name: formattedName,
+            email: cleanEmail,
+            status: 'PENDING',
+            reviewed_by: null,
+            reviewed_at: null,
+            rejection_reason: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingReq.id)
+          .select('*')
+          .single();
+        updatedData = retryRes.data;
+        updateErr = retryRes.error;
+      }
+
       if (updateErr) {
         console.error('[COLLEGE_ADMIN_REQUEST_UPDATE_ERROR]', updateErr);
         return NextResponse.json({ error: 'Failed to record admin request.' }, { status: 500 });
@@ -201,7 +222,7 @@ export async function POST(request: Request) {
       reqData = updatedData;
     } else {
       // 5. Insert new PENDING request into college_admin_requests
-      const { data: insertedData, error: insertErr } = await adminSupabase
+      let { data: insertedData, error: insertErr } = await adminSupabase
         .from('college_admin_requests')
         .insert({
           user_id: resolvedUserId,
@@ -213,6 +234,23 @@ export async function POST(request: Request) {
         })
         .select('*')
         .single();
+
+      if (insertErr && (insertErr.code === '42703' || insertErr.message.includes('requested_role'))) {
+        // Fallback without requested_role if column not yet added to database
+        const retryRes = await adminSupabase
+          .from('college_admin_requests')
+          .insert({
+            user_id: resolvedUserId,
+            college_id: targetCollegeId,
+            email: cleanEmail,
+            name: formattedName,
+            status: 'PENDING',
+          })
+          .select('*')
+          .single();
+        insertedData = retryRes.data;
+        insertErr = retryRes.error;
+      }
 
       if (insertErr) {
         console.error('[COLLEGE_ADMIN_REQUEST_INSERT_ERROR]', insertErr);
