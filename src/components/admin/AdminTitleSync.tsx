@@ -11,17 +11,17 @@ interface Props {
 export function AdminTitleSync({ college }: Props) {
   const collegeCode = college?.code;
   const collegeSlug = college?.slug;
-  const brand = getCampusFlowBrand({ code: collegeCode });
+  const brand = getCampusFlowBrand({ code: collegeCode, slug: collegeSlug });
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
-    const expectedTitle = collegeCode ? `${brand.displayName} | Admin Dashboard` : brand.displayName;
+    const expectedTitle = collegeSlug || collegeCode ? `${brand.displayName} | Admin Dashboard` : brand.displayName;
 
     // Synchronize document.title immediately on client mount and tenant switch
     document.title = expectedTitle;
 
-    const brandDescription = getCampusFlowDescription({ code: collegeCode });
+    const brandDescription = getCampusFlowDescription({ code: collegeCode, slug: collegeSlug });
     for (const [selector, content] of [
       ['meta[name="application-name"]', brand.displayName],
       ['meta[name="apple-mobile-web-app-title"]', brand.displayName],

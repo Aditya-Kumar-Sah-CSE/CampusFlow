@@ -31,10 +31,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const event = await getPublicEventBySlugGlobal(slug);
-  const brand = getCampusFlowBrand({ code: event?.college?.code });
+  const brand = getCampusFlowBrand({
+    code: event?.college?.code,
+    slug: event?.college?.slug,
+  });
   return {
     title: event ? `${brand.displayName} | ${event.title}` : brand.displayName,
-    description: getCampusFlowDescription({ code: event?.college?.code }),
+    description: getCampusFlowDescription({
+      code: event?.college?.code,
+      slug: event?.college?.slug,
+    }),
     openGraph: { title: event ? `${brand.displayName} | ${event.title}` : brand.displayName },
     twitter: { title: event ? `${brand.displayName} | ${event.title}` : brand.displayName },
   };

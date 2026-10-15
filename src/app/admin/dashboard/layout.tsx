@@ -26,7 +26,7 @@ export async function generateViewport(): Promise<Viewport> {
 export async function generateMetadata(): Promise<Metadata> {
   const session = await getAdminSession();
   const college = session.activeCollege;
-  const brand = getCampusFlowBrand(college ? { code: college.code } : null);
+  const brand = getCampusFlowBrand(college ? { code: college.code, slug: college.slug } : null);
   const slug = college?.slug;
 
   const appTitle = brand.displayName;
@@ -140,7 +140,7 @@ export default async function AdminDashboardLayout({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <span className="font-bold text-xs sm:text-base tracking-tight text-white truncate max-w-[100px] xs:max-w-[140px] sm:max-w-none">
-                  {getCampusFlowBrand(activeCollege ? { code: activeCollege.code } : null).displayName}
+                  {getCampusFlowBrand(activeCollege ? { code: activeCollege.code, slug: activeCollege.slug } : null).displayName}
                 </span>
                 <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 shrink-0">
                   Admin

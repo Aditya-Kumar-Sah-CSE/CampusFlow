@@ -31,7 +31,7 @@ export function createTenantContext(college: College, settings?: LandingPageSett
     collegeId: college.id,
     slug: college.slug,
     name: college.name,
-    shortName: college.code,
+    shortName: college.slug ? college.slug.replace(/[-_]+/g, ' ').toUpperCase() : college.code,
     code: college.code,
     logo: college.logo_url || null,
     websiteUrl: college.website_url || null,

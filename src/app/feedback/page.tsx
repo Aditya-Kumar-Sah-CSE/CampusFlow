@@ -55,7 +55,7 @@ export default async function FeedbackPortalPage() {
   const collegeLogo = activeCollege?.logo_url || null;
   const collegeName = activeCollege?.name || 'College';
   const collegeCode = activeCollege?.code || null;
-  const brand = getCampusFlowBrand({ code: collegeCode });
+  const brand = getCampusFlowBrand({ code: collegeCode, slug: activeCollege?.slug });
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">

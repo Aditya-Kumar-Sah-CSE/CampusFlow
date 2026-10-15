@@ -11,7 +11,10 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const result = await getPublicFeedbackFormByIdAction(id);
-  const brand = getCampusFlowBrand({ code: result.form?.college?.code });
+  const brand = getCampusFlowBrand({
+    code: result.form?.college?.code,
+    slug: result.form?.college?.slug,
+  });
   return {
     title: brand.displayName,
     description: `${brand.displayName} is a unified college platform for feedback, events, student registration, participation and campus activities.`,
@@ -29,7 +32,10 @@ export default async function DirectFeedbackPage({
   const result = await getPublicFeedbackFormByIdAction(id);
   const collegeLogo = result.form?.college?.logo_url || null;
   const collegeName = result.form?.college?.name || 'College';
-  const brand = getCampusFlowBrand({ code: result.form?.college?.code });
+  const brand = getCampusFlowBrand({
+    code: result.form?.college?.code,
+    slug: result.form?.college?.slug,
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">

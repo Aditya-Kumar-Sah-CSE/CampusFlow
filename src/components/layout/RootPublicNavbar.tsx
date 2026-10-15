@@ -18,8 +18,16 @@ import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
 import { useStudentSession } from '@/lib/auth/use-student-session';
 
-export function RootPublicNavbar({ eventId, tenantCode }: { eventId?: string; tenantCode?: string | null } = {}) {
-  const brand = getCampusFlowBrand({ code: tenantCode });
+export function RootPublicNavbar({
+  eventId,
+  tenantCode,
+  tenantSlug,
+}: {
+  eventId?: string;
+  tenantCode?: string | null;
+  tenantSlug?: string | null;
+} = {}) {
+  const brand = getCampusFlowBrand({ code: tenantCode, slug: tenantSlug });
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const [unreadInvitations, setUnreadInvitations] = useState(0);
