@@ -219,7 +219,12 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
               </div>
             </div>
 
-            <StudentLibraryBorrowForm collegeId={tenant.collegeId} />
+            <StudentLibraryBorrowForm
+              collegeId={tenant.collegeId}
+              collegeName={tenant.name}
+              collegeLogoUrl={tenant.logo}
+              collegeSlug={tenant.slug}
+            />
           </section>
         )}
       </main>

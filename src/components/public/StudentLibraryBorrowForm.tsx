@@ -16,7 +16,6 @@ import {
   Send,
   ArrowLeft,
   CreditCard,
-  Calendar,
   AlertTriangle,
 } from 'lucide-react';
 import type { LibraryBook, LibraryTimingCheckResult } from '@/types/library';
@@ -25,9 +24,17 @@ import { useStudentSession } from '@/lib/auth/use-student-session';
 
 interface Props {
   collegeId: string;
+  collegeName?: string;
+  collegeLogoUrl?: string | null;
+  collegeSlug?: string;
 }
 
-export function StudentLibraryBorrowForm({ collegeId }: Props) {
+export function StudentLibraryBorrowForm({
+  collegeId,
+  collegeName,
+  collegeLogoUrl,
+  collegeSlug,
+}: Props) {
   const { student, isAuthenticated } = useStudentSession();
   const [subView, setSubView] = useState<'catalog' | 'card'>('catalog');
   const [loading, setLoading] = useState(true);
@@ -214,6 +221,9 @@ export function StudentLibraryBorrowForm({ collegeId }: Props) {
       {subView === 'card' ? (
         <VirtualLibraryCard
           collegeId={collegeId}
+          collegeSlug={collegeSlug}
+          collegeName={collegeName}
+          collegeLogoUrl={collegeLogoUrl}
           studentName={formData.studentName || student?.fullName}
           registrationNumber={student?.registrationNumber ?? undefined}
           rollNumber={student?.registrationNumber ?? undefined}

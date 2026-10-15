@@ -465,7 +465,8 @@ export async function getStudentLibraryCardData(
     .single();
 
   const collegeName = college?.name || 'Institution Library';
-  const collegeCode = college?.code || 'LIB';
+  const collegeSlug = college?.slug || null;
+  const collegeCode = college?.slug ? college.slug.replace(/[-_]+/g, ' ').toUpperCase() : (college?.code || 'LIB');
   const collegeLogoUrl = college?.logo_url || null;
 
   // Fetch settings for maxBooksPerStudent
@@ -553,6 +554,7 @@ export async function getStudentLibraryCardData(
     collegeId,
     collegeName,
     collegeCode,
+    collegeSlug,
     collegeLogoUrl,
     studentName,
     rollNumber,

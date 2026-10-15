@@ -65,6 +65,7 @@ export interface VirtualLibraryCardData {
   collegeId: string;
   collegeName: string;
   collegeCode: string;
+  collegeSlug?: string | null;
   collegeLogoUrl?: string | null;
   studentName: string;
   rollNumber: string;
