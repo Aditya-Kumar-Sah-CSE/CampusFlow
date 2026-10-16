@@ -30,6 +30,13 @@ export const requestAccessSchema = z.object({
   contactNumber: z.string().trim().max(20).optional().nullable(),
   collegeId: z.string().uuid('College ID must be a valid UUID').optional().nullable(),
   collegeSlug: z.string().trim().max(100).optional().nullable(),
+  phone: z.string().trim().max(50).optional().nullable(),
+  registrationNumber: z.string().trim().max(100).optional().nullable(),
+  rollNumber: z.string().trim().max(100).optional().nullable(),
+  semester: z.string().trim().max(50).optional().nullable(),
+  academicSession: z.string().trim().max(50).optional().nullable(),
+  branch: z.string().trim().max(100).optional().nullable(),
+  eventDescription: z.string().trim().max(3000).optional().nullable(),
 });
 
 export const semesterFormItemSchema = z.object({

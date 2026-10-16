@@ -140,6 +140,14 @@ export interface AdminRequest {
   name: string;
   status: AdminRequestStatus;
   requested_role?: string | null;
+  phone?: string | null;
+  registration_number?: string | null;
+  roll_number?: string | null;
+  semester?: string | null;
+  academic_session?: string | null;
+  branch?: string | null;
+  event_description?: string | null;
+  application_details?: Record<string, any> | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
   created_at: string;

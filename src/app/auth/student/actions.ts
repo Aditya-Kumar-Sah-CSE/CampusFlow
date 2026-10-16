@@ -979,4 +979,30 @@ export async function checkStudentRegistrationNumberAction(
   }
 }
 
+/**
+ * Fetches academic masters (branches, semesters, academic sessions) for a college.
+ * Used for student forms and coordinator applications.
+ */
+export async function getCollegeAcademicMastersForStudentAction(collegeId: string): Promise<{
+  success: boolean;
+  branches: Array<{ id: string; name: string; code: string }>;
+  semesters: Array<{ id: string; name: string; semester_number: number }>;
+  academicYears: Array<{ id: string; name: string }>;
+}> {
+  try {
+    if (!collegeId) return { success: true, branches: [], semesters: [], academicYears: [] };
+    const { getCachedAcademicMasters } = await import('@/lib/supabase/academic-cache');
+    const masters = await getCachedAcademicMasters(collegeId);
+    return {
+      success: true,
+      branches: (masters.branches || []).map((b) => ({ id: b.id, name: b.name, code: b.code })),
+      semesters: (masters.semesters || []).map((s) => ({ id: s.id, name: s.name, semester_number: s.semester_number })),
+      academicYears: (masters.academicYears || []).map((y) => ({ id: y.id, name: y.name })),
+    };
+  } catch (err) {
+    console.error('[getCollegeAcademicMastersForStudentAction_error]', err);
+    return { success: false, branches: [], semesters: [], academicYears: [] };
+  }
+}
+
 

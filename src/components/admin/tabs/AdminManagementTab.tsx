@@ -33,6 +33,10 @@ import {
   Shield,
   ShieldQuestion,
   UserCog,
+  Phone,
+  FileText,
+  Hash,
+  Eye,
 } from 'lucide-react';
 import type { Admin, AdminRequest } from '@/types/database';
 import { useHydrated, formatDateShort, formatTime } from '@/lib/hooks/use-hydrated';
@@ -166,6 +170,7 @@ export function AdminManagementTab({
   const [changingRoleAdmin, setChangingRoleAdmin] = useState<Admin | null>(null);
   const [selectedNewRole, setSelectedNewRole] = useState<string>('COLLEGE_ADMIN');
   const [revokeReason, setRevokeReason] = useState<string>('');
+  const [viewingRequestDetails, setViewingRequestDetails] = useState<AdminRequest | null>(null);
 
   const pendingRequests = requests.filter((r) => r.status === 'PENDING');
   const pastRequests = requests.filter((r) => r.status !== 'PENDING');
@@ -589,30 +594,83 @@ export function AdminManagementTab({
                         <span className="text-[10px] text-amber-700 font-mono">({req.college.code})</span>
                       </div>
                     )}
+
+                    {/* Coordinator Details Card on Mobile */}
+                    {(req.branch || req.semester || req.phone || req.roll_number || req.event_description) && (
+                      <div className="p-2.5 bg-purple-50/60 rounded-xl border border-purple-200/60 text-xs space-y-1">
+                        {req.phone && (
+                          <div className="flex justify-between items-center text-slate-600">
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-purple-600" /> Mobile:
+                            </span>
+                            <a href={`tel:${req.phone}`} className="font-mono font-bold text-purple-900 hover:underline">
+                              {req.phone}
+                            </a>
+                          </div>
+                        )}
+                        {(req.branch || req.semester) && (
+                          <div className="flex justify-between items-center text-slate-600">
+                            <span className="flex items-center gap-1">
+                              <GraduationCap className="w-3 h-3 text-purple-600" /> Branch &amp; Sem:
+                            </span>
+                            <span className="font-semibold text-purple-950 truncate max-w-[170px]" title={req.branch || ''}>
+                              {req.branch} {req.semester ? `(${req.semester})` : ''}
+                            </span>
+                          </div>
+                        )}
+                        {(req.roll_number || req.registration_number) && (
+                          <div className="flex justify-between items-center text-[11px] text-slate-500 font-mono">
+                            <span>Roll / Reg:</span>
+                            <span>{req.roll_number || '—'} / {req.registration_number || '—'}</span>
+                          </div>
+                        )}
+                        {req.academic_session && (
+                          <div className="flex justify-between items-center text-[11px] text-slate-500">
+                            <span>Session:</span>
+                            <span className="font-semibold text-slate-700">{req.academic_session}</span>
+                          </div>
+                        )}
+                        {req.event_description && (
+                          <div className="pt-1 border-t border-purple-200/50 text-[11px] text-slate-700">
+                            <span className="font-bold text-purple-900">Event Statement: </span>
+                            <span className="line-clamp-2">{req.event_description}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="text-xs font-mono text-slate-600 break-all">
                       {req.email}
                     </div>
                     <div className="text-[11px] text-slate-400">
                       Requested: {formatDateShort(req.created_at, hydrated)} at {formatTime(req.created_at, hydrated)}
                     </div>
+
                     <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewingRequestDetails(req)}
+                        className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-semibold text-xs transition-colors border border-purple-200 cursor-pointer flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Details</span>
+                      </button>
                       <button
                         onClick={() => handleApprove(req.id, req.requested_role || 'COLLEGE_ADMIN')}
                         disabled={isPending}
                         aria-busy={isApproving}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
                       >
                         {isApproving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                        <span>{isApproving ? 'Approving...' : `Approve as ${roleCfg.badge}`}</span>
+                        <span>{isApproving ? 'Approving...' : `Approve`}</span>
                       </button>
                       <button
                         onClick={() => handleReject(req.id)}
                         disabled={isPending}
                         aria-busy={isRejecting}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
                       >
                         {isRejecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                        <span>{isRejecting ? 'Rejecting...' : 'Reject'}</span>
                       </button>
                     </div>
                   </div>
@@ -628,7 +686,7 @@ export function AdminManagementTab({
                     <th className="px-5 py-3">Applicant Name</th>
                     <th className="px-5 py-3">Institution</th>
                     <th className="px-5 py-3">Requested Role</th>
-                    <th className="px-5 py-3">Email Address</th>
+                    <th className="px-5 py-3">Contact &amp; Email</th>
                     <th className="px-5 py-3">Request Date</th>
                     <th className="px-5 py-3">Status</th>
                     <th className="px-5 py-3 text-right">Actions</th>
@@ -645,7 +703,27 @@ export function AdminManagementTab({
                     return (
                       <tr key={req.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="px-5 py-3.5 font-bold text-slate-800">
-                          {req.name}
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">{req.name}</span>
+                            {(req.branch || req.semester) && (
+                              <div className="flex items-center gap-1 flex-wrap mt-1">
+                                <span
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/60 max-w-[200px] truncate"
+                                  title={`${req.branch} • ${req.semester}`}
+                                >
+                                  <GraduationCap className="w-3 h-3 text-purple-600 shrink-0" />
+                                  {req.branch} {req.semester ? `• ${req.semester}` : ''}
+                                </span>
+                              </div>
+                            )}
+                            {(req.roll_number || req.registration_number) && (
+                              <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                {req.roll_number ? `Roll: ${req.roll_number}` : ''}
+                                {req.roll_number && req.registration_number ? ' | ' : ''}
+                                {req.registration_number ? `Reg: ${req.registration_number}` : ''}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-3.5">
                           {req.college ? (
@@ -670,8 +748,16 @@ export function AdminManagementTab({
                             {roleCfg.label}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 font-mono text-slate-600">
-                          {req.email}
+                        <td className="px-5 py-3.5">
+                          <div className="font-mono text-slate-600">{req.email}</div>
+                          {req.phone && (
+                            <div className="text-[11px] font-mono text-purple-700 font-semibold flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-purple-600 shrink-0" />
+                              <a href={`tel:${req.phone}`} className="hover:underline">
+                                {req.phone}
+                              </a>
+                            </div>
+                          )}
                         </td>
                         <td className="px-5 py-3.5 text-slate-500">
                           {formatDateShort(req.created_at, hydrated)} at{' '}
@@ -682,7 +768,18 @@ export function AdminManagementTab({
                             PENDING
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-right space-x-2">
+                        <td className="px-5 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+                          {/* View Application Details Button */}
+                          <button
+                            type="button"
+                            onClick={() => setViewingRequestDetails(req)}
+                            title="View Coordinator Details & Statement"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Details</span>
+                          </button>
+
                           <button
                             onClick={() => handleApprove(req.id, req.requested_role || 'COLLEGE_ADMIN')}
                             disabled={isPending}
@@ -1588,6 +1685,191 @@ export function AdminManagementTab({
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Application Details Review Modal (Event Coordinator / Student Requests) */}
+      {viewingRequestDetails && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isPending) setViewingRequestDetails(null);
+          }}
+        >
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
+            {/* Header Banner */}
+            <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-bce-navy p-4 sm:p-5 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Calendar className="w-5 h-5 text-purple-300" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm sm:text-base font-bold truncate">
+                      Coordinator Application Details
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-amber-950 uppercase tracking-wider">
+                      PENDING
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-purple-200 truncate">
+                    Submitted on {formatDateShort(viewingRequestDetails.created_at, hydrated)} at {formatTime(viewingRequestDetails.created_at, hydrated)}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewingRequestDetails(null)}
+                aria-label="Close dialog"
+                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+              {/* Applicant Overview Card */}
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Applicant Name:</span>
+                  <span className="font-bold text-slate-900 text-sm">{viewingRequestDetails.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-medium">Email Address:</span>
+                  <a href={`mailto:${viewingRequestDetails.email}`} className="font-mono text-purple-700 hover:underline">
+                    {viewingRequestDetails.email}
+                  </a>
+                </div>
+                {viewingRequestDetails.phone && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-medium flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-purple-600" /> Mobile Number:
+                    </span>
+                    <a href={`tel:${viewingRequestDetails.phone}`} className="font-mono font-bold text-purple-900 hover:underline">
+                      {viewingRequestDetails.phone}
+                    </a>
+                  </div>
+                )}
+                {viewingRequestDetails.college && (
+                  <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                    <span className="text-slate-500 font-medium flex items-center gap-1">
+                      <Building2 className="w-3.5 h-3.5 text-slate-500" /> College:
+                    </span>
+                    <span className="font-semibold text-slate-800">
+                      {viewingRequestDetails.college.name} ({viewingRequestDetails.college.code})
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Academic Identifiers Grid */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px] block">
+                  Academic Credentials
+                </span>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200/60">
+                    <span className="text-[10px] uppercase font-bold text-purple-700 block mb-0.5">
+                      Branch / Stream
+                    </span>
+                    <span className="font-bold text-slate-900 block truncate" title={viewingRequestDetails.branch || '—'}>
+                      {viewingRequestDetails.branch || 'Not specified'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200/60">
+                    <span className="text-[10px] uppercase font-bold text-purple-700 block mb-0.5">
+                      Semester
+                    </span>
+                    <span className="font-bold text-slate-900 block">
+                      {viewingRequestDetails.semester || '—'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200/60">
+                    <span className="text-[10px] uppercase font-bold text-purple-700 block mb-0.5">
+                      Registration Number
+                    </span>
+                    <span className="font-mono font-bold text-slate-900 block truncate" title={viewingRequestDetails.registration_number || '—'}>
+                      {viewingRequestDetails.registration_number || '—'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-purple-50/60 rounded-xl border border-purple-200/60">
+                    <span className="text-[10px] uppercase font-bold text-purple-700 block mb-0.5">
+                      Class Roll Number
+                    </span>
+                    <span className="font-mono font-bold text-slate-900 block truncate" title={viewingRequestDetails.roll_number || '—'}>
+                      {viewingRequestDetails.roll_number || '—'}
+                    </span>
+                  </div>
+
+                  <div className="col-span-2 p-3 bg-purple-50/60 rounded-xl border border-purple-200/60">
+                    <span className="text-[10px] uppercase font-bold text-purple-700 block mb-0.5">
+                      Academic Session
+                    </span>
+                    <span className="font-semibold text-slate-800 block">
+                      {viewingRequestDetails.academic_session || '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Coordinator Vision / Statement */}
+              <div className="space-y-1.5">
+                <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                  Event Coordinator Description &amp; Vision
+                </span>
+                <div className="p-3.5 bg-amber-50/40 rounded-xl border border-amber-200/70 text-slate-700 leading-relaxed text-xs whitespace-pre-wrap">
+                  {viewingRequestDetails.event_description || 'No description provided by applicant.'}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Bottom Actions */}
+            <div className="p-3.5 sm:p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewingRequestDetails(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const reqId = viewingRequestDetails.id;
+                    setViewingRequestDetails(null);
+                    handleReject(reqId);
+                  }}
+                  disabled={isPending}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors shadow-sm cursor-pointer"
+                >
+                  Reject
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const reqId = viewingRequestDetails.id;
+                    const role = viewingRequestDetails.requested_role || 'EVENT_COORDINATOR';
+                    setViewingRequestDetails(null);
+                    handleApprove(reqId, role);
+                  }}
+                  disabled={isPending}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-sm cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Approve Application</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

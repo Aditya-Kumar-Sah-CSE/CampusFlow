@@ -18,7 +18,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, role, collegeId, collegeSlug } = validation.data;
+    const {
+      name,
+      email,
+      role,
+      collegeId,
+      collegeSlug,
+      phone,
+      registrationNumber,
+      rollNumber,
+      semester,
+      academicSession,
+      branch,
+      eventDescription,
+    } = validation.data;
     const cleanEmail = email.trim().toLowerCase();
     const formattedName = name.trim();
     const requestedRole = role || 'COLLEGE_ADMIN';
@@ -157,6 +170,62 @@ export async function POST(request: Request) {
       .limit(1)
       .maybeSingle();
 
+    // Mandatory validation for EVENT_COORDINATOR applications
+    if (requestedRole === 'EVENT_COORDINATOR') {
+      if (!phone || !phone.trim()) {
+        return NextResponse.json(
+          { error: 'Mobile number is mandatory for Event Coordinator application.' },
+          { status: 400 }
+        );
+      }
+      if (!registrationNumber || !registrationNumber.trim()) {
+        return NextResponse.json(
+          { error: 'University/College Registration Number is mandatory.' },
+          { status: 400 }
+        );
+      }
+      if (!rollNumber || !rollNumber.trim()) {
+        return NextResponse.json(
+          { error: 'College/Class Roll Number is mandatory.' },
+          { status: 400 }
+        );
+      }
+      if (!branch || !branch.trim()) {
+        return NextResponse.json(
+          { error: 'Academic Branch is mandatory.' },
+          { status: 400 }
+        );
+      }
+      if (!semester || !semester.trim()) {
+        return NextResponse.json(
+          { error: 'Academic Semester is mandatory.' },
+          { status: 400 }
+        );
+      }
+      if (!academicSession || !academicSession.trim()) {
+        return NextResponse.json(
+          { error: 'Academic Session is mandatory.' },
+          { status: 400 }
+        );
+      }
+      if (!eventDescription || !eventDescription.trim()) {
+        return NextResponse.json(
+          { error: 'Event Coordinator description/vision statement is mandatory.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    const applicationDetails = {
+      phone: phone?.trim() || null,
+      registrationNumber: registrationNumber?.trim() || null,
+      rollNumber: rollNumber?.trim() || null,
+      semester: semester?.trim() || null,
+      academicSession: academicSession?.trim() || null,
+      branch: branch?.trim() || null,
+      eventDescription: eventDescription?.trim() || null,
+    };
+
     let reqData;
 
     if (existingReq) {
@@ -176,32 +245,43 @@ export async function POST(request: Request) {
         );
       }
 
-      // If previously REJECTED, update back to PENDING
+      // If previously REJECTED, update back to PENDING with full application details
+      const updatePayloadWithAll: any = {
+        user_id: resolvedUserId,
+        name: formattedName,
+        email: cleanEmail,
+        requested_role: requestedRole,
+        phone: applicationDetails.phone,
+        registration_number: applicationDetails.registrationNumber,
+        roll_number: applicationDetails.rollNumber,
+        semester: applicationDetails.semester,
+        academic_session: applicationDetails.academicSession,
+        branch: applicationDetails.branch,
+        event_description: applicationDetails.eventDescription,
+        application_details: applicationDetails,
+        status: 'PENDING',
+        reviewed_by: null,
+        reviewed_at: null,
+        rejection_reason: null,
+        updated_at: new Date().toISOString(),
+      };
+
       let { data: updatedData, error: updateErr } = await adminSupabase
         .from('college_admin_requests')
-        .update({
-          user_id: resolvedUserId,
-          name: formattedName,
-          email: cleanEmail,
-          requested_role: requestedRole,
-          status: 'PENDING',
-          reviewed_by: null,
-          reviewed_at: null,
-          rejection_reason: null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayloadWithAll)
         .eq('id', existingReq.id)
         .select('*')
         .single();
 
-      if (updateErr && (updateErr.code === '42703' || updateErr.message.includes('requested_role'))) {
-        // Fallback without requested_role if column not yet added to database
-        const retryRes = await adminSupabase
+      if (updateErr && (updateErr.code === '42703' || updateErr.message.includes('column') || updateErr.message.includes('does not exist'))) {
+        // Fallback without specific columns if migration not applied yet, try application_details only or requested_role
+        const fallbackRes = await adminSupabase
           .from('college_admin_requests')
           .update({
             user_id: resolvedUserId,
             name: formattedName,
             email: cleanEmail,
+            requested_role: requestedRole,
             status: 'PENDING',
             reviewed_by: null,
             reviewed_at: null,
@@ -211,8 +291,28 @@ export async function POST(request: Request) {
           .eq('id', existingReq.id)
           .select('*')
           .single();
-        updatedData = retryRes.data;
-        updateErr = retryRes.error;
+        updatedData = fallbackRes.data;
+        updateErr = fallbackRes.error;
+
+        if (updateErr && (updateErr.code === '42703' || updateErr.message.includes('requested_role'))) {
+          const minimalRes = await adminSupabase
+            .from('college_admin_requests')
+            .update({
+              user_id: resolvedUserId,
+              name: formattedName,
+              email: cleanEmail,
+              status: 'PENDING',
+              reviewed_by: null,
+              reviewed_at: null,
+              rejection_reason: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingReq.id)
+            .select('*')
+            .single();
+          updatedData = minimalRes.data;
+          updateErr = minimalRes.error;
+        }
       }
 
       if (updateErr) {
@@ -222,34 +322,61 @@ export async function POST(request: Request) {
       reqData = updatedData;
     } else {
       // 5. Insert new PENDING request into college_admin_requests
+      const insertPayloadWithAll: any = {
+        user_id: resolvedUserId,
+        college_id: targetCollegeId,
+        email: cleanEmail,
+        name: formattedName,
+        requested_role: requestedRole,
+        phone: applicationDetails.phone,
+        registration_number: applicationDetails.registrationNumber,
+        roll_number: applicationDetails.rollNumber,
+        semester: applicationDetails.semester,
+        academic_session: applicationDetails.academicSession,
+        branch: applicationDetails.branch,
+        event_description: applicationDetails.eventDescription,
+        application_details: applicationDetails,
+        status: 'PENDING',
+      };
+
       let { data: insertedData, error: insertErr } = await adminSupabase
         .from('college_admin_requests')
-        .insert({
-          user_id: resolvedUserId,
-          college_id: targetCollegeId,
-          email: cleanEmail,
-          name: formattedName,
-          requested_role: requestedRole,
-          status: 'PENDING',
-        })
+        .insert(insertPayloadWithAll)
         .select('*')
         .single();
 
-      if (insertErr && (insertErr.code === '42703' || insertErr.message.includes('requested_role'))) {
-        // Fallback without requested_role if column not yet added to database
-        const retryRes = await adminSupabase
+      if (insertErr && (insertErr.code === '42703' || insertErr.message.includes('column') || insertErr.message.includes('does not exist'))) {
+        // Fallback without extended coordinator columns
+        const fallbackRes = await adminSupabase
           .from('college_admin_requests')
           .insert({
             user_id: resolvedUserId,
             college_id: targetCollegeId,
             email: cleanEmail,
             name: formattedName,
+            requested_role: requestedRole,
             status: 'PENDING',
           })
           .select('*')
           .single();
-        insertedData = retryRes.data;
-        insertErr = retryRes.error;
+        insertedData = fallbackRes.data;
+        insertErr = fallbackRes.error;
+
+        if (insertErr && (insertErr.code === '42703' || insertErr.message.includes('requested_role'))) {
+          const minimalRes = await adminSupabase
+            .from('college_admin_requests')
+            .insert({
+              user_id: resolvedUserId,
+              college_id: targetCollegeId,
+              email: cleanEmail,
+              name: formattedName,
+              status: 'PENDING',
+            })
+            .select('*')
+            .single();
+          insertedData = minimalRes.data;
+          insertErr = minimalRes.error;
+        }
       }
 
       if (insertErr) {
@@ -257,6 +384,22 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Failed to record admin request.' }, { status: 500 });
       }
       reqData = insertedData;
+    }
+
+    // Sync student's registration number to students table if not set yet
+    if (resolvedUserId && registrationNumber?.trim()) {
+      try {
+        await adminSupabase
+          .from('students')
+          .update({
+            registration_number: registrationNumber.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', resolvedUserId)
+          .is('registration_number', null);
+      } catch (studentSyncErr) {
+        console.warn('[STUDENT_REG_SYNC_WARNING]', studentSyncErr);
+      }
     }
 
     // 6. Record audit log
