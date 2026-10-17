@@ -1242,7 +1242,7 @@ export function VirtualLibraryCard({
 
             <div className="flex justify-between items-center text-[7.5px] font-mono text-slate-400 pt-1 border-t border-white/10">
               <span>● AUTH VALID: {new Date().getFullYear()}-{new Date().getFullYear() + 1}</span>
-              <span>SECURE ID #{cleanRegNo}</span>
+              <span>SECURE ID #{effectiveRegNo}</span>
             </div>
           </div>
 

@@ -1,9 +1,15 @@
-import { getCollegeGoogleServices } from '@/lib/google/auth';
+import {
+  getCollegeGoogleServices,
+  isGoogleOAuthError,
+  markCollegeGoogleConnectionInvalid,
+} from '@/lib/google/auth';
 
 export interface RawSheetData {
   headers: string[];
   rows: string[][];
   totalRowCount: number;
+  error?: string;
+  isAuthError?: boolean;
 }
 
 /**
@@ -86,7 +92,30 @@ export async function fetchRawSheetResponses(
       totalRowCount: cleanRows.length,
     };
   } catch (err: unknown) {
-    console.error('Error fetching Google Sheet responses:', err);
-    return { headers: [], rows: [], totalRowCount: 0 };
+    const isAuth =
+      isGoogleOAuthError(err) ||
+      (err as any)?.code === 'GOOGLE_CONNECTION_REQUIRED' ||
+      String((err as any)?.message || '').toLowerCase().includes('invalid_grant');
+
+    if (isAuth && collegeId) {
+      try {
+        await markCollegeGoogleConnectionInvalid(
+          collegeId,
+          err instanceof Error ? err.message : 'Google OAuth authorization expired or was revoked'
+        );
+      } catch (markErr) {
+        console.warn('[Sheets Reader] Could not mark connection invalid:', markErr);
+      }
+    }
+
+    console.warn('[Sheets Reader] Error fetching Google Sheet responses:', err instanceof Error ? err.message : err);
+    return {
+      headers: [],
+      rows: [],
+      totalRowCount: 0,
+      error: err instanceof Error ? err.message : String(err),
+      isAuthError: isAuth,
+    };
   }
 }
+

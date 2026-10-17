@@ -13,6 +13,7 @@ import {
   Subject,
   FeedbackForm,
 } from '@/types/database';
+import type { AggregatedAnalyticsReport } from '@/lib/analytics/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,13 +92,18 @@ export default async function AdminResultsHubPage() {
   // 2. Fetch Initial Aggregated Analytics Report
   const analyticsRes = await getOverallAnalyticsAction();
 
-  const initialReport = analyticsRes.report || {
+  const formsList = (forms || []) as unknown as FeedbackForm[];
+  const formsWithResponsesCount = formsList.filter(f => (f.response_count || 0) > 0).length;
+  const totalResponsesCount = formsList.reduce((sum, f) => sum + (f.response_count || 0), 0);
+
+  const initialReport: AggregatedAnalyticsReport = analyticsRes.report || {
     scopeTitle: 'Institution-Wide (All Active Feedback)',
+    collegeId: session.activeCollegeId || undefined,
     filters: {},
-    totalForms: (forms || []).length,
-    formsWithResponses: 0,
-    totalResponses: 0,
-    validResponses: 0,
+    totalForms: formsList.length,
+    formsWithResponses: formsWithResponsesCount,
+    totalResponses: totalResponsesCount,
+    validResponses: totalResponsesCount,
     parameterAverageScore: 0,
     averageOverallScore: 0,
     compositeAverageScore: 0,
@@ -122,6 +128,17 @@ export default async function AdminResultsHubPage() {
     generatedAt: new Date().toISOString(),
   };
 
+  if (initialReport) {
+    if (!initialReport.collegeId && session.activeCollegeId) {
+      initialReport.collegeId = session.activeCollegeId;
+    }
+    if ((initialReport.formsWithResponses === 0 || initialReport.totalResponses === 0) && totalResponsesCount > 0) {
+      initialReport.formsWithResponses = Math.max(initialReport.formsWithResponses || 0, formsWithResponsesCount);
+      initialReport.totalResponses = Math.max(initialReport.totalResponses || 0, totalResponsesCount);
+      initialReport.validResponses = Math.max(initialReport.validResponses || 0, totalResponsesCount);
+    }
+  }
+
   return (
     <ResultsDashboardClient
       initialReport={initialReport}
@@ -130,7 +147,7 @@ export default async function AdminResultsHubPage() {
       semesters={(semesters || []) as Semester[]}
       faculties={(faculties || []) as Faculty[]}
       subjects={(subjects || []) as Subject[]}
-      forms={(forms || []) as unknown as FeedbackForm[]}
+      forms={formsList}
     />
   );
 }

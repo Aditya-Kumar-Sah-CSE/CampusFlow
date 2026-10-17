@@ -492,7 +492,9 @@ export function aggregateAnalytics(
   filters: AggregatedAnalyticsReport['filters']
 ): AggregatedAnalyticsReport {
   const totalForms = formReports.length;
-  const formsWithData = formReports.filter(f => f.hasData);
+  const formsWithData = formReports.filter(
+    f => f.hasData || (f.totalResponses !== undefined && f.totalResponses > 0) || (f.totalSubmissions !== undefined && f.totalSubmissions > 0)
+  );
   const formsWithResponses = formsWithData.length;
 
   let totalResponses = 0;
@@ -509,8 +511,9 @@ export function aggregateAnalytics(
   }
 
   for (const report of formReports) {
-    totalResponses += report.totalResponses;
-    validResponses += report.validResponses;
+    totalResponses += (report.totalResponses || 0);
+    validResponses += (report.validResponses !== undefined ? report.validResponses : (report.totalResponses || 0));
+
 
     for (const p of report.parameters) {
       if (paramAccumulators[p.parameterId]) {
@@ -735,8 +738,8 @@ export function aggregateAnalytics(
           branch: f.branch,
           semester: f.semester,
           academicYear: f.academicYear,
-          responseCount: grid.report?.totalStudents ?? grid.report?.totalResponses ?? (f.totalStudents ?? f.totalResponses),
-          averageScore: grid.report?.averageOverallScore || grid.report?.compositeAverageScore || f.averageOverallScore,
+          responseCount: grid.report?.totalStudents ?? grid.report?.totalResponses ?? (f.totalStudents ?? f.totalResponses ?? 0),
+          averageScore: grid.report?.averageOverallScore || grid.report?.compositeAverageScore || f.averageOverallScore || 0,
         });
       }
     } else {
@@ -748,10 +751,11 @@ export function aggregateAnalytics(
         branch: f.branch,
         semester: f.semester,
         academicYear: f.academicYear,
-        responseCount: f.totalStudents ?? f.totalResponses,
-        averageScore: f.averageOverallScore || f.compositeAverageScore,
+        responseCount: f.totalStudents ?? f.totalResponses ?? 0,
+        averageScore: f.averageOverallScore || f.compositeAverageScore || 0,
       });
     }
+
   }
   facultyComparisons.sort((a, b) => b.averageScore - a.averageScore);
 

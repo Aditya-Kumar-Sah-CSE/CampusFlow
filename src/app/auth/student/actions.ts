@@ -996,7 +996,7 @@ export async function getCollegeAcademicMastersForStudentAction(collegeId: strin
     return {
       success: true,
       branches: (masters.branches || []).map((b) => ({ id: b.id, name: b.name, code: b.code })),
-      semesters: (masters.semesters || []).map((s) => ({ id: s.id, name: s.name, semester_number: s.semester_number })),
+      semesters: (masters.semesters || []).map((s) => ({ id: s.id, name: s.name, semester_number: s.semester_number ?? 0 })),
       academicYears: (masters.academicYears || []).map((y) => ({ id: y.id, name: y.name })),
     };
   } catch (err) {

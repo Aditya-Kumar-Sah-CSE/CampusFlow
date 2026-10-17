@@ -121,6 +121,8 @@ export interface FormAnalyticsReport {
   generatedAt: string;
   isSemesterForm?: boolean;
   facultyGrids?: FacultyGridAnalyticsItem[];
+  googleConnectionRequired?: boolean;
+  googleErrorMessage?: string | null;
 }
 
 export interface FacultyComparisonItem {
@@ -173,4 +175,8 @@ export interface AggregatedAnalyticsReport {
   facultyComparisons: FacultyComparisonItem[];
   hasData: boolean;
   generatedAt: string;
+  googleConnectionRequired?: boolean;
+  googleAccountEmail?: string | null;
+  googleErrorMessage?: string | null;
 }
+

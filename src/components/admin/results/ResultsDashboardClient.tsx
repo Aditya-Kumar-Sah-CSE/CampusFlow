@@ -291,6 +291,18 @@ export function ResultsDashboardClient({
     return true;
   });
 
+  const matchingFormsWithResponses = useMemo(() => {
+    return matchingForms.filter(f => (f.response_count || 0) > 0).length;
+  }, [matchingForms]);
+
+  const matchingTotalResponses = useMemo(() => {
+    return matchingForms.reduce((sum, f) => sum + (f.response_count || 0), 0);
+  }, [matchingForms]);
+
+  const displayFormsWithResponses = Math.max(report.formsWithResponses || 0, matchingFormsWithResponses);
+  const displayTotalResponses = Math.max(report.totalResponses || 0, matchingTotalResponses);
+  const displayTotalForms = matchingForms.length || report.totalForms;
+
   // Pagination calculations
   const totalItems = matchingForms.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -354,6 +366,37 @@ export function ResultsDashboardClient({
           </div>
         )}
 
+        {/* Google Workspace Reconnection Alert Banner */}
+        {report.googleConnectionRequired && (
+          <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-50/90 via-amber-50 to-orange-50 border border-amber-300 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-3">
+              <span className="p-2 bg-amber-500 text-white rounded-xl shrink-0 mt-0.5 shadow-2xs">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+              </span>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 flex flex-wrap items-center gap-1.5">
+                  <span>Google Workspace Authorization Expired</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 text-amber-900 border border-amber-300">
+                    Action Required
+                  </span>
+                </h4>
+                <p className="text-[11px] sm:text-xs text-slate-600 mt-1 leading-relaxed">
+                  The Google account authorization {report.googleAccountEmail ? `(${report.googleAccountEmail})` : ''} has expired. 
+                  Submissions are recorded in the database ({displayTotalResponses} total), but reconnecting is required to sync Google Sheets for parameter ratings and analytics charts.
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={`/api/auth/google?collegeId=${encodeURIComponent(report.collegeId || '')}&returnTo=${encodeURIComponent('/admin/dashboard/results')}`}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer self-stretch md:self-auto text-center"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Reconnect Google Account</span>
+            </a>
+          </div>
+        )}
+
         {/* Scope Indicator Badge */}
         <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0">
@@ -371,7 +414,7 @@ export function ResultsDashboardClient({
           </div>
 
           <span className="text-[11px] text-slate-500 font-medium shrink-0">
-            Evaluating {report.formsWithResponses} active forms ({report.totalResponses} total student responses)
+            Evaluating {displayFormsWithResponses} active forms ({displayTotalResponses} total student responses)
           </span>
         </div>
 
@@ -531,10 +574,12 @@ export function ResultsDashboardClient({
             <FileSpreadsheet className="w-4 h-4 text-bce-cobalt shrink-0" />
           </div>
           <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
-            {report.formsWithResponses}{' '}
-            <span className="text-[11px] sm:text-xs font-medium text-slate-400">/ {report.totalForms}</span>
+            {displayFormsWithResponses}{' '}
+            <span className="text-[11px] sm:text-xs font-medium text-slate-400">/ {displayTotalForms}</span>
           </div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">Synchronized responses</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
+            {displayFormsWithResponses > 0 ? `${displayFormsWithResponses} forms with responses` : 'Synchronized responses'}
+          </p>
         </div>
 
         {/* Total Responses */}
@@ -544,10 +589,10 @@ export function ResultsDashboardClient({
             <Users className="w-4 h-4 text-blue-600 shrink-0" />
           </div>
           <div className="text-lg xs:text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
-            {report.totalResponses}
+            {displayTotalResponses}
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
-            {report.validResponses} valid submissions
+            {displayTotalResponses} valid submissions
           </p>
         </div>
 
@@ -563,6 +608,10 @@ export function ResultsDashboardClient({
                 {report.averageOverallScore.toFixed(2)}{' '}
                 <span className="text-[11px] sm:text-xs font-medium text-slate-400">/ 5.00</span>
               </>
+            ) : displayTotalResponses > 0 ? (
+              <span className="text-xs sm:text-base text-amber-600 font-semibold">
+                Pending Sync
+              </span>
             ) : (
               <span className="text-sm sm:text-lg text-slate-400 font-semibold">No Data</span>
             )}
@@ -570,6 +619,8 @@ export function ResultsDashboardClient({
           <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
             {report.hasData
               ? `Avg: ${report.compositeAverageScore.toFixed(2)}/5.00`
+              : displayTotalResponses > 0
+              ? `${displayTotalResponses} submissions awaiting sheet sync`
               : 'Pending responses'}
           </p>
         </div>
@@ -597,13 +648,22 @@ export function ResultsDashboardClient({
                 const safePct = Math.min(100, Math.max(0, pct));
                 return safePct >= 99.95 ? '100%' : `${safePct.toFixed(1)}%`;
               })()
+            ) : displayTotalResponses > 0 ? (
+              <span className="text-xs sm:text-base text-amber-600 font-semibold">
+                Sync Needed
+              </span>
             ) : (
               <span className="text-sm sm:text-lg text-slate-400 font-semibold">0%</span>
             )}
           </div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">Positive rating index</p>
+          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
+            {displayTotalResponses > 0 && !report.hasData
+              ? 'Reconnect Google to view ratings'
+              : 'Positive rating index'}
+          </p>
         </div>
       </div>
+
 
       {/* Visual Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">

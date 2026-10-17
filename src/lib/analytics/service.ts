@@ -166,10 +166,41 @@ export async function getFormAnalyticsData(
   const isSemester = form.form_type === 'SEMESTER_FEEDBACK';
   let facultyGrids: FacultyGridAnalyticsItem[] = [];
   let totalRawSubmissions = 0;
+  let googleAuthError = false;
+  let googleAccountEmail: string | null = null;
+  let googleErrorMessage: string | null = null;
 
-  if (form.google_sheet_id && isGoogleConfigured()) {
+  // Check college Google connection status in advance
+  let isGoogleInvalid = false;
+  if (form.college_id) {
+    try {
+      const { data: connMeta } = await supabase
+        .from('college_google_connections')
+        .select('account_email, is_valid, last_error')
+        .eq('college_id', form.college_id)
+        .maybeSingle();
+
+      if (connMeta) {
+        googleAccountEmail = connMeta.account_email;
+        googleErrorMessage = connMeta.last_error;
+        if (connMeta.is_valid === false) {
+          isGoogleInvalid = true;
+          googleAuthError = true;
+        }
+      }
+    } catch (connErr) {
+      console.warn('[Analytics Service] Error checking form college connection status:', connErr);
+    }
+  }
+
+  if (form.google_sheet_id && isGoogleConfigured() && !isGoogleInvalid) {
     try {
       const sheetData = await fetchRawSheetResponses(form.google_sheet_id, form.college_id);
+      if (sheetData.isAuthError) {
+        googleAuthError = true;
+        isGoogleInvalid = true;
+        googleErrorMessage = sheetData.error || 'Google connection authorization expired';
+      }
 
       if (sheetData.rows.length > 0) {
         const rawCanonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
@@ -291,13 +322,23 @@ export async function getFormAnalyticsData(
     responses: canonicalRows,
   });
 
-  const totalRawCount = Math.max(totalRawSubmissions, totalRecordCount);
+  const totalRawCount = Math.max(totalRawSubmissions, totalRecordCount, form.response_count || 0);
   const includedStudents = countUniqueStudentResponses(canonicalRows);
   const excludedStudents = Math.max(totalRawCount - includedStudents, totalExcludedCount);
 
   report.totalSubmissions = totalRawCount;
-  report.includedCount = includedStudents;
+  report.includedCount = canonicalRows.length > 0 ? includedStudents : Math.max(0, totalRawCount - totalExcludedCount);
   report.excludedCount = excludedStudents;
+
+  // Fallback to database response count if live sheet responses were unavailable
+  if (canonicalRows.length === 0 && totalRawCount > 0) {
+    report.totalResponses = report.includedCount;
+    report.totalStudents = report.includedCount;
+    report.validResponses = report.includedCount;
+  }
+
+  report.googleConnectionRequired = isGoogleInvalid || googleAuthError;
+  report.googleErrorMessage = googleErrorMessage;
 
   if (isSemester) {
     if (facultyGrids.length === 0 && (form as any).items && (form as any).items.length > 0) {
@@ -450,6 +491,33 @@ export async function getOverallAnalyticsData(
 
   const allForms = forms || [];
 
+  // Pre-check tenant Google connection health
+  let isGoogleInvalid = false;
+  let googleAccountEmail: string | null = null;
+  let googleErrorMessage: string | null = null;
+  let googleAuthError = false;
+
+  if (targetCollegeId) {
+    try {
+      const { data: connMeta } = await supabase
+        .from('college_google_connections')
+        .select('account_email, is_valid, last_error')
+        .eq('college_id', targetCollegeId)
+        .maybeSingle();
+
+      if (connMeta) {
+        googleAccountEmail = connMeta.account_email;
+        googleErrorMessage = connMeta.last_error;
+        if (connMeta.is_valid === false) {
+          isGoogleInvalid = true;
+          googleAuthError = true;
+        }
+      }
+    } catch (connErr) {
+      console.warn('[Analytics Service] Error checking college connection status:', connErr);
+    }
+  }
+
   // Compute individual form reports
   const formReports: FormAnalyticsReport[] = [];
 
@@ -461,9 +529,14 @@ export async function getOverallAnalyticsData(
     const { excludedIds, totalRecordCount, totalExcludedCount } = await getFormExcludedResponseIds(supabase, form.id);
     let totalRawSubmissions = 0;
 
-    if (form.google_sheet_id && isGoogleConfigured()) {
+    if (form.google_sheet_id && isGoogleConfigured() && !isGoogleInvalid) {
       try {
         const sheetData = await fetchRawSheetResponses(form.google_sheet_id, form.college_id);
+        if (sheetData.isAuthError) {
+          isGoogleInvalid = true;
+          googleAuthError = true;
+          googleErrorMessage = sheetData.error || 'Google connection authorization expired';
+        }
         if (sheetData.rows.length > 0) {
           const rawCanonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
           totalRawSubmissions = countUniqueStudentResponses(rawCanonicalRows);
@@ -566,13 +639,20 @@ export async function getOverallAnalyticsData(
       responses: canonicalRows,
     });
 
-    const totalRawCount = Math.max(totalRawSubmissions, totalRecordCount);
+    const totalRawCount = Math.max(totalRawSubmissions, totalRecordCount, form.response_count || 0);
     const includedStudents = countUniqueStudentResponses(canonicalRows);
     const excludedStudents = Math.max(totalRawCount - includedStudents, totalExcludedCount);
 
     singleReport.totalSubmissions = totalRawCount;
-    singleReport.includedCount = includedStudents;
+    singleReport.includedCount = canonicalRows.length > 0 ? includedStudents : Math.max(0, totalRawCount - totalExcludedCount);
     singleReport.excludedCount = excludedStudents;
+
+    // Fallback to database response count if live sheet responses were unavailable
+    if (canonicalRows.length === 0 && totalRawCount > 0) {
+      singleReport.totalResponses = singleReport.includedCount;
+      singleReport.totalStudents = singleReport.includedCount;
+      singleReport.validResponses = singleReport.includedCount;
+    }
 
     if (isSemesterForm) {
       if (facultyGrids.length === 0 && (form as any).items && (form as any).items.length > 0) {
@@ -654,6 +734,9 @@ export async function getOverallAnalyticsData(
   });
 
   aggregated.collegeId = targetCollegeId;
+  aggregated.googleConnectionRequired = isGoogleInvalid || googleAuthError;
+  aggregated.googleAccountEmail = googleAccountEmail;
+  aggregated.googleErrorMessage = googleErrorMessage;
   aggregated.academicLevel = resolveAcademicLevel(
     formReports.find(r => r.academicLevel)?.academicLevel,
     `${scopeTitle} ${branchName} ${semesterName}`
