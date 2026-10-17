@@ -13,17 +13,17 @@ export const metadata: Metadata = {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-5 sm:py-12 px-2.5 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900 text-slate-100 flex flex-col justify-center py-5 sm:py-12 px-2.5 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Platform Identity */}
-        <div className="mx-auto w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-amber-500 p-0.5 shadow-xl flex items-center justify-center">
-          <div className="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center">
+        <div className="mx-auto w-12 h-12 sm:w-14 sm:h-14 rounded-[4px] bg-gradient-to-tr from-blue-600 to-amber-500 p-0.5 shadow-xl flex items-center justify-center">
+          <div className="w-full h-full bg-slate-950 rounded-[3px] flex items-center justify-center">
             <School className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400" />
           </div>
         </div>
 
         <div className="mt-3.5 sm:mt-4">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/20 mb-2">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[2px] bg-blue-500/10 text-blue-300 border border-blue-500/20 mb-2">
             <Shield className="w-3 h-3" /> Platform Administration
           </span>
           <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
       <div className="mt-4 sm:mt-6 sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
         <Suspense
           fallback={
-            <div className="bg-slate-800/90 py-12 px-6 rounded-2xl border border-slate-700/60 text-center space-y-3">
+            <div className="bg-slate-800/90 py-12 px-6 rounded-[3px] border border-slate-700/60 text-center space-y-3">
               <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto" />
               <p className="text-xs text-slate-400">Loading admin portal...</p>
             </div>

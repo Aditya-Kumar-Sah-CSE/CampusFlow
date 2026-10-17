@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function StudentLoginPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-100 flex flex-col justify-between py-6 px-3 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950/40 backdrop-blur-xs text-slate-100 flex flex-col justify-between py-6 px-3 sm:px-6 lg:px-8">
       {/* Top Bar with back link */}
       <div className="max-w-md mx-auto w-full flex items-center justify-between text-xs text-slate-400">
         <Link

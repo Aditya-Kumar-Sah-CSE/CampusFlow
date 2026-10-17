@@ -9,6 +9,7 @@ export const BCE_BGP_LOGO_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhE
 
 export const DEFAULT_COLLEGE_LOGOS: Record<string, string> = {
   // Bhagalpur College of Engineering
+  'bce-bhagalpur': '/images/colleges/bhce-logo.png',
   'bce-bgp': '/images/colleges/bhce-logo.png',
   '108': '/images/colleges/bhce-logo.png',
   'bce': '/images/colleges/bhce-logo.png',
@@ -60,6 +61,7 @@ export function resolveCollegeLogoUrl(details?: {
 
   // 1. Primary check: BCE Bhagalpur (handles default platform tenant)
   if (
+    slugKey === 'bce-bhagalpur' ||
     slugKey === 'bce-bgp' ||
     slugKey === 'bce' ||
     codeKey === '108' ||

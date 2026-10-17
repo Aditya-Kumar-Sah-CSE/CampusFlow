@@ -61,7 +61,7 @@ export function EventPassVerificationClient({
   });
   const effectiveCollegeName = collegeName || college?.name || 'Bhagalpur College of Engineering';
   const effectiveCollegeCode = college?.code || '108';
-  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bgp';
+  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bhagalpur';
 
   const [result, setResult] = useState<{
     searched: boolean;
@@ -328,7 +328,7 @@ export function EventPassVerificationClient({
                       crossOrigin="anonymous"
                       className="w-full h-full object-contain rounded-full"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/images/colleges/bce-bgp.png';
+                        (e.target as HTMLImageElement).src = '/images/colleges/bhce-logo.png';
                       }}
                     />
                   </div>

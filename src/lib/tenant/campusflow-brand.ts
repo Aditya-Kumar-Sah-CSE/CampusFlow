@@ -12,16 +12,18 @@ export interface CampusFlowBrand {
 }
 
 const KNOWN_CODE_TO_SLUG: Record<string, string> = {
-  '108': 'BCE BGP',
-  'bce-bgp': 'BCE BGP',
-  'bce_bgp': 'BCE BGP',
-  'bce': 'BCE BGP',
+  '108': 'BCE BHAGALPUR',
+  'bce-bhagalpur': 'BCE BHAGALPUR',
+  'bcebhagalpur': 'BCE BHAGALPUR',
+  'bce-bgp': 'BCE BHAGALPUR',
+  'bce_bgp': 'BCE BHAGALPUR',
+  'bce': 'BCE BHAGALPUR',
   'gec-gaya': 'GEC GAYA',
-  'gce-gaya': 'GCE GAYA',
+  'gce-gaya': 'GEC GAYA',
   'gec_gaya': 'GEC GAYA',
   'gce_gaya': 'GEC GAYA',
   'gecgaya': 'GEC GAYA',
-  'bcebgp': 'BCE BGP',
+  'bcebgp': 'BCE BHAGALPUR',
 };
 
 /** Formats a slug like "bce-bgp" or code like "GCE-GAYA" into uppercase display form "BCE BGP". */

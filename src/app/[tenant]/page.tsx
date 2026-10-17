@@ -60,9 +60,9 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
   const isLibraryEnabled = librarySettings?.isEnabled ?? false;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
       {/* Top Banner */}
-      <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-2.5 sm:px-4 border-b border-slate-800">
+      <div className="bg-slate-900 dark:bg-[#120b07]/95 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-2.5 sm:px-4 border-b border-slate-800 dark:border-amber-950/60">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -96,22 +96,22 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-10 space-y-10 sm:space-y-14">
         {/* State: Neither Module Active */}
         {hasNeitherModule && (
-          <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-14 text-center max-w-xl mx-auto space-y-4 shadow-sm my-8">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center border border-slate-200">
-              <School className="w-7 h-7 text-slate-600" />
+          <div className="bg-white dark:bg-[#111724] rounded-3xl border border-slate-200/80 dark:border-slate-800 p-8 sm:p-14 text-center max-w-xl mx-auto space-y-4 shadow-sm my-8">
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 mx-auto flex items-center justify-center border border-slate-200 dark:border-slate-700">
+              <School className="w-7 h-7 text-slate-600 dark:text-slate-300" />
             </div>
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">
               Welcome to {tenant.name} Portal
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Public feedback and campus event modules are currently inactive for this institution. Please check back later or contact your institution administrator.
             </p>
             <div className="pt-2">
               <Link
                 href={`/${tenant.slug}/admin/login`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-slate-800 transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-amber-600 hover:bg-slate-800 dark:hover:bg-amber-500 text-white dark:text-slate-950 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs"
               >
-                <UserCheck className="w-4 h-4 text-amber-400" />
+                <UserCheck className="w-4 h-4 text-amber-400 dark:text-slate-950" />
                 <span>Faculty &amp; Admin Sign In</span>
               </Link>
             </div>
@@ -122,14 +122,11 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
         {tenant.showFeedbacks && (
           <section id="feedback-section" className="space-y-6 scroll-mt-16">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-white/85 dark:bg-[#18110b]/85 backdrop-blur-md border border-slate-200/80 dark:border-amber-950/70 shadow-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
                   Find Your Feedback Form
                 </h2>
-                {/* <p className="text-xs sm:text-sm text-slate-500">
-                  Follow the discovery path: Year → Branch → Semester → Faculty &amp; Subject.
-                </p> */}
               </div>
             </div>
 
@@ -155,24 +152,24 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
 
         {/* 2. Events Section (Controlled by Events Toggle) */}
         {tenant.showEvents && (
-          <section id="events-section" className="space-y-6 pt-4 border-t border-slate-200/80 scroll-mt-16">
+          <section id="events-section" className="space-y-6 pt-6 border-t border-slate-200/80 dark:border-amber-950/40 scroll-mt-16">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-1 border border-blue-200/60">
-                  <Ticket className="w-3 h-3 text-blue-600" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-amber-950/60 text-blue-700 dark:text-amber-300 text-xs font-semibold mb-1 border border-blue-200/60 dark:border-amber-800/60">
+                  <Ticket className="w-3 h-3 text-blue-600 dark:text-amber-400" />
                   <span>Campus Activities &amp; Programs</span>
                 </div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                   Upcoming College Events
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-amber-100/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-medium">
                   Explore workshops, hackathons, guest lectures, and cultural fests. Enroll online with instant verification.
                 </p>
               </div>
               <Link
                 href={`/${tenant.slug}/events`}
-                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors self-start sm:self-auto py-1"
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 transition-colors self-start sm:self-auto py-1"
               >
                 <span>View All Events ({events.length})</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -181,12 +178,12 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
 
             {/* Events Grid */}
             {events.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-8 sm:p-10 text-center max-w-lg mx-auto space-y-2 shadow-2xs">
-                <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+              <div className="bg-white dark:bg-[#18110b]/90 rounded-2xl border border-slate-200/80 dark:border-amber-950/70 p-8 sm:p-10 text-center max-w-lg mx-auto space-y-2 shadow-xl backdrop-blur-md">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#251a11] text-slate-400 dark:text-amber-400 mx-auto flex items-center justify-center border border-slate-200 dark:border-amber-950/60">
                   <Calendar className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">No Events Published</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-amber-100">No Events Published</h3>
+                <p className="text-xs text-slate-500 dark:text-amber-200/70">
                   There are currently no active public events scheduled for {tenant.shortName}. Please check back later!
                 </p>
               </div>
@@ -202,18 +199,18 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
 
         {/* 3. Library Section */}
         {isLibraryEnabled && (
-          <section id="library-section" className="space-y-6 pt-4 border-t border-slate-200/80 scroll-mt-16">
+          <section id="library-section" className="space-y-6 pt-6 border-t border-slate-200/80 dark:border-amber-950/40 scroll-mt-16">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold mb-1 border border-purple-200/60">
-                  <BookOpen className="w-3 h-3 text-purple-600" />
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-xs font-semibold mb-1 border border-purple-200/60 dark:border-purple-800">
+                  <BookOpen className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                   <span>Campus Library</span>
                 </div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-600" />
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-600 dark:bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                   Borrow a Book
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-amber-100/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-medium">
                   Browse available books and submit a borrow request. Admin approval required.
                 </p>
               </div>

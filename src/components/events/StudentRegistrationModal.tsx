@@ -243,7 +243,7 @@ export function StudentRegistrationModal({
                   <option value="">Select Semester</option>
                   {semesters.map((s) => (
                     <option key={s.id} value={s.id}>
-                      Semester {s.semester_number}
+                      {s.programme?.name ? `${s.programme.name} — ` : ''}{s.name || `Semester ${s.semester_number}`}
                     </option>
                   ))}
                 </select>

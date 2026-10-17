@@ -34,7 +34,7 @@ export default async function PublicTenantEventsPage({ params }: Props) {
   const totalCount = dbEvents.length + smallEvents.length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
       {/* Top Banner */}
       <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">
@@ -56,46 +56,61 @@ export default async function PublicTenantEventsPage({ params }: Props) {
 
       {/* Hero Section */}
       <main className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-10 flex-1 w-full space-y-5 sm:space-y-6">
-        <div className="text-center max-w-2xl mx-auto space-y-2 px-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-bce-cobalt text-xs font-semibold">
-            <Ticket className="w-3.5 h-3.5 shrink-0" />
+        <div className="text-center max-w-2xl mx-auto space-y-2.5 px-1">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[3px] bg-blue-50 dark:bg-amber-950/60 text-bce-cobalt dark:text-amber-300 text-xs font-semibold border border-blue-200/60 dark:border-amber-700/50">
+            <Ticket className="w-3.5 h-3.5 text-bce-cobalt dark:text-amber-400 shrink-0" />
             <span>Campus Activities &amp; Programs</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 break-words">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-[#faebd0] break-words">
             Upcoming College Events
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-[#c4a97d] leading-relaxed">
             Explore workshops, cultural fests, open mics, hackathons, and competitions at {tenant.shortName}. Register online via verified Google Forms.
           </p>
         </div>
 
-        {/* Events Grid */}
+        {/* Notice Board */}
         {totalCount === 0 ? (
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 p-6 sm:p-12 text-center max-w-lg mx-auto space-y-3 shadow-2xs">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
-              <Calendar className="w-6 h-6" />
+          <div className="notice-board-wood-frame p-2 sm:p-3 md:p-4 rounded-xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-xl max-w-lg mx-auto">
+            <div className="notice-board-felt-surface rounded-lg p-6 sm:p-10 text-center">
+              <div className="relative max-w-xs mx-auto bg-[#fdfbf7] dark:bg-[#1a1309] rounded-[3px] p-6 text-center border border-[#dfd7be] dark:border-[#4d3817] shadow-xl text-slate-800 dark:text-[#faebd0]">
+                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-[#2b1f10] text-amber-700 dark:text-amber-400 mx-auto flex items-center justify-center mb-2">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">No Events Published</h3>
+                <p className="text-xs text-slate-600 dark:text-[#c4a97d] mt-1">
+                  There are currently no active public events scheduled for {tenant.shortName}. Please check back later!
+                </p>
+              </div>
             </div>
-            <h3 className="text-base font-bold text-slate-800">No Events Published</h3>
-            <p className="text-xs text-slate-500">
-              There are currently no active public events scheduled for {tenant.shortName}. Please check back later!
-            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {/* Small Events Configured for this Tenant */}
-            {smallEvents.map((event) => (
-              <SmallEventCard
-                key={event.id}
-                event={event}
-                tenantSlug={tenant.slug}
-                institutionDisplayName={tenant.name}
-              />
-            ))}
+          <div className="notice-board-wood-frame p-2 sm:p-3 md:p-4 rounded-xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-xl">
+            {/* Brass Corner Accents */}
+            <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+            <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+            <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+            <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
 
-            {/* Any Database-Driven Events for this College */}
-            {dbEvents.map((event) => (
-              <PublicEventCard key={event.id} event={event} tenantSlug={tenant.slug} />
-            ))}
+            {/* Dark Green Felt Surface with Pinned Circulars */}
+            <div className="notice-board-felt-surface rounded-lg p-3 sm:p-5 md:p-6 min-h-[360px]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 pt-3 pb-1">
+                {/* Small Events Configured for this Tenant */}
+                {smallEvents.map((event) => (
+                  <SmallEventCard
+                    key={event.id}
+                    event={event}
+                    tenantSlug={tenant.slug}
+                    institutionDisplayName={tenant.name}
+                  />
+                ))}
+
+                {/* Any Database-Driven Events for this College */}
+                {dbEvents.map((event) => (
+                  <PublicEventCard key={event.id} event={event} tenantSlug={tenant.slug} />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </main>

@@ -164,7 +164,7 @@ export function EventRegistrationForm({
         collegeName: collegeName || college?.name || 'Bhagalpur College of Engineering',
         collegeLogoUrl: collegeLogoUrl || college?.logo_url,
         collegeCode: college?.code || '108',
-        collegeSlug: tenantSlug || college?.slug || 'bce-bgp',
+        collegeSlug: tenantSlug || college?.slug || 'bce-bhagalpur',
         venue: event.venue,
         participantName: details.fullName,
         email: details.email,
@@ -823,11 +823,12 @@ export function EventRegistrationForm({
                   >
                     <option value="">Select Semester</option>
                     {semesters.map((s) => {
-                      const semLabel = s.semester_number
+                      const baseLabel = s.semester_number
                         ? (s.name.toLowerCase().startsWith('semester')
                             ? `${formatOrdinal(s.semester_number)} Semester`
                             : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`)
                         : (s.display_name || s.name);
+                      const semLabel = s.programme?.name ? `${s.programme.name} — ${baseLabel}` : baseLabel;
                       return (
                         <option key={s.id} value={semLabel}>
                           {semLabel}

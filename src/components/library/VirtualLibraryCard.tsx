@@ -36,7 +36,7 @@ function formatCodeDisplay(code?: string | null, slug?: string | null): string {
   }
   if (!code || !code.trim()) return 'INSTITUTION';
   const c = code.trim();
-  if (c === '108') return 'BCE BGP';
+  if (c === '108') return 'BCE BHAGALPUR';
   if (c === '110') return 'GEC GAYA';
   if (/^\d+$/.test(c)) return 'CAMPUS';
   return c.replace(/[-_]+/g, ' ').toUpperCase();

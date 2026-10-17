@@ -41,9 +41,9 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
   console.log(`[PERF] route=/[tenant]/feedback op=parallel_feedback_queries duration_ms=${tFeedback} success=true`);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
       {/* Top Banner */}
-      <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-800">
+      <div className="bg-slate-900 dark:bg-[#120b07]/95 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-800 dark:border-amber-950/60">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">
           <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
@@ -64,14 +64,14 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-xs font-semibold mb-2">
             <GraduationCap className="w-3.5 h-3.5" />
             <span>Student Feedback Portal</span>
           </div>
-          <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
             Find & Submit Your Faculty Feedback
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
             Select your academic session, department, semester, faculty member, and subject below to access your real Google Feedback Form for {tenant.shortName}.
           </p>
         </div>

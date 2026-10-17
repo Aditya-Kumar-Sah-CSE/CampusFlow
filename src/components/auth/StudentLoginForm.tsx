@@ -20,6 +20,7 @@ import {
   studentLoginAction,
   resendStudentVerificationAction,
 } from '@/app/auth/student/actions';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
 
 export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedCollegeSlug?: string }) {
   const router = useRouter();
@@ -132,7 +133,7 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
   }`;
 
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200/90 text-slate-800 space-y-5">
+    <ExamPadCard paperClassName="space-y-5 text-slate-800">
       {/* Notifications */}
       {successMsg && (
         <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in">
@@ -308,6 +309,6 @@ export function StudentLoginForm({ preselectedCollegeSlug }: { preselectedColleg
           Go to Platform Admin Sign In
         </Link>
       </div>
-    </div>
+    </ExamPadCard>
   );
 }

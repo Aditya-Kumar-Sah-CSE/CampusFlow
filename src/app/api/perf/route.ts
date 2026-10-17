@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const tenantSlug = searchParams.get('tenant') || 'bce-bgp';
+  const tenantSlug = searchParams.get('tenant') || 'bce-bhagalpur';
 
   const timings: Record<string, { duration_ms: number; success: boolean; error?: string }> = {};
 

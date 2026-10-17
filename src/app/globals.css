@@ -11,9 +11,19 @@ html {
   overflow-x: hidden;
 }
 
-body {
+body,
+.brick-wall-backdrop {
   font-family: var(--font-sans);
-  background-color: #f8fafc;
+  background-color: #cfc4b6;
+  background-image:
+    /* Natural daylight wash allowing authentic stone brick masonry texture to show prominently */
+    radial-gradient(ellipse at 50% 120px, rgba(255, 255, 255, 0.16) 0%, rgba(248, 240, 230, 0.08) 45%, rgba(195, 175, 155, 0.22) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, transparent 15%, transparent 85%, rgba(0, 0, 0, 0.08) 100%),
+    url('/images/textures/brick-wall.jpg') !important;
+  background-repeat: repeat !important;
+  background-size: 760px auto !important;
+  background-attachment: fixed !important;
+  background-position: center top !important;
   color: #0f172a;
   min-height: 100vh;
   max-width: 100%;
@@ -258,10 +268,426 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-completion-in,
   .animate-success-pop,
-  .animate-badge-pulse {
+  .animate-badge-pulse,
+  .notice-paper-card {
     animation: none !important;
     transform: none !important;
-    opacity: 1 !important;
   }
 }
+
+/* ========================================================
+   DAY / NIGHT THEME FOUNDATION
+   ======================================================== */
+html.dark {
+  color-scheme: dark;
+  background-color: #0a0e17;
+}
+
+.dark body {
+  background-color: #0a0e17;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 41, 59, 0.45) 0%, transparent 80%),
+    radial-gradient(ellipse 60% 40% at 50% 110%, rgba(15, 23, 42, 0.6) 0%, transparent 80%);
+  background-attachment: fixed;
+  color: #f1f5f9;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0a0e17;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #252e42;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3a4763;
+}
+
+/* ========================================================
+   AUTHENTIC DARK GREEN NOTICE BOARD & WIND SWAY ANIMATION
+   ======================================================== */
+
+.notice-board-wood-frame {
+  background-color: #24160c;
+  background-image: 
+    linear-gradient(90deg, rgba(255,255,255,0.06) 0%, transparent 40%, rgba(0,0,0,0.5) 100%),
+    repeating-linear-gradient(45deg, #321e10 0px, #321e10 6px, #24160c 6px, #24160c 12px);
+  box-shadow: 
+    0 14px 28px -8px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(95, 60, 30, 0.5),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.notice-board-felt-surface {
+  background-color: #0b2e1b;
+  background-image:
+    radial-gradient(ellipse at 50% 25%, rgba(20, 110, 60, 0.28) 0%, transparent 75%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 20% 80%, rgba(0, 0, 0, 0.3) 1px, transparent 1px);
+  background-size: 100% 100%, 7px 7px, 11px 11px;
+  box-shadow:
+    inset 0 12px 32px rgba(0, 0, 0, 0.65),
+    inset 0 2px 10px rgba(0, 0, 0, 0.5),
+    inset 0 -12px 28px rgba(0, 0, 0, 0.6);
+}
+
+/* Authentic 3D Paper Wind Warp & Flutter Animation */
+@keyframes paperAirWarpFlutter {
+  0%, 100% {
+    transform: perspective(900px) rotateZ(var(--notice-rot, 0deg)) rotateX(0deg) rotateY(0deg) translateY(0px) skewX(0deg);
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.18),
+      0 8px 18px -4px rgba(0, 0, 0, 0.38),
+      0 16px 28px -6px rgba(0, 0, 0, 0.28);
+  }
+  20% {
+    /* Bottom edges lift towards viewer in the air breeze */
+    transform: perspective(900px) rotateZ(calc(var(--notice-rot, 0deg) + 1.25deg)) rotateX(4.2deg) rotateY(-2.6deg) translateY(-2px) skewX(0.4deg);
+    box-shadow: 
+      0 2px 5px rgba(0, 0, 0, 0.2),
+      0 14px 26px -4px rgba(0, 0, 0, 0.44),
+      0 24px 38px -8px rgba(0, 0, 0, 0.32);
+  }
+  44% {
+    /* Wave sways back with slight negative X angle */
+    transform: perspective(900px) rotateZ(calc(var(--notice-rot, 0deg) - 1.3deg)) rotateX(-1.8deg) rotateY(2.4deg) translateY(1px) skewX(-0.35deg);
+    box-shadow: 
+      0 1px 2px rgba(0, 0, 0, 0.16),
+      0 6px 14px -3px rgba(0, 0, 0, 0.32),
+      0 12px 22px -5px rgba(0, 0, 0, 0.24);
+  }
+  68% {
+    /* Secondary gentle air flutter */
+    transform: perspective(900px) rotateZ(calc(var(--notice-rot, 0deg) + 0.85deg)) rotateX(3.2deg) rotateY(-1.6deg) translateY(-1.2px) skewX(0.25deg);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.18),
+      0 12px 22px -4px rgba(0, 0, 0, 0.4),
+      0 20px 32px -7px rgba(0, 0, 0, 0.28);
+  }
+  86% {
+    /* Settling down before next gust */
+    transform: perspective(900px) rotateZ(calc(var(--notice-rot, 0deg) - 0.5deg)) rotateX(0.8deg) rotateY(1deg) translateY(-0.3px) skewX(-0.15deg);
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.18),
+      0 8px 16px -4px rgba(0, 0, 0, 0.36),
+      0 15px 26px -6px rgba(0, 0, 0, 0.26);
+  }
+}
+
+.notice-paper-card {
+  transform-origin: 50% 6px;
+  border-radius: 2px !important; /* Sharp corners like authentic cut paper */
+  animation: paperAirWarpFlutter var(--notice-dur, 5.6s) ease-in-out infinite;
+  animation-delay: var(--notice-delay, 0s);
+  transition: transform 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28), box-shadow 0.35s ease, z-index 0s;
+  will-change: transform, box-shadow;
+  position: relative;
+  border-width: 1px;
+  overflow: visible !important;
+}
+
+/* Light mode authentic crisp paper surface */
+.notice-paper-card {
+  background-color: #fdfbf7;
+  background-image: 
+    linear-gradient(180deg, #ffffff 0%, #fdfbf7 70%, #f6f0dd 100%),
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.8) 0%, transparent 80%);
+  border-color: #dfd7be;
+}
+
+/* Dark mode authentic aged vintage parchment / dark yellow old paper */
+.dark .notice-paper-card {
+  background-color: #241b0e !important;
+  background-image: 
+    linear-gradient(180deg, #2c2112 0%, #241b0e 65%, #1c1409 100%),
+    radial-gradient(ellipse at 50% 10%, rgba(245, 158, 11, 0.08) 0%, transparent 70%),
+    radial-gradient(circle at 20% 80%, rgba(0, 0, 0, 0.25) 0%, transparent 60%) !important;
+  border-color: #6c5124 !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 10px 24px -5px rgba(0, 0, 0, 0.6),
+    0 18px 36px -8px rgba(0, 0, 0, 0.5),
+    inset 0 0 25px rgba(217, 119, 6, 0.05) !important;
+}
+
+.notice-paper-card:hover {
+  animation-play-state: paused;
+  transform: perspective(900px) rotateZ(0deg) rotateX(0deg) rotateY(0deg) translateY(-8px) scale(1.025) !important;
+  box-shadow: 
+    0 24px 44px -8px rgba(0, 0, 0, 0.55), 
+    0 12px 20px -4px rgba(0, 0, 0, 0.35) !important;
+  z-index: 35 !important;
+}
+
+.dark .notice-paper-card:hover {
+  box-shadow: 
+    0 24px 44px -8px rgba(0, 0, 0, 0.75), 
+    0 12px 20px -4px rgba(0, 0, 0, 0.5),
+    0 0 15px 2px rgba(245, 158, 11, 0.12) !important;
+}
+
+.notice-paper-card:hover .pushpin-3d {
+  transform: scale(1.1) translateY(-2px);
+}
+
+/* ========================================================
+   AUTHENTIC REAL INK FOUNTAIN PEN CURSOR FOR WRITING & SELECTS
+   ======================================================== */
+.cursor-pen,
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+textarea,
+select,
+.paper-select {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32' fill='none'%3E%3Cpath d='M2 2 L9 4 L12 9 L9 12 L4 9 Z' fill='url(%23goldNib)' stroke='%2378350f' stroke-width='0.75' stroke-linejoin='round'/%3E%3Cline x1='2' y1='2' x2='7' y2='7' stroke='%23451a03' stroke-width='0.75'/%3E%3Ccircle cx='7' cy='7' r='0.9' fill='%23451a03'/%3E%3Cpath d='M9 12 L12 9 L15 12 L12 15 Z' fill='%231e293b' stroke='%230f172a' stroke-width='0.5'/%3E%3Cline x1='11' y1='10' x2='14' y2='13' stroke='%23f59e0b' stroke-width='1.2'/%3E%3Cpath d='M14 14 L28 28 L26 30 L12 16 Z' fill='url(%23barrelGrad)' stroke='%230f172a' stroke-width='0.75'/%3E%3Cline x1='14.5' y1='13.5' x2='27.5' y2='26.5' stroke='rgba(255,255,255,0.45)' stroke-width='0.8'/%3E%3Cpath d='M26 30 L28 28 L30 30 L28 32 Z' fill='%23d97706' stroke='%2392400e' stroke-width='0.5'/%3E%3Ccircle cx='2' cy='2' r='1.2' fill='%231e3a8a'/%3E%3Cdefs%3E%3ClinearGradient id='goldNib' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23fef08a'/%3E%3Cstop offset='35%25' stop-color='%23f59e0b'/%3E%3Cstop offset='70%25' stop-color='%23fbbf24'/%3E%3Cstop offset='100%25' stop-color='%23d97706'/%3E%3C/linearGradient%3E%3ClinearGradient id='barrelGrad' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23334155'/%3E%3Cstop offset='40%25' stop-color='%230f172a'/%3E%3Cstop offset='75%25' stop-color='%23020617'/%3E%3Cstop offset='100%25' stop-color='%231e293b'/%3E%3C/linearGradient%3E%3C/defs%3E%3C/svg%3E") 2 2, text !important;
+}
+
+/* ========================================================
+   AUTHENTIC PAPER DROPDOWNS & OPTIONS
+   ======================================================== */
+.paper-select {
+  border-radius: 2px !important;
+  background-color: #fffefb;
+  background-image: 
+    linear-gradient(180deg, #ffffff 0%, #fdfbf7 75%, #f6efe0 100%);
+  border: 1px solid #dcd4bb;
+  color: #1e293b;
+  box-shadow: 
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    inset 0 1px 1px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.paper-select:hover {
+  background-color: #ffffff;
+  border-color: #c4b693;
+}
+
+.paper-select:focus {
+  border-color: #b49348 !important;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.18), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+  outline: none !important;
+}
+
+.dark .paper-select {
+  background-color: #241b0e !important;
+  background-image: 
+    linear-gradient(180deg, #2b2011 0%, #241b0e 65%, #1c1409 100%) !important;
+  border-color: #634a21 !important;
+  color: #fef3c7 !important;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(0, 0, 0, 0.2) !important;
+}
+
+.dark .paper-select:hover {
+  background-color: #2b2011 !important;
+  border-color: #835f29 !important;
+}
+
+.dark .paper-select:focus {
+  border-color: #d97706 !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22), 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+  outline: none !important;
+}
+
+/* Paper styling inside dropdown option list */
+.paper-select optgroup {
+  background-color: #f3edd9;
+  color: #78350f;
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+}
+
+.paper-select option {
+  background-color: #fdfbf7;
+  color: #1c1917;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+.dark .paper-select optgroup {
+  background-color: #382711;
+  color: #fbbf24;
+  font-weight: 800;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+}
+
+.dark .paper-select option {
+  background-color: #241b0e;
+  color: #fef3c7;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+
+/* ========================================================
+   AUTHENTIC REALISTIC BRICK WALL TEXTURE BACKDROP (DARK MODE THEME)
+   Replaces stark black backgrounds with authentic masonry brick architecture
+   Inspired by historic college campus study corridors & notice wall masonry
+   ======================================================== */
+html.dark {
+  color-scheme: dark;
+  background-color: #1a120c;
+}
+
+html.dark body,
+.dark body,
+.dark .brick-wall-backdrop,
+.dark-brick-bg {
+  background-color: #18110b !important;
+  background-image:
+    /* Architectural lighting: warm spotlighting centered above study boards */
+    radial-gradient(ellipse at 50% 160px, rgba(251, 191, 36, 0.16) 0%, rgba(24, 16, 11, 0.42) 45%, rgba(12, 8, 5, 0.78) 100%),
+    /* Soft top & bottom vignette */
+    linear-gradient(180deg, rgba(12, 8, 5, 0.45) 0%, transparent 12%, transparent 88%, rgba(10, 6, 3, 0.65) 100%),
+    /* The authentic rustic stacked stone brick masonry texture */
+    url('/images/textures/brick-wall.jpg') !important;
+  background-repeat: repeat !important;
+  background-size: 760px auto !important;
+  background-attachment: fixed !important;
+  background-position: center top !important;
+  color: #f1f5f9;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #140e09;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4a3622;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #735334;
+}
+
+/* ========================================================
+   GLOBAL REALISTIC BRICK WALL THEME TRANSPARENCY ENFORCEMENT
+   Ensures page-level wrapper elements allow the authentic
+   stone brick wall to shine through in both Day & Night modes.
+   ======================================================== */
+div.min-h-screen.bg-slate-50,
+div.min-h-screen.bg-slate-100,
+div.min-h-screen.bg-gray-50,
+div.min-h-screen.bg-white,
+main.min-h-screen.bg-slate-50,
+main.min-h-screen.bg-slate-100,
+main.min-h-screen.bg-white {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* ========================================================
+   AUTHENTIC EXAM PAD (WRITING CLIPBOARD) THEME
+   Features realistic hardboard (masonite) wood grain, 
+   specular highlights, 3D board bevels, sharp corners, and physical drop shadows.
+   ======================================================== */
+.exam-pad-board {
+  position: relative;
+  border-radius: 12px;
+  background-color: #ba7e44;
+  background-image:
+    /* Top lighting & subtle board vignette */
+    radial-gradient(ellipse at 50% 12%, rgba(255, 235, 195, 0.32) 0%, rgba(185, 120, 58, 0.15) 50%, rgba(65, 30, 8, 0.38) 100%),
+    /* Micro fiber speckles mimicking compressed masonite hardboard */
+    repeating-linear-gradient(45deg, rgba(70, 35, 10, 0.04) 0px, rgba(70, 35, 10, 0.04) 1.5px, transparent 1.5px, transparent 4px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 0px, rgba(255, 255, 255, 0.025) 1px, transparent 1px, transparent 3px),
+    /* Rich natural hardboard composite color gradient */
+    linear-gradient(172deg, #c78d55 0%, #ba7e44 22%, #a86b34 60%, #8e5222 100%);
+  border-top: 1px solid rgba(255, 225, 185, 0.45);
+  border-left: 1px solid rgba(255, 225, 185, 0.25);
+  border-right: 3px solid #663512;
+  border-bottom: 5px solid #4a2209;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 -2px 4px rgba(45, 18, 5, 0.45) inset,
+    0 20px 45px -8px rgba(35, 14, 4, 0.52),
+    0 8px 18px -4px rgba(35, 14, 4, 0.35);
+}
+
+.exam-pad-board-dashboard {
+  position: relative;
+  border-radius: 10px;
+  background-color: #ba7e44;
+  background-image:
+    radial-gradient(ellipse at 50% 12%, rgba(255, 235, 195, 0.28) 0%, rgba(185, 120, 58, 0.12) 50%, rgba(65, 30, 8, 0.3) 100%),
+    repeating-linear-gradient(45deg, rgba(70, 35, 10, 0.035) 0px, rgba(70, 35, 10, 0.035) 1.5px, transparent 1.5px, transparent 4px),
+    linear-gradient(172deg, #c78d55 0%, #ba7e44 22%, #a86b34 60%, #8e5222 100%);
+  border-top: 1px solid rgba(255, 225, 185, 0.4);
+  border-left: 1px solid rgba(255, 225, 185, 0.2);
+  border-right: 2.5px solid #663512;
+  border-bottom: 4px solid #4a2209;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 12px 28px -5px rgba(35, 14, 4, 0.42),
+    0 4px 12px -2px rgba(35, 14, 4, 0.25);
+}
+
+.exam-pad-paper {
+  border-radius: 3px;
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(253, 251, 247, 0.9), transparent 75%),
+    linear-gradient(to bottom, #ffffff, #faf8f4);
+  box-shadow:
+    0 2px 8px rgba(45, 20, 5, 0.16),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(215, 200, 180, 0.75);
+}
+
+.dark .exam-pad-paper {
+  background-color: #1a1309;
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(55, 38, 18, 0.6), transparent 75%),
+    linear-gradient(to bottom, #1e160c, #161008);
+  border: 1px solid #4a3416;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+  color: #faebd0;
+}
+
+/* ========================================================
+   PINNED PAPER SHEET & ROSTER BOARD (ADMIN LIST VIEW)
+   Sharp-cornered physical paper ledger pinned to wooden board
+   ======================================================== */
+.pinned-paper-sheet {
+  position: relative;
+  border-radius: 3px;
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(180deg, #ffffff 0%, #fdfcf9 100%);
+  border: 1px solid rgba(210, 195, 175, 0.8);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.06),
+    0 4px 12px rgba(45, 20, 5, 0.12);
+}
+
+.dark .pinned-paper-sheet {
+  background-color: #171109;
+  background-image:
+    linear-gradient(180deg, #1c140c 0%, #140d06 100%);
+  border: 1px solid #422e14;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 6px 16px rgba(0, 0, 0, 0.45);
+  color: #faebd0;
+}
+
+
+
+
 

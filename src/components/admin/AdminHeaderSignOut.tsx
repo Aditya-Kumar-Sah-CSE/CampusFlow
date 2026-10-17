@@ -14,11 +14,10 @@ export function AdminHeaderSignOut() {
     setLoading(true);
     try {
       await supabase.auth.signOut();
-      router.push('/admin/login');
-      router.refresh();
+      window.location.href = '/admin/login';
     } catch (err) {
       console.error('Sign out error:', err);
-      setLoading(false);
+      window.location.href = '/admin/login';
     }
   };
 
@@ -28,7 +27,7 @@ export function AdminHeaderSignOut() {
       onClick={handleSignOut}
       disabled={loading}
       suppressHydrationWarning
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 transition-colors disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-semibold text-rose-300 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 transition-colors disabled:opacity-50 cursor-pointer"
       title="Sign Out"
     >
       {loading ? (

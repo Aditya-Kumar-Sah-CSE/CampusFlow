@@ -33,27 +33,27 @@ export function CollegePublicFooter({
     ? 'bg-bce-navy text-slate-400 border-bce-cobalt/30'
     : isDark
     ? 'bg-slate-900 text-slate-400 border-slate-800'
-    : 'bg-white text-slate-500 border-slate-200';
+    : 'bg-white dark:bg-[#120b07]/95 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-amber-950/60';
 
   const headingTextClass = isNavy
     ? 'text-slate-200 hover:text-amber-400'
     : isDark
     ? 'text-slate-200 hover:text-amber-400'
-    : 'text-slate-800 hover:text-blue-600';
+    : 'text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-amber-400';
 
   const campusFlowLinkClass = isNavy
     ? 'font-bold text-slate-200 hover:text-amber-300 hover:underline'
     : isDark
     ? 'font-bold text-slate-200 hover:text-white hover:underline'
-    : 'font-bold text-slate-800 hover:text-blue-600 hover:underline';
+    : 'font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-amber-300 hover:underline';
 
   const authorLinkClass = isNavy || isDark
     ? 'text-amber-400 hover:underline font-medium'
-    : 'text-blue-600 hover:text-blue-800 hover:underline font-medium';
+    : 'text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 hover:underline font-medium';
 
   const secondaryLinkClass = isNavy || isDark
     ? 'text-slate-400 hover:text-slate-200 hover:underline'
-    : 'text-slate-400 hover:text-slate-600 hover:underline';
+    : 'text-slate-400 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:underline';
 
   return (
     <footer className={`border-t py-6 text-center text-xs mt-auto w-full transition-colors ${bgBorderClass} ${className}`}>

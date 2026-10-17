@@ -240,7 +240,7 @@ export async function updateAdminRoleAction(targetAdminId: string, newRole: stri
     if (updateErr.message.includes('college_memberships_role_check')) {
       return {
         success: false,
-        error: `Database constraint error: Role '${newRole}' allow karne ke liye please Supabase SQL Editor me migration run karein: '20261016000001_admin_roles_and_library_timing.sql'.`,
+        error: `Database constraint error: To allow role '${newRole}', please run migration in Supabase SQL Editor: '20261016000001_admin_roles_and_library_timing.sql'.`,
       };
     }
     return { success: false, error: updateErr.message };

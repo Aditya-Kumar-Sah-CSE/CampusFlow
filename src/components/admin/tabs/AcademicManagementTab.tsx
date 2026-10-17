@@ -65,6 +65,8 @@ import type {
 import { PROGRAMME_PRESETS, ProgrammePreset } from '@/lib/academic/programme-service';
 import { PaginationControl } from '@/components/ui/PaginationControl';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 export type AcademicSubTab =
   | 'faculties'
@@ -1141,8 +1143,8 @@ export function AcademicManagementTab({
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
-      {/* Sub-Navigation Tabs */}
-      <div className="bg-white p-1.5 sm:p-2 rounded-2xl border border-slate-200 shadow-xs flex overflow-x-auto no-scrollbar gap-1.5 w-full max-w-full min-w-0 touch-pan-x sm:flex-wrap">
+      {/* Sub-Navigation Tabs (Sharp corners, Day/Night theme) */}
+      <div className="bg-white/95 dark:bg-[#1a1309]/95 backdrop-blur-sm p-1.5 sm:p-2 rounded-[4px] border border-slate-200/90 dark:border-[#4d3817] shadow-sm flex overflow-x-auto no-scrollbar gap-1.5 w-full max-w-full min-w-0 touch-pan-x sm:flex-wrap">
         {[
           { id: 'faculties', label: `Faculties (${facultyTotal})`, icon: Users },
           { id: 'subjects', label: `Subjects (${subjectTotal})`, icon: BookOpen },
@@ -1159,10 +1161,10 @@ export function AcademicManagementTab({
               type="button"
               suppressHydrationWarning
               onClick={() => handleSubTabChange(tab.id as AcademicSubTab)}
-              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 min-h-[40px] sm:min-h-[36px] ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs font-bold transition-all shrink-0 min-h-[40px] sm:min-h-[36px] ${
                 isActive
-                  ? 'bg-bce-navy text-amber-400 shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-bce-navy text-amber-400 dark:bg-[#342414] dark:text-amber-300 dark:border dark:border-amber-600/50 shadow-xs'
+                  : 'text-slate-700 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#281b0f]'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -1188,37 +1190,41 @@ export function AcademicManagementTab({
       {/* 1. FACULTIES SUBTAB */}
       {activeSubTab === 'faculties' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
-          {/* Add Faculty Form */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0 w-full">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-bce-cobalt" />
-              Add New Faculty
-            </h4>
+          {/* Add Faculty Form (Exam Pad Design) */}
+          <ExamPadCard
+            variant="dashboard"
+            title="Add New Faculty"
+            icon={<Users className="w-4 h-4 text-amber-700" />}
+            badge="Faculty Card"
+            clipLabel="ROYAL"
+            className="min-w-0 w-full"
+            paperClassName="space-y-3 text-slate-800"
+          >
             <form onSubmit={handleCreateFaculty} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Faculty Name</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Faculty Name</label>
                 <input
                   type="text"
                   required
                   value={facName}
                   onChange={(e) => setFacName(e.target.value)}
                   placeholder="e.g. Dr. Anil Kumar"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Department / Branch *</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Department / Branch *</label>
                 <select
                   value={facDept}
                   onChange={(e) => setFacDept(e.target.value)}
                   required
                   aria-label="Department / Branch"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 >
                   <option value="">Select Branch / Discipline</option>
                   {activeBranches.map((b) => (
-                    <option key={b.id} value={b.name}>
+                    <option key={b.id} value={b.name} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {b.name} ({b.code})
                     </option>
                   ))}
@@ -1226,51 +1232,56 @@ export function AcademicManagementTab({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Designation</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Designation</label>
                 <input
                   type="text"
                   required
                   value={facDesig}
                   onChange={(e) => setFacDesig(e.target.value)}
                   placeholder="e.g. Assistant Professor / HOD"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Employee ID (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Employee ID (Optional)</label>
                 <input
                   type="text"
                   value={facEmpId}
                   onChange={(e) => setFacEmpId(e.target.value)}
                   placeholder="e.g. EMP-101"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full py-2.5 px-4 min-h-[44px] rounded-[3px] bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 <span>{isPending ? 'Adding Faculty...' : 'Add Faculty'}</span>
               </button>
             </form>
-          </div>
+          </ExamPadCard>
 
-          {/* Faculty List with Fast Search, Filter & Pagination */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col min-w-0 w-full">
+          {/* Faculty List with Fast Search, Filter & Pagination (Pinned Document Sheet) */}
+          <PinnedRosterBoard
+            className="lg:col-span-2"
+            title="Official Faculty Directory"
+            icon={<Users className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge={`${facultyTotal} Records`}
+          >
             {/* Filter / Search Header */}
-            <div className="p-3.5 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="p-3.5 border-b border-slate-200/80 dark:border-[#382713] bg-slate-50/60 dark:bg-[#1a1309]/70 flex flex-col sm:flex-row items-center justify-between gap-2.5 transition-colors">
               <div className="relative w-full sm:w-56">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-slate-400 dark:text-[#8a7251] absolute left-2.5 top-2.5" />
                 <input
                   type="text"
                   value={facultySearch}
                   onChange={(e) => setFacultySearch(e.target.value)}
                   placeholder="Search faculty..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500"
                 />
               </div>
 
@@ -1282,11 +1293,11 @@ export function AcademicManagementTab({
                     setFacultyPage(1);
                   }}
                   aria-label="Filter Department"
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Departments</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Departments</option>
                   {activeBranches.map((b) => (
-                    <option key={b.id} value={b.name}>
+                    <option key={b.id} value={b.name} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {b.code} - {b.name}
                     </option>
                   ))}
@@ -1298,11 +1309,11 @@ export function AcademicManagementTab({
                     setFacultyStatusFilter(e.target.value as any);
                     setFacultyPage(1);
                   }}
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Status</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Status</option>
+                  <option value="ACTIVE" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Active</option>
+                  <option value="INACTIVE" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Inactive</option>
                 </select>
               </div>
             </div>
@@ -1310,17 +1321,17 @@ export function AcademicManagementTab({
             {/* Table */}
             <div className="flex-1 overflow-x-auto min-w-0">
               {facultyLoading ? (
-                <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-bce-cobalt" />
+                <div className="p-8 text-center text-xs text-slate-400 dark:text-[#8a7251] flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
                   <span>Loading faculties...</span>
                 </div>
               ) : facultyList.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
+                <div className="p-8 text-center text-xs text-slate-400 dark:text-[#8a7251]">
                   No faculty members found matching your search.
                 </div>
               ) : (
                 <table className="w-full text-left text-xs min-w-[580px]">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+                  <thead className="bg-slate-50/90 dark:bg-[#1e150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200/80 dark:border-[#382713] uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Name</th>
                       <th className="px-4 py-2.5">Department</th>
@@ -1330,20 +1341,20 @@ export function AcademicManagementTab({
                       <th className="px-4 py-2.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#2e1f0e]">
                     {facultyList.map((f) => (
-                      <tr key={f.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-2.5 font-bold text-slate-800">{f.name}</td>
-                        <td className="px-4 py-2.5 text-slate-600">{f.department}</td>
-                        <td className="px-4 py-2.5 text-slate-500">{f.designation}</td>
-                        <td className="px-4 py-2.5 font-mono text-slate-400">{f.employee_id || '—'}</td>
+                      <tr key={f.id} className="hover:bg-slate-50/80 dark:hover:bg-[#251b0f] transition-colors">
+                        <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-[#faebd0]">{f.name}</td>
+                        <td className="px-4 py-2.5 text-slate-600 dark:text-[#d6c4a8]">{f.department}</td>
+                        <td className="px-4 py-2.5 text-slate-500 dark:text-[#bda88c]">{f.designation}</td>
+                        <td className="px-4 py-2.5 font-mono text-slate-400 dark:text-[#8e7b64]">{f.employee_id || '—'}</td>
                         <td className="px-4 py-2.5 text-center">
                           <button
                             onClick={() => handleToggleFacultyActive(f)}
-                            className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                            className={`px-2 py-0.5 rounded-[3px] text-[11px] font-semibold transition-colors cursor-pointer ${
                               f.is_active
-                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50'
+                                : 'bg-slate-200 dark:bg-[#2c2014] text-slate-700 dark:text-[#c4a97d] border border-slate-300 dark:border-[#4d3817]'
                             }`}
                           >
                             {f.is_active ? 'ACTIVE' : 'INACTIVE'}
@@ -1354,7 +1365,7 @@ export function AcademicManagementTab({
                             <button
                               type="button"
                               onClick={() => handleOpenEditFaculty(f)}
-                              className="p-1 rounded text-slate-500 hover:text-bce-cobalt hover:bg-slate-100 transition-colors"
+                              className="p-1 rounded-[3px] text-slate-500 dark:text-[#c4a97d] hover:text-bce-cobalt dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-[#281b0f] transition-colors"
                               title="Edit faculty member"
                             >
                               <Edit2 className="w-3.5 h-3.5" />
@@ -1362,7 +1373,7 @@ export function AcademicManagementTab({
                             <button
                               type="button"
                               onClick={() => handleDeleteFaculty(f.id, f.name)}
-                              className="p-1 rounded text-rose-600 hover:bg-rose-50 transition-colors"
+                              className="p-1 rounded-[3px] text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                               title="Delete faculty member"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1390,7 +1401,7 @@ export function AcademicManagementTab({
               pageSizeOptions={[10, 20, 50]}
               isLoading={facultyLoading}
             />
-          </div>
+          </PinnedRosterBoard>
 
           {/* Edit Faculty Modal */}
           {editingFaculty && (
@@ -1507,40 +1518,44 @@ export function AcademicManagementTab({
       {/* 2. SUBJECTS SUBTAB */}
       {activeSubTab === 'subjects' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
-          {/* Add Subject Form */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0 w-full">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-bce-cobalt" />
-              Add New Subject
-            </h4>
+          {/* Add Subject Form (Exam Pad Design) */}
+          <ExamPadCard
+            variant="dashboard"
+            title="Add New Subject"
+            icon={<BookOpen className="w-4 h-4 text-amber-700" />}
+            badge="Subject Card"
+            clipLabel="ROYAL"
+            className="min-w-0 w-full"
+            paperClassName="space-y-3 text-slate-800"
+          >
             <form onSubmit={handleCreateSubject} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Subject Name</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Subject Name</label>
                 <input
                   type="text"
                   required
                   value={subName}
                   onChange={(e) => setSubName(e.target.value)}
                   placeholder="e.g. Data Structures & Algorithms"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Subject Code</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Subject Code</label>
                 <input
                   type="text"
                   required
                   value={subCode}
                   onChange={(e) => setSubCode(e.target.value)}
                   placeholder="e.g. CS-401"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] uppercase placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               {programmeList.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1">Academic Programme</label>
+                  <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Academic Programme</label>
                   <select
                     value={subProgId}
                     onChange={(e) => {
@@ -1555,11 +1570,11 @@ export function AcademicManagementTab({
                       );
                       if (firstMatching) setSubSemesterId(firstMatching.id);
                     }}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                    className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors cursor-pointer"
                   >
-                    <option value="ALL">All Programmes</option>
+                    <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Programmes</option>
                     {programmeList.map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={p.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                         {p.name} ({p.level_type === 'CLASS' ? 'School' : `${p.duration_years} Yrs`})
                       </option>
                     ))}
@@ -1568,15 +1583,15 @@ export function AcademicManagementTab({
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">
                   Academic Level (Semester / Class)
                 </label>
                 <select
                   value={subSemesterId}
                   onChange={(e) => setSubSemesterId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors cursor-pointer"
                 >
-                  <option value="">Any Academic Level</option>
+                  <option value="" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Any Academic Level</option>
                   {semesterList
                     .filter(
                       (s: any) =>
@@ -1585,7 +1600,7 @@ export function AcademicManagementTab({
                         s.programme?.id === subProgId
                     )
                     .map((s) => (
-                      <option key={s.id} value={s.id}>
+                      <option key={s.id} value={s.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                         {s.programme?.name ? `${s.programme.name} • ` : ''}
                         {s.name}
                       </option>
@@ -1594,13 +1609,13 @@ export function AcademicManagementTab({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch / Discipline</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Branch / Discipline</label>
                 {(() => {
                   const currentProg = programmeList.find((p) => p.id === subProgId);
                   const isBranchless = currentProg && !currentProg.has_branches;
                   if (isBranchless) {
                     return (
-                      <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-500 italic">
+                      <div className="w-full bg-slate-100 dark:bg-[#281b0f] border border-slate-200 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-500 dark:text-[#c4a97d] italic">
                         Not Applicable ({currentProg.name} curriculum has no branches)
                       </div>
                     );
@@ -1610,11 +1625,11 @@ export function AcademicManagementTab({
                       value={subBranchId}
                       onChange={(e) => setSubBranchId(e.target.value)}
                       aria-label="Branch / Discipline"
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                      className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors cursor-pointer"
                     >
-                      <option value="">Common / All Branches</option>
+                      <option value="" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Common / All Branches</option>
                       {activeBranches.map((b) => (
-                        <option key={b.id} value={b.id}>
+                        <option key={b.id} value={b.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                           {b.name} ({b.code})
                         </option>
                       ))}
@@ -1626,26 +1641,31 @@ export function AcademicManagementTab({
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full py-2.5 px-4 min-h-[44px] rounded-[3px] bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 <span>{isPending ? 'Adding Subject...' : 'Add Subject'}</span>
               </button>
             </form>
-          </div>
+          </ExamPadCard>
 
-          {/* Subjects List */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col min-w-0 w-full">
+          {/* Subjects List (Pinned Document Sheet) */}
+          <PinnedRosterBoard
+            className="lg:col-span-2"
+            title="Curriculum & Subjects Registry"
+            icon={<BookOpen className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge={`${subjectTotal} Subjects`}
+          >
             {/* Filter Header */}
-            <div className="p-3.5 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row items-center justify-between gap-2.5">
+            <div className="p-3.5 border-b border-slate-200/80 dark:border-[#382713] bg-slate-50/60 dark:bg-[#1a1309]/70 flex flex-col sm:flex-row items-center justify-between gap-2.5 transition-colors">
               <div className="relative w-full sm:w-56">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                <Search className="w-3.5 h-3.5 text-slate-400 dark:text-[#8a7251] absolute left-2.5 top-2.5" />
                 <input
                   type="text"
                   value={subjectSearch}
                   onChange={(e) => setSubjectSearch(e.target.value)}
                   placeholder="Code or name..."
-                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500"
                 />
               </div>
 
@@ -1657,11 +1677,11 @@ export function AcademicManagementTab({
                     setSubjectPage(1);
                   }}
                   aria-label="Filter Branch"
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Branches</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Branches</option>
                   {activeBranches.map((b) => (
-                    <option key={b.id} value={b.id}>
+                    <option key={b.id} value={b.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {b.code}
                     </option>
                   ))}
@@ -1673,11 +1693,11 @@ export function AcademicManagementTab({
                     setSubjectSemesterFilter(e.target.value);
                     setSubjectPage(1);
                   }}
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Semesters</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Semesters</option>
                   {semesterList.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <option key={s.id} value={s.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {s.name}
                     </option>
                   ))}
@@ -1689,11 +1709,11 @@ export function AcademicManagementTab({
                     setSubjectStatusFilter(e.target.value as any);
                     setSubjectPage(1);
                   }}
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All</option>
+                  <option value="ACTIVE" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Active</option>
+                  <option value="INACTIVE" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Inactive</option>
                 </select>
               </div>
             </div>
@@ -1701,17 +1721,17 @@ export function AcademicManagementTab({
             {/* Table */}
             <div className="flex-1 overflow-x-auto">
               {subjectLoading ? (
-                <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-bce-cobalt" />
+                <div className="p-8 text-center text-xs text-slate-400 dark:text-[#8a7251] flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
                   <span>Loading subjects...</span>
                 </div>
               ) : subjectList.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
+                <div className="p-8 text-center text-xs text-slate-400 dark:text-[#8a7251]">
                   No subjects registered matching your criteria.
                 </div>
               ) : (
                 <table className="w-full text-left text-xs min-w-[560px]">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+                  <thead className="bg-slate-50/90 dark:bg-[#1e150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200/80 dark:border-[#382713] uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Code</th>
                       <th className="px-4 py-2.5">Subject Name</th>
@@ -1721,23 +1741,23 @@ export function AcademicManagementTab({
                       <th className="px-4 py-2.5 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#2e1f0e]">
                     {subjectList.map((s) => {
                       const branch = branchList.find((b) => b.id === s.branch_id);
                       const sem = semesterList.find((sm) => sm.id === s.semester_id);
                       return (
-                        <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-2.5 font-mono font-bold text-slate-800">{s.code}</td>
-                          <td className="px-4 py-2.5 font-semibold text-slate-800">{s.name}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{branch?.code || 'All'}</td>
-                          <td className="px-4 py-2.5 text-slate-500">{sem?.name || '—'}</td>
+                        <tr key={s.id} className="hover:bg-slate-50/80 dark:hover:bg-[#251b0f] transition-colors">
+                          <td className="px-4 py-2.5 font-mono font-bold text-slate-800 dark:text-[#faebd0]">{s.code}</td>
+                          <td className="px-4 py-2.5 font-semibold text-slate-800 dark:text-[#faebd0]">{s.name}</td>
+                          <td className="px-4 py-2.5 text-slate-600 dark:text-[#d6c4a8]">{branch?.code || 'All'}</td>
+                          <td className="px-4 py-2.5 text-slate-500 dark:text-[#bda88c]">{sem?.name || '—'}</td>
                           <td className="px-4 py-2.5 text-center">
                             <button
                               onClick={() => handleToggleSubjectActive(s)}
-                              className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                              className={`px-2 py-0.5 rounded-[3px] text-[11px] font-semibold transition-colors cursor-pointer ${
                                 s.is_active
-                                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                  : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                  ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50'
+                                  : 'bg-slate-200 dark:bg-[#2c2014] text-slate-700 dark:text-[#c4a97d] border border-slate-300 dark:border-[#4d3817]'
                               }`}
                             >
                               {s.is_active ? 'ACTIVE' : 'INACTIVE'}
@@ -1748,7 +1768,7 @@ export function AcademicManagementTab({
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditSubject(s)}
-                                className="p-1 rounded text-slate-500 hover:text-bce-cobalt hover:bg-slate-100 transition-colors"
+                                className="p-1 rounded-[3px] text-slate-500 dark:text-[#c4a97d] hover:text-bce-cobalt dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-[#281b0f] transition-colors"
                                 title="Edit subject"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -1756,7 +1776,7 @@ export function AcademicManagementTab({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteSubject(s.id, s.name)}
-                                className="p-1 rounded text-rose-600 hover:bg-rose-50 transition-colors"
+                                className="p-1 rounded-[3px] text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                 title="Delete subject"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1785,7 +1805,7 @@ export function AcademicManagementTab({
               pageSizeOptions={[10, 20, 50]}
               isLoading={subjectLoading}
             />
-          </div>
+          </PinnedRosterBoard>
 
           {/* Edit Subject Modal */}
           {editingSubject && (
@@ -1908,12 +1928,16 @@ export function AcademicManagementTab({
       {/* 3. ASSIGNMENTS SUBTAB */}
       {activeSubTab === 'assignments' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
-          {/* Add Assignment Form with SearchableSelect */}
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0 w-full">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-bce-cobalt" />
-              Assign Faculty to Subject
-            </h4>
+          {/* Add Assignment Form (Exam Pad Design) */}
+          <ExamPadCard
+            variant="dashboard"
+            title="Assign Faculty to Subject"
+            icon={<GraduationCap className="w-4 h-4 text-amber-700" />}
+            badge="Assignment Card"
+            clipLabel="ROYAL"
+            className="min-w-0 w-full"
+            paperClassName="space-y-3 text-slate-800"
+          >
             <form onSubmit={handleCreateAssignment} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Faculty Member</label>
@@ -1950,14 +1974,14 @@ export function AcademicManagementTab({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Academic Session</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Academic Session</label>
                 <select
                   value={assignYearId}
                   onChange={(e) => setAssignYearId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors cursor-pointer"
                 >
                   {yearList.map((y) => (
-                    <option key={y.id} value={y.id}>
+                    <option key={y.id} value={y.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {y.name} {y.is_active ? '(Active)' : ''}
                     </option>
                   ))}
@@ -1965,26 +1989,26 @@ export function AcademicManagementTab({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch / Discipline</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Branch / Discipline</label>
                 <select
                   value={assignBranchId}
                   onChange={(e) => setAssignBranchId(e.target.value)}
                   aria-label="Branch / Discipline"
                   disabled={activeBranches.length === 0}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {!assignBranchId && (
-                    <option value="" disabled>
+                    <option value="" disabled className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       Select Branch / Discipline
                     </option>
                   )}
                   {activeBranches.length === 0 ? (
-                    <option value="" disabled>
+                    <option value="" disabled className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       No active branches available
                     </option>
                   ) : (
                     activeBranches.map((b) => (
-                      <option key={b.id} value={b.id}>
+                      <option key={b.id} value={b.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                         {b.name} ({b.code})
                       </option>
                     ))
@@ -1993,14 +2017,14 @@ export function AcademicManagementTab({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Semester</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Semester</label>
                 <select
                   value={assignSemesterId}
                   onChange={(e) => setAssignSemesterId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors cursor-pointer"
                 >
                   {semesterList.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <option key={s.id} value={s.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {s.name}
                     </option>
                   ))}
@@ -2010,19 +2034,24 @@ export function AcademicManagementTab({
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full py-2.5 px-4 min-h-[44px] rounded-[3px] bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 <span>{isPending ? 'Assigning Faculty...' : 'Assign Faculty'}</span>
               </button>
             </form>
-          </div>
+          </ExamPadCard>
 
-          {/* Assignments List */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex flex-col min-w-0 w-full">
+          {/* Assignments List (Pinned Document Sheet) */}
+          <PinnedRosterBoard
+            className="lg:col-span-2"
+            title="Faculty Course Allocations"
+            icon={<GraduationCap className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge={`${assignTotal} Allocations`}
+          >
             {/* Filter Header */}
-            <div className="p-3.5 border-b border-slate-100 bg-slate-50/40 flex flex-col sm:flex-row items-center justify-between gap-2.5">
-              <div className="text-xs font-bold text-slate-700">Filter Assignments:</div>
+            <div className="p-3.5 border-b border-slate-200/80 dark:border-[#382713] bg-slate-50/60 dark:bg-[#1a1309]/70 flex flex-col sm:flex-row items-center justify-between gap-2.5 transition-colors">
+              <div className="text-xs font-bold text-slate-700 dark:text-[#faebd0]">Filter Assignments:</div>
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                 <select
                   value={assignYearFilter}
@@ -2030,11 +2059,11 @@ export function AcademicManagementTab({
                     setAssignYearFilter(e.target.value);
                     setAssignPage(1);
                   }}
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Sessions</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Sessions</option>
                   {yearList.map((y) => (
-                    <option key={y.id} value={y.id}>
+                    <option key={y.id} value={y.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {y.name}
                     </option>
                   ))}
@@ -2047,11 +2076,11 @@ export function AcademicManagementTab({
                     setAssignPage(1);
                   }}
                   aria-label="Filter Branch"
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Branches</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Branches</option>
                   {activeBranches.map((b) => (
-                    <option key={b.id} value={b.id}>
+                    <option key={b.id} value={b.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {b.code}
                     </option>
                   ))}
@@ -2063,11 +2092,11 @@ export function AcademicManagementTab({
                     setAssignSemesterFilter(e.target.value);
                     setAssignPage(1);
                   }}
-                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt"
+                  className="flex-1 sm:flex-none px-2 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] text-base sm:text-xs min-h-[38px] sm:min-h-[32px] text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="ALL">All Semesters</option>
+                  <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Semesters</option>
                   {semesterList.map((s) => (
-                    <option key={s.id} value={s.id}>
+                    <option key={s.id} value={s.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                       {s.name}
                     </option>
                   ))}
@@ -2078,17 +2107,17 @@ export function AcademicManagementTab({
             {/* Table */}
             <div className="flex-1 overflow-x-auto">
               {assignLoading ? (
-                <div className="p-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-bce-cobalt" />
+                <div className="p-8 text-center text-xs text-slate-400 dark:text-[#8a7251] flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
                   <span>Loading assignments...</span>
                 </div>
               ) : assignmentList.length === 0 ? (
-                <div className="p-8 text-center text-xs text-slate-400">
+                <div className="p-8 text-center text-xs text-slate-400 dark:text-[#8a7251]">
                   No faculty assignments configured for the selected filters.
                 </div>
               ) : (
                 <table className="w-full text-left text-xs min-w-[560px]">
-                  <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+                  <thead className="bg-slate-50/90 dark:bg-[#1e150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200/80 dark:border-[#382713] uppercase tracking-wider">
                     <tr>
                       <th className="px-4 py-2.5">Faculty</th>
                       <th className="px-4 py-2.5">Subject</th>
@@ -2097,24 +2126,24 @@ export function AcademicManagementTab({
                       <th className="px-4 py-2.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-[#2e1f0e]">
                     {assignmentList.map((a) => {
                       const faculty = a.faculty || allFaculties.find((f) => f.id === a.faculty_id);
                       const subject = a.subject || allSubjects.find((s) => s.id === a.subject_id);
                       const year = a.academic_year || yearList.find((y) => y.id === a.academic_year_id);
                       const branch = a.branch || branchList.find((b) => b.id === a.branch_id);
                       return (
-                        <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-2.5 font-bold text-slate-800">{faculty?.name || 'Faculty'}</td>
-                          <td className="px-4 py-2.5 text-slate-700">{subject?.name || 'Subject'}</td>
-                          <td className="px-4 py-2.5 text-slate-500 font-mono">{year?.name || '—'}</td>
-                          <td className="px-4 py-2.5 text-slate-500">{branch?.code || 'All'}</td>
+                        <tr key={a.id} className="hover:bg-slate-50/80 dark:hover:bg-[#251b0f] transition-colors">
+                          <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-[#faebd0]">{faculty?.name || 'Faculty'}</td>
+                          <td className="px-4 py-2.5 text-slate-700 dark:text-[#d6c4a8]">{subject?.name || 'Subject'}</td>
+                          <td className="px-4 py-2.5 text-slate-500 dark:text-[#bda88c] font-mono">{year?.name || '—'}</td>
+                          <td className="px-4 py-2.5 text-slate-500 dark:text-[#bda88c]">{branch?.code || 'All'}</td>
                           <td className="px-4 py-2.5 text-right">
                             <div className="inline-flex items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => handleOpenEditAssignment(a)}
-                                className="p-1 rounded text-slate-500 hover:text-bce-cobalt hover:bg-slate-100 transition-colors"
+                                className="p-1 rounded-[3px] text-slate-500 dark:text-[#c4a97d] hover:text-bce-cobalt dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-[#281b0f] transition-colors"
                                 title="Edit Assignment"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -2122,10 +2151,10 @@ export function AcademicManagementTab({
                               <button
                                 type="button"
                                 onClick={() => handleDeleteAssignment(a.id)}
-                                className="p-1 rounded text-rose-600 hover:bg-rose-50 transition-colors"
+                                className="p-1 rounded-[3px] text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                                 title="Delete Assignment"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -2151,7 +2180,7 @@ export function AcademicManagementTab({
               pageSizeOptions={[10, 20, 50]}
               isLoading={assignLoading}
             />
-          </div>
+          </PinnedRosterBoard>
 
           {/* Edit Assignment Modal */}
           {editingAssignment && (
@@ -2310,33 +2339,37 @@ export function AcademicManagementTab({
       {/* 4. ACADEMIC YEARS SUBTAB */}
       {activeSubTab === 'years' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0 w-full">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-bce-cobalt" />
-              Add Academic Year
-            </h4>
+          <ExamPadCard
+            variant="dashboard"
+            title="Add Academic Year"
+            icon={<Calendar className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge="Session Card"
+            clipLabel="ROYAL"
+            className="min-w-0 w-full"
+            paperClassName="space-y-3 text-slate-800"
+          >
             <form onSubmit={handleCreateYear} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Session Name</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Session Name</label>
                 <input
                   type="text"
                   required
                   value={yearName}
                   onChange={(e) => setYearName(e.target.value)}
                   placeholder="e.g. 2026-2027"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pt-1">
                 <input
                   type="checkbox"
                   id="yrActive"
                   checked={yearActive}
                   onChange={(e) => setYearActive(e.target.checked)}
-                  className="rounded border-slate-300 text-bce-cobalt focus:ring-bce-cobalt"
+                  className="rounded-[2px] border-slate-300 dark:border-[#4d3817] text-amber-600 focus:ring-amber-500/30"
                 />
-                <label htmlFor="yrActive" className="text-xs text-slate-700 font-medium">
+                <label htmlFor="yrActive" className="text-xs text-slate-700 dark:text-[#faebd0] font-medium cursor-pointer">
                   Set as Active Session
                 </label>
               </div>
@@ -2344,183 +2377,195 @@ export function AcademicManagementTab({
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full py-2.5 px-4 min-h-[44px] rounded-[3px] bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 <span>{isPending ? 'Adding Year...' : 'Add Year'}</span>
               </button>
             </form>
-          </div>
+          </ExamPadCard>
 
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden min-w-0 w-full">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h4 className="text-sm font-bold text-slate-900">Academic Sessions ({yearList.length})</h4>
-            </div>
+          <PinnedRosterBoard
+            className="lg:col-span-2"
+            title="Academic Sessions"
+            icon={<Calendar className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge={`${yearList.length} Sessions`}
+          >
             <div className="overflow-x-auto min-w-0">
-            <table className="w-full text-left text-xs min-w-[360px]">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
-                <tr>
-                  <th className="px-5 py-3">Session Name</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Toggle Active</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {yearList.map((y) => (
-                  <tr key={y.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3 font-bold text-slate-800">{y.name}</td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                          y.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        {y.is_active ? 'ACTIVE' : 'INACTIVE'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => handleToggleYear(y)}
-                        className="text-bce-cobalt hover:underline text-xs font-semibold cursor-pointer"
-                      >
-                        {y.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </td>
+              <table className="w-full text-left text-xs min-w-[360px]">
+                <thead className="bg-slate-50/90 dark:bg-[#1e150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200/80 dark:border-[#382713] uppercase tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3">Session Name</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Toggle Active</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2e1f0e]">
+                  {yearList.map((y) => (
+                    <tr key={y.id} className="hover:bg-slate-50/80 dark:hover:bg-[#251b0f] transition-colors">
+                      <td className="px-5 py-3 font-bold text-slate-800 dark:text-[#faebd0]">{y.name}</td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-[3px] text-[11px] font-semibold ${
+                            y.is_active
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50'
+                              : 'bg-slate-200 dark:bg-[#2c2014] text-slate-700 dark:text-[#c4a97d] border border-slate-300 dark:border-[#4d3817]'
+                          }`}
+                        >
+                          {y.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <button
+                          onClick={() => handleToggleYear(y)}
+                          className="text-bce-cobalt dark:text-amber-400 hover:underline text-xs font-semibold cursor-pointer"
+                        >
+                          {y.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </PinnedRosterBoard>
         </div>
       )}
 
       {/* 5. BRANCHES SUBTAB */}
       {activeSubTab === 'branches' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4 min-w-0 w-full">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Plus className="w-4 h-4 text-bce-cobalt" />
-              Add Engineering Branch
-            </h4>
+          <ExamPadCard
+            variant="dashboard"
+            title="Add Engineering Branch"
+            icon={<Layers className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge="Branch Card"
+            clipLabel="ROYAL"
+            className="min-w-0 w-full"
+            paperClassName="space-y-3 text-slate-800"
+          >
             <form onSubmit={handleCreateBranch} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch Name</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Branch Name</label>
                 <input
                   type="text"
                   required
                   value={branchName}
                   onChange={(e) => setBranchName(e.target.value)}
                   placeholder="e.g. Artificial Intelligence & Data Science"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">Branch Code</label>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-[#c4a97d] mb-1">Branch Code</label>
                 <input
                   type="text"
                   required
                   value={branchCode}
                   onChange={(e) => setBranchCode(e.target.value)}
                   placeholder="e.g. AI-DS"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-[36px] text-slate-900 dark:text-[#faebd0] uppercase placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isPending}
-                className="w-full py-2.5 px-4 min-h-[44px] rounded-xl bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full py-2.5 px-4 min-h-[44px] rounded-[3px] bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                 <span>{isPending ? 'Adding Branch...' : 'Add Branch'}</span>
               </button>
             </form>
-          </div>
+          </ExamPadCard>
 
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden min-w-0 w-full">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h4 className="text-sm font-bold text-slate-900">Engineering Branches ({branchList.length})</h4>
-            </div>
+          <PinnedRosterBoard
+            className="lg:col-span-2"
+            title="Engineering Branches"
+            icon={<Layers className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+            badge={`${branchList.length} Branches`}
+          >
             <div className="overflow-x-auto min-w-0">
-            <table className="w-full text-left text-xs min-w-[480px]">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
-                <tr>
-                  <th className="px-5 py-3">Code</th>
-                  <th className="px-5 py-3">Branch Name</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {branchList.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3 font-mono font-bold text-slate-800">{b.code}</td>
-                    <td className="px-5 py-3 font-semibold text-slate-800">{b.name}</td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                          b.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        {b.is_active ? 'ACTIVE' : 'INACTIVE'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditBranch(b)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
-                          title="Edit Branch"
-                        >
-                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Edit</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleToggleBranch(b)}
-                          className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors ${
+              <table className="w-full text-left text-xs min-w-[480px]">
+                <thead className="bg-slate-50/90 dark:bg-[#1e150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200/80 dark:border-[#382713] uppercase tracking-wider">
+                  <tr>
+                    <th className="px-5 py-3">Code</th>
+                    <th className="px-5 py-3">Branch Name</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2e1f0e]">
+                  {branchList.map((b) => (
+                    <tr key={b.id} className="hover:bg-slate-50/80 dark:hover:bg-[#251b0f] transition-colors">
+                      <td className="px-5 py-3 font-mono font-bold text-slate-800 dark:text-[#faebd0]">{b.code}</td>
+                      <td className="px-5 py-3 font-semibold text-slate-800 dark:text-[#faebd0]">{b.name}</td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-[3px] text-[11px] font-semibold ${
                             b.is_active
-                              ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                              : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50'
+                              : 'bg-slate-200 dark:bg-[#2c2014] text-slate-700 dark:text-[#c4a97d] border border-slate-300 dark:border-[#4d3817]'
                           }`}
                         >
-                          {b.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
+                          {b.is_active ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditBranch(b)}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-[3px] text-xs font-semibold text-slate-700 dark:text-[#faebd0] bg-slate-100 dark:bg-[#281b0f] hover:bg-slate-200 dark:hover:bg-[#342414] transition-colors"
+                            title="Edit Branch"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-slate-500 dark:text-[#a8906c]" />
+                            <span>Edit</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setDeletingBranch(b)}
-                          className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="Delete Branch"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBranch(b)}
+                            className={`px-2 py-1 rounded-[3px] text-xs font-semibold transition-colors ${
+                              b.is_active
+                                ? 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-[#2e1f10] hover:bg-amber-100 dark:hover:bg-[#3d2a16]'
+                                : 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                            }`}
+                          >
+                            {b.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setDeletingBranch(b)}
+                            className="p-1 rounded-[3px] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                            title="Delete Branch"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </PinnedRosterBoard>
 
           {/* Edit Branch Modal */}
           {editingBranch && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                    <Edit2 className="w-4 h-4 text-bce-cobalt" />
+              <div className="bg-white dark:bg-[#1a1309] w-full max-w-md rounded-[3px] shadow-2xl border border-slate-300 dark:border-[#4d3817] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-slate-50 dark:bg-[#1e150b] border-b border-slate-200 dark:border-[#382713] flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-1.5">
+                    <Edit2 className="w-4 h-4 text-bce-cobalt dark:text-amber-400" />
                     <span>Edit Engineering Branch</span>
                   </h4>
                   <button
                     type="button"
                     onClick={() => setEditingBranch(null)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors"
+                    className="p-1 rounded-[3px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#281c0e] transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -2528,7 +2573,7 @@ export function AcademicManagementTab({
 
                 <form onSubmit={handleUpdateBranchSubmit} className="p-5 space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                       Branch Name
                     </label>
                     <input
@@ -2536,12 +2581,12 @@ export function AcademicManagementTab({
                       required
                       value={editBranchName}
                       onChange={(e) => setEditBranchName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                      className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-sm text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                       Branch Code
                     </label>
                     <input
@@ -2549,7 +2594,7 @@ export function AcademicManagementTab({
                       required
                       value={editBranchCode}
                       onChange={(e) => setEditBranchCode(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 uppercase focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                      className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-sm text-slate-900 dark:text-[#faebd0] uppercase font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   </div>
 
@@ -2559,9 +2604,9 @@ export function AcademicManagementTab({
                       id="editBranchActive"
                       checked={editBranchActive}
                       onChange={(e) => setEditBranchActive(e.target.checked)}
-                      className="w-4 h-4 text-bce-cobalt rounded border-slate-300 focus:ring-bce-cobalt/20"
+                      className="w-4 h-4 text-amber-600 rounded-[2px] border-slate-300 dark:border-[#4d3817] focus:ring-amber-500"
                     />
-                    <label htmlFor="editBranchActive" className="text-xs font-medium text-slate-700 select-none cursor-pointer">
+                    <label htmlFor="editBranchActive" className="text-xs font-medium text-slate-700 dark:text-[#faebd0] select-none cursor-pointer">
                       Active engineering branch
                     </label>
                   </div>
@@ -2570,14 +2615,14 @@ export function AcademicManagementTab({
                     <button
                       type="button"
                       onClick={() => setEditingBranch(null)}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                      className="px-4 py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#faebd0] hover:bg-slate-100 dark:hover:bg-[#281c0e] border border-slate-300 dark:border-[#4d3817] transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isPending}
-                      className="px-4 py-2 rounded-xl bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                      className="px-4 py-2 rounded-[3px] bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                       <span>Save Changes</span>
@@ -2591,41 +2636,41 @@ export function AcademicManagementTab({
           {/* Delete Branch Confirmation Modal */}
           {deletingBranch && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-rose-600" />
+              <div className="bg-white dark:bg-[#1a1309] w-full max-w-md rounded-[3px] shadow-2xl border border-slate-300 dark:border-[#4d3817] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/50 flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     <span>Confirm Branch Deletion</span>
                   </h4>
                   <button
                     type="button"
                     onClick={() => setDeletingBranch(null)}
-                    className="p-1 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-100 transition-colors"
+                    className="p-1 rounded-[3px] text-rose-400 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="p-5 space-y-3 text-xs text-slate-600">
-                  <p className="text-slate-800 font-medium">
+                <div className="p-5 space-y-3 text-xs text-slate-600 dark:text-[#faebd0]">
+                  <p className="text-slate-800 dark:text-[#faebd0] font-medium">
                     Are you sure you want to permanently delete the branch:
                   </p>
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 flex items-center justify-between">
+                  <div className="p-3 bg-slate-50 dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] font-bold text-slate-900 dark:text-[#faebd0] flex items-center justify-between">
                     <span>{deletingBranch.name}</span>
-                    <span className="font-mono text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
+                    <span className="font-mono text-xs px-2 py-0.5 bg-slate-200 dark:bg-[#2e1f10] text-slate-700 dark:text-[#c4a97d] rounded-[2px] border border-slate-300 dark:border-[#4d3817]">
                       {deletingBranch.code}
                     </span>
                   </div>
-                  <p className="text-rose-600 text-[11px] leading-relaxed">
+                  <p className="text-rose-600 dark:text-rose-400 text-[11px] leading-relaxed">
                     ⚠️ Deletion is permanently blocked if any feedback forms, subjects, faculty members, or teaching assignments are linked to this branch.
                   </p>
                 </div>
 
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+                <div className="p-4 border-t border-slate-100 dark:border-[#382713] bg-slate-50 dark:bg-[#171109] flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setDeletingBranch(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors"
+                    className="px-4 py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#faebd0] hover:bg-slate-200 dark:hover:bg-[#281c0e] border border-slate-300 dark:border-[#4d3817] transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -2633,7 +2678,7 @@ export function AcademicManagementTab({
                     type="button"
                     onClick={handleDeleteBranchConfirm}
                     disabled={isPending}
-                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                    className="px-4 py-2 rounded-[3px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     <span>Delete Branch</span>
@@ -2652,18 +2697,16 @@ export function AcademicManagementTab({
             {/* Left Column: Quick Multi-Select Setup & Manual Add Level */}
             <div className="space-y-6 lg:col-span-1">
               {/* Quick Academic Setup Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                      <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-900">Quick Academic Setup</h4>
-                      <p className="text-[11px] text-slate-500">Multi-select standard programme & level generator</p>
-                    </div>
-                  </div>
-                </div>
+              <ExamPadCard
+                variant="dashboard"
+                title="Quick Academic Setup"
+                subtitle="Multi-select standard programme & level generator"
+                icon={<Zap className="w-4 h-4 text-amber-700 dark:text-amber-400 fill-amber-500" />}
+                badge="Generator"
+                clipLabel="ROYAL"
+                className="min-w-0 w-full"
+                paperClassName="space-y-4 text-slate-800"
+              >
 
                 {/* Multi-select presets list */}
                 <div className="space-y-2 pt-1">
@@ -2705,10 +2748,10 @@ export function AcademicManagementTab({
                             isSelected ? prev.filter((c) => c !== preset.code) : [...prev, preset.code]
                           );
                         }}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                        className={`p-3 rounded-[3px] border transition-all cursor-pointer flex items-center justify-between ${
                           isSelected
-                            ? 'bg-blue-50/70 border-bce-cobalt/40 shadow-2xs'
-                            : 'bg-slate-50/60 border-slate-200 hover:bg-slate-100/60'
+                            ? 'bg-amber-500/10 dark:bg-amber-500/20 border-amber-500/60 dark:border-amber-500/70 shadow-2xs'
+                            : 'bg-slate-50/80 dark:bg-[#1a1208] border-slate-200 dark:border-[#4d3817] hover:bg-slate-100/80 dark:hover:bg-[#251a0d]'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -2716,25 +2759,25 @@ export function AcademicManagementTab({
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => {}} // Controlled via parent div onClick
-                            className="w-4 h-4 rounded text-bce-cobalt focus:ring-bce-cobalt pointer-events-none"
+                            className="w-4 h-4 rounded-[2px] text-amber-600 focus:ring-amber-500 pointer-events-none"
                           />
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-900">{preset.name}</span>
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-200/80 text-slate-700">
+                              <span className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">{preset.name}</span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[2px] bg-slate-200/80 dark:bg-[#281c0e] text-slate-700 dark:text-[#c4a97d] border border-slate-300 dark:border-[#4d3817]">
                                 {preset.badge}
                               </span>
                             </div>
-                            <span className="text-[11px] text-slate-500 block">{preset.duration}</span>
+                            <span className="text-[11px] text-slate-500 dark:text-[#a8906c] block">{preset.duration}</span>
                           </div>
                         </div>
 
                         {levelCount > 0 ? (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 rounded-[2px] border border-emerald-300 dark:border-emerald-700/50">
                             {levelCount} configured
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-medium">Ready</span>
+                          <span className="text-[10px] text-slate-400 dark:text-[#8a7251] font-medium">Ready</span>
                         )}
                       </div>
                     );
@@ -2752,37 +2795,37 @@ export function AcademicManagementTab({
                     </button>
 
                     {showCustomPreset && (
-                      <div className="mt-2.5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-in fade-in duration-150">
+                      <div className="mt-2.5 p-3.5 bg-slate-50 dark:bg-[#1a1208] border border-slate-200 dark:border-[#4d3817] rounded-[3px] space-y-3 animate-in fade-in duration-150">
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Programme Name</label>
+                            <label className="block text-[11px] font-semibold text-slate-600 dark:text-[#c4a97d] mb-0.5">Programme Name</label>
                             <input
                               type="text"
                               value={customProgName}
                               onChange={(e) => setCustomProgName(e.target.value)}
                               placeholder="e.g. B.Arch"
-                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg"
+                              className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] text-slate-900 dark:text-[#faebd0]"
                             />
                           </div>
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Code</label>
+                            <label className="block text-[11px] font-semibold text-slate-600 dark:text-[#c4a97d] mb-0.5">Code</label>
                             <input
                               type="text"
                               value={customProgCode}
                               onChange={(e) => setCustomProgCode(e.target.value)}
                               placeholder="e.g. BARCH"
-                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg uppercase font-mono"
+                              className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] uppercase font-mono text-slate-900 dark:text-[#faebd0]"
                             />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Level Type</label>
+                            <label className="block text-[11px] font-semibold text-slate-600 dark:text-[#c4a97d] mb-0.5">Level Type</label>
                             <select
                               value={customProgLevelType}
                               onChange={(e) => setCustomProgLevelType(e.target.value as any)}
-                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg"
+                              className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] text-slate-900 dark:text-[#faebd0]"
                             >
                               <option value="SEMESTER">Semesters</option>
                               <option value="CLASS">Classes (School)</option>
@@ -2790,14 +2833,14 @@ export function AcademicManagementTab({
                             </select>
                           </div>
                           <div>
-                            <label className="block text-[11px] font-semibold text-slate-600 mb-0.5">Total Levels</label>
+                            <label className="block text-[11px] font-semibold text-slate-600 dark:text-[#c4a97d] mb-0.5">Total Levels</label>
                             <input
                               type="number"
                               min="1"
                               max="20"
                               value={customProgTotalLevels}
                               onChange={(e) => setCustomProgTotalLevels(Number(e.target.value) || 1)}
-                              className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg font-mono"
+                              className="w-full text-xs px-2.5 py-1.5 bg-white dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] font-mono text-slate-900 dark:text-[#faebd0]"
                             />
                           </div>
                         </div>
@@ -2808,9 +2851,9 @@ export function AcademicManagementTab({
                             id="customProgBranches"
                             checked={customProgHasBranches}
                             onChange={(e) => setCustomProgHasBranches(e.target.checked)}
-                            className="w-3.5 h-3.5 rounded text-bce-cobalt"
+                            className="w-3.5 h-3.5 rounded-[2px] text-amber-600"
                           />
-                          <label htmlFor="customProgBranches" className="text-[11px] font-medium text-slate-700 cursor-pointer">
+                          <label htmlFor="customProgBranches" className="text-[11px] font-medium text-slate-700 dark:text-[#faebd0] cursor-pointer">
                             Has branches / disciplines (e.g. CSE, ECE)
                           </label>
                         </div>
@@ -2823,26 +2866,30 @@ export function AcademicManagementTab({
                   type="button"
                   onClick={handleBulkSetupProgrammes}
                   disabled={isPending || (selectedPresets.length === 0 && !showCustomPreset)}
-                  className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98"
+                  className="w-full py-2.5 rounded-[3px] bg-slate-900 hover:bg-slate-800 dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-98"
                 >
                   {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />}
                   <span>Apply & Generate Academic Levels</span>
                 </button>
 
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+                <p className="text-[11px] text-slate-400 dark:text-[#8a7251] leading-relaxed">
                   Generates all missing academic levels in ONE operation. Existing records are preserved without duplication. School uses Classes 1–12 without fake semesters.
                 </p>
-              </div>
+              </ExamPadCard>
 
               {/* Manual Add Academic Level Card */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-bce-cobalt" />
-                  <span>Add Single Academic Level</span>
-                </h4>
+              <ExamPadCard
+                variant="dashboard"
+                title="Add Single Academic Level"
+                icon={<Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+                badge="Level Card"
+                clipLabel="ROYAL"
+                className="min-w-0 w-full"
+                paperClassName="space-y-3 text-slate-800"
+              >
                 <form onSubmit={handleCreateAcademicLevel} className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                       Academic Programme
                     </label>
                     <select
@@ -2857,10 +2904,10 @@ export function AcademicManagementTab({
                           setLevelName(`Semester ${levelNumber}`);
                         }
                       }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                      className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                     >
                       {programmeList.map((p) => (
-                        <option key={p.id} value={p.id}>
+                        <option key={p.id} value={p.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                           {p.name} ({p.level_type === 'CLASS' ? 'School Classes' : `${p.duration_years} Yrs`})
                         </option>
                       ))}
@@ -2875,7 +2922,7 @@ export function AcademicManagementTab({
                       return (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                               Class Number
                             </label>
                             <select
@@ -2885,10 +2932,10 @@ export function AcademicManagementTab({
                                 setLevelNumber(n);
                                 setLevelName(`Class ${n}`);
                               }}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                              className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                             >
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((cn) => (
-                                <option key={cn} value={cn}>
+                                <option key={cn} value={cn} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                                   Class {cn}
                                 </option>
                               ))}
@@ -2896,7 +2943,7 @@ export function AcademicManagementTab({
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                               Display Name
                             </label>
                             <input
@@ -2905,7 +2952,7 @@ export function AcademicManagementTab({
                               value={levelName}
                               onChange={(e) => setLevelName(e.target.value)}
                               placeholder="e.g. Class 10"
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                              className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                             />
                           </div>
                         </div>
@@ -2916,7 +2963,7 @@ export function AcademicManagementTab({
                       <>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                               Semester #
                             </label>
                             <select
@@ -2927,10 +2974,10 @@ export function AcademicManagementTab({
                                 setLevelYearNumber(Math.ceil(n / 2));
                                 setLevelName(`Semester ${n}`);
                               }}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                              className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                             >
                               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((sn) => (
-                                <option key={sn} value={sn}>
+                                <option key={sn} value={sn} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                                   Semester {sn}
                                 </option>
                               ))}
@@ -2938,16 +2985,16 @@ export function AcademicManagementTab({
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                               Year Level
                             </label>
                             <select
                               value={levelYearNumber}
                               onChange={(e) => setLevelYearNumber(Number(e.target.value))}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                              className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                             >
                               {[1, 2, 3, 4, 5].map((y) => (
-                                <option key={y} value={y}>
+                                <option key={y} value={y} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                                   Year {y}
                                 </option>
                               ))}
@@ -2956,7 +3003,7 @@ export function AcademicManagementTab({
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-[#c4a97d] mb-1">
                             Display Name
                           </label>
                           <input
@@ -2965,7 +3012,7 @@ export function AcademicManagementTab({
                             value={levelName}
                             onChange={(e) => setLevelName(e.target.value)}
                             placeholder="e.g. Semester 1"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20"
+                            className="w-full bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500"
                           />
                         </div>
                       </>
@@ -2975,44 +3022,33 @@ export function AcademicManagementTab({
                   <button
                     type="submit"
                     disabled={isPending || !levelName.trim()}
-                    className="w-full mt-2 bg-bce-cobalt hover:bg-bce-navy text-white text-xs font-bold py-2.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                    className="w-full mt-2 bg-bce-cobalt hover:bg-bce-navy dark:bg-amber-700 dark:hover:bg-amber-600 text-white text-xs font-bold py-2.5 rounded-[3px] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
                     <span>Add Academic Level</span>
                   </button>
                 </form>
-              </div>
+              </ExamPadCard>
             </div>
 
-            {/* Right Column: Configured Academic Levels Table with Filters */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden lg:col-span-2 min-w-0 flex flex-col">
-              <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">
-                    Configured Academic Levels ({filteredLevels.length})
-                  </h4>
-                  <p className="text-[11px] text-slate-500">
-                    Levels available for subjects, feedback forms & examination scopes
-                  </p>
-                </div>
-                {semesterList.length > 0 && (
-                  <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full self-start sm:self-auto">
-                    {semesterList.filter((s) => s.is_active).length} Active of {semesterList.length}
-                  </span>
-                )}
-              </div>
-
+            {/* Right Column: Configured Academic Levels Table with Filters (Pinned Roster Board) */}
+            <PinnedRosterBoard
+              className="lg:col-span-2"
+              title="Configured Academic Levels"
+              icon={<Layers className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+              badge={`${filteredLevels.length} Levels`}
+            >
               {/* Filters Bar */}
-              <div className="p-3.5 bg-slate-50/70 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-4 gap-2">
+              <div className="p-3.5 bg-slate-50/70 dark:bg-[#1a1309]/80 border-b border-slate-200/80 dark:border-[#382713] grid grid-cols-1 sm:grid-cols-4 gap-2 transition-colors">
                 <div>
                   <select
                     value={levelProgFilter}
                     onChange={(e) => setLevelProgFilter(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
+                    className="w-full bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] px-2.5 py-1.5 text-xs text-slate-700 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                   >
-                    <option value="ALL">All Programmes</option>
+                    <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Programmes</option>
                     {programmeList.map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <option key={p.id} value={p.id} className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">
                         {p.name}
                       </option>
                     ))}
@@ -3023,11 +3059,11 @@ export function AcademicManagementTab({
                   <select
                     value={levelTypeFilter}
                     onChange={(e) => setLevelTypeFilter(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
+                    className="w-full bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] px-2.5 py-1.5 text-xs text-slate-700 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                   >
-                    <option value="ALL">All Types</option>
-                    <option value="SEMESTER">Semesters</option>
-                    <option value="CLASS">School Classes</option>
+                    <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Types</option>
+                    <option value="SEMESTER" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Semesters</option>
+                    <option value="CLASS" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">School Classes</option>
                   </select>
                 </div>
 
@@ -3035,23 +3071,23 @@ export function AcademicManagementTab({
                   <select
                     value={levelStatusFilter}
                     onChange={(e) => setLevelStatusFilter(e.target.value as any)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700"
+                    className="w-full bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] px-2.5 py-1.5 text-xs text-slate-700 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 cursor-pointer"
                   >
-                    <option value="ALL">All Statuses</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
+                    <option value="ALL" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">All Statuses</option>
+                    <option value="ACTIVE" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Active</option>
+                    <option value="INACTIVE" className="bg-white dark:bg-[#1f150c] text-slate-900 dark:text-[#faebd0]">Inactive</option>
                   </select>
                 </div>
 
                 <div>
                   <div className="relative">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-slate-400 dark:text-[#8a7251] absolute left-2.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={levelSearchQuery}
                       onChange={(e) => setLevelSearchQuery(e.target.value)}
                       placeholder="Search level..."
-                      className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400"
+                      className="w-full bg-white dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] pl-8 pr-2.5 py-1.5 text-xs text-slate-800 dark:text-[#faebd0] placeholder-slate-400 dark:placeholder-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -3059,12 +3095,12 @@ export function AcademicManagementTab({
 
               {filteredLevels.length === 0 ? (
                 <div className="p-8 text-center space-y-3 flex-1 flex flex-col items-center justify-center">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-[3px] bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                     <Zap className="w-6 h-6" />
                   </div>
                   <div>
-                    <h5 className="text-sm font-bold text-slate-800">No Academic Levels Found</h5>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                    <h5 className="text-sm font-bold text-slate-800 dark:text-[#faebd0]">No Academic Levels Found</h5>
+                    <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-1 max-w-sm mx-auto">
                       Use the quick setup cards on the left to configure your college or school curriculum structure.
                     </p>
                   </div>
@@ -3072,7 +3108,7 @@ export function AcademicManagementTab({
               ) : (
                 <div className="overflow-x-auto min-w-0 flex-1">
                   <table className="w-full text-left text-xs min-w-[550px]">
-                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+                    <thead className="bg-slate-50/90 dark:bg-[#1e150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200/80 dark:border-[#382713] uppercase tracking-wider">
                       <tr>
                         <th className="px-5 py-3">Programme</th>
                         <th className="px-5 py-3">Academic Level</th>
@@ -3082,7 +3118,7 @@ export function AcademicManagementTab({
                         <th className="px-5 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 dark:divide-[#2e1f0e]">
                       {filteredLevels.map((lev: any) => {
                         const isClass =
                           lev.level_type === 'CLASS' ||
@@ -3122,26 +3158,28 @@ export function AcademicManagementTab({
                           fallbackNum;
 
                         return (
-                          <tr key={lev.id} className="hover:bg-slate-50 transition-colors">
+                          <tr key={lev.id} className="hover:bg-slate-50/80 dark:hover:bg-[#251b0f] transition-colors">
                             <td className="px-5 py-3">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-slate-900">{progName}</span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                                <span className="font-bold text-slate-900 dark:text-[#faebd0]">{progName}</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-[2px] bg-slate-100 dark:bg-[#2e1f10] text-slate-600 dark:text-amber-300 border border-slate-200 dark:border-amber-700/40">
                                   {progBadge}
                                 </span>
                               </div>
                             </td>
-                            <td className="px-5 py-3 font-bold text-slate-800">{lev.name}</td>
-                            <td className="px-5 py-3 text-slate-600">
+                            <td className="px-5 py-3 font-bold text-slate-800 dark:text-[#faebd0]">{lev.name}</td>
+                            <td className="px-5 py-3 text-slate-600 dark:text-[#d6c4a8]">
                               {isClass ? '—' : computedYearNumber ? `Year ${computedYearNumber}` : '—'}
                             </td>
-                            <td className="px-5 py-3 text-slate-600">
+                            <td className="px-5 py-3 text-slate-600 dark:text-[#d6c4a8]">
                               {isClass ? `Class ${semOrClassNum}` : `Sem ${semOrClassNum}`}
                             </td>
                             <td className="px-5 py-3">
                               <span
-                                className={`px-2 py-0.5 rounded text-[11px] font-semibold ${
-                                  lev.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'
+                                className={`px-2 py-0.5 rounded-[3px] text-[11px] font-semibold ${
+                                  lev.is_active
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50'
+                                    : 'bg-slate-200 dark:bg-[#2c2014] text-slate-700 dark:text-[#c4a97d] border border-slate-300 dark:border-[#4d3817]'
                                 }`}
                               >
                                 {lev.is_active ? 'ACTIVE' : 'INACTIVE'}
@@ -3152,10 +3190,10 @@ export function AcademicManagementTab({
                                 <button
                                   type="button"
                                   onClick={() => handleToggleSemester(lev)}
-                                  className={`px-2 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                                  className={`px-2 py-1 rounded-[3px] text-xs font-semibold transition-colors cursor-pointer ${
                                     lev.is_active
-                                      ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
-                                      : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                                      ? 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-[#2e1f10] hover:bg-amber-100 dark:hover:bg-[#3d2a16]'
+                                      : 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
                                   }`}
                                 >
                                   {lev.is_active ? 'Deactivate' : 'Activate'}
@@ -3164,7 +3202,7 @@ export function AcademicManagementTab({
                                 <button
                                   type="button"
                                   onClick={() => setDeletingSemester(lev)}
-                                  className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                  className="p-1 rounded-[3px] text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                                   title="Delete Academic Level"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -3178,47 +3216,47 @@ export function AcademicManagementTab({
                   </table>
                 </div>
               )}
-            </div>
+            </PinnedRosterBoard>
           </div>
 
           {/* Delete Academic Level Confirmation Modal */}
           {deletingSemester && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
-              <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
-                <div className="p-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between shrink-0">
-                  <h4 className="text-sm font-bold text-rose-900 flex items-center gap-1.5">
-                    <AlertCircle className="w-4 h-4 text-rose-600" />
+              <div className="bg-white dark:bg-[#1a1309] w-full max-w-md rounded-[3px] shadow-2xl border border-slate-300 dark:border-[#4d3817] overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+                <div className="p-4 bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/50 flex items-center justify-between shrink-0">
+                  <h4 className="text-sm font-bold text-rose-900 dark:text-rose-200 flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     <span>Confirm Academic Level Deletion</span>
                   </h4>
                   <button
                     type="button"
                     onClick={() => setDeletingSemester(null)}
-                    className="p-1 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
+                    className="p-1 rounded-[3px] text-rose-400 hover:text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="p-5 space-y-3 text-xs text-slate-600">
-                  <p className="text-slate-800 font-medium">
+                <div className="p-5 space-y-3 text-xs text-slate-600 dark:text-[#faebd0]">
+                  <p className="text-slate-800 dark:text-[#faebd0] font-medium">
                     Are you sure you want to permanently delete:
                   </p>
-                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 flex items-center justify-between">
+                  <div className="p-3 bg-slate-50 dark:bg-[#1f150c] border border-slate-200 dark:border-[#4d3817] rounded-[3px] font-bold text-slate-900 dark:text-[#faebd0] flex items-center justify-between">
                     <span>{deletingSemester.name}</span>
-                    <span className="font-mono text-xs px-2 py-0.5 bg-slate-200 text-slate-700 rounded-md">
+                    <span className="font-mono text-xs px-2 py-0.5 bg-slate-200 dark:bg-[#2e1f10] text-slate-700 dark:text-[#c4a97d] rounded-[2px] border border-slate-300 dark:border-[#4d3817]">
                       {(deletingSemester.programme?.name || (deletingSemester.level_type === 'CLASS' || deletingSemester.class_number ? 'School' : 'B.Tech'))} • Level {deletingSemester.level_number || deletingSemester.semester_number || deletingSemester.class_number || 1}
                     </span>
                   </div>
-                  <p className="text-rose-600 text-[11px] leading-relaxed">
+                  <p className="text-rose-600 dark:text-rose-400 text-[11px] leading-relaxed">
                     ⚠️ Deletion is permanently blocked if any course subjects, faculty teaching assignments, feedback forms, or exams are currently linked to this academic level.
                   </p>
                 </div>
 
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2">
+                <div className="p-4 border-t border-slate-100 dark:border-[#382713] bg-slate-50 dark:bg-[#171109] flex items-center justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setDeletingSemester(null)}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#faebd0] hover:bg-slate-200 dark:hover:bg-[#281c0e] border border-slate-300 dark:border-[#4d3817] transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -3226,7 +3264,7 @@ export function AcademicManagementTab({
                     type="button"
                     onClick={handleDeleteSemesterConfirm}
                     disabled={isPending}
-                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="px-4 py-2 rounded-[3px] bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                     <span>Delete Level</span>

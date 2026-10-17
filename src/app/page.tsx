@@ -7,7 +7,7 @@ import { RootPublicNavbar } from '@/components/layout/RootPublicNavbar';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'CampusFlow | Select Your College',
+  title: 'CampusFlow | Institutions',
   description: 'Choose your institution to access institutional feedback, events, and campus management services.',
 };
 
@@ -16,47 +16,35 @@ export default async function HomePage() {
   const colleges = await getAllActiveColleges();
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
       {/* 1. Responsive Navbar */}
       <RootPublicNavbar />
 
-      {/* 2. Main Content (Centered, generous whitespace, college selector) */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-16">
-        <div className="text-center max-w-2xl mx-auto mb-5 sm:mb-14">
-          <span className="inline-block text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 border border-blue-200/60 rounded-full px-3 py-1 mb-3">
-            Institution Portal
-          </span>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900">
-            Select Your College
-          </h1>
-          <p className="mt-2.5 text-sm sm:text-base text-slate-600">
-            Choose your institution to access institutional feedback, events, and campus management portals.
-          </p>
-        </div>
-
+      {/* 2. Main Content (College selector grid) */}
+      <main className="flex-1 max-w-7xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* 3. College Grid */}
         <CollegeGrid colleges={colleges} />
       </main>
 
       {/* 4. Minimal Platform Footer */}
-      <footer className="bg-white border-t border-slate-200 text-xs text-slate-500 py-4 px-2.5 sm:px-4 sm:py-6 mt-auto">
+      <footer className="bg-white dark:bg-[#120b07]/95 border-t border-slate-200 dark:border-amber-950/60 text-xs text-slate-500 dark:text-slate-400 py-4 px-2.5 sm:px-4 sm:py-6 mt-auto">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div>
             <Link
               href="/"
-              className="font-bold text-slate-800 hover:text-blue-600 hover:underline transition-colors block"
+              className="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-amber-400 hover:underline transition-colors block"
               title="CampusFlow Main Portal"
             >
               CampusFlow
             </Link>
-            <p className="text-[11px] text-slate-500">Campus Management Platform</p>
-            <p className="text-[11px] text-slate-500 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Campus Management Platform</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Designed and developed by{' '}
               <a
                 href="https://portfolio-two-ashen-zseywond41.vercel.app/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                className="font-medium text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 hover:underline transition-colors"
               >
                 Mr. Aditya Kumar Sah
               </a>

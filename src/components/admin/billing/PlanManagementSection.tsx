@@ -193,20 +193,20 @@ export function PlanManagementSection() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
+    <div className="bg-white dark:bg-[#1a1309] rounded-[3px] border border-amber-200/80 dark:border-[#382710] p-5 space-y-4 shadow-xs">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-bce-cobalt" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
+            <Layers className="w-4 h-4 text-bce-cobalt dark:text-amber-400" />
             Billing Plan Management
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
             Database-driven pricing models & subscription features.
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bce-cobalt text-white text-xs font-semibold hover:bg-bce-navy transition shadow-sm"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-bce-navy hover:bg-slate-900 text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border border-bce-navy dark:border-amber-600/60 text-xs font-semibold transition cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           Add New Plan
@@ -215,10 +215,10 @@ export function PlanManagementSection() {
 
       {message && (
         <div
-          className={`rounded-lg p-3 text-xs flex items-center gap-2 ${
+          className={`rounded-[3px] p-3 text-xs flex items-center gap-2 ${
             message.type === 'success'
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-              : 'bg-red-50 border border-red-200 text-red-700'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+              : 'bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
           }`}
         >
           {message.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
@@ -227,11 +227,11 @@ export function PlanManagementSection() {
       )}
 
       {loading ? (
-        <div className="h-32 bg-slate-50 rounded-lg animate-pulse flex items-center justify-center">
-          <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
+        <div className="h-32 bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-amber-200/50 dark:border-[#382710]/50 animate-pulse flex items-center justify-center">
+          <Loader2 className="w-5 h-5 text-slate-400 dark:text-amber-500 animate-spin" />
         </div>
       ) : plans.length === 0 ? (
-        <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+        <div className="p-6 text-center text-xs text-slate-500 dark:text-[#c4a97d] bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-dashed border-amber-200/80 dark:border-[#382710]">
           No billing plans configured in database. Click &quot;Add New Plan&quot; to create one.
         </div>
       ) : (
@@ -239,37 +239,37 @@ export function PlanManagementSection() {
           {plans.map(plan => (
             <div
               key={plan.id}
-              className={`relative rounded-xl border p-4 flex flex-col justify-between transition ${
+              className={`relative rounded-[3px] border p-4 flex flex-col justify-between transition ${
                 plan.is_active
-                  ? 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
-                  : 'border-slate-200 bg-slate-50 opacity-60'
+                  ? 'border-amber-200/80 dark:border-[#382710] bg-white dark:bg-[#140e07] shadow-xs'
+                  : 'border-amber-200/50 dark:border-[#382710]/60 bg-slate-50 dark:bg-[#140e07]/60 opacity-60'
               }`}
             >
               {plan.is_recommended && (
-                <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-white shadow-xs flex items-center gap-0.5">
+                <span className="absolute -top-2.5 right-3 px-2 py-0.5 rounded-[2px] text-[9px] font-bold uppercase tracking-wider bg-amber-500 text-slate-950 shadow-xs flex items-center gap-0.5">
                   <Star className="w-2.5 h-2.5 fill-current" /> Recommended
                 </span>
               )}
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <h4 className="font-bold text-slate-900 text-base">{plan.name}</h4>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase font-semibold">
+                  <h4 className="font-bold text-slate-900 dark:text-[#faebd0] text-base">{plan.name}</h4>
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-[2px] bg-slate-100 dark:bg-[#20150b] text-slate-600 dark:text-[#c4a97d] border border-amber-200/60 dark:border-[#382710] uppercase font-semibold">
                     {plan.billing_interval}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mb-3 line-clamp-2">{plan.description || 'No description'}</p>
+                <p className="text-xs text-slate-500 dark:text-[#c4a97d] mb-3 line-clamp-2">{plan.description || 'No description'}</p>
 
                 <div className="flex items-baseline gap-1 mb-3">
-                  <span className="text-2xl font-extrabold text-slate-900">
+                  <span className="text-2xl font-extrabold text-slate-900 dark:text-[#faebd0]">
                     ₹{plan.price.toLocaleString('en-IN')}
                   </span>
-                  <span className="text-xs text-slate-500 font-medium">
+                  <span className="text-xs text-slate-500 dark:text-[#c4a97d] font-medium">
                     {plan.duration_days ? `/ ${plan.duration_days} days` : '/ unlimited'}
                   </span>
                 </div>
 
-                <ul className="space-y-1 text-xs text-slate-600 mb-4">
+                <ul className="space-y-1 text-xs text-slate-600 dark:text-[#c4a97d] mb-4">
                   {plan.features?.map((feat, idx) => (
                     <li key={idx} className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -279,15 +279,15 @@ export function PlanManagementSection() {
                 </ul>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <div className="pt-3 border-t border-amber-100 dark:border-[#382710] flex items-center justify-between gap-2">
                 <button
                   onClick={() => handleToggle(plan)}
                   disabled={togglingId === plan.id}
                   aria-busy={togglingId === plan.id}
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition disabled:opacity-50 ${
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-[2px] text-[11px] font-medium transition disabled:opacity-50 cursor-pointer ${
                     plan.is_active
-                      ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                      : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                      ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 dark:hover:bg-emerald-900/60'
+                      : 'bg-slate-200 dark:bg-[#20150b] text-slate-600 dark:text-[#c4a97d] hover:bg-slate-300 dark:hover:bg-[#2a1d0f]'
                   }`}
                 >
                   {togglingId === plan.id ? (
@@ -303,7 +303,7 @@ export function PlanManagementSection() {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => openEditModal(plan)}
-                    className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition"
+                    className="p-1.5 rounded-[2px] text-slate-500 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-[#faebd0] hover:bg-slate-100 dark:hover:bg-[#20150b] transition cursor-pointer"
                     title="Edit Plan"
                   >
                     <Edit2 className="w-3.5 h-3.5" />
@@ -312,7 +312,7 @@ export function PlanManagementSection() {
                     onClick={() => handleDelete(plan)}
                     disabled={deletingId === plan.id}
                     aria-busy={deletingId === plan.id}
-                    className="p-1.5 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 transition disabled:opacity-50"
+                    className="p-1.5 rounded-[2px] text-red-500 hover:text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition disabled:opacity-50 cursor-pointer"
                     title="Delete Plan"
                   >
                     {deletingId === plan.id ? (
@@ -330,15 +330,15 @@ export function PlanManagementSection() {
 
       {/* Plan Modal (Add/Edit) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-slate-900 text-base">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-[#1a1309] rounded-[3px] border border-amber-200/80 dark:border-[#382710] p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center pb-2 border-b border-amber-100 dark:border-[#382710]">
+              <h3 className="font-bold text-slate-900 dark:text-[#faebd0] text-base">
                 {editingPlan ? `Edit "${editingPlan.name}"` : 'Create New Billing Plan'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition"
+                className="text-slate-400 dark:text-[#a08862] hover:text-slate-600 dark:hover:text-[#faebd0] transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -346,45 +346,45 @@ export function PlanManagementSection() {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Plan Name *</label>
+                <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">Plan Name *</label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g., MONTHLY, QUARTERLY, PRO"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-bce-cobalt/20 focus:border-bce-cobalt"
+                  className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">Description</label>
+                <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">Description</label>
                 <input
                   type="text"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                   placeholder="Short tagline or plan benefit"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-bce-cobalt/20"
+                  className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Price (₹) *</label>
+                  <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">Price (₹) *</label>
                   <input
                     type="number"
                     value={price}
                     onChange={e => setPrice(e.target.value)}
                     min="0"
                     step="1"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-bce-cobalt/20 font-mono"
+                    className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Interval *</label>
+                  <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">Interval *</label>
                   <select
                     value={billingInterval}
                     onChange={e => setBillingInterval(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-bce-cobalt/20"
+                    className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 cursor-pointer transition-all"
                   >
                     <option value="MONTHLY">MONTHLY</option>
                     <option value="YEARLY">YEARLY</option>
@@ -396,35 +396,35 @@ export function PlanManagementSection() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Duration (Days) *</label>
+                  <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">Duration (Days) *</label>
                   <input
                     type="number"
                     value={durationDays}
                     onChange={e => setDurationDays(e.target.value)}
                     min="0"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-bce-cobalt/20 font-mono"
+                    className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Display Order</label>
+                  <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">Display Order</label>
                   <input
                     type="number"
                     value={displayOrder}
                     onChange={e => setDisplayOrder(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-bce-cobalt/20 font-mono"
+                    className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-semibold mb-1">
+                <label className="block text-slate-700 dark:text-[#faebd0] font-semibold mb-1">
                   Features (One per line)
                 </label>
                 <textarea
                   value={featuresText}
                   onChange={e => setFeaturesText(e.target.value)}
                   placeholder="Google Form generation&#10;Google Sheet integration&#10;Priority Support"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm h-24 resize-none focus:ring-2 focus:ring-bce-cobalt/20 font-mono"
+                  className="w-full px-3 py-2 rounded-[3px] bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] text-slate-900 dark:text-[#faebd0] text-sm h-24 resize-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 font-mono transition-all"
                 />
               </div>
 
@@ -434,9 +434,9 @@ export function PlanManagementSection() {
                     type="checkbox"
                     checked={isRecommended}
                     onChange={e => setIsRecommended(e.target.checked)}
-                    className="rounded text-bce-cobalt focus:ring-bce-cobalt"
+                    className="rounded-[2px] text-amber-500 focus:ring-amber-500"
                   />
-                  <span className="font-semibold text-slate-700">Mark as Recommended</span>
+                  <span className="font-semibold text-slate-700 dark:text-[#faebd0]">Mark as Recommended</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -444,18 +444,18 @@ export function PlanManagementSection() {
                     type="checkbox"
                     checked={isActive}
                     onChange={e => setIsActive(e.target.checked)}
-                    className="rounded text-bce-cobalt focus:ring-bce-cobalt"
+                    className="rounded-[2px] text-amber-500 focus:ring-amber-500"
                   />
-                  <span className="font-semibold text-slate-700">Active</span>
+                  <span className="font-semibold text-slate-700 dark:text-[#faebd0]">Active</span>
                 </label>
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
+            <div className="flex gap-2 justify-end pt-3 border-t border-amber-100 dark:border-[#382710]">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
+                className="px-4 py-2 text-xs font-semibold rounded-[3px] border border-amber-200/80 dark:border-[#382710] text-slate-600 dark:text-[#c4a97d] hover:bg-slate-50 dark:hover:bg-[#20150b] transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -464,7 +464,7 @@ export function PlanManagementSection() {
                 onClick={handleSave}
                 disabled={saving}
                 aria-busy={saving}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-bce-cobalt text-white hover:bg-bce-navy transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-[3px] bg-bce-navy hover:bg-slate-900 text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border border-bce-navy dark:border-amber-600/60 transition disabled:opacity-50 cursor-pointer"
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <span>{saving ? (editingPlan ? 'Updating Plan...' : 'Saving Plan...') : (editingPlan ? 'Update Plan' : 'Save Plan')}</span>

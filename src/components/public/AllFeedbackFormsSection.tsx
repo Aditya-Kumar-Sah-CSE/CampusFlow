@@ -29,6 +29,7 @@ import {
   checkBatchStudentFormSubmissionsAction,
   checkStudentFormEligibilityAction,
 } from '@/app/auth/student/actions';
+import { RedPushpin } from '@/components/ui/RedPushpin';
 
 /** Forms per page — desktop shows a 3×2 grid */
 const PAGE_SIZE = 6;
@@ -217,198 +218,226 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
   }, []);
 
   return (
-    <section className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 border-t border-slate-200">
+    <section className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-slate-200/80 dark:border-amber-950/40">
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-semibold mb-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+        <div className="p-3 sm:p-4 rounded-2xl bg-white/85 dark:bg-[#18110b]/85 backdrop-blur-md border border-slate-200/80 dark:border-amber-950/70 shadow-xs max-w-xl">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-700/60 text-amber-800 dark:text-amber-300 text-xs font-bold mb-1.5 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span>Open Submissions</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             All Feedback Forms
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-600 dark:text-amber-100/90 font-medium mt-0.5">
             Browse all currently active semester and faculty evaluations. Sorted recently published first.
           </p>
         </div>
 
         {/* Quick Search */}
         <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 dark:text-amber-400/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search active forms..."
             value={search}
             onChange={e => handleSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 sm:py-2 min-h-[42px] sm:min-h-[44px] rounded-xl bg-white border border-slate-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-base sm:text-xs text-slate-800 placeholder-slate-400 shadow-xs outline-none transition-all"
+            className="w-full pl-9 pr-4 py-2 sm:py-2 min-h-[42px] sm:min-h-[44px] rounded-xl bg-white dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/20 text-base sm:text-xs text-slate-800 dark:text-amber-100 placeholder-slate-400 dark:placeholder-amber-200/40 shadow-md outline-none transition-all"
           />
         </div>
       </div>
 
-      {/* Forms Cards Grid */}
-      {isPending ? (
-        <div className="py-12 sm:py-16 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-2" />
-          <p className="text-xs text-slate-500 font-medium">Updating forms list...</p>
-        </div>
-      ) : data.forms.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto mb-3">
-            <Layers className="w-6 h-6" />
-          </div>
-          <h3 className="text-base font-bold text-slate-800">No Published Forms Found</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-            {search
-              ? 'No feedback forms match your search query.'
-              : 'There are currently no active feedback forms published for open submission.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-          {data.forms.map(form => {
-            const isSemester = form.formType === 'SEMESTER_FEEDBACK';
+      {/* Dark Green Notice Board with Wooden Frame & Cork/Felt Texture */}
+      <div className="notice-board-wood-frame p-1.5 sm:p-2.5 md:p-3 rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a]">
+        {/* Brass corner brackets */}
+        <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
 
-            return (
-              <div
-                key={form.id}
-                className="bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all p-3.5 sm:p-5 flex flex-col justify-between group shadow-xs relative overflow-hidden"
-              >
-                {/* Accent Top Border */}
-                <div
-                  className={`absolute top-0 left-0 right-0 h-1 ${
-                    isSemester
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-600'
-                      : 'bg-gradient-to-r from-bce-cobalt to-indigo-500'
-                  }`}
-                />
+        {/* Felt Surface */}
+        <div className="notice-board-felt-surface rounded-xl p-4 sm:p-6 md:p-8 min-h-[360px]">
+          {isPending ? (
+            <div className="py-16 text-center text-emerald-100">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto mb-2" />
+              <p className="text-xs text-emerald-200/80 font-medium">Updating notice board...</p>
+            </div>
+          ) : data.forms.length === 0 ? (
+            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl border border-emerald-900/40 p-8 sm:p-12 text-center shadow-lg max-w-md mx-auto my-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-900/20 text-emerald-300 flex items-center justify-center mx-auto mb-3">
+                <Layers className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">No Published Forms Found</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto mt-1">
+                {search
+                  ? 'No feedback forms match your search query.'
+                  : 'There are currently no active feedback forms published for open submission.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 pt-6 sm:pt-7 pb-2">
+              {data.forms.map((form, index) => {
+                const isSemester = form.formType === 'SEMESTER_FEEDBACK';
+                const rotations = ['-0.85deg', '0.75deg', '-0.5deg', '0.9deg', '-0.7deg', '0.6deg'];
+                const delays = ['0s', '1.2s', '0.6s', '1.8s', '0.9s', '1.5s'];
+                const durations = ['5.4s', '6.2s', '5.8s', '6.5s', '5.3s', '6.0s'];
 
-                <div className="space-y-2.5 sm:space-y-3.5">
-                  {/* Card Badges */}
-                  <div className="flex items-center justify-between gap-2 pt-1">
-                    <span
-                      className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        isSemester
-                          ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}
-                    >
-                      {isSemester ? 'Semester Feedback' : 'Faculty Feedback'}
-                    </span>
+                const rot = rotations[index % rotations.length];
+                const delay = delays[index % delays.length];
+                const dur = durations[index % durations.length];
 
-                    <span className="inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Active
-                    </span>
-                  </div>
+                return (
+                  <div
+                    key={form.id}
+                    style={{
+                      ['--notice-rot' as any]: rot,
+                      ['--notice-delay' as any]: delay,
+                      ['--notice-dur' as any]: dur,
+                    }}
+                    className="notice-paper-card relative rounded-[2px] p-3.5 sm:p-5 flex flex-col justify-between group transition-all cursor-default overflow-visible"
+                  >
+                    {/* Realistic 3D Red Pushpin */}
+                    <RedPushpin />
 
-                  {/* Form Title */}
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors line-clamp-2">
-                      {form.title}
-                    </h3>
-                  </div>
+                    {/* Subtle Top Paper Pin Hole shadow */}
+                    <div className="w-2.5 h-1 bg-black/35 dark:bg-black/60 rounded-full mx-auto -mt-1 mb-2 blur-[0.4px]" />
 
-                  {/* Academic Metadata Pills */}
-                  <div className="space-y-1.5 sm:space-y-2 text-xs text-slate-600 border-t border-slate-100 pt-2.5 sm:pt-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                        Branch / Dept
-                      </span>
-                      <span className="font-semibold text-slate-800">{form.branch}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
-                        <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
-                        Semester Level
-                      </span>
-                      <span className="font-semibold text-slate-800">{form.semester}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        Session
-                      </span>
-                      <span className="font-semibold text-slate-800">{form.academicYear}</span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 pt-1 border-t border-slate-50">
-                      <span className="text-slate-400 text-[10.5px] sm:text-[11px] flex items-center gap-1.5 shrink-0 mt-0.5">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        Evaluation Target
-                      </span>
-                      <span className="font-semibold text-slate-900 text-right text-[10.5px] sm:text-[11px] line-clamp-2">
-                        {form.facultySubjectDisplay}
-                      </span>
-                    </div>
-
-                    {form.publishedAt && (
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          Published
+                    <div className="space-y-2.5 sm:space-y-3.5">
+                      {/* Card Badges */}
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <span
+                          className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-[3px] text-[10px] font-bold ${
+                            isSemester
+                              ? 'bg-purple-50 dark:bg-[#382612] text-purple-700 dark:text-amber-300 border border-purple-200 dark:border-[#6e4b1e]'
+                              : 'bg-blue-50 dark:bg-[#332210] text-blue-700 dark:text-amber-300 border border-blue-200 dark:border-[#69461b]'
+                          }`}
+                        >
+                          {isSemester ? 'Semester Feedback' : 'Faculty Feedback'}
                         </span>
-                        <span>
-                          {formatDateShort(form.publishedAt, hydrated)}
+
+                        <span className="inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-[#1a2c17] px-2 py-0.5 rounded-[3px] border border-emerald-200 dark:border-[#35582b]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Active
                         </span>
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Card Action */}
-                <div className="pt-3 sm:pt-4 mt-2.5 sm:mt-3 border-t border-slate-100">
-                  {!isAuthenticated && !sessionLoading ? (
-                    <button
-                      type="button"
-                      onClick={(e) => handleFormAction(form, e)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-xs group-hover:shadow-md cursor-pointer"
+                      {/* Form Title */}
+                      <div>
+                        <h3 className="font-bold text-slate-900 dark:text-[#f8ecd2] text-sm group-hover:text-indigo-600 dark:group-hover:text-amber-300 transition-colors line-clamp-2">
+                          {form.title}
+                        </h3>
+                      </div>
+
+                      {/* Academic Metadata Pills */}
+                      <div className="space-y-1.5 sm:space-y-2 text-xs text-slate-600 dark:text-[#c4a97d] border-t border-slate-200/80 dark:border-[#423218] pt-2.5 sm:pt-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 dark:text-[#a88f63] text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37]" />
+                            Branch / Dept
+                          </span>
+                          <span className="font-semibold text-slate-800 dark:text-[#fef3c7]">{form.branch}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 dark:text-[#a88f63] text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
+                            <GraduationCap className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37]" />
+                            Semester Level
+                          </span>
+                          <span className="font-semibold text-slate-800 dark:text-[#fef3c7]">{form.semester}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 dark:text-[#a88f63] text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37]" />
+                            Session
+                          </span>
+                          <span className="font-semibold text-slate-800 dark:text-[#fef3c7]">{form.academicYear}</span>
+                        </div>
+
+                        <div className="flex items-start justify-between gap-2 pt-1 border-t border-slate-100 dark:border-[#382a13]">
+                          <span className="text-slate-400 dark:text-[#a88f63] text-[10.5px] sm:text-[11px] flex items-center gap-1.5 shrink-0 mt-0.5">
+                            <User className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37]" />
+                            Evaluation Target
+                          </span>
+                          <span className="font-semibold text-slate-900 dark:text-[#fef3c7] text-right text-[10.5px] sm:text-[11px] line-clamp-2">
+                            {form.facultySubjectDisplay}
+                          </span>
+                        </div>
+
+                        {form.publishedAt && (
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-[#a88f63] pt-1">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-slate-400 dark:text-[#d4af37]" />
+                              Published
+                            </span>
+                            <span>
+                              {formatDateShort(form.publishedAt, hydrated)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Action */}
+                    <div className="pt-3 sm:pt-4 mt-2.5 sm:mt-3 border-t border-slate-200/80 dark:border-[#423218]">
+                      {!isAuthenticated && !sessionLoading ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleFormAction(form, e)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-[4px] bg-slate-900 hover:bg-slate-800 dark:bg-[#332311] dark:hover:bg-[#432f17] text-white dark:text-amber-100 dark:border dark:border-amber-700/60 font-bold text-xs transition-all shadow-xs group-hover:shadow-md cursor-pointer"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span>Sign In to Start Feedback</span>
+                        </button>
+                      ) : submittedFormIds.has(form.id) ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleFormAction(form, e)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-[4px] bg-emerald-50 hover:bg-emerald-100 dark:bg-[#1a2d1d] dark:hover:bg-[#233f27] text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700/60 font-bold text-xs transition-all shadow-xs cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>Already Submitted — View Receipt</span>
+                        </button>
+                      ) : form.googleFormUrl ? (
+                        <button
+                          type="button"
+                          onClick={(e) => handleFormAction(form, e)}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-[4px] bg-bce-navy hover:bg-slate-800 dark:bg-gradient-to-r dark:from-[#b45309] dark:to-[#d97706] dark:hover:from-[#c25e0a] dark:hover:to-[#e68310] text-white dark:text-amber-50 dark:border dark:border-amber-400/50 font-bold text-xs transition-all shadow-xs group-hover:shadow-md cursor-pointer"
+                        >
+                          <span>Start Feedback</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-amber-400 dark:text-amber-200 shrink-0" />
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="w-full px-4 py-2 sm:py-2.5 rounded-[4px] bg-slate-100 dark:bg-[#20170a] text-slate-400 dark:text-amber-900/80 text-xs font-medium cursor-not-allowed text-center"
+                        >
+                          Form URL Unavailable
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Paper Dog-Ear Crease Effect on Bottom Right */}
+                    <div
+                      className="absolute bottom-0 right-0 w-3 h-3 pointer-events-none overflow-hidden"
+                      aria-hidden="true"
                     >
-                      <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <span>Sign In to Start Feedback</span>
-                    </button>
-                  ) : submittedFormIds.has(form.id) ? (
-                    <button
-                      type="button"
-                      onClick={(e) => handleFormAction(form, e)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs transition-all shadow-xs cursor-pointer"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Already Submitted — View Receipt</span>
-                    </button>
-                  ) : form.googleFormUrl ? (
-                    <button
-                      type="button"
-                      onClick={(e) => handleFormAction(form, e)}
-                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 sm:py-2.5 rounded-xl bg-bce-navy hover:bg-slate-800 text-white font-bold text-xs transition-all shadow-xs group-hover:shadow-md cursor-pointer"
-                    >
-                      <span>Start Feedback</span>
-                      <ExternalLink className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    </button>
-                  ) : (
-                    <button
-                      disabled
-                      className="w-full px-4 py-2 sm:py-2.5 rounded-xl bg-slate-100 text-slate-400 text-xs font-medium cursor-not-allowed text-center"
-                    >
-                      Form URL Unavailable
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-black/10 dark:bg-black/50 rotate-45 translate-x-2 translate-y-2 border-t border-l border-black/10 dark:border-amber-500/20" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Pagination Bar */}
       {data.totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-3 sm:p-4 bg-white rounded-2xl border border-slate-200 shadow-xs text-xs text-slate-600 text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-3 sm:p-4 bg-white dark:bg-[#18110b]/90 rounded-2xl border border-slate-200 dark:border-amber-950/70 shadow-lg text-xs text-slate-600 dark:text-amber-100 backdrop-blur-md text-center sm:text-left">
           <div>
-            Showing Page <span className="font-bold text-slate-900">{currentPage}</span> of{' '}
-            <span className="font-bold text-slate-900">{data.totalPages}</span> ({data.totalCount} active forms)
+            Showing Page <span className="font-bold text-slate-900 dark:text-white">{currentPage}</span> of{' '}
+            <span className="font-bold text-slate-900 dark:text-white">{data.totalPages}</span> ({data.totalCount} active forms)
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -417,7 +446,7 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
               type="button"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage <= 1 || isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-2 sm:py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold disabled:opacity-30 transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-2 sm:py-1.5 rounded-lg border border-slate-200 dark:border-amber-950/70 hover:bg-slate-50 dark:hover:bg-[#251a11] text-slate-700 dark:text-amber-200 font-semibold disabled:opacity-30 transition-colors"
               aria-label="Previous page"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -438,8 +467,8 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
                   disabled={isPending}
                   className={`min-w-[32px] h-8 sm:h-7 px-2 rounded-lg text-xs font-bold transition-all ${
                     currentPage === item
-                      ? 'bg-bce-navy text-white shadow-sm border border-bce-cobalt'
-                      : 'border border-slate-200 text-slate-700 hover:bg-slate-100'
+                      ? 'bg-amber-600 dark:bg-amber-500 text-slate-950 font-black shadow-sm border border-amber-600 dark:border-amber-400'
+                      : 'border border-slate-200 dark:border-amber-950/70 text-slate-700 dark:text-amber-200 hover:bg-slate-100 dark:hover:bg-[#251a11]'
                   } disabled:opacity-40`}
                   aria-label={`Go to page ${item}`}
                   aria-current={currentPage === item ? 'page' : undefined}
@@ -454,7 +483,7 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
               type="button"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage >= data.totalPages || isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-2 sm:py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold disabled:opacity-30 transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-2 sm:py-1.5 rounded-lg border border-slate-200 dark:border-amber-950/70 hover:bg-slate-50 dark:hover:bg-[#251a11] text-slate-700 dark:text-amber-200 font-semibold disabled:opacity-30 transition-colors"
               aria-label="Next page"
             >
               <span className="hidden sm:inline">Next</span>

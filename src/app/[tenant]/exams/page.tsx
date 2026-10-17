@@ -27,7 +27,7 @@ export default async function PublicTenantExamsPage({ params }: Props) {
   console.log(`[PERF] route=/[tenant]/exams op=exams_lookup duration_ms=${tExams} success=true`);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
       {/* Top Banner */}
       <div className="bg-slate-900 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-800">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">

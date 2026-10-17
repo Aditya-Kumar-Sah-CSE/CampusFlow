@@ -19,6 +19,7 @@ test-artifacts-pdf/
 .DS_Store
 *.pem
 scratch/
+.npmrc
 
 # debug
 npm-debug.log*

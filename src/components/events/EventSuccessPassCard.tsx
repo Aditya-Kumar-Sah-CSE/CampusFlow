@@ -213,7 +213,7 @@ export function EventSuccessPassCard({
         collegeName: college.name,
         collegeLogoUrl: college.logoUrl || undefined,
         collegeCode: college.code || 'BCE',
-        collegeSlug: college.slug || 'bce-bgp',
+        collegeSlug: college.slug || 'bce-bhagalpur',
         venue: event.venue,
         participantName: p.fullName,
         email: p.email,

@@ -34,6 +34,8 @@ import {
   Info,
   GraduationCap,
 } from 'lucide-react';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 interface Props {
   academicYears: AcademicYear[];
@@ -577,41 +579,35 @@ export function CreateGoogleFormWizard({
 
   return (
     <div className="space-y-6">
-      {/* Top Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/admin/dashboard/forms"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <FileSpreadsheet className="w-6 h-6 text-bce-cobalt" />
-              Generate Google Feedback Form
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 mt-1 ml-9">
-            Generate Multi-Faculty Semester Grids or Individual Faculty Forms linked to Google Sheets.
-          </p>
+      {/* Top Header on Authentic Exam Pad Card */}
+      <ExamPadCard
+        variant="dashboard"
+        title="Generate Google Feedback Form"
+        subtitle="Generate Multi-Faculty Semester Grids or Individual Faculty Forms linked to Google Sheets."
+        icon={<FileSpreadsheet className="w-5 h-5 text-bce-cobalt" />}
+        badge="FORM BUILDER"
+        action={
+          <Link
+            href="/admin/dashboard/forms"
+            className="px-3.5 py-1.5 rounded-[3px] border border-slate-300 dark:border-[#4d3817] text-slate-700 dark:text-[#faebd0] bg-slate-100 dark:bg-[#1a1309] hover:bg-slate-200 dark:hover:bg-[#2a1d10] text-xs font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Cancel & Return</span>
+          </Link>
+        }
+      >
+        <div className="text-xs text-slate-600 dark:text-[#c4a97d] pt-1">
+          Automated multi-stage generation creating 8-parameter evaluation forms synced with institutional Google Drive.
         </div>
-
-        <Link
-          href="/admin/dashboard/forms"
-          className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
-        >
-          Cancel & Return
-        </Link>
-      </div>
+      </ExamPadCard>
 
       {/* Google Setup Warning if unconfigured */}
       {!googleStatus.isConfigured && (
-        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-950">
-          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <div className="p-3.5 sm:p-4 bg-amber-50 dark:bg-[#25180c] border border-amber-300 dark:border-amber-800 rounded-[3px] flex items-start gap-3 text-xs text-amber-950 dark:text-amber-200">
+          <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-bold text-amber-900">Google Workspace Connection Required</p>
-            <p className="text-amber-800">
+            <p className="font-bold text-amber-900 dark:text-amber-300">Google Workspace Connection Required</p>
+            <p className="text-amber-800 dark:text-amber-400/90">
               Form generation connects to live Google APIs (Forms, Sheets, and Drive).
               Please connect your institution&apos;s Google account from the dashboard before creating forms.
             </p>
@@ -621,40 +617,40 @@ export function CreateGoogleFormWizard({
 
       {/* Success View after Creation */}
       {createdForm ? (
-        <div className="bg-white p-8 rounded-2xl border border-emerald-200 shadow-sm space-y-6">
+        <div className="bg-white dark:bg-[#1a1309] p-6 sm:p-8 rounded-[3px] border border-emerald-300 dark:border-emerald-800 shadow-sm space-y-6">
           <div className="text-center space-y-2 max-w-xl mx-auto">
-            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto shadow-inner border border-emerald-300 dark:border-emerald-700">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Google Form Generated Successfully!</h3>
-            <p className="text-xs text-slate-600">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-[#faebd0]">Google Form Generated Successfully!</h3>
+            <p className="text-xs text-slate-600 dark:text-[#c4a97d]">
               The Google Form and connected Google Sheet were created and saved in Supabase in{' '}
-              <strong className="text-amber-600">DRAFT</strong> state.
+              <strong className="text-amber-600 dark:text-amber-400">DRAFT</strong> state.
             </p>
           </div>
 
           {/* Form Summary Card */}
-          <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 max-w-2xl mx-auto space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Form Title</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+          <div className="bg-slate-50 dark:bg-[#1f150c] p-5 rounded-[3px] border border-slate-200 dark:border-[#382710] max-w-2xl mx-auto space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#382710] pb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-[#8c7453] uppercase tracking-wider">Form Title</span>
+              <span className="px-2 py-0.5 rounded-[3px] text-[10px] font-bold bg-amber-100 dark:bg-[#25180c] text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-[#4d3817]">
                 DRAFT
               </span>
             </div>
-            <p className="font-bold text-sm text-slate-900">{createdForm.title}</p>
+            <p className="font-bold text-sm text-slate-900 dark:text-[#faebd0]">{createdForm.title}</p>
 
-            <div className="grid grid-cols-2 gap-3 pt-2 text-xs text-slate-600">
+            <div className="grid grid-cols-2 gap-3 pt-2 text-xs text-slate-600 dark:text-[#c4a97d]">
               <div>
-                <span className="text-slate-400 block text-[11px]">Response Destination:</span>
-                <span className="font-semibold text-slate-800">
+                <span className="text-slate-400 dark:text-[#8c7453] block text-[11px]">Response Destination:</span>
+                <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
                   {destinationType === 'NATIVE_SHEET'
                     ? '⚡ Native Google Form Destination'
                     : '🔄 Application-Managed Response Sync'}
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[11px]">Evaluation Grids:</span>
-                <span className="font-semibold text-slate-800">
+                <span className="text-slate-400 dark:text-[#8c7453] block text-[11px]">Evaluation Grids:</span>
+                <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
                   {normalizedItems.length} Faculty-Subject Grid{normalizedItems.length > 1 ? 's' : ''} (8 BCE Parameters)
                 </span>
               </div>
@@ -668,7 +664,7 @@ export function CreateGoogleFormWizard({
                 href={createdForm.google_form_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-purple-700 hover:bg-purple-800 text-white rounded-[3px] text-xs font-bold transition-colors shadow-xs"
               >
                 <FileCode2 className="w-4 h-4" />
                 <span>Open Google Form (Student View)</span>
@@ -681,7 +677,7 @@ export function CreateGoogleFormWizard({
                 href={createdForm.google_sheet_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-[3px] text-xs font-bold transition-colors shadow-xs"
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span>Open Google Responses Sheet</span>
@@ -691,7 +687,7 @@ export function CreateGoogleFormWizard({
 
             <Link
               href={`/admin/dashboard/forms/${createdForm.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-bce-cobalt hover:bg-bce-navy text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-bce-cobalt hover:bg-bce-navy text-white rounded-[3px] text-xs font-bold transition-colors shadow-xs"
             >
               <span>Manage Form Details</span>
               <ArrowRight className="w-4 h-4" />
@@ -716,19 +712,19 @@ export function CreateGoogleFormWizard({
         <div className="space-y-6">
           {/* Real-Time Staged Progress Stepper */}
           {isGenerating && (
-            <div className="bg-white p-6 rounded-2xl border-2 border-bce-cobalt/40 shadow-lg space-y-4 animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="bg-white dark:bg-[#1a1309] p-6 rounded-[3px] border-2 border-bce-cobalt/40 dark:border-amber-700/60 shadow-lg space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-[#382710] pb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="relative flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-slate-900">Provisioning Google Feedback Form</h4>
-                    <p className="text-[11px] text-slate-500">Live multi-stage Google Forms & Sheets automated generator</p>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">Provisioning Google Feedback Form</h4>
+                    <p className="text-[11px] text-slate-500 dark:text-[#c4a97d]">Live multi-stage Google Forms & Sheets automated generator</p>
                   </div>
                 </div>
-                <span className="text-[11px] font-bold text-bce-cobalt bg-blue-50 px-3 py-1 rounded-full border border-blue-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-bce-cobalt dark:text-amber-400 bg-blue-50 dark:bg-[#25180c] px-3 py-1 rounded-[3px] border border-blue-200 dark:border-[#4d3817] shadow-2xs">
                   Stage {activeStepNumber} of 5
                 </span>
               </div>
@@ -747,26 +743,26 @@ export function CreateGoogleFormWizard({
                   return (
                     <div
                       key={s.num}
-                      className={`p-3 rounded-xl border text-center transition-all ${
+                      className={`p-3 rounded-[3px] border text-center transition-all ${
                         isDone
-                          ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                          ? 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-300'
                           : isCurrent
-                          ? 'bg-blue-50 border-bce-cobalt text-bce-cobalt ring-2 ring-bce-cobalt/20'
-                          : 'bg-slate-50 border-slate-200 text-slate-400'
+                          ? 'bg-blue-50 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 text-bce-cobalt dark:text-amber-400 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20'
+                          : 'bg-slate-50 dark:bg-[#140e07] border-slate-200 dark:border-[#382710] text-slate-400 dark:text-[#8c7453]'
                       }`}
                     >
                       <div className="text-[10px] font-bold uppercase tracking-wider">
                         {isDone ? '✓ Completed' : `Stage ${s.num}`}
                       </div>
                       <div className="text-xs font-bold mt-0.5 truncate">{s.title}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{s.desc}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-[#8c7453] mt-0.5 line-clamp-1">{s.desc}</div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 flex items-center gap-2">
-                <Loader2 className="w-4 h-4 text-bce-cobalt animate-spin shrink-0" />
+              <div className="p-3 bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200 dark:border-[#382710] text-xs text-slate-700 dark:text-[#faebd0] flex items-center gap-2">
+                <Loader2 className="w-4 h-4 text-bce-cobalt dark:text-amber-400 animate-spin shrink-0" />
                 <span className="font-semibold">{creationStepMsg}</span>
               </div>
             </div>
@@ -777,7 +773,7 @@ export function CreateGoogleFormWizard({
             {/* Left 2 Columns: Step Process */}
             <div className="lg:col-span-2 space-y-6">
               {/* Stepper Navigation Bar */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+              <div className="bg-white dark:bg-[#1a1309] p-3 sm:p-4 rounded-[3px] border border-slate-200 dark:border-[#4d3817] shadow-xs">
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {steps.map(s => {
                     const isCurrent = currentStep === s.num;
@@ -790,12 +786,12 @@ export function CreateGoogleFormWizard({
                         onClick={() => {
                           if (s.num < currentStep) goToStep(s.num);
                         }}
-                        className={`text-center p-2 rounded-xl border transition-all ${
+                        className={`text-center p-2 rounded-[3px] border transition-all ${
                           isCurrent
-                            ? 'bg-bce-navy text-white border-bce-cobalt shadow-xs cursor-default'
+                            ? 'bg-bce-navy dark:bg-[#2e1d0f] text-white dark:text-[#faebd0] border-bce-cobalt dark:border-amber-500 shadow-xs cursor-default'
                             : isCompleted
-                            ? 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100/60 cursor-pointer'
-                            : 'bg-slate-50 text-slate-400 border-slate-200 cursor-default opacity-70'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/60 cursor-pointer'
+                            : 'bg-slate-50 dark:bg-[#140e07] text-slate-400 dark:text-[#8c7453] border-slate-200 dark:border-[#382710] cursor-default opacity-70'
                         }`}
                       >
                         <div className="text-[10px] font-bold uppercase tracking-wider">
@@ -811,13 +807,13 @@ export function CreateGoogleFormWizard({
               </div>
 
               {/* Step Body */}
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+              <div className="bg-white dark:bg-[#1a1309] p-5 sm:p-6 rounded-[3px] border border-slate-200 dark:border-[#4d3817] shadow-xs space-y-5">
                 {/* Step 1: Academic Year */}
                 {currentStep === 1 && (
                   <div className="space-y-4">
-                    <div className="border-b border-slate-100 pb-3">
-                      <h3 className="text-base font-bold text-slate-900">Step 1: Select Academic Session</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                    <div className="border-b border-slate-100 dark:border-[#382710] pb-3">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">Step 1: Select Academic Session</h3>
+                      <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
                         Choose the active academic year for this feedback evaluation.
                       </p>
                     </div>
@@ -828,21 +824,21 @@ export function CreateGoogleFormWizard({
                           key={y.id}
                           type="button"
                           onClick={() => setAcademicYearId(y.id)}
-                          className={`p-4 rounded-2xl border text-left transition-all ${
+                          className={`p-4 rounded-[3px] border text-left transition-all cursor-pointer ${
                             academicYearId === y.id
-                              ? 'bg-blue-50/80 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
+                              ? 'bg-blue-50/80 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20 shadow-xs'
+                              : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817]'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-sm text-slate-900">{y.name}</span>
+                            <span className="font-bold text-sm text-slate-900 dark:text-[#faebd0]">{y.name}</span>
                             {y.is_active && (
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
+                              <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold rounded-[3px] border border-emerald-300 dark:border-emerald-800">
                                 Active
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-slate-400 mt-1 block">
+                          <span className="text-[11px] text-slate-400 dark:text-[#8c7453] mt-1 block">
                             Academic Calendar Session
                           </span>
                         </button>
@@ -854,17 +850,17 @@ export function CreateGoogleFormWizard({
                 {/* Step 2: Semester */}
                 {currentStep === 2 && (
                   <div className="space-y-4">
-                    <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="border-b border-slate-100 dark:border-[#382710] pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div>
-                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
                           <span>Step 2: Select Programme & Semester</span>
                           {availableProgrammes.length > 1 && (
-                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[3px] bg-blue-50 dark:bg-[#25180c] text-blue-700 dark:text-amber-400 border border-blue-200 dark:border-[#4d3817]">
                               {availableProgrammes.length} Degrees
                             </span>
                           )}
                         </h3>
-                        <p className="text-xs text-slate-500 mt-0.5">
+                        <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
                           Select the degree programme (B.Tech, Diploma, M.Tech) and semester cohort submitting feedback.
                         </p>
                       </div>
@@ -872,13 +868,13 @@ export function CreateGoogleFormWizard({
 
                     {/* Multi-Programme Filter Tabs (shown when multiple programmes exist) */}
                     {availableProgrammes.length > 1 && (
-                      <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2">
+                      <div className="p-3 bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200/90 dark:border-[#382710] space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                            <GraduationCap className="w-3.5 h-3.5 text-bce-cobalt" />
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-[#c4a97d] flex items-center gap-1.5">
+                            <GraduationCap className="w-3.5 h-3.5 text-bce-cobalt dark:text-amber-400" />
                             <span>Filter by Degree / Programme:</span>
                           </span>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] text-slate-400 dark:text-[#8c7453]">
                             Select degree to avoid confusion
                           </span>
                         </div>
@@ -887,10 +883,10 @@ export function CreateGoogleFormWizard({
                           <button
                             type="button"
                             onClick={() => setSelectedProgrammeFilter('ALL')}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            className={`px-3 py-1.5 rounded-[3px] text-xs font-bold transition-all cursor-pointer ${
                               selectedProgrammeFilter === 'ALL'
-                                ? 'bg-bce-navy text-white shadow-xs'
-                                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                                ? 'bg-bce-navy dark:bg-[#2e1d0f] text-white dark:text-[#faebd0] shadow-xs'
+                                : 'bg-white dark:bg-[#1f150c] text-slate-700 dark:text-[#faebd0] border border-slate-200 dark:border-[#382710] hover:bg-slate-100 dark:hover:bg-[#2a1d10]'
                             }`}
                           >
                             All Degrees ({semesters.length})
@@ -917,15 +913,15 @@ export function CreateGoogleFormWizard({
                                     setSemesterId(progSems[0].id);
                                   }
                                 }}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] text-xs font-bold transition-all cursor-pointer ${
                                   isCurrent
-                                    ? 'bg-bce-cobalt text-white shadow-xs'
-                                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                                    ? 'bg-bce-cobalt dark:bg-amber-600 text-white shadow-xs'
+                                    : 'bg-white dark:bg-[#1f150c] text-slate-700 dark:text-[#faebd0] border border-slate-200 dark:border-[#382710] hover:bg-slate-100 dark:hover:bg-[#2a1d10]'
                                 }`}
                               >
                                 <span>{prog.name}</span>
-                                <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                                  isCurrent ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded-[3px] ${
+                                  isCurrent ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-[#140e07] text-slate-600 dark:text-[#c4a97d]'
                                 }`}>
                                   {count} Sems
                                 </span>
@@ -954,30 +950,30 @@ export function CreateGoogleFormWizard({
                             key={s.id}
                             type="button"
                             onClick={() => setSemesterId(s.id)}
-                            className={`relative p-3.5 sm:p-4 rounded-2xl border text-left transition-all cursor-pointer group flex flex-col justify-between min-h-[96px] ${
+                            className={`relative p-3.5 sm:p-4 rounded-[3px] border text-left transition-all cursor-pointer group flex flex-col justify-between min-h-[96px] ${
                               isSelected
-                                ? 'bg-blue-50/90 border-bce-cobalt ring-2 ring-bce-cobalt/25 shadow-xs'
-                                : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-2xs'
+                                ? 'bg-blue-50/90 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/25 dark:ring-amber-500/25 shadow-xs'
+                                : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817] hover:shadow-2xs'
                             }`}
                           >
                             {/* Degree / Programme Badge */}
                             <div className="flex items-center justify-between gap-1 mb-2">
                               <span
-                                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border tracking-wide ${
+                                className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-[3px] border tracking-wide ${
                                   isDiploma
-                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    ? 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
                                     : isMtech
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                                     : isBtech
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                                    ? 'bg-blue-50 dark:bg-[#1a2333] text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                                    : 'bg-slate-100 dark:bg-[#140e07] text-slate-700 dark:text-[#faebd0] border-slate-200 dark:border-[#382710]'
                                 }`}
                               >
                                 {progName}
                               </span>
 
                               {isSelected && (
-                                <span className="w-5 h-5 rounded-full bg-bce-cobalt text-white flex items-center justify-center shrink-0 shadow-2xs">
+                                <span className="w-5 h-5 rounded-full bg-bce-cobalt dark:bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                 </span>
                               )}
@@ -985,10 +981,10 @@ export function CreateGoogleFormWizard({
 
                             {/* Semester Main Name */}
                             <div>
-                              <div className="font-extrabold text-sm sm:text-base text-slate-900 group-hover:text-bce-cobalt transition-colors">
+                              <div className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-[#faebd0] group-hover:text-bce-cobalt dark:group-hover:text-amber-400 transition-colors">
                                 {s.name}
                               </div>
-                              <div className="text-[11px] text-slate-500 font-medium mt-0.5 flex items-center gap-1">
+                              <div className="text-[11px] text-slate-500 dark:text-[#c4a97d] font-medium mt-0.5 flex items-center gap-1">
                                 {s.level_type === 'CLASS' ? (
                                   <span>Class {s.class_number || semNum}</span>
                                 ) : (
@@ -1006,17 +1002,17 @@ export function CreateGoogleFormWizard({
                 {/* Step 3: Branch */}
                 {currentStep === 3 && (
                   <div className="space-y-4">
-                    <div className="border-b border-slate-100 pb-3">
-                      <h3 className="text-base font-bold text-slate-900">Step 3: Select Branch / Discipline</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                    <div className="border-b border-slate-100 dark:border-[#382710] pb-3">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">Step 3: Select Branch / Discipline</h3>
+                      <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
                         Choose the engineering department for this evaluation.
                       </p>
                     </div>
 
                     {activeBranches.length === 0 ? (
-                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200">
-                        <p className="text-sm font-semibold text-slate-700">No active branches available</p>
-                        <p className="text-xs text-slate-400 mt-1">Please activate or add branches in Academic Management.</p>
+                      <div className="p-8 text-center bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200 dark:border-[#382710]">
+                        <p className="text-sm font-semibold text-slate-700 dark:text-[#faebd0]">No active branches available</p>
+                        <p className="text-xs text-slate-400 dark:text-[#8c7453] mt-1">Please activate or add branches in Academic Management.</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1025,19 +1021,19 @@ export function CreateGoogleFormWizard({
                             key={b.id}
                             type="button"
                             onClick={() => setBranchId(b.id)}
-                            className={`p-4 rounded-2xl border text-left transition-all ${
+                            className={`p-4 rounded-[3px] border text-left transition-all cursor-pointer ${
                               branchId === b.id
-                                ? 'bg-blue-50/80 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                                : 'bg-white border-slate-200 hover:border-slate-300'
+                                ? 'bg-blue-50/80 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20 shadow-xs'
+                                : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817]'
                             }`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-sm text-slate-900">{b.name}</span>
-                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono font-bold rounded-md">
+                              <span className="font-bold text-sm text-slate-900 dark:text-[#faebd0]">{b.name}</span>
+                              <span className="px-2 py-0.5 bg-slate-100 dark:bg-[#140e07] text-slate-700 dark:text-[#faebd0] text-[10px] font-mono font-bold rounded-[3px] border border-slate-200 dark:border-[#382710]">
                                 {b.code}
                               </span>
                             </div>
-                            <span className="text-[11px] text-slate-400 mt-1 block">
+                            <span className="text-[11px] text-slate-400 dark:text-[#8c7453] mt-1 block">
                               Department of {b.name}
                             </span>
                           </button>
@@ -1050,9 +1046,9 @@ export function CreateGoogleFormWizard({
                 {/* Step 4: Scope */}
                 {currentStep === 4 && (
                   <div className="space-y-5">
-                    <div className="border-b border-slate-100 pb-3">
-                      <h3 className="text-base font-bold text-slate-900">Step 4: Form Scope & Subjects</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                    <div className="border-b border-slate-100 dark:border-[#382710] pb-3">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">Step 4: Form Scope & Subjects</h3>
+                      <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
                         Choose whether to generate an all-in-one semester form or a single-faculty evaluation.
                       </p>
                     </div>
@@ -1062,21 +1058,21 @@ export function CreateGoogleFormWizard({
                       <button
                         type="button"
                         onClick={() => setScope('SEMESTER_FEEDBACK')}
-                        className={`p-4 rounded-2xl border text-left transition-all flex items-start gap-3 ${
+                        className={`p-4 rounded-[3px] border text-left transition-all flex items-start gap-3 cursor-pointer ${
                           scope === 'SEMESTER_FEEDBACK'
-                            ? 'bg-blue-50/90 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                            : 'bg-white border-slate-200 hover:border-slate-300'
+                            ? 'bg-blue-50/90 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20 shadow-xs'
+                            : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817]'
                         }`}
                       >
-                        <Users className={`w-5 h-5 shrink-0 mt-0.5 ${scope === 'SEMESTER_FEEDBACK' ? 'text-bce-cobalt' : 'text-slate-400'}`} />
+                        <Users className={`w-5 h-5 shrink-0 mt-0.5 ${scope === 'SEMESTER_FEEDBACK' ? 'text-bce-cobalt dark:text-amber-400' : 'text-slate-400 dark:text-[#8c7453]'}`} />
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-slate-900">Multi-Faculty Semester Form</span>
-                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-full">
+                            <span className="font-bold text-xs text-slate-900 dark:text-[#faebd0]">Multi-Faculty Semester Form</span>
+                            <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[9px] font-bold rounded-[3px] border border-emerald-300 dark:border-emerald-800">
                               Recommended
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-500 mt-1">
+                          <p className="text-[11px] text-slate-500 dark:text-[#c4a97d] mt-1">
                             A single Google Form with Multiple Choice Grids for all subjects & teachers of {selectedBranch?.code}, {selectedSem?.name}.
                           </p>
                         </div>
@@ -1085,16 +1081,16 @@ export function CreateGoogleFormWizard({
                       <button
                         type="button"
                         onClick={() => setScope('FACULTY_FEEDBACK')}
-                        className={`p-4 rounded-2xl border text-left transition-all flex items-start gap-3 ${
+                        className={`p-4 rounded-[3px] border text-left transition-all flex items-start gap-3 cursor-pointer ${
                           scope === 'FACULTY_FEEDBACK'
-                            ? 'bg-blue-50/90 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                            : 'bg-white border-slate-200 hover:border-slate-300'
+                            ? 'bg-blue-50/90 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20 shadow-xs'
+                            : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817]'
                         }`}
                       >
-                        <User className={`w-5 h-5 shrink-0 mt-0.5 ${scope === 'FACULTY_FEEDBACK' ? 'text-bce-cobalt' : 'text-slate-400'}`} />
+                        <User className={`w-5 h-5 shrink-0 mt-0.5 ${scope === 'FACULTY_FEEDBACK' ? 'text-bce-cobalt dark:text-amber-400' : 'text-slate-400 dark:text-[#8c7453]'}`} />
                         <div>
-                          <div className="font-bold text-xs text-slate-900">Single Faculty Form</div>
-                          <p className="text-[11px] text-slate-500 mt-1">
+                          <div className="font-bold text-xs text-slate-900 dark:text-[#faebd0]">Single Faculty Form</div>
+                          <p className="text-[11px] text-slate-500 dark:text-[#c4a97d] mt-1">
                             Individual evaluation form for a specific teacher and assigned subject.
                           </p>
                         </div>
@@ -1106,10 +1102,10 @@ export function CreateGoogleFormWizard({
                       <div className="space-y-3 pt-2">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="text-xs font-bold text-slate-900">
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">
                               Assigned Subjects & Faculty for {selectedBranch?.name} ({selectedSem?.name})
                             </h4>
-                            <p className="text-[11px] text-slate-500">
+                            <p className="text-[11px] text-slate-500 dark:text-[#c4a97d]">
                               {relevantAssignments.length} course assignment{relevantAssignments.length !== 1 ? 's' : ''} found in database.
                             </p>
                           </div>
@@ -1119,15 +1115,15 @@ export function CreateGoogleFormWizard({
                               <button
                                 type="button"
                                 onClick={handleSelectAll}
-                                className="text-[11px] text-bce-cobalt hover:underline font-semibold"
+                                className="text-[11px] text-bce-cobalt dark:text-amber-400 hover:underline font-semibold cursor-pointer"
                               >
                                 Select All
                               </button>
-                              <span className="text-slate-300">•</span>
+                              <span className="text-slate-300 dark:text-[#4d3817]">•</span>
                               <button
                                 type="button"
                                 onClick={handleDeselectAll}
-                                className="text-[11px] text-slate-500 hover:underline font-semibold"
+                                className="text-[11px] text-slate-500 dark:text-[#c4a97d] hover:underline font-semibold cursor-pointer"
                               >
                                 Deselect All
                               </button>
@@ -1136,10 +1132,10 @@ export function CreateGoogleFormWizard({
                         </div>
 
                         {relevantAssignments.length === 0 ? (
-                          <div className="p-6 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                          <div className="p-6 text-center bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200 dark:border-[#382710] space-y-2">
                             <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
-                            <p className="text-xs font-bold text-slate-800">No Academic Assignments Found</p>
-                            <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                            <p className="text-xs font-bold text-slate-800 dark:text-[#faebd0]">No Academic Assignments Found</p>
+                            <p className="text-[11px] text-slate-500 dark:text-[#c4a97d] max-w-md mx-auto">
                               There are currently no active faculty-subject assignments for {selectedBranch?.name} in {selectedSem?.name} ({selectedYear?.name}).
                               Please assign teachers to subjects in Academic Structure before generating a semester feedback form.
                             </p>
@@ -1155,10 +1151,10 @@ export function CreateGoogleFormWizard({
                                 <div
                                   key={asg.id}
                                   onClick={() => toggleAssignmentSelection(asg.id)}
-                                  className={`p-3.5 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                                  className={`p-3.5 rounded-[3px] border flex items-center justify-between cursor-pointer transition-all ${
                                     isChecked
-                                      ? 'bg-blue-50/70 border-bce-cobalt/80 shadow-2xs'
-                                      : 'bg-white border-slate-200 hover:border-slate-300 opacity-60'
+                                      ? 'bg-blue-50/70 dark:bg-[#25180c] border-bce-cobalt/80 dark:border-amber-500/80 shadow-2xs'
+                                      : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817] opacity-60'
                                   }`}
                                 >
                                   <div className="flex items-center gap-3">
@@ -1166,11 +1162,11 @@ export function CreateGoogleFormWizard({
                                       type="button"
                                       aria-label={isChecked ? 'Deselect subject' : 'Select subject'}
                                       className={`w-5 h-5 rounded flex items-center justify-center transition-colors ${
-                                        isChecked ? 'text-bce-cobalt' : 'text-slate-400'
+                                        isChecked ? 'text-bce-cobalt dark:text-amber-400' : 'text-slate-400 dark:text-[#8c7453]'
                                       }`}
                                     >
                                       {isChecked ? (
-                                        <CheckSquare className="w-5 h-5 fill-bce-cobalt text-white" />
+                                        <CheckSquare className="w-5 h-5 fill-bce-cobalt dark:fill-amber-500 text-white" />
                                       ) : (
                                         <Square className="w-5 h-5" />
                                       )}
@@ -1178,25 +1174,25 @@ export function CreateGoogleFormWizard({
 
                                     <div>
                                       <div className="flex items-center gap-2">
-                                        <span className="font-bold text-xs text-slate-900">
+                                        <span className="font-bold text-xs text-slate-900 dark:text-[#faebd0]">
                                           {sub?.name || 'Unknown Subject'}
                                         </span>
                                         {sub?.code && (
-                                          <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono font-bold rounded">
+                                          <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-[#140e07] text-slate-700 dark:text-[#faebd0] text-[10px] font-mono font-bold rounded-[3px] border border-slate-200 dark:border-[#382710]">
                                             {sub.code}
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-[11px] text-slate-600 mt-0.5 flex items-center gap-1.5">
-                                        <span className="font-semibold text-slate-800">{fac?.name || 'Unknown Faculty'}</span>
-                                        <span className="text-slate-400">•</span>
-                                        <span className="text-slate-500">{fac?.designation || fac?.department}</span>
+                                      <div className="text-[11px] text-slate-600 dark:text-[#c4a97d] mt-0.5 flex items-center gap-1.5">
+                                        <span className="font-semibold text-slate-800 dark:text-[#faebd0]">{fac?.name || 'Unknown Faculty'}</span>
+                                        <span className="text-slate-400 dark:text-[#8c7453]">•</span>
+                                        <span className="text-slate-500 dark:text-[#c4a97d]">{fac?.designation || fac?.department}</span>
                                       </div>
                                     </div>
                                   </div>
 
                                   <div className="text-right shrink-0">
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                    <span className="px-2 py-0.5 rounded-[3px] text-[10px] font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                                       MC Grid
                                     </span>
                                   </div>
@@ -1213,7 +1209,7 @@ export function CreateGoogleFormWizard({
                       <div className="space-y-4 pt-2">
                         {/* Select Faculty */}
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          <label className="block text-xs font-bold text-slate-700 dark:text-[#faebd0] mb-1.5">
                             Select Faculty Member
                           </label>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
@@ -1225,14 +1221,14 @@ export function CreateGoogleFormWizard({
                                   setFacultyId(f.id);
                                   setSubjectId('');
                                 }}
-                                className={`p-3 rounded-xl border text-left transition-all ${
+                                className={`p-3 rounded-[3px] border text-left transition-all cursor-pointer ${
                                   facultyId === f.id
-                                    ? 'bg-blue-50/80 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                                    : 'bg-white border-slate-200 hover:border-slate-300'
+                                    ? 'bg-blue-50/80 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20 shadow-xs'
+                                    : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817]'
                                 }`}
                               >
-                                <div className="font-bold text-xs text-slate-900">{f.name}</div>
-                                <div className="text-[11px] text-slate-500">{f.designation} • {f.department}</div>
+                                <div className="font-bold text-xs text-slate-900 dark:text-[#faebd0]">{f.name}</div>
+                                <div className="text-[11px] text-slate-500 dark:text-[#c4a97d]">{f.designation} • {f.department}</div>
                               </button>
                             ))}
                           </div>
@@ -1240,8 +1236,8 @@ export function CreateGoogleFormWizard({
 
                         {/* Select Subject */}
                         {facultyId && (
-                          <div className="pt-2 border-t border-slate-100">
-                            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                          <div className="pt-2 border-t border-slate-100 dark:border-[#382710]">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-[#faebd0] mb-1.5">
                               Select Assigned Subject for {selectedFaculty?.name}
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-56 overflow-y-auto pr-1">
@@ -1250,15 +1246,15 @@ export function CreateGoogleFormWizard({
                                   key={s.id}
                                   type="button"
                                   onClick={() => setSubjectId(s.id)}
-                                  className={`p-3 rounded-xl border text-left transition-all ${
+                                  className={`p-3 rounded-[3px] border text-left transition-all cursor-pointer ${
                                     subjectId === s.id
-                                      ? 'bg-blue-50/80 border-bce-cobalt ring-2 ring-bce-cobalt/20 shadow-xs'
-                                      : 'bg-white border-slate-200 hover:border-slate-300'
+                                      ? 'bg-blue-50/80 dark:bg-[#25180c] border-bce-cobalt dark:border-amber-500 ring-2 ring-bce-cobalt/20 dark:ring-amber-500/20 shadow-xs'
+                                      : 'bg-white dark:bg-[#1f150c] border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-[#4d3817]'
                                   }`}
                                 >
                                   <div className="flex items-center justify-between">
-                                    <span className="font-bold text-xs text-slate-900">{s.name}</span>
-                                    <span className="px-1.5 py-0.5 bg-slate-100 text-slate-700 text-[10px] font-mono font-bold rounded">
+                                    <span className="font-bold text-xs text-slate-900 dark:text-[#faebd0]">{s.name}</span>
+                                    <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-[#140e07] text-slate-700 dark:text-[#faebd0] text-[10px] font-mono font-bold rounded-[3px] border border-slate-200 dark:border-[#382710]">
                                       {s.code}
                                     </span>
                                   </div>
@@ -1275,51 +1271,51 @@ export function CreateGoogleFormWizard({
                 {/* Step 5: Destination */}
                 {currentStep === 5 && (
                   <div className="space-y-4">
-                    <div className="border-b border-slate-100 pb-3">
-                      <h3 className="text-base font-bold text-slate-900">Step 5: Response Destination & Google Sheet</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                    <div className="border-b border-slate-100 dark:border-[#382710] pb-3">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">Step 5: Response Destination & Google Sheet</h3>
+                      <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
                         Configure where student evaluations will be collected and synced.
                       </p>
                     </div>
 
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="p-4 bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200 dark:border-[#382710] space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 rounded-[3px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 border border-emerald-300 dark:border-emerald-800">
                           <FileSpreadsheet className="w-5 h-5" />
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-900">Connected Google Spreadsheet</h4>
-                          <p className="text-[11px] text-slate-500">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">Connected Google Spreadsheet</h4>
+                          <p className="text-[11px] text-slate-500 dark:text-[#c4a97d]">
                             A dedicated Google Spreadsheet will be generated with dynamic header columns for each faculty evaluation.
                           </p>
                         </div>
                       </div>
 
-                      <div className="bg-white p-3 rounded-xl border border-slate-200 text-xs space-y-1.5 font-mono">
-                        <div className="text-[11px] text-slate-400 uppercase font-sans font-bold">Target Sheet Title</div>
-                        <div className="text-slate-900 font-bold break-all">
+                      <div className="bg-white dark:bg-[#1f150c] p-3 rounded-[3px] border border-slate-200 dark:border-[#382710] text-xs space-y-1.5 font-mono">
+                        <div className="text-[11px] text-slate-400 dark:text-[#8c7453] uppercase font-sans font-bold">Target Sheet Title</div>
+                        <div className="text-slate-900 dark:text-[#faebd0] font-bold break-all">
                           [Responses] {computedTitle}
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-600">
-                        <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
-                          <span className="text-slate-400 block text-[10px] font-bold uppercase">Sync Method</span>
-                          <span className="font-semibold text-slate-800">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-600 dark:text-[#c4a97d]">
+                        <div className="p-3 bg-white dark:bg-[#1f150c] rounded-[3px] border border-slate-200 dark:border-[#382710] space-y-1">
+                          <span className="text-slate-400 dark:text-[#8c7453] block text-[10px] font-bold uppercase">Sync Method</span>
+                          <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
                             {googleStatus.hasAppsScript ? '⚡ Native Google Forms Linking' : '🔄 Automated Multi-Grid Response Engine'}
                           </span>
                         </div>
-                        <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1">
-                          <span className="text-slate-400 block text-[10px] font-bold uppercase">Evaluated Grids</span>
-                          <span className="font-semibold text-slate-800">
+                        <div className="p-3 bg-white dark:bg-[#1f150c] rounded-[3px] border border-slate-200 dark:border-[#382710] space-y-1">
+                          <span className="text-slate-400 dark:text-[#8c7453] block text-[10px] font-bold uppercase">Evaluated Grids</span>
+                          <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
                             {normalizedItems.length} Grid{normalizedItems.length > 1 ? 's' : ''} ({normalizedItems.length * 8} rating parameters)
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-900">
-                      <Info className="w-4 h-4 text-bce-cobalt shrink-0 mt-0.5" />
+                    <div className="p-3.5 bg-blue-50/70 dark:bg-[#25180c] border border-blue-200 dark:border-[#4d3817] rounded-[3px] flex items-start gap-2.5 text-xs text-blue-900 dark:text-amber-200">
+                      <Info className="w-4 h-4 text-bce-cobalt dark:text-amber-400 shrink-0 mt-0.5" />
                       <div>
                         <span className="font-bold">Automated Synchronization:</span> Submissions on this Google Form will record timestamps, verified email, student registration number, and ratings for each teacher into Supabase analytics.
                       </div>
@@ -1330,41 +1326,41 @@ export function CreateGoogleFormWizard({
                 {/* Step 6: Preview */}
                 {currentStep === 6 && (
                   <div className="space-y-4">
-                    <div className="border-b border-slate-100 pb-3">
-                      <h3 className="text-base font-bold text-slate-900">Step 6: Review & Finalize Generation</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
+                    <div className="border-b border-slate-100 dark:border-[#382710] pb-3">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">Step 6: Review & Finalize Generation</h3>
+                      <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-0.5">
                         Confirm details before creating the live Google Form and connected Google Sheet.
                       </p>
                     </div>
 
                     {/* Summary of what will be generated */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5 text-xs">
-                      <div className="font-bold text-slate-800">Generation Pipeline Checklist:</div>
-                      <ul className="space-y-1.5 text-slate-600">
+                    <div className="p-4 bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200 dark:border-[#382710] space-y-2.5 text-xs">
+                      <div className="font-bold text-slate-800 dark:text-[#faebd0]">Generation Pipeline Checklist:</div>
+                      <ul className="space-y-1.5 text-slate-600 dark:text-[#c4a97d]">
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>Google Form created via Google Forms API v1 ({computedTitle})</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>Verified email collection enabled</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>Student Identification fields (Student Name & Registration Number) added once</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>
                             {normalizedItems.length} Multiple Choice Grid{normalizedItems.length > 1 ? 's' : ''} populated (8 BCE parameters × 5 rating choices)
                           </span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>General Comments / Suggestions feedback section added</span>
                         </li>
                         <li className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <span>Connected Google Sheet initialized with dynamic header columns</span>
                         </li>
                       </ul>
@@ -1372,14 +1368,14 @@ export function CreateGoogleFormWizard({
 
                     {/* Items to be generated */}
                     <div className="space-y-2">
-                      <span className="text-xs font-bold text-slate-700 block">
+                      <span className="text-xs font-bold text-slate-700 dark:text-[#faebd0] block">
                         Included Teacher Evaluations ({normalizedItems.length}):
                       </span>
                       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                         {normalizedItems.map((it, idx) => (
-                          <div key={idx} className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-                            <span className="font-bold text-slate-900">{it.gridTitle}</span>
-                            <span className="text-[10px] text-slate-500 font-semibold">8 Parameters</span>
+                          <div key={idx} className="p-2.5 bg-white dark:bg-[#1f150c] rounded-[3px] border border-slate-200 dark:border-[#382710] flex items-center justify-between text-xs">
+                            <span className="font-bold text-slate-900 dark:text-[#faebd0]">{it.gridTitle}</span>
+                            <span className="text-[10px] text-slate-500 dark:text-[#c4a97d] font-semibold">8 Parameters</span>
                           </div>
                         ))}
                       </div>
@@ -1389,14 +1385,14 @@ export function CreateGoogleFormWizard({
 
                 {/* Reconnect Required Alert */}
                 {requiresReconnect ? (
-                  <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 text-amber-950 space-y-3 shadow-xs">
+                  <div className="p-4 rounded-[3px] bg-amber-50 dark:bg-[#25180c] border-2 border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 space-y-3 shadow-xs">
                     <div className="flex items-start gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="font-bold text-xs text-amber-900">
+                        <p className="font-bold text-xs text-amber-900 dark:text-amber-300">
                           Google authorization has expired or been revoked. Reconnect your Google account to continue.
                         </p>
-                        <p className="text-[11px] text-amber-800">
+                        <p className="text-[11px] text-amber-800 dark:text-amber-400/90">
                           Your server-side OAuth session must be renewed before Google Forms and Sheets can be provisioned.
                         </p>
                       </div>
@@ -1404,7 +1400,7 @@ export function CreateGoogleFormWizard({
                     <div>
                       <a
                         href={reconnectUrl}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all hover:scale-[1.02]"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-[3px] text-xs font-bold shadow-xs transition-all hover:scale-[1.02]"
                       >
                         <Sparkles className="w-4 h-4 text-amber-200" />
                         <span>Reconnect Google Account</span>
@@ -1412,7 +1408,7 @@ export function CreateGoogleFormWizard({
                     </div>
                   </div>
                 ) : errorMsg ? (
-                  <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-start gap-2">
+                  <div className="p-3.5 rounded-[3px] bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-900 dark:text-red-300 text-xs flex items-start gap-2">
                     <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                     <span>{errorMsg}</span>
                   </div>
@@ -1420,19 +1416,19 @@ export function CreateGoogleFormWizard({
 
                 {/* Pending Progress indicator */}
                 {isPending && (
-                  <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-950 text-xs flex items-center gap-3">
-                    <Loader2 className="w-4 h-4 text-bce-cobalt animate-spin shrink-0" />
+                  <div className="p-4 rounded-[3px] bg-blue-50 dark:bg-[#25180c] border border-blue-200 dark:border-[#4d3817] text-blue-950 dark:text-[#faebd0] text-xs flex items-center gap-3">
+                    <Loader2 className="w-4 h-4 text-bce-cobalt dark:text-amber-400 animate-spin shrink-0" />
                     <span className="font-semibold">{creationStepMsg || 'Generating Google Form...'}</span>
                   </div>
                 )}
 
                 {/* Navigation Controls */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-[#382710]">
                   <button
                     type="button"
                     onClick={handleBack}
                     disabled={currentStep === 1 || isPending || isGenerating}
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                    className="px-4 py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#1f150c] disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
                   >
                     ← Back
                   </button>
@@ -1442,7 +1438,7 @@ export function CreateGoogleFormWizard({
                       type="button"
                       onClick={handleNext}
                       disabled={!canGoToNext() || isPending || isGenerating}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-bce-cobalt hover:bg-bce-navy disabled:opacity-40 transition-colors shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[3px] text-xs font-bold text-white bg-bce-cobalt hover:bg-bce-navy disabled:opacity-40 transition-colors shadow-xs cursor-pointer"
                     >
                       <span>Next Step</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1452,7 +1448,7 @@ export function CreateGoogleFormWizard({
                       type="button"
                       onClick={handleGenerateForm}
                       disabled={!canGoToNext() || isPending || isGenerating || !googleStatus.isConfigured || requiresReconnect}
-                      className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-bce-cobalt to-indigo-600 hover:from-bce-navy hover:to-indigo-700 disabled:opacity-40 transition-all shadow-md ${
+                      className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-[3px] text-xs font-bold text-white bg-gradient-to-r from-bce-cobalt to-indigo-600 hover:from-bce-navy hover:to-indigo-700 disabled:opacity-40 transition-all shadow-md cursor-pointer ${
                         isPending || isGenerating ? 'btn-request-active opacity-80 cursor-wait' : ''
                       }`}
                     >
@@ -1474,114 +1470,111 @@ export function CreateGoogleFormWizard({
               </div>
             </div>
 
-            {/* Right Column: Live Form Preview Card */}
+            {/* Right Column: Live Form Preview Card Wrapped in PinnedRosterBoard */}
             <div className="space-y-4">
-              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-bce-cobalt" />
-                    Live Form Preview
-                  </h4>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
-                    Preview Only
-                  </span>
-                </div>
+              <PinnedRosterBoard
+                title="Live Form Preview"
+                subtitle="Form metadata & target parameters"
+                badge="PREVIEW"
+                icon={<Sparkles className="w-4 h-4 text-amber-500" />}
+              >
+                <div className="space-y-4 pt-1">
+                  {/* Title & Metadata Card */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-[#8c7453]">Generated Title</span>
+                    <p className="font-bold text-xs text-slate-900 dark:text-[#faebd0] leading-snug bg-slate-50 dark:bg-[#140e07] p-2.5 rounded-[3px] border border-slate-200 dark:border-[#382710] font-mono break-words">
+                      {computedTitle}
+                    </p>
+                  </div>
 
-                {/* Title & Metadata Card */}
-                <div className="space-y-1.5">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Generated Title</span>
-                  <p className="font-bold text-xs text-slate-900 leading-snug bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono break-words">
-                    {computedTitle}
-                  </p>
-                </div>
-
-                <div className="space-y-1 text-xs text-slate-600">
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-400">Session:</span>
-                    <span className="font-semibold text-slate-800">{selectedYear?.name || '—'}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-400">Programme:</span>
-                    <span className="font-semibold text-slate-800">
-                      {selectedSem ? getSemesterProgramme(selectedSem)?.name || 'Undergraduate' : '—'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-400">Semester:</span>
-                    <span className="font-semibold text-slate-800">
-                      {selectedSem?.name || '—'}
-                      {selectedSem ? ` (Year ${selectedSem.year_number || Math.ceil((selectedSem.semester_number || 1) / 2)} • Sem ${selectedSem.semester_number || selectedSem.level_number || 1})` : ''}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-400">Branch:</span>
-                    <span className="font-semibold text-slate-800">{selectedBranch?.name || '—'}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-400">Scope:</span>
-                    <span className="font-semibold text-slate-800">
-                      {scope === 'SEMESTER_FEEDBACK' ? 'Multi-Faculty Semester' : 'Single Faculty'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-slate-400">Teachers Evaluated:</span>
-                    <span className="font-semibold text-slate-800">{normalizedItems.length} Teacher{normalizedItems.length !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-
-                {/* Live Preview of Questions & Grids */}
-                <div className="space-y-3 pt-2 border-t border-slate-100">
-                  <span className="text-[10px] font-bold uppercase text-slate-400 block">
-                    Form Question Structure
-                  </span>
-
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                    {/* Student Identification */}
-                    <div className="p-2.5 bg-blue-50/60 rounded-xl border border-blue-100 text-[11px] space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-blue-950">Student Identification</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] bg-blue-100 text-blue-800 font-semibold">Required *</span>
-                      </div>
-                      <div className="text-[10px] text-blue-800 space-y-0.5">
-                        <div>• <span className="font-semibold">Student Name</span> (Short Answer)</div>
-                        <div>• <span className="font-semibold">University Registration Number</span> (Short Answer)</div>
-                        <div>• <span className="font-semibold">Email</span> (Verified Collection)</div>
-                      </div>
+                  <div className="space-y-1 text-xs text-slate-600 dark:text-[#c4a97d]">
+                    <div className="flex justify-between py-1 border-b border-slate-100 dark:border-[#382710]">
+                      <span className="text-slate-400 dark:text-[#8c7453]">Session:</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#faebd0]">{selectedYear?.name || '—'}</span>
                     </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100 dark:border-[#382710]">
+                      <span className="text-slate-400 dark:text-[#8c7453]">Programme:</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
+                        {selectedSem ? getSemesterProgramme(selectedSem)?.name || 'Undergraduate' : '—'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100 dark:border-[#382710]">
+                      <span className="text-slate-400 dark:text-[#8c7453]">Semester:</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
+                        {selectedSem?.name || '—'}
+                        {selectedSem ? ` (Year ${selectedSem.year_number || Math.ceil((selectedSem.semester_number || 1) / 2)} • Sem ${selectedSem.semester_number || selectedSem.level_number || 1})` : ''}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100 dark:border-[#382710]">
+                      <span className="text-slate-400 dark:text-[#8c7453]">Branch:</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#faebd0]">{selectedBranch?.name || '—'}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100 dark:border-[#382710]">
+                      <span className="text-slate-400 dark:text-[#8c7453]">Scope:</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
+                        {scope === 'SEMESTER_FEEDBACK' ? 'Multi-Faculty Semester' : 'Single Faculty'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1">
+                      <span className="text-slate-400 dark:text-[#8c7453]">Teachers Evaluated:</span>
+                      <span className="font-semibold text-slate-800 dark:text-[#faebd0]">{normalizedItems.length} Teacher{normalizedItems.length !== 1 ? 's' : ''}</span>
+                    </div>
+                  </div>
 
-                    {/* Grids */}
-                    {normalizedItems.map((item, idx) => (
-                      <div key={idx} className="p-2.5 bg-purple-50/60 rounded-xl border border-purple-200 text-[11px] space-y-1.5">
+                  {/* Live Preview of Questions & Grids */}
+                  <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-[#382710]">
+                    <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-[#8c7453] block">
+                      Form Question Structure
+                    </span>
+
+                    <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                      {/* Student Identification */}
+                      <div className="p-2.5 bg-blue-50/60 dark:bg-[#25180c] rounded-[3px] border border-blue-100 dark:border-[#4d3817] text-[11px] space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-purple-950 truncate max-w-[200px]" title={item.gridTitle}>
-                            {item.gridTitle}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] bg-purple-100 text-purple-800 font-semibold shrink-0">
-                            Grid (8 Rows × 5 Cols)
-                          </span>
+                          <span className="font-bold text-blue-950 dark:text-amber-200">Student Identification</span>
+                          <span className="px-1.5 py-0.5 rounded-[2px] text-[9px] bg-blue-100 dark:bg-amber-950/60 text-blue-800 dark:text-amber-300 font-semibold border border-blue-200 dark:border-[#4d3817]">Required *</span>
                         </div>
-                        <div className="text-[10px] text-purple-900/80">
-                          {BCE_FEEDBACK_PARAMETERS.map(p => (
-                            <div key={p.id} className="truncate">• {p.id}. {p.title}</div>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-1 text-[9px] text-purple-700 pt-0.5">
-                          <span className="font-semibold">Columns:</span> {BCE_RATING_OPTIONS.join(' | ')}
+                        <div className="text-[10px] text-blue-800 dark:text-amber-300/90 space-y-0.5">
+                          <div>• <span className="font-semibold">Student Name</span> (Short Answer)</div>
+                          <div>• <span className="font-semibold">University Registration Number</span> (Short Answer)</div>
+                          <div>• <span className="font-semibold">Email</span> (Verified Collection)</div>
                         </div>
                       </div>
-                    ))}
 
-                    {/* General Remarks */}
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-[11px] space-y-0.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-800">General Feedback</span>
-                        <span className="px-1.5 py-0.5 rounded text-[9px] bg-slate-200 text-slate-600 font-medium">Optional</span>
+                      {/* Grids */}
+                      {normalizedItems.map((item, idx) => (
+                        <div key={idx} className="p-2.5 bg-purple-50/60 dark:bg-[#201026] rounded-[3px] border border-purple-200 dark:border-purple-900/60 text-[11px] space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-purple-950 dark:text-purple-200 truncate max-w-[200px]" title={item.gridTitle}>
+                              {item.gridTitle}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-[2px] text-[9px] bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 font-semibold shrink-0 border border-purple-200 dark:border-purple-800">
+                              Grid (8 Rows × 5 Cols)
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-purple-900/80 dark:text-purple-300/80">
+                            {BCE_FEEDBACK_PARAMETERS.map(p => (
+                              <div key={p.id} className="truncate">• {p.id}. {p.title}</div>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-1 text-[9px] text-purple-700 dark:text-purple-400 pt-0.5">
+                            <span className="font-semibold">Columns:</span> {BCE_RATING_OPTIONS.join(' | ')}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* General Remarks */}
+                      <div className="p-2.5 bg-slate-50 dark:bg-[#140e07] rounded-[3px] border border-slate-200 dark:border-[#382710] text-[11px] space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-slate-800 dark:text-[#faebd0]">General Feedback</span>
+                          <span className="px-1.5 py-0.5 rounded-[2px] text-[9px] bg-slate-200 dark:bg-[#25180c] text-slate-600 dark:text-[#c4a97d] font-medium border border-slate-300 dark:border-[#382710]">Optional</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-[#8c7453]">Constructive feedback / suggestions for improvement</p>
                       </div>
-                      <p className="text-[10px] text-slate-500">Constructive feedback / suggestions for improvement</p>
                     </div>
                   </div>
                 </div>
-              </div>
+              </PinnedRosterBoard>
             </div>
           </div>
         </div>

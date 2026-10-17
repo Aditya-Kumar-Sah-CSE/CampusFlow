@@ -20,9 +20,16 @@ export async function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
 
-  // Extract potential tenant slug from first segment (e.g. /bce-bgp -> "bce-bgp")
+  // Extract potential tenant slug from first segment (e.g. /bce-bhagalpur -> "bce-bhagalpur")
   const segments = pathname.split('/').filter(Boolean);
   const firstSegment = segments[0]?.toLowerCase();
+
+  // Canonical redirect for BCE Bhagalpur: bce-bgp -> bce-bhagalpur
+  if (firstSegment === 'bce-bgp') {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(/^\/bce-bgp(\/|$)/i, '/bce-bhagalpur$1');
+    return NextResponse.redirect(url, 308);
+  }
 
   // Known non-tenant reserved prefixes
   const reservedPrefixes = [

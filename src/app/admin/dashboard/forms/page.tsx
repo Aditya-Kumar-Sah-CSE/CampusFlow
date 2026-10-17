@@ -25,6 +25,8 @@ import {
 import { FeedbackForm, FeedbackFormStatus, AcademicYear, Branch, Semester } from '@/types/database';
 import { FormsFilterClient } from '@/components/admin/forms/FormsFilterClient';
 import { DeleteFormButton } from '@/components/admin/forms/DeleteFormButton';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 export const dynamic = 'force-dynamic';
 
@@ -268,74 +270,69 @@ export default async function FeedbackFormsPage({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Top Header */}
-      <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
+      {/* Top Header on Authentic Exam Pad Card */}
+      <ExamPadCard
+        variant="dashboard"
+        title="Google Feedback Forms Management"
+        subtitle={`Create standard 8-parameter ${session.activeCollege?.name ? `${session.activeCollege.name} ` : ''}Google Feedback Forms, manage connected response Google Sheets, and oversee form lifecycles.`}
+        icon={<FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-bce-cobalt dark:text-amber-400" />}
+        badge="FORMS CATALOG"
+        action={
           <div className="flex items-center gap-2">
-            <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-bce-cobalt" />
-              Google Feedback Forms Management
-            </h2>
+            <Link
+              href="/admin/dashboard?tab=forms"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-[3px] border border-slate-300 dark:border-[#4d3817] text-slate-700 dark:text-[#faebd0] bg-slate-100 dark:bg-[#1a1309] text-xs font-semibold hover:bg-slate-200 dark:hover:bg-[#25180c] transition-colors cursor-pointer select-none"
+            >
+              ← Admin Console
+            </Link>
+            <Link
+              href="/admin/dashboard/forms/create"
+              className="group relative inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-bce-cobalt to-bce-navy hover:from-bce-navy hover:to-slate-900 text-white text-xs font-bold rounded-[3px] transition-all shadow-md cursor-pointer select-none"
+            >
+              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
+              <span>Generate Google Form</span>
+            </Link>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Create standard 8-parameter {session.activeCollege?.name ? `${session.activeCollege.name} ` : ''}Google Feedback Forms, manage connected response Google Sheets, and oversee form lifecycles.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/dashboard?tab=forms"
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100 hover:border-slate-400 transition-all duration-200 hover:-translate-y-0.5 active:scale-95 active:translate-y-0 shadow-2xs hover:shadow-xs cursor-pointer select-none"
-          >
-            ← Admin Console
-          </Link>
-          <Link
-            href="/admin/dashboard/forms/create"
-            className="group relative inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-bce-cobalt to-bce-navy hover:from-bce-navy hover:to-slate-900 text-white text-xs font-bold rounded-xl transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-95 active:translate-y-0 cursor-pointer select-none"
-          >
-            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
-            <span>Generate Google Form</span>
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Google Setup Status Banner */}
       {!googleStatus.isConfigured ? (
-        <div className="p-3.5 sm:p-4 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 text-xs text-amber-950">
+        <div className="p-3.5 sm:p-4 bg-amber-50 dark:bg-[#25180c] border border-amber-300 dark:border-amber-800 rounded-[3px] flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 text-xs text-amber-950 dark:text-amber-200">
           <div className="flex items-start gap-2.5 sm:gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-bold text-amber-900">Google API Setup Notice</p>
-              <p className="text-amber-800">
+              <p className="font-bold text-amber-900 dark:text-amber-300">Google API Setup Notice</p>
+              <p className="text-amber-800 dark:text-amber-400/90">
                 Google API credentials are not yet configured on the server. Connect your Google account to enable live Google Forms and Sheets provisioning.
               </p>
             </div>
           </div>
           <Link
             href={`/api/auth/google?collegeId=${encodeURIComponent(session.activeCollegeId || '')}&returnTo=/admin/dashboard/forms`}
-            className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs inline-flex items-center gap-2 shrink-0 self-start sm:self-auto"
+            className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-all shadow-xs inline-flex items-center gap-2 shrink-0 self-start sm:self-auto"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-200" />
             <span>Connect Google Account</span>
           </Link>
         </div>
       ) : (
-        <div className="p-2.5 sm:p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs text-emerald-950">
+        <div className="p-2.5 sm:p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-[3px] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs text-emerald-950 dark:text-emerald-200">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
               <strong>Google API Connected:</strong> {googleStatus.message}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-emerald-100 rounded text-[10.5px] sm:text-[11px] font-semibold text-emerald-800">
+            <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 rounded-[3px] text-[10.5px] sm:text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
               {googleStatus.hasAppsScript ? 'Apps Script Web App Configured' : 'Application-Managed Sync Active'}
             </span>
             <Link
               href={`/api/auth/google?collegeId=${encodeURIComponent(session.activeCollegeId || '')}&returnTo=/admin/dashboard/forms`}
-              className="px-2.5 sm:px-3 py-1 bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/60 rounded-lg text-[10.5px] sm:text-[11px] font-bold transition-colors inline-flex items-center gap-1.5 shadow-2xs"
+              className="px-2.5 sm:px-3 py-1 bg-white dark:bg-[#1a1309] border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100/60 dark:hover:bg-emerald-950/60 rounded-[3px] text-[10.5px] sm:text-[11px] font-bold transition-colors inline-flex items-center gap-1.5 shadow-2xs"
             >
-              <RefreshCw className="w-3 h-3 text-emerald-700" />
+              <RefreshCw className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
               <span>Reconnect Google Account</span>
             </Link>
           </div>
@@ -355,34 +352,35 @@ export default async function FeedbackFormsPage({
       />
 
       {/* Forms Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-3.5 sm:p-5 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-slate-900">
-            Feedback Forms Catalog ({totalCount})
-          </h3>
-          <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500">
-            <span>{publishedCount ?? forms.filter(f => f.status === 'PUBLISHED').length} Published</span>
+      <PinnedRosterBoard
+        title="Feedback Forms Catalog"
+        subtitle="Live lifecycle management & Google Workspace sync"
+        badge={`${totalCount} FORMS`}
+        icon={<FileSpreadsheet className="w-4 h-4 text-amber-500" />}
+        action={
+          <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-500 dark:text-[#c4a97d]">
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">{publishedCount ?? forms.filter(f => f.status === 'PUBLISHED').length} Published</span>
             <span>•</span>
-            <span>{draftCount ?? forms.filter(f => f.status === 'DRAFT').length} Drafts</span>
+            <span className="font-semibold text-amber-700 dark:text-amber-400">{draftCount ?? forms.filter(f => f.status === 'DRAFT').length} Drafts</span>
             <span>•</span>
-            <span>{closedCount ?? forms.filter(f => f.status === 'CLOSED').length} Closed</span>
+            <span className="font-semibold text-rose-700 dark:text-rose-400">{closedCount ?? forms.filter(f => f.status === 'CLOSED').length} Closed</span>
           </div>
-        </div>
-
+        }
+      >
         {forms.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+            <div className="w-12 h-12 rounded-[3px] bg-slate-100 dark:bg-[#1f150c] border border-slate-200 dark:border-[#382710] text-slate-400 dark:text-[#8c7453] mx-auto flex items-center justify-center">
               <FileSpreadsheet className="w-6 h-6" />
             </div>
-            <p className="text-sm font-bold text-slate-800">No Feedback Forms Found</p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-sm font-bold text-slate-800 dark:text-[#faebd0]">No Feedback Forms Found</p>
+            <p className="text-xs text-slate-500 dark:text-[#c4a97d] max-w-sm mx-auto">
               {resolvedParams.search || resolvedParams.status || resolvedParams.year
                 ? 'Try adjusting your filters or search query.'
                 : 'Get started by clicking "Generate Google Form" to create your first feedback form.'}
             </p>
             <Link
               href="/admin/dashboard/forms/create"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-bce-cobalt text-white text-xs font-bold rounded-xl hover:bg-bce-navy transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-bce-cobalt text-white text-xs font-bold rounded-[3px] hover:bg-bce-navy transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Generate First Form
@@ -392,7 +390,7 @@ export default async function FeedbackFormsPage({
           <>
             <div className="overflow-x-auto">
             <table className="w-full text-left text-xs min-w-[650px]">
-              <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+              <thead className="bg-slate-50 dark:bg-[#1f150c] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200 dark:border-[#382710] uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3">Form Details</th>
                   <th className="px-5 py-3">Faculty & Subject</th>
@@ -542,7 +540,7 @@ export default async function FeedbackFormsPage({
                         <div className="inline-flex items-center gap-1.5">
                           <Link
                             href={`/admin/dashboard/forms/${form.id}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 hover:text-bce-cobalt bg-slate-100 hover:bg-slate-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] text-xs font-semibold text-slate-700 dark:text-[#faebd0] hover:text-bce-cobalt dark:hover:text-amber-400 bg-slate-100 dark:bg-[#140e07] hover:bg-slate-200 dark:hover:bg-[#25180c] border border-slate-200 dark:border-[#382710] transition-colors"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Manage</span>
@@ -559,21 +557,21 @@ export default async function FeedbackFormsPage({
 
           {/* Pagination Controls */}
           {totalCount > 0 && (
-            <div className="px-5 py-3.5 bg-slate-50/70 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+            <div className="px-5 py-3.5 bg-slate-50/70 dark:bg-[#140e07] border-t border-slate-200 dark:border-[#382710] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-[#c4a97d]">
               <div>
-                Showing <strong className="font-semibold text-slate-900">{Math.min(from + 1, totalCount)}</strong>–
-                <strong className="font-semibold text-slate-900">{Math.min(to + 1, totalCount)}</strong> of{' '}
-                <strong className="font-semibold text-slate-900">{totalCount}</strong> feedback forms
+                Showing <strong className="font-semibold text-slate-900 dark:text-[#faebd0]">{Math.min(from + 1, totalCount)}</strong>–
+                <strong className="font-semibold text-slate-900 dark:text-[#faebd0]">{Math.min(to + 1, totalCount)}</strong> of{' '}
+                <strong className="font-semibold text-slate-900 dark:text-[#faebd0]">{totalCount}</strong> feedback forms
               </div>
 
               <div className="flex items-center gap-1.5">
                 {/* Previous button */}
                 <Link
                   href={createPageUrl(Math.max(1, currentPage - 1))}
-                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 transition-colors ${
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[3px] border border-slate-200 dark:border-[#382710] bg-white dark:bg-[#1f150c] font-medium text-slate-700 dark:text-[#faebd0] transition-colors ${
                     currentPage <= 1
                       ? 'opacity-40 pointer-events-none cursor-not-allowed'
-                      : 'hover:bg-slate-50 hover:text-bce-cobalt'
+                      : 'hover:bg-slate-50 dark:hover:bg-[#2a1d10] hover:text-bce-cobalt dark:hover:text-amber-400'
                   }`}
                   aria-disabled={currentPage <= 1}
                 >
@@ -592,13 +590,13 @@ export default async function FeedbackFormsPage({
 
                       return (
                         <React.Fragment key={pageNum}>
-                          {showEllipsis && <span className="px-1.5 text-slate-400">…</span>}
+                          {showEllipsis && <span className="px-1.5 text-slate-400 dark:text-[#8c7453]">…</span>}
                           <Link
                             href={createPageUrl(pageNum)}
-                            className={`min-w-[28px] h-7 px-2 rounded-lg text-xs font-bold inline-flex items-center justify-center transition-all ${
+                            className={`min-w-[28px] h-7 px-2 rounded-[3px] text-xs font-bold inline-flex items-center justify-center transition-all ${
                               isActive
-                                ? 'bg-bce-navy text-amber-400 shadow-2xs'
-                                : 'text-slate-600 hover:bg-slate-100'
+                                ? 'bg-bce-navy dark:bg-[#2e1d0f] text-amber-400 border border-bce-cobalt dark:border-amber-500 shadow-2xs'
+                                : 'text-slate-600 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#1f150c] border border-transparent'
                             }`}
                           >
                             {pageNum}
@@ -611,10 +609,10 @@ export default async function FeedbackFormsPage({
                 {/* Next button */}
                 <Link
                   href={createPageUrl(Math.min(totalPages, currentPage + 1))}
-                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 transition-colors ${
+                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-[3px] border border-slate-200 dark:border-[#382710] bg-white dark:bg-[#1f150c] font-medium text-slate-700 dark:text-[#faebd0] transition-colors ${
                     currentPage >= totalPages
                       ? 'opacity-40 pointer-events-none cursor-not-allowed'
-                      : 'hover:bg-slate-50 hover:text-bce-cobalt'
+                      : 'hover:bg-slate-50 dark:hover:bg-[#2a1d10] hover:text-bce-cobalt dark:hover:text-amber-400'
                   }`}
                   aria-disabled={currentPage >= totalPages}
                 >
@@ -626,7 +624,7 @@ export default async function FeedbackFormsPage({
           )}
         </>
       )}
-    </div>
+    </PinnedRosterBoard>
   </div>
 );
 }

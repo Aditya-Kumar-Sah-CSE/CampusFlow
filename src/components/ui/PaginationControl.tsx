@@ -53,18 +53,18 @@ export function PaginationControl({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="px-2.5 sm:px-4 py-3 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+    <div className="px-2.5 sm:px-4 py-3 bg-slate-50/70 dark:bg-[#1a1309]/90 border-t border-slate-200/80 dark:border-[#382713] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 dark:text-[#c4a97d] transition-colors">
       {/* Item summary & Page size */}
       <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-start text-[11px] sm:text-xs">
         <span>
-          Showing <strong className="font-semibold text-slate-900">{startItem}</strong>–
-          <strong className="font-semibold text-slate-900">{endItem}</strong> of{' '}
-          <strong className="font-semibold text-slate-900">{totalItems}</strong> entries
+          Showing <strong className="font-semibold text-slate-900 dark:text-[#faebd0]">{startItem}</strong>–
+          <strong className="font-semibold text-slate-900 dark:text-[#faebd0]">{endItem}</strong> of{' '}
+          <strong className="font-semibold text-slate-900 dark:text-[#faebd0]">{totalItems}</strong> entries
         </span>
 
         {onPageSizeChange && (
           <div className="flex items-center gap-1.5 ml-2">
-            <label htmlFor="pageSizeSelect" className="text-slate-500 text-[11px] hidden sm:inline">
+            <label htmlFor="pageSizeSelect" className="text-slate-500 dark:text-[#a8906c] text-[11px] hidden sm:inline">
               Per page:
             </label>
             <select
@@ -72,10 +72,10 @@ export function PaginationControl({
               value={pageSize}
               disabled={isLoading}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-bce-cobalt cursor-pointer disabled:opacity-50"
+              className="bg-white dark:bg-[#22180e] border border-slate-200 dark:border-[#4d3817] rounded-[3px] px-2 py-1 text-xs text-slate-800 dark:text-[#faebd0] focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer disabled:opacity-50"
             >
               {pageSizeOptions.map((opt) => (
-                <option key={opt} value={opt}>
+                <option key={opt} value={opt} className="bg-white dark:bg-[#22180e] text-slate-900 dark:text-[#faebd0]">
                   {opt}
                 </option>
               ))}
@@ -90,7 +90,7 @@ export function PaginationControl({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1 || isLoading}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[3px] border border-slate-200 dark:border-[#4d3817] bg-white dark:bg-[#22180e] hover:bg-slate-100 dark:hover:bg-[#2e2013] text-slate-700 dark:text-[#faebd0] font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Previous page"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
@@ -102,7 +102,7 @@ export function PaginationControl({
           {pageNumbers.map((p, idx) => {
             if (p === '...') {
               return (
-                <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-slate-400 text-xs">
+                <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-slate-400 dark:text-[#7d684e] text-xs">
                   …
                 </span>
               );
@@ -116,10 +116,10 @@ export function PaginationControl({
                 key={pageNum}
                 onClick={() => onPageChange(pageNum)}
                 disabled={isLoading}
-                className={`min-w-[28px] h-7 px-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`min-w-[28px] h-7 px-1.5 rounded-[3px] text-xs font-bold transition-all ${
                   isActive
-                    ? 'bg-bce-navy text-amber-400 shadow-2xs'
-                    : 'text-slate-600 hover:bg-slate-100 border border-transparent'
+                    ? 'bg-bce-navy text-amber-400 dark:bg-[#342414] dark:text-amber-300 dark:border dark:border-amber-600/50 shadow-2xs'
+                    : 'text-slate-600 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#281b0f] border border-transparent'
                 }`}
               >
                 {pageNum}
@@ -132,7 +132,7 @@ export function PaginationControl({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages || isLoading}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[3px] border border-slate-200 dark:border-[#4d3817] bg-white dark:bg-[#22180e] hover:bg-slate-100 dark:hover:bg-[#2e2013] text-slate-700 dark:text-[#faebd0] font-medium disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Next page"
         >
           <span className="hidden sm:inline">Next</span>

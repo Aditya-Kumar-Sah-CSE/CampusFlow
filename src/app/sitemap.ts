@@ -30,13 +30,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
-      url: appUrl('/bce-bgp'),
+      url: appUrl('/bce-bhagalpur'),
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
     },
     {
-      url: appUrl('/bce-bgp/events'),
+      url: appUrl('/bce-bhagalpur/events'),
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,

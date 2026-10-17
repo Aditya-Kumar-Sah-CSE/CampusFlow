@@ -24,6 +24,7 @@ import {
   getActiveCollegesForSignupAction,
   studentSignupAction,
 } from '@/app/auth/student/actions';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
 
 interface CollegeItem {
   id: string;
@@ -180,7 +181,7 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
   }, [colleges]);
 
   return (
-    <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200/90 text-slate-800">
+    <ExamPadCard paperClassName="text-slate-800">
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate>
         {errorMsg && (
           <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs sm:text-sm flex items-start gap-2.5 animate-in fade-in">
@@ -500,6 +501,6 @@ export function StudentSignupForm({ preselectedCollegeSlug }: { preselectedColle
           </Link>
         </div>
       </form>
-    </div>
+    </ExamPadCard>
   );
 }

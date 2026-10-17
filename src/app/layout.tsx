@@ -52,7 +52,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
-      <body suppressHydrationWarning className="min-h-screen flex flex-col antialiased bg-slate-50 text-slate-900 overflow-x-hidden selection:bg-amber-400/30 selection:text-slate-900">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('campusflow_theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body suppressHydrationWarning className="min-h-screen flex flex-col antialiased bg-transparent text-slate-900 dark:text-slate-100 overflow-x-hidden selection:bg-amber-400/30 selection:text-slate-900">
         <GlobalNavigationProgress />
         <GlobalInteractionEffects />
         <ServiceWorkerRegister />

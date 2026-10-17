@@ -33,6 +33,12 @@ export function ExamsTab({ activeCollegeId, initialSubTab }: ExamsTabProps) {
         }
       } catch (err: any) {
         if (isMounted) {
+          const msg = err?.message || '';
+          // Auto-reload if stale dev compilation action hash
+          if (msg.includes('was not found on the server') || msg.includes('Failed to find Server Action')) {
+            window.location.reload();
+            return;
+          }
           setError(err.message || 'Error fetching exams.');
         }
       } finally {
@@ -51,18 +57,26 @@ export function ExamsTab({ activeCollegeId, initialSubTab }: ExamsTabProps) {
 
   if (loading) {
     return (
-      <div className="bg-white p-12 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 text-bce-navy animate-spin" />
-        <p className="text-xs font-semibold text-slate-500">Loading examinations and test rosters...</p>
+      <div className="bg-white dark:bg-[#1f150c] p-12 rounded-[3px] border border-slate-200 dark:border-[#4d3817] shadow-xs flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 text-amber-600 dark:text-amber-400 animate-spin" />
+        <p className="text-xs font-semibold text-slate-500 dark:text-[#c4a97d]">Loading examinations and test rosters...</p>
       </div>
     );
   }
 
   if (error) {
+    const isStaleAction = error.includes('was not found on the server') || error.includes('Failed to find Server Action');
     return (
-      <div className="bg-red-50 p-6 rounded-2xl border border-red-200 text-red-800 text-xs">
+      <div className="bg-amber-50 dark:bg-amber-950/40 p-6 rounded-[3px] border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs space-y-3">
         <p className="font-bold">Error loading exams</p>
-        <p className="mt-1">{error}</p>
+        <p className="mt-1">{isStaleAction ? 'Server updated with new changes. Please refresh to load latest version.' : error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-3.5 py-1.5 rounded-[3px] bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors cursor-pointer"
+        >
+          Refresh Page
+        </button>
       </div>
     );
   }

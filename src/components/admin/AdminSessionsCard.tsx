@@ -11,6 +11,7 @@ import {
   AlertCircle,
   RefreshCw,
 } from 'lucide-react';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 interface SessionData {
   id: string;
@@ -105,152 +106,150 @@ export function AdminSessionsCard() {
     (sessions.androidSession && !sessions.androidSession.isCurrent);
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-        <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-bce-cobalt" />
-            Active Platform Sessions
-          </h4>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            System allows at most one active Web browser and one active Android session concurrently.
-          </p>
-        </div>
+    <PinnedRosterBoard
+      id="admin-sessions-card"
+      title="Active Platform Sessions"
+      subtitle="System allows at most one active Web browser and one active Android session concurrently."
+      badge="SECURITY SCOPED"
+      icon={<ShieldCheck className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
+      action={
         <button
           type="button"
           onClick={fetchSessions}
           disabled={loading}
-          className="self-start sm:self-auto p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+          className="p-1.5 rounded-[3px] border border-amber-300/80 dark:border-[#4d3817] bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:bg-amber-50 dark:hover:bg-[#251a0e] transition-colors cursor-pointer"
           title="Refresh active sessions"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
-      </div>
-
-      {notice && (
-        <div
-          className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-            notice.type === 'success'
-              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-              : 'bg-red-50 border-red-200 text-red-800'
-          }`}
-        >
-          {notice.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
-          )}
-          <span>{notice.text}</span>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="py-6 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin text-bce-cobalt" />
-          <span>Verifying active device sessions...</span>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {/* Active Web Session */}
+      }
+    >
+      <div className="p-4 sm:p-5 space-y-4">
+        {notice && (
           <div
-            className={`p-4 rounded-xl border transition-all ${
-              sessions.webSession
-                ? 'bg-slate-50/70 border-slate-200'
-                : 'bg-slate-50/30 border-dashed border-slate-200 opacity-60'
+            className={`p-3 rounded-[3px] border text-xs flex items-center gap-2 ${
+              notice.type === 'success'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                : 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-200'
             }`}
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 text-bce-cobalt flex items-center justify-center font-bold">
-                  <Laptop className="w-4 h-4" />
+            {notice.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 dark:text-rose-400" />
+            )}
+            <span>{notice.text}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="py-6 text-center text-xs text-slate-400 dark:text-[#a08862] flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-amber-600 dark:text-amber-400" />
+            <span>Verifying active device sessions...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {/* Active Web Session */}
+            <div
+              className={`p-4 rounded-[3px] border transition-all ${
+                sessions.webSession
+                  ? 'bg-white dark:bg-[#1a1309] border-amber-200/80 dark:border-[#382710]'
+                  : 'bg-amber-50/20 dark:bg-[#140e07]/40 border-dashed border-amber-200/50 dark:border-[#2a1d0f] opacity-60'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-[2px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30 flex items-center justify-center font-bold">
+                    <Laptop className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">Active Web Session</p>
+                    <p className="text-[11px] text-slate-500 dark:text-[#a08862]">
+                      {sessions.webSession
+                        ? `${sessions.webSession.browser || 'Browser'} on ${sessions.webSession.os || 'Desktop'}`
+                        : 'No active web session'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Active Web Session</p>
-                  <p className="text-[11px] text-slate-500">
-                    {sessions.webSession
-                      ? `${sessions.webSession.browser || 'Browser'} on ${sessions.webSession.os || 'Desktop'}`
-                      : 'No active web session'}
-                  </p>
-                </div>
+                {sessions.webSession?.isCurrent && (
+                  <span className="px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 uppercase">
+                    Current Session
+                  </span>
+                )}
               </div>
-              {sessions.webSession?.isCurrent && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  Current Session
-                </span>
+              {sessions.webSession && (
+                <div className="mt-3 pt-2.5 border-t border-amber-200/60 dark:border-[#2a1d0f] flex items-center justify-between text-[11px] text-slate-500 dark:text-[#a08862]">
+                  <span>Last active:</span>
+                  <span className="font-bold text-slate-800 dark:text-[#faebd0]">
+                    {formatRelativeTime(sessions.webSession.lastSeenAt)}
+                  </span>
+                </div>
               )}
             </div>
-            {sessions.webSession && (
-              <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
-                <span>Last active:</span>
-                <span className="font-semibold text-slate-700">
-                  {formatRelativeTime(sessions.webSession.lastSeenAt)}
-                </span>
-              </div>
-            )}
-          </div>
 
-          {/* Active Android Session */}
-          <div
-            className={`p-4 rounded-xl border transition-all ${
-              sessions.androidSession
-                ? 'bg-slate-50/70 border-slate-200'
-                : 'bg-slate-50/30 border-dashed border-slate-200 opacity-60'
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
-                  <Smartphone className="w-4 h-4" />
+            {/* Active Android Session */}
+            <div
+              className={`p-4 rounded-[3px] border transition-all ${
+                sessions.androidSession
+                  ? 'bg-white dark:bg-[#1a1309] border-amber-200/80 dark:border-[#382710]'
+                  : 'bg-amber-50/20 dark:bg-[#140e07]/40 border-dashed border-amber-200/50 dark:border-[#2a1d0f] opacity-60'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-[2px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/20 dark:border-amber-500/30 flex items-center justify-center font-bold">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">Active Android Session</p>
+                    <p className="text-[11px] text-slate-500 dark:text-[#a08862]">
+                      {sessions.androidSession
+                        ? sessions.androidSession.device || 'Android TWA Application'
+                        : 'No active Android session'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-900">Active Android Session</p>
-                  <p className="text-[11px] text-slate-500">
-                    {sessions.androidSession
-                      ? sessions.androidSession.device || 'Android TWA Application'
-                      : 'No active Android session'}
-                  </p>
-                </div>
+                {sessions.androidSession?.isCurrent ? (
+                  <span className="px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60 uppercase">
+                    Current Session
+                  </span>
+                ) : sessions.androidSession ? (
+                  <span className="px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700/60 uppercase">
+                    Active
+                  </span>
+                ) : null}
               </div>
-              {sessions.androidSession?.isCurrent ? (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                  Current Session
-                </span>
-              ) : sessions.androidSession ? (
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700">
-                  Active
-                </span>
-              ) : null}
+              {sessions.androidSession && (
+                <div className="mt-3 pt-2.5 border-t border-amber-200/60 dark:border-[#2a1d0f] flex items-center justify-between text-[11px] text-slate-500 dark:text-[#a08862]">
+                  <span>Last active:</span>
+                  <span className="font-bold text-slate-800 dark:text-[#faebd0]">
+                    {formatRelativeTime(sessions.androidSession.lastSeenAt)}
+                  </span>
+                </div>
+              )}
             </div>
-            {sessions.androidSession && (
-              <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
-                <span>Last active:</span>
-                <span className="font-semibold text-slate-700">
-                  {formatRelativeTime(sessions.androidSession.lastSeenAt)}
-                </span>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Sign out other sessions action */}
-      {hasOtherSessions && (
-        <div className="pt-2 flex justify-end">
-          <button
-            type="button"
-            onClick={handleSignOutOthers}
-            disabled={revoking}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {revoking ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <LogOut className="w-3.5 h-3.5" />
-            )}
-            <span>Sign out other sessions</span>
-          </button>
-        </div>
-      )}
-    </div>
+        {/* Sign out other sessions action */}
+        {hasOtherSessions && (
+          <div className="pt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={handleSignOutOthers}
+              disabled={revoking}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[3px] border border-rose-300 dark:border-rose-800/80 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-800 dark:text-rose-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {revoking ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <LogOut className="w-3.5 h-3.5" />
+              )}
+              <span>Sign out other sessions</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </PinnedRosterBoard>
   );
 }

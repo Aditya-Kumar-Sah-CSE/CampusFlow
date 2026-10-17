@@ -69,7 +69,25 @@ export function StudentLibraryBorrowForm({
   }, [isAuthenticated, student]);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const cacheKey = `campusflow_lib_data_${collegeId}`;
+    try {
+      const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null;
+      if (cached) {
+        const data = JSON.parse(cached);
+        setLibraryEnabled(data.enabled);
+        setBooks(data.books || []);
+        setTiming(data.timing || null);
+        setMaxBooks(data.settings?.maxBooksPerStudent ?? 3);
+        setMaxDays(data.settings?.maxBorrowDays ?? 15);
+        setFinePerDay(data.settings?.finePerDay ?? 5);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    } catch {
+      setLoading(true);
+    }
+
     try {
       const res = await fetch(`/api/library/borrow?collegeId=${collegeId}`);
       if (!res.ok) throw new Error('Failed to fetch library data');
@@ -80,6 +98,11 @@ export function StudentLibraryBorrowForm({
       setMaxBooks(data.settings?.maxBooksPerStudent ?? 3);
       setMaxDays(data.settings?.maxBorrowDays ?? 15);
       setFinePerDay(data.settings?.finePerDay ?? 5);
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(cacheKey, JSON.stringify(data));
+        }
+      } catch {}
     } catch (err: any) {
       setError(err.message);
     } finally {

@@ -78,10 +78,11 @@ const publicResolverClient = createSupabaseClient(getSupabaseUrl(), getSupabaseA
  * Uses public anon client (never service-role credentials) respecting RLS.
  */
 const fetchCollegeBySlugDirect = async (slug: string): Promise<College | null> => {
+  const canonicalSlug = slug === 'bce-bgp' ? 'bce-bhagalpur' : slug;
   const { data, error } = await publicResolverClient
     .from('colleges')
     .select('*')
-    .eq('slug', slug)
+    .eq('slug', canonicalSlug)
     .maybeSingle();
 
   if (error || !data) {
@@ -214,24 +215,12 @@ export const getAllActiveColleges = cache(async (): Promise<TenantContext[]> => 
     colleges = await fetchAllActiveCollegesDirect();
   }
 
-  return Promise.all(
-    colleges.map(async (c) => {
-      let landingSettings: LandingPageSettings;
-      if (
-        c.show_feedbacks !== undefined &&
-        c.show_feedbacks !== null &&
-        c.show_events !== undefined &&
-        c.show_events !== null
-      ) {
-        landingSettings = {
-          showFeedbacks: c.show_feedbacks !== false,
-          showEvents: c.show_events !== false,
-        };
-      } else {
-        landingSettings = await getCollegeLandingSettings(c.id);
-      }
-      return createTenantContext(c, landingSettings);
-    })
-  );
+  return colleges.map((c) => {
+    const landingSettings: LandingPageSettings = {
+      showFeedbacks: c.show_feedbacks !== false,
+      showEvents: c.show_events !== false,
+    };
+    return createTenantContext(c, landingSettings);
+  });
 });
 

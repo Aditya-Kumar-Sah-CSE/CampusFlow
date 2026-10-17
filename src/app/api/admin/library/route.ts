@@ -12,6 +12,7 @@ import {
   rejectBorrowRequest,
   markBookReturned,
   getLibraryStats,
+  computeLibraryStatsFromData,
 } from '@/lib/library/service';
 
 export const dynamic = 'force-dynamic';
@@ -51,19 +52,12 @@ export async function GET(request: NextRequest) {
       }
       case 'all':
       default: {
-        const [settings, books, requests, stats] = await Promise.all([
+        const [settings, books, requests] = await Promise.all([
           getLibrarySettings(collegeId),
           getLibraryBooks(collegeId).catch(() => []),
           getBorrowRequests(collegeId).catch(() => []),
-          getLibraryStats(collegeId).catch(() => ({
-            totalBooks: 0,
-            totalAvailable: 0,
-            totalBorrowed: 0,
-            pendingRequests: 0,
-            overdueBooks: 0,
-            totalFineCollected: 0,
-          })),
         ]);
+        const stats = computeLibraryStatsFromData(books, requests);
         return NextResponse.json({ settings, books, requests, stats });
       }
     }

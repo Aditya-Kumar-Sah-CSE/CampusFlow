@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
 import { createClient } from '@/lib/supabase/client';
 import { Lock, Mail, ArrowRight, AlertCircle, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
 
 interface TenantLoginFormProps {
   collegeId?: string;
@@ -199,28 +200,29 @@ export function TenantLoginForm({
   const backPortalUrl = collegeSlug ? `/${collegeSlug}` : '/';
 
   return (
-    <div className="bg-slate-800/90 backdrop-blur-md py-5 px-3.5 sm:py-8 sm:px-10 shadow-2xl rounded-2xl border border-slate-700/60">
+    <ExamPadCard paperClassName="space-y-4 sm:space-y-5 text-slate-900 dark:text-[#faebd0]">
       <form className="space-y-4 sm:space-y-5" onSubmit={handleLogin}>
         {(errorMsg || initialError) && (
-          <div className="p-3.5 bg-red-950/60 border border-red-800/70 rounded-xl text-red-200 text-xs flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 bg-red-50 dark:bg-red-950/60 border border-red-300 dark:border-red-800/70 rounded-[3px] text-red-700 dark:text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{errorMsg || initialError}</span>
           </div>
         )}
 
         {(successMsg || initialNotice) && (
-          <div className="p-3.5 bg-emerald-950/60 border border-emerald-800/70 rounded-xl text-emerald-200 text-xs flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800/70 rounded-[3px] text-emerald-800 dark:text-emerald-200 text-xs flex items-start gap-2.5 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <span className="leading-relaxed">{successMsg || initialNotice}</span>
           </div>
         )}
 
         <div>
-          <label htmlFor="admin-email" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-            Administrator Email
+          <label htmlFor="admin-email" className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#c4a97d] mb-1.5 flex items-center gap-1.5">
+            <Mail className="w-4 h-4 text-bce-cobalt dark:text-amber-400" />
+            Administrator Email *
           </label>
-          <div className="relative rounded-xl shadow-xs">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <div className="relative rounded-[3px] shadow-2xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-[#8a7251]">
               <Mail className="w-4 h-4" />
             </div>
             <input
@@ -230,17 +232,26 @@ export function TenantLoginForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={isTenantSpecific && collegeCode ? `admin@${collegeCode.toLowerCase()}.edu or authorized email` : 'admin@institution.edu or authorized email'}
-              className="block w-full pl-10 pr-3.5 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all"
+              className="block w-full pl-9 pr-3.5 py-2.5 bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] text-xs sm:text-sm min-h-[44px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="admin-password" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-            Password
-          </label>
-          <div className="relative rounded-xl shadow-xs">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="admin-password" className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#c4a97d] flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-bce-cobalt dark:text-amber-400" />
+              Password *
+            </label>
+            <Link
+              href="/admin/forgot-password"
+              className="text-xs font-semibold text-bce-cobalt dark:text-amber-400 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <div className="relative rounded-[3px] shadow-2xs">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 dark:text-[#8a7251]">
               <Lock className="w-4 h-4" />
             </div>
             <input
@@ -250,12 +261,12 @@ export function TenantLoginForm({
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="block w-full pl-10 pr-10 py-2.5 bg-slate-900/90 border border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 transition-all"
+              className="block w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] text-xs sm:text-sm min-h-[44px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8a7251] focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 transition-colors"
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none cursor-pointer"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -267,7 +278,7 @@ export function TenantLoginForm({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center items-center gap-2 py-3 px-4 min-h-[44px] border border-transparent rounded-xl shadow-md text-sm font-semibold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center items-center gap-2 py-3 px-4 min-h-[44px] rounded-[3px] shadow-sm text-xs sm:text-sm font-bold text-slate-950 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -282,32 +293,23 @@ export function TenantLoginForm({
             )}
           </button>
         </div>
-
-        <div className="text-center pt-1">
-          <Link
-            href="/admin/forgot-password"
-            className="text-xs text-amber-400 hover:text-amber-300 transition-colors font-medium"
-          >
-            Forgot password?
-          </Link>
-        </div>
       </form>
 
-      <div className="mt-6 pt-5 border-t border-slate-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+      <div className="mt-4 pt-3 border-t border-slate-200/80 dark:border-[#4d3817] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
         <Link
           href={signupUrl}
-          className="text-amber-400 hover:text-amber-300 transition-colors font-medium"
+          className="text-amber-700 dark:text-amber-400 hover:underline font-semibold"
         >
           Request Admin Access →
         </Link>
 
         <Link
           href={backPortalUrl}
-          className="text-slate-400 hover:text-slate-300 transition-colors"
+          className="text-slate-500 dark:text-[#a8906c] hover:underline"
         >
           {isTenantSpecific ? `← Back to ${collegeCode || 'College'} Portal` : '← Back to Home'}
         </Link>
       </div>
-    </div>
+    </ExamPadCard>
   );
 }

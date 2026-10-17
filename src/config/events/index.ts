@@ -15,10 +15,15 @@ export interface InstitutionEventGroup {
 }
 
 const INSTITUTION_METADATA: Record<string, { name: string; slug: string; code: string }> = {
+  'bce-bhagalpur': {
+    name: 'Bhagalpur College of Engineering',
+    slug: 'bce-bhagalpur',
+    code: 'BCE-BHAGALPUR',
+  },
   'bce-bgp': {
     name: 'Bhagalpur College of Engineering',
-    slug: 'bce-bgp',
-    code: 'BCE-BGP',
+    slug: 'bce-bhagalpur',
+    code: 'BCE-BHAGALPUR',
   },
   'gec-gaya': {
     name: 'Government Engineering College, Gaya',
@@ -29,12 +34,12 @@ const INSTITUTION_METADATA: Record<string, { name: string; slug: string; code: s
 
 /**
  * Returns all small events configured for a given institution / tenant slug.
- * Example: 'bce-bgp' -> only BCE-BGP events. 'gec-gaya' -> only GEC-GAYA events.
+ * Example: 'bce-bhagalpur' -> only BCE-BHAGALPUR events. 'gec-gaya' -> only GEC-GAYA events.
  * Strictly guarantees tenant isolation.
  */
 export function getEventsForTenant(tenantSlug: string): SmallEvent[] {
   const normalized = (tenantSlug || '').trim().toLowerCase();
-  if (normalized === 'bce-bgp') {
+  if (normalized === 'bce-bhagalpur' || normalized === 'bce-bgp') {
     return bceEvents;
   }
   if (normalized === 'gec-gaya') {
@@ -73,10 +78,10 @@ export function getSmallEventById(id: string, institutionId?: string): SmallEven
 export function getSmallEventsGroupedByInstitution(): InstitutionEventGroup[] {
   return [
     {
-      institutionId: 'bce-bgp',
-      institutionName: INSTITUTION_METADATA['bce-bgp'].name,
-      institutionSlug: INSTITUTION_METADATA['bce-bgp'].slug,
-      institutionCode: INSTITUTION_METADATA['bce-bgp'].code,
+      institutionId: 'bce-bhagalpur',
+      institutionName: INSTITUTION_METADATA['bce-bhagalpur'].name,
+      institutionSlug: INSTITUTION_METADATA['bce-bhagalpur'].slug,
+      institutionCode: INSTITUTION_METADATA['bce-bhagalpur'].code,
       events: bceEvents,
     },
     {

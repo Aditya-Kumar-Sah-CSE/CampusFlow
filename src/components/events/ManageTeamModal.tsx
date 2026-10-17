@@ -1215,11 +1215,12 @@ export function ManageTeamModal({
                         >
                           <option value="">Select Semester (e.g. 4th Sem)</option>
                           {semesters.map((s) => {
-                            const semLabel = s.semester_number
+                            const baseLabel = s.semester_number
                               ? (s.name.toLowerCase().startsWith('semester')
                                   ? `${formatOrdinal(s.semester_number)} Semester`
                                   : `${s.name} (${formatOrdinal(s.semester_number)} Sem)`)
                               : (s.display_name || s.name);
+                            const semLabel = s.programme?.name ? `${s.programme.name} — ${baseLabel}` : baseLabel;
                             return (
                               <option key={s.id} value={semLabel}>
                                 {semLabel}

@@ -5,6 +5,7 @@
  * all book/borrow data lives in Google Sheets.
  */
 
+import { unstable_cache, revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { LibrarySettings, LibraryStats, VirtualLibraryCardData } from '@/types/library';
 import {
@@ -36,7 +37,7 @@ const DEFAULT_SETTINGS: Omit<LibrarySettings, 'collegeId'> = {
 };
 
 // ─── Get / Create Library Settings ───────────────────────────────
-export async function getLibrarySettings(collegeId: string): Promise<LibrarySettings> {
+async function fetchDirectLibrarySettings(collegeId: string): Promise<LibrarySettings> {
   const supabase = createAdminClient();
   if (!supabase) throw new Error('Supabase service role not configured');
 
@@ -70,6 +71,20 @@ export async function getLibrarySettings(collegeId: string): Promise<LibrarySett
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
+}
+
+const getCachedLibrarySettings = unstable_cache(
+  fetchDirectLibrarySettings,
+  ['library_settings_cache'],
+  { revalidate: 60, tags: ['library_settings'] }
+);
+
+export async function getLibrarySettings(collegeId: string): Promise<LibrarySettings> {
+  try {
+    return await getCachedLibrarySettings(collegeId);
+  } catch {
+    return fetchDirectLibrarySettings(collegeId);
+  }
 }
 
 // ─── Save / Update Library Settings ──────────────────────────────
@@ -106,6 +121,12 @@ export async function saveLibrarySettings(
     .single();
 
   if (error) throw new Error(`Failed to save library settings: ${error.message}`);
+
+  try {
+    revalidateTag('library_settings');
+  } catch {
+    // Non-fatal if called outside request context
+  }
 
   return {
     id: data.id,
@@ -249,10 +270,24 @@ export async function initializeLibrarySheets(collegeId: string) {
 }
 
 // ─── Get Library Books ───────────────────────────────────────────
-export async function getLibraryBooks(collegeId: string) {
+async function fetchDirectLibraryBooks(collegeId: string) {
   const settings = await getLibrarySettings(collegeId);
   if (!settings.booksSheetId) return [];
   return fetchAllBooksFromSheet(collegeId, settings.booksSheetId);
+}
+
+const getCachedLibraryBooks = unstable_cache(
+  fetchDirectLibraryBooks,
+  ['library_books_cache'],
+  { revalidate: 30, tags: ['library_books'] }
+);
+
+export async function getLibraryBooks(collegeId: string) {
+  try {
+    return await getCachedLibraryBooks(collegeId);
+  } catch {
+    return fetchDirectLibraryBooks(collegeId);
+  }
 }
 
 // ─── Add Book ────────────────────────────────────────────────────
@@ -262,17 +297,21 @@ export async function addBook(
 ) {
   const settings = await getLibrarySettings(collegeId);
   if (!settings.booksSheetId) throw new Error('Library not initialized. Please setup library first.');
-  return addBookToSheet(collegeId, settings.booksSheetId, {
+  const res = await addBookToSheet(collegeId, settings.booksSheetId, {
     ...book,
     availableCopies: book.totalCopies,
   });
+  try { revalidateTag('library_books'); } catch {}
+  return res;
 }
 
 // ─── Remove Book ─────────────────────────────────────────────────
 export async function removeBook(collegeId: string, bookId: string) {
   const settings = await getLibrarySettings(collegeId);
   if (!settings.booksSheetId) throw new Error('Library not initialized.');
-  return deleteBookFromSheet(collegeId, settings.booksSheetId, bookId);
+  const res = await deleteBookFromSheet(collegeId, settings.booksSheetId, bookId);
+  try { revalidateTag('library_books'); } catch {}
+  return res;
 }
 
 // ─── Get Borrow Requests ────────────────────────────────────────
@@ -353,6 +392,7 @@ export async function approveBorrowRequest(collegeId: string, requestId: string,
 
   // Decrease available copies
   await updateBookAvailability(collegeId, settings.booksSheetId, req.bookId, -1);
+  try { revalidateTag('library_books'); } catch {}
 
   return { dueDate: dueDate.toISOString() };
 }
@@ -396,30 +436,16 @@ export async function markBookReturned(collegeId: string, requestId: string) {
 
   // Increase available copies
   await updateBookAvailability(collegeId, settings.booksSheetId, req.bookId, +1);
+  try { revalidateTag('library_books'); } catch {}
 
   return { fineAmount };
 }
 
-// ─── Get Library Stats ───────────────────────────────────────────
-export async function getLibraryStats(collegeId: string): Promise<LibraryStats> {
-  const settings = await getLibrarySettings(collegeId);
-
-  if (!settings.booksSheetId || !settings.borrowLogSheetId) {
-    return {
-      totalBooks: 0,
-      totalAvailable: 0,
-      totalBorrowed: 0,
-      pendingRequests: 0,
-      overdueBooks: 0,
-      totalFineCollected: 0,
-    };
-  }
-
-  const [books, requests] = await Promise.all([
-    fetchAllBooksFromSheet(collegeId, settings.booksSheetId),
-    fetchAllBorrowRequests(collegeId, settings.borrowLogSheetId),
-  ]);
-
+// ─── Compute Library Stats From In-Memory Data ───────────────────
+export function computeLibraryStatsFromData(
+  books: { totalCopies: number; availableCopies: number }[],
+  requests: { status: string; dueDate?: string; fineAmount?: number }[]
+): LibraryStats {
   const totalBooks = books.reduce((sum, b) => sum + b.totalCopies, 0);
   const totalAvailable = books.reduce((sum, b) => sum + b.availableCopies, 0);
   const totalBorrowed = requests.filter((r) => r.status === 'APPROVED' || r.status === 'OVERDUE').length;
@@ -440,6 +466,29 @@ export async function getLibraryStats(collegeId: string): Promise<LibraryStats> 
     overdueBooks,
     totalFineCollected,
   };
+}
+
+// ─── Get Library Stats ───────────────────────────────────────────
+export async function getLibraryStats(collegeId: string): Promise<LibraryStats> {
+  const settings = await getLibrarySettings(collegeId);
+
+  if (!settings.booksSheetId || !settings.borrowLogSheetId) {
+    return {
+      totalBooks: 0,
+      totalAvailable: 0,
+      totalBorrowed: 0,
+      pendingRequests: 0,
+      overdueBooks: 0,
+      totalFineCollected: 0,
+    };
+  }
+
+  const [books, requests] = await Promise.all([
+    getLibraryBooks(collegeId),
+    getBorrowRequests(collegeId),
+  ]);
+
+  return computeLibraryStatsFromData(books, requests);
 }
 
 // ─── Get Student Virtual Library Card Data ───────────────────────

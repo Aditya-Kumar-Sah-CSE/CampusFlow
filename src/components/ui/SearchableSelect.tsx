@@ -104,16 +104,16 @@ export function SearchableSelect({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100/80 cursor-pointer'
-        } ${isOpen ? 'ring-2 ring-bce-cobalt/20 border-bce-cobalt' : ''}`}
+        className={`w-full flex items-center justify-between bg-slate-50 dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] rounded-[3px] px-3 py-2 text-left transition-colors focus:outline-none focus:ring-1 focus:ring-amber-500 dark:focus:border-amber-500 ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-100/80 dark:hover:bg-[#281b0f] cursor-pointer'
+        } ${isOpen ? 'ring-1 ring-amber-500 border-amber-500 dark:border-amber-500' : ''}`}
       >
-        <span className={`truncate ${selectedOption ? 'font-semibold text-slate-900' : 'text-slate-400'}`}>
+        <span className={`truncate ${selectedOption ? 'font-semibold text-slate-900 dark:text-[#faebd0]' : 'text-slate-400 dark:text-[#8a7251]'}`}>
           {selectedOption ? (
             <span>
               {selectedOption.label}
               {selectedOption.sublabel && (
-                <span className="ml-1.5 font-normal text-slate-500">({selectedOption.sublabel})</span>
+                <span className="ml-1.5 font-normal text-slate-500 dark:text-[#bda88c]">({selectedOption.sublabel})</span>
               )}
             </span>
           ) : (
@@ -121,8 +121,8 @@ export function SearchableSelect({
           )}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-slate-400 transition-transform shrink-0 ml-2 ${
-            isOpen ? 'rotate-180 text-bce-cobalt' : ''
+          className={`w-4 h-4 text-slate-400 dark:text-[#8a7251] transition-transform shrink-0 ml-2 ${
+            isOpen ? 'rotate-180 text-amber-600 dark:text-amber-400' : ''
           }`}
         />
       </button>
@@ -141,23 +141,23 @@ export function SearchableSelect({
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute z-50 left-0 right-0 mt-1.5 bg-white dark:bg-[#1a1309] rounded-[3px] border border-slate-200 dark:border-[#4d3817] shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
           {/* Search Bar */}
-          <div className="p-2 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-            <Search className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+          <div className="p-2 border-b border-slate-100 dark:border-[#382713] bg-slate-50/70 dark:bg-[#22180e] flex items-center gap-2">
+            <Search className="w-3.5 h-3.5 text-slate-400 dark:text-[#8a7251] shrink-0 ml-1" />
             <input
               ref={searchInputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full bg-transparent border-none text-xs text-slate-900 focus:outline-none placeholder:text-slate-400"
+              className="w-full bg-transparent border-none text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none placeholder:text-slate-400 dark:placeholder:text-[#8a7251]"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="p-0.5 text-slate-400 hover:text-slate-600 rounded"
+                className="p-0.5 text-slate-400 dark:text-[#8a7251] hover:text-slate-600 dark:hover:text-[#faebd0] rounded-[2px]"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -165,9 +165,9 @@ export function SearchableSelect({
           </div>
 
           {/* Options List */}
-          <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 p-1">
+          <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 dark:divide-[#2e1f0e] p-1">
             {filteredOptions.length === 0 ? (
-              <div className="p-3 text-center text-slate-400 text-xs">{emptyMessage}</div>
+              <div className="p-3 text-center text-slate-400 dark:text-[#8a7251] text-xs">{emptyMessage}</div>
             ) : (
               filteredOptions.map((opt) => {
                 const isSelected = opt.id === value;
@@ -176,10 +176,10 @@ export function SearchableSelect({
                     key={opt.id}
                     type="button"
                     onClick={() => handleSelect(opt.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors text-xs ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-[3px] text-left transition-colors text-xs ${
                       isSelected
-                        ? 'bg-bce-navy text-amber-400 font-bold'
-                        : 'text-slate-800 hover:bg-slate-100'
+                        ? 'bg-bce-navy text-amber-400 dark:bg-[#342414] dark:text-amber-300 font-bold'
+                        : 'text-slate-800 dark:text-[#faebd0] hover:bg-slate-100 dark:hover:bg-[#251b0f]'
                     }`}
                   >
                     <div className="truncate pr-2">
@@ -187,7 +187,7 @@ export function SearchableSelect({
                       {opt.sublabel && (
                         <span
                           className={`block text-[11px] truncate ${
-                            isSelected ? 'text-amber-300/80' : 'text-slate-400'
+                            isSelected ? 'text-amber-300/80' : 'text-slate-400 dark:text-[#a8906c]'
                           }`}
                         >
                           {opt.sublabel}
@@ -201,7 +201,7 @@ export function SearchableSelect({
             )}
 
             {options.length > 250 && !searchTerm && (
-              <div className="px-3 py-1.5 text-[10px] text-slate-400 text-center bg-slate-50 rounded mt-1">
+              <div className="px-3 py-1.5 text-[10px] text-slate-400 dark:text-[#8a7251] text-center bg-slate-50 dark:bg-[#22180e] rounded-[3px] mt-1">
                 Showing first 250 of {options.length} items. Type to search all.
               </div>
             )}

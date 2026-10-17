@@ -500,11 +500,14 @@ export function ResultsDashboardClient({
                 className="w-full text-xs bg-white border border-slate-300 rounded-xl px-2.5 py-2.5 sm:py-2 font-medium text-slate-800 focus:ring-2 focus:ring-bce-cobalt focus:outline-hidden"
               >
                 <option value="ALL">All Semesters</option>
-                {semesters.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
+                {semesters.map(s => {
+                  const label = s.programme?.name ? `${s.programme.name} — ${s.name}` : s.name;
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

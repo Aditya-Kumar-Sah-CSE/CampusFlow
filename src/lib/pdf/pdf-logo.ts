@@ -143,10 +143,11 @@ export async function resolvePdfLogoBuffer(
   const isBce =
     code === '108' ||
     code === 'bce' ||
+    slug === 'bce-bhagalpur' ||
     slug === 'bce-bgp' ||
     slug === 'bce' ||
     (name && name.includes('bhagalpur')) ||
-    (url && (url.includes('bhce') || url.includes('bce-bgp')));
+    (url && (url.includes('bhce') || url.includes('bce-bhagalpur') || url.includes('bce-bgp')));
 
   if (isBce) {
     const bceBuf = getBceLogoBuffer();

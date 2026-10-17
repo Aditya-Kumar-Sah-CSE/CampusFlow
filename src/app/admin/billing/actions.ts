@@ -802,103 +802,108 @@ export async function getAdminBillingOverviewAction(): Promise<{
   error?: string;
   data: BillingOverviewItem[];
 }> {
-  const session = await getAdminSession();
-  if (!session.isAuthenticated || !session.isSuperAdmin) {
-    return { success: false, error: 'Only the Super Admin can view billing overview.', data: [] };
-  }
-
-  const supabase = await getAdminDb();
-
-  // 1. Fetch all colleges
-  const { data: colleges, error: collegesErr } = await supabase
-    .from('colleges')
-    .select('id, name, code, slug, is_active, created_at')
-    .order('created_at', { ascending: false });
-
-  if (collegesErr || !colleges) {
-    return { success: false, error: 'Failed to load colleges.', data: [] };
-  }
-
-  // 2. Concurrently fetch all college billing accounts, payment requests, trials, and memberships
-  const [billingRes, requestsRes, trialsRes, membersRes] = await Promise.all([
-    supabase.from('college_billing_accounts').select('*'),
-    supabase.from('college_payment_requests').select('*').order('created_at', { ascending: false }),
-    supabase.from('college_trial_entitlements').select('*').order('created_at', { ascending: false }),
-    supabase.from('college_memberships').select('college_id, user_id, role, status').eq('status', 'ACTIVE'),
-  ]);
-
-  const billingRecords = billingRes.data || [];
-  const paymentRequests = requestsRes.data || [];
-  const trialRecords = trialsRes.data || [];
-  const memberships = membersRes.data || [];
-
-  const billingMap = new Map((billingRecords || []).map((b: any) => [b.college_id, b]));
-  const requestsMap = new Map<string, CollegePaymentRequest[]>();
-  const trialsMap = new Map<string, CollegeTrialEntitlement[]>();
-  const membersCountMap = new Map<string, number>();
-
-  for (const req of (paymentRequests || []) as CollegePaymentRequest[]) {
-    if (!requestsMap.has(req.college_id)) {
-      requestsMap.set(req.college_id, []);
+  try {
+    const session = await getAdminSession();
+    if (!session.isAuthenticated || !session.isSuperAdmin) {
+      return { success: false, error: 'Only the Super Admin can view billing overview.', data: [] };
     }
-    requestsMap.get(req.college_id)!.push(req);
-  }
 
-  for (const trial of (trialRecords || []) as CollegeTrialEntitlement[]) {
-    if (!trialsMap.has(trial.college_id)) {
-      trialsMap.set(trial.college_id, []);
+    const supabase = await getAdminDb();
+
+    // 1. Fetch all colleges
+    const { data: colleges, error: collegesErr } = await supabase
+      .from('colleges')
+      .select('id, name, code, slug, is_active, created_at')
+      .order('created_at', { ascending: false });
+
+    if (collegesErr || !colleges) {
+      return { success: false, error: 'Failed to load colleges.', data: [] };
     }
-    trialsMap.get(trial.college_id)!.push(trial);
+
+    // 2. Concurrently fetch all college billing accounts, payment requests, trials, and memberships
+    const [billingRes, requestsRes, trialsRes, membersRes] = await Promise.all([
+      supabase.from('college_billing_accounts').select('*'),
+      supabase.from('college_payment_requests').select('*').order('created_at', { ascending: false }),
+      supabase.from('college_trial_entitlements').select('*').order('created_at', { ascending: false }),
+      supabase.from('college_memberships').select('college_id, user_id, role, status').eq('status', 'ACTIVE'),
+    ]);
+
+    const billingRecords = billingRes.data || [];
+    const paymentRequests = requestsRes.data || [];
+    const trialRecords = trialsRes.data || [];
+    const memberships = membersRes.data || [];
+
+    const billingMap = new Map((billingRecords || []).map((b: any) => [b.college_id, b]));
+    const requestsMap = new Map<string, CollegePaymentRequest[]>();
+    const trialsMap = new Map<string, CollegeTrialEntitlement[]>();
+    const membersCountMap = new Map<string, number>();
+
+    for (const req of (paymentRequests || []) as CollegePaymentRequest[]) {
+      if (!requestsMap.has(req.college_id)) {
+        requestsMap.set(req.college_id, []);
+      }
+      requestsMap.get(req.college_id)!.push(req);
+    }
+
+    for (const trial of (trialRecords || []) as CollegeTrialEntitlement[]) {
+      if (!trialsMap.has(trial.college_id)) {
+        trialsMap.set(trial.college_id, []);
+      }
+      trialsMap.get(trial.college_id)!.push(trial);
+    }
+
+    for (const m of memberships as any[]) {
+      membersCountMap.set(m.college_id, (membersCountMap.get(m.college_id) || 0) + 1);
+    }
+
+    const now = new Date();
+
+    const overview: BillingOverviewItem[] = colleges.map((col: any) => {
+      const billing = billingMap.get(col.id) as CollegeBillingAccount | undefined;
+      const requests = requestsMap.get(col.id) || [];
+      const latestRequest = requests[0] || null;
+      const collegeTrials = trialsMap.get(col.id) || [];
+
+      // Active trial check: status = ACTIVE, starts_at <= now, now < expires_at
+      const activeTrial = collegeTrials.find(
+        (t) => t.status === 'ACTIVE' && new Date(t.starts_at) <= now && new Date(t.expires_at) > now
+      ) || null;
+
+      const membersCount = membersCountMap.get(col.id) || 0;
+
+      return {
+        college: {
+          id: col.id,
+          name: col.name,
+          code: col.code || '',
+          slug: col.slug || '',
+          is_active: col.is_active,
+          created_at: col.created_at,
+        },
+        // UI compatibility admin bridge
+        admin: {
+          id: col.id,
+          user_id: col.id,
+          name: col.name,
+          email: `${col.code ? col.code.toLowerCase() : 'college'}@platform.local`,
+          role: 'ADMIN',
+          status: col.is_active ? 'ACTIVE' : 'INACTIVE',
+          created_at: col.created_at,
+        },
+        billing: billing || null,
+        latestPaymentRequest: latestRequest,
+        paymentRequests: requests,
+        activeTrial,
+        trialHistory: collegeTrials,
+        membersCount,
+      };
+    });
+
+    return { success: true, data: overview };
+  } catch (err: any) {
+    console.error('[GET_ADMIN_BILLING_OVERVIEW_EXCEPTION]', err);
+    return { success: false, error: err?.message || 'Failed to load billing overview.', data: [] };
   }
-
-  for (const m of memberships as any[]) {
-    membersCountMap.set(m.college_id, (membersCountMap.get(m.college_id) || 0) + 1);
-  }
-
-  const now = new Date();
-
-  const overview: BillingOverviewItem[] = colleges.map((col: any) => {
-    const billing = billingMap.get(col.id) as CollegeBillingAccount | undefined;
-    const requests = requestsMap.get(col.id) || [];
-    const latestRequest = requests[0] || null;
-    const collegeTrials = trialsMap.get(col.id) || [];
-
-    // Active trial check: status = ACTIVE, starts_at <= now, now < expires_at
-    const activeTrial = collegeTrials.find(
-      (t) => t.status === 'ACTIVE' && new Date(t.starts_at) <= now && new Date(t.expires_at) > now
-    ) || null;
-
-    const membersCount = membersCountMap.get(col.id) || 0;
-
-    return {
-      college: {
-        id: col.id,
-        name: col.name,
-        code: col.code,
-        slug: col.slug,
-        is_active: col.is_active,
-        created_at: col.created_at,
-      },
-      // UI compatibility admin bridge
-      admin: {
-        id: col.id,
-        user_id: col.id,
-        name: col.name,
-        email: `${col.code.toLowerCase()}@platform.local`,
-        role: 'ADMIN',
-        status: col.is_active ? 'ACTIVE' : 'INACTIVE',
-        created_at: col.created_at,
-      },
-      billing: billing || null,
-      latestPaymentRequest: latestRequest,
-      paymentRequests: requests,
-      activeTrial,
-      trialHistory: collegeTrials,
-      membersCount,
-    };
-  });
-
-  return { success: true, data: overview };
 }
 
 // Alias

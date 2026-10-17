@@ -71,7 +71,7 @@ export function StudentMyRegistrationsClient({
   });
   const effectiveCollegeName = collegeName || college?.name || 'Bhagalpur College of Engineering';
   const effectiveCollegeCode = college?.code || '108';
-  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bgp';
+  const effectiveCollegeSlug = tenantSlug || college?.slug || 'bce-bhagalpur';
 
   // Login inputs
   const [loginRegNum, setLoginRegNum] = useState('');
@@ -414,7 +414,7 @@ export function StudentMyRegistrationsClient({
                     crossOrigin="anonymous"
                     className="w-full h-full object-contain rounded-full"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/images/colleges/bce-bgp.png';
+                      (e.target as HTMLImageElement).src = '/images/colleges/bhce-logo.png';
                     }}
                   />
                 </div>

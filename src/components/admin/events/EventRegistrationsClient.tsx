@@ -346,11 +346,16 @@ export function EventRegistrationsClient({
             className="flex-1 sm:flex-none text-xs py-1.5 px-3 border border-slate-200 rounded-xl bg-white focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20"
           >
             <option value="ALL">All Semesters</option>
-            {semesters.map((s) => (
-              <option key={s.id} value={s.id}>
-                Semester {s.semester_number}
-              </option>
-            ))}
+            {semesters.map((s) => {
+              const label = s.programme?.name
+                ? `${s.programme.name} — ${s.name || `Semester ${s.semester_number}`}`
+                : (s.name || `Semester ${s.semester_number}`);
+              return (
+                <option key={s.id} value={s.id}>
+                  {label}
+                </option>
+              );
+            })}
           </select>
 
           {/* Payment Status Filter (if paid) */}

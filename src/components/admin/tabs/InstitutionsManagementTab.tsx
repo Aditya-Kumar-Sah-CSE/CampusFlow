@@ -24,6 +24,8 @@ import {
   updateLandingTogglesAction,
 } from '@/app/admin/institutions/actions';
 import { PaginationControl } from '@/components/ui/PaginationControl';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 import type { College } from '@/types/tenant';
 import type { CreateCollegeInput, UpdateCollegeInput } from '@/lib/validation';
 
@@ -338,49 +340,46 @@ export function InstitutionsManagementTab() {
       )}
 
       {/* Header & Primary Action */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Building2 className="w-6 h-6 text-blue-600 shrink-0" />
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Institutions</h1>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500">
-            Manage colleges and their public feedback portals.
-          </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1">
+          <ExamPadCard
+            variant="dashboard"
+            title="Institutions & Campus Registry"
+            subtitle="Manage registered colleges, public feedback portals, and multi-tenant subdomains."
+            badge={`${colleges.length} CAMPUSES`}
+            icon={<Building2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+          />
         </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all active:scale-98"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add College</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleOpenAddModal}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-bce-navy hover:bg-slate-900 text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border border-bce-navy dark:border-amber-600/60 rounded-[3px] text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all active:scale-95 shrink-0 self-start sm:self-auto cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add College</span>
+        </button>
       </div>
 
       {/* Metrics & Search bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         {/* Chips */}
         <div className="flex items-center gap-2 text-xs font-semibold">
-          <span className="px-3 py-1 bg-white rounded-lg border border-slate-200 text-slate-700 shadow-2xs">
-            Total: <span className="text-slate-900 font-bold">{colleges.length}</span>
+          <span className="px-3 py-1 bg-white dark:bg-[#1a1309] rounded-[3px] border border-amber-200/80 dark:border-[#382710] text-slate-700 dark:text-[#faebd0] shadow-2xs">
+            Total: <span className="text-slate-900 dark:text-amber-300 font-bold">{colleges.length}</span>
           </span>
-          <span className="px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-700 shadow-2xs">
-            Active: <span className="text-emerald-900 font-bold">{activeCount}</span>
+          <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 rounded-[3px] border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 shadow-2xs">
+            Active: <span className="text-emerald-900 dark:text-emerald-200 font-bold">{activeCount}</span>
           </span>
           {inactiveCount > 0 && (
-            <span className="px-3 py-1 bg-amber-50 rounded-lg border border-amber-200 text-amber-700 shadow-2xs">
-              Inactive: <span className="text-amber-900 font-bold">{inactiveCount}</span>
+            <span className="px-3 py-1 bg-amber-50 dark:bg-amber-950/60 rounded-[3px] border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 shadow-2xs">
+              Inactive: <span className="text-amber-900 dark:text-amber-200 font-bold">{inactiveCount}</span>
             </span>
           )}
         </div>
 
         {/* Search Input */}
         <div className="relative max-w-xs w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#a08862] pointer-events-none" />
           <input
             type="text"
             placeholder="Search colleges, codes, slugs..."
@@ -389,7 +388,7 @@ export function InstitutionsManagementTab() {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-9 pr-8 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            className="w-full pl-9 pr-8 py-1.5 text-xs bg-white dark:bg-[#140e07] border border-amber-200/80 dark:border-[#382710] rounded-[3px] text-slate-900 dark:text-[#faebd0] placeholder:text-slate-400 dark:placeholder:text-[#8f754c] focus:outline-hidden focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all"
           />
           {searchQuery && (
             <button
@@ -398,7 +397,7 @@ export function InstitutionsManagementTab() {
                 setSearchQuery('');
                 setCurrentPage(1);
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded transition cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-[2px] transition cursor-pointer"
               aria-label="Clear search"
             >
               <X className="w-3.5 h-3.5" />
@@ -408,7 +407,12 @@ export function InstitutionsManagementTab() {
       </div>
 
       {/* Colleges List / Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <PinnedRosterBoard
+        title="Institutional Campuses"
+        subtitle="Authorized colleges and multi-tenant portal routing"
+        badge={`${filteredColleges.length} REGISTERED`}
+        icon={<School className="w-4 h-4 text-amber-500" />}
+      >
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center text-slate-400">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
@@ -427,7 +431,7 @@ export function InstitutionsManagementTab() {
             <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs min-w-[620px]">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+                <tr className="bg-slate-50 dark:bg-[#20150b] border-b border-slate-200 dark:border-[#382710] text-slate-600 dark:text-[#c4a97d] font-semibold uppercase tracking-wider text-[11px]">
                   <th className="py-3 px-4">Institution</th>
                   <th className="py-3 px-4">Code</th>
                   <th className="py-3 px-4">Public Slug / Portal</th>
@@ -437,17 +441,17 @@ export function InstitutionsManagementTab() {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#2a1d0f]">
                 {paginatedColleges.map((col) => {
                   return (
                     <tr
                       key={col.id}
-                      className="hover:bg-slate-50/70 transition-colors group"
+                      className="hover:bg-slate-50/70 dark:hover:bg-[#22170d]/70 transition-colors group"
                     >
                       {/* Logo & Name */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center p-1 shrink-0 overflow-hidden text-slate-700 font-bold">
+                          <div className="w-9 h-9 rounded-[3px] bg-slate-100 dark:bg-[#20150b] border border-slate-200 dark:border-[#382710] flex items-center justify-center p-1 shrink-0 overflow-hidden text-slate-700 dark:text-[#faebd0] font-bold">
                             {col.logo_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
@@ -512,10 +516,10 @@ export function InstitutionsManagementTab() {
                       {/* Status */}
                       <td className="py-3.5 px-4 text-center">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[2px] text-[10px] font-bold uppercase tracking-wider font-mono ${
                             col.is_active
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-slate-100 text-slate-600 border border-slate-300'
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60'
+                              : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
                           }`}
                         >
                           <span
@@ -529,17 +533,17 @@ export function InstitutionsManagementTab() {
 
                       {/* Landing Page Modules (Feedbacks & Events Independent Toggles) */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="inline-flex items-center gap-1.5 p-1 bg-slate-50 border border-slate-200/90 rounded-xl shadow-2xs">
+                        <div className="inline-flex items-center gap-1.5 p-1 bg-slate-50 dark:bg-[#20150b] border border-slate-200/90 dark:border-[#382710] rounded-[3px] shadow-2xs">
                           {/* Feedbacks Toggle */}
                           <button
                             type="button"
                             onClick={() => handleToggleLandingModule(col, 'feedbacks')}
                             disabled={togglingId === `${col.id}-feedbacks`}
                             title={`Click to turn Feedbacks ${col.show_feedbacks !== false ? 'OFF' : 'ON'} on the public landing page`}
-                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95 ${
+                            className={`px-2 py-1 rounded-[2px] text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95 ${
                               col.show_feedbacks !== false
                                 ? 'bg-blue-600 text-white shadow-2xs hover:bg-blue-700'
-                                : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                                : 'bg-slate-200 dark:bg-[#2e1f10] text-slate-500 dark:text-[#a08862] hover:bg-slate-300 dark:hover:bg-[#382714]'
                             }`}
                           >
                             <span>Forms: {col.show_feedbacks !== false ? 'ON' : 'OFF'}</span>
@@ -551,10 +555,10 @@ export function InstitutionsManagementTab() {
                             onClick={() => handleToggleLandingModule(col, 'events')}
                             disabled={togglingId === `${col.id}-events`}
                             title={`Click to turn Events ${col.show_events !== false ? 'OFF' : 'ON'} on the public landing page`}
-                            className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95 ${
+                            className={`px-2 py-1 rounded-[2px] text-[10px] font-bold transition-all cursor-pointer inline-flex items-center gap-1 active:scale-95 ${
                               col.show_events !== false
                                 ? 'bg-emerald-600 text-white shadow-2xs hover:bg-emerald-700'
-                                : 'bg-slate-200 text-slate-500 hover:bg-slate-300'
+                                : 'bg-slate-200 dark:bg-[#2e1f10] text-slate-500 dark:text-[#a08862] hover:bg-slate-300 dark:hover:bg-[#382714]'
                             }`}
                           >
                             <span>Events: {col.show_events !== false ? 'ON' : 'OFF'}</span>
@@ -569,10 +573,10 @@ export function InstitutionsManagementTab() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(col)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg transition-colors font-medium text-xs"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-slate-700 dark:text-[#faebd0] bg-slate-100 dark:bg-[#20150b] hover:bg-slate-200 dark:hover:bg-[#281b0f] border border-slate-200 dark:border-[#382710] rounded-[3px] transition-colors font-medium text-xs cursor-pointer"
                             title="Edit College Details"
                           >
-                            <Edit2 className="w-3.5 h-3.5 text-slate-600" />
+                            <Edit2 className="w-3.5 h-3.5 text-slate-600 dark:text-[#c4a97d]" />
                             <span>Edit</span>
                           </button>
 
@@ -581,10 +585,10 @@ export function InstitutionsManagementTab() {
                             type="button"
                             onClick={() => handleToggleStatus(col)}
                             disabled={submitting}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border transition-colors font-medium text-xs ${
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] border transition-colors font-medium text-xs cursor-pointer ${
                               col.is_active
-                                ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
-                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200'
+                                ? 'bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-700/60'
+                                : 'bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/60'
                             }`}
                             title={col.is_active ? 'Deactivate Institution' : 'Activate Institution'}
                           >
@@ -615,7 +619,7 @@ export function InstitutionsManagementTab() {
             />
           </>
         )}
-      </div>
+      </PinnedRosterBoard>
 
       {/* ==================================================================== */}
       {/* MODAL 1: ADD COLLEGE                                                  */}

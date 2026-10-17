@@ -7,6 +7,7 @@ import { TenantSwitcher } from '@/components/admin/TenantSwitcher';
 import { AdminTitleSync } from '@/components/admin/AdminTitleSync';
 import { School, ShieldCheck, UserCheck, Globe } from 'lucide-react';
 import { getCampusFlowBrand, getCampusFlowDescription } from '@/lib/tenant/campusflow-brand';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -117,7 +118,7 @@ export default async function AdminDashboardLayout({
   const activeCollege = session.activeCollege;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100 text-slate-900 w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-transparent text-slate-900 dark:text-slate-100 w-full max-w-full overflow-x-hidden">
       <AdminTitleSync college={activeCollege} />
       {/* Admin Top Header */}
       <header className="bg-bce-navy text-white border-b border-bce-cobalt/60 shadow-md sticky top-0 z-40 w-full min-w-0">
@@ -181,12 +182,15 @@ export default async function AdminDashboardLayout({
             <Link
               href={activeCollege ? `/${activeCollege.slug}` : '/'}
               target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/80 hover:bg-slate-800 hover:text-white border border-slate-700 transition-colors shrink-0"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[3px] text-xs font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-800 hover:text-white border border-slate-700 transition-colors shrink-0"
               title="View Public Portal"
             >
               <Globe className="w-3.5 h-3.5 text-amber-400" />
               <span className="hidden md:inline">Public Portal</span>
             </Link>
+
+            {/* Day / Night Mode Toggle */}
+            <ThemeToggle showLabel={false} className="shrink-0" />
 
             <AdminHeaderSignOut />
           </div>
@@ -199,7 +203,7 @@ export default async function AdminDashboardLayout({
       </main>
 
       {/* Admin Footer */}
-      <footer className="bg-white border-t border-slate-200 py-3 px-2.5 sm:px-4 sm:py-4 text-center text-xs text-slate-500 mt-auto w-full min-w-0">
+      <footer className="bg-white/85 dark:bg-[#120b07]/90 backdrop-blur-md border-t border-slate-200 dark:border-amber-950/60 py-3 px-2.5 sm:px-4 sm:py-4 text-center text-xs text-slate-500 dark:text-slate-400 mt-auto w-full min-w-0">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>
             <Link

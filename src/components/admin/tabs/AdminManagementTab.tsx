@@ -44,6 +44,8 @@ import { isPrimarySuperAdmin } from '@/lib/auth/admin-auth-shared';
 import { AdminSessionsCard } from '../AdminSessionsCard';
 import { SignedUpStudentsSection } from './SignedUpStudentsSection';
 import { GoogleFormEditorsManagementSection } from './GoogleFormEditorsManagementSection';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 import type { AdminStudentItem } from '@/app/admin/actions';
 
 interface Props {
@@ -437,20 +439,20 @@ export function AdminManagementTab({
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full min-w-0">
       {/* Subtab Navigation (Admin Privileges vs Signed-Up Students) */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-3 flex-wrap">
+      <div className="flex items-center gap-2 border-b border-amber-200/80 dark:border-[#382710] pb-3 flex-wrap">
         <button
           type="button"
           onClick={() => handleSubTabChange('admins')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs sm:text-sm font-semibold transition-all cursor-pointer border ${
             subTab === 'admins'
-              ? 'bg-bce-navy text-white shadow-xs font-bold'
-              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border-bce-navy dark:border-amber-600/60 shadow-xs font-bold'
+              : 'bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#281b0f] border-amber-200/80 dark:border-[#382710]'
           }`}
         >
-          <ShieldCheck className="w-4 h-4" />
+          <ShieldCheck className="w-4 h-4 text-amber-500" />
           <span>Administrators & Requests</span>
           {pendingRequests.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950">
+            <span className="px-1.5 py-0.2 rounded-[2px] text-[10px] font-bold bg-amber-500 text-slate-950 font-mono">
               {pendingRequests.length}
             </span>
           )}
@@ -459,17 +461,17 @@ export function AdminManagementTab({
         <button
           type="button"
           onClick={() => handleSubTabChange('students')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs sm:text-sm font-semibold transition-all cursor-pointer border ${
             subTab === 'students'
-              ? 'bg-bce-navy text-white shadow-xs font-bold'
-              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border-bce-navy dark:border-amber-600/60 shadow-xs font-bold'
+              : 'bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#281b0f] border-amber-200/80 dark:border-[#382710]'
           }`}
         >
-          <GraduationCap className="w-4 h-4" />
-          <span>Signed-Up Students (प्रत्येक कॉलेज के छात्र)</span>
+          <GraduationCap className="w-4 h-4 text-amber-500" />
+          <span>Signed-Up Students</span>
           <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-              subTab === 'students' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+            className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold ${
+              subTab === 'students' ? 'bg-amber-400 text-slate-950' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
             }`}
           >
             {initialStudents?.length ?? 0}
@@ -479,13 +481,13 @@ export function AdminManagementTab({
         <button
           type="button"
           onClick={() => handleSubTabChange('editors')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs sm:text-sm font-semibold transition-all cursor-pointer border ${
             subTab === 'editors'
-              ? 'bg-bce-navy text-white shadow-xs font-bold'
-              : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+              ? 'bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border-bce-navy dark:border-amber-600/60 shadow-xs font-bold'
+              : 'bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#281b0f] border-amber-200/80 dark:border-[#382710]'
           }`}
         >
-          <FolderSync className="w-4 h-4 text-amber-400" />
+          <FolderSync className="w-4 h-4 text-amber-500" />
           <span>Google Form Editors</span>
         </button>
       </div>
@@ -507,24 +509,13 @@ export function AdminManagementTab({
       ) : (
         <>
           {/* Header Banner */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-bce-cobalt" />
-            Administrator Access & Authorization
-          </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manage admin registration requests, role privileges, and account activation states.
-          </p>
-        </div>
-
-        {!isSuperAdmin && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>Institution Administrator: You can review and approve pending admin requests for your institution. Super Admin privileges are required to promote or demote administrators.</span>
-          </div>
-        )}
-      </div>
+          <ExamPadCard
+            variant="dashboard"
+            title="Administrator Access & Authorization"
+            subtitle="Manage admin registration requests, role privileges, and account activation states across your institution."
+            badge={isSuperAdmin ? "SUPER ADMIN ACCESS" : "CAMPUS ADMIN"}
+            icon={<ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+          />
 
       {message && (
         <div
@@ -543,27 +534,20 @@ export function AdminManagementTab({
       <AdminSessionsCard />
 
       {/* 1. PENDING REQUESTS TABLE */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full min-w-0">
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Clock className="w-4 h-4 text-amber-500 shrink-0" />
-            <h4 className="text-sm font-bold text-slate-900 truncate">
-              Pending Admin Requests ({pendingRequests.length})
-            </h4>
-          </div>
-          <span className="text-xs text-slate-400 shrink-0">
-            Awaiting Review
-          </span>
-        </div>
-
+      <PinnedRosterBoard
+        title="Pending Admin Requests"
+        subtitle="Awaiting administrative review & role authorization"
+        badge={`${pendingRequests.length} PENDING`}
+        icon={<Clock className="w-4 h-4 text-amber-500" />}
+      >
         {pendingRequests.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-8 text-center text-xs text-slate-400 dark:text-[#a08862]">
             No pending admin registration requests at this time.
           </div>
         ) : (
           <>
             {/* Mobile Cards View */}
-            <div className="md:hidden divide-y divide-slate-100 min-w-0">
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-[#2a1d0f] min-w-0">
               {pendingRequests.map((req) => {
                 const isApproving = isPending && activeAction?.id === req.id && activeAction.type === 'APPROVE';
                 const isRejecting = isPending && activeAction?.id === req.id && activeAction.type === 'REJECT';
@@ -650,7 +634,7 @@ export function AdminManagementTab({
                       <button
                         type="button"
                         onClick={() => setViewingRequestDetails(req)}
-                        className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 font-semibold text-xs transition-colors border border-purple-200 cursor-pointer flex items-center gap-1"
+                        className="px-3 py-2 rounded-[3px] bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-800 dark:text-purple-300 font-semibold text-xs transition-colors border border-purple-200 dark:border-purple-800 cursor-pointer flex items-center gap-1"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Details</span>
@@ -659,7 +643,7 @@ export function AdminManagementTab({
                         onClick={() => handleApprove(req.id, req.requested_role || 'COLLEGE_ADMIN')}
                         disabled={isPending}
                         aria-busy={isApproving}
-                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
+                        className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-[3px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
                       >
                         {isApproving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                         <span>{isApproving ? 'Approving...' : `Approve`}</span>
@@ -668,7 +652,7 @@ export function AdminManagementTab({
                         onClick={() => handleReject(req.id)}
                         disabled={isPending}
                         aria-busy={isRejecting}
-                        className="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
+                        className="px-3 py-2 rounded-[3px] bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 min-h-[40px] cursor-pointer"
                       >
                         {isRejecting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                       </button>
@@ -681,7 +665,7 @@ export function AdminManagementTab({
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto min-w-0">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+                <thead className="bg-slate-50 dark:bg-[#20150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-100 dark:border-[#382710] uppercase tracking-wider">
                   <tr>
                     <th className="px-5 py-3">Applicant Name</th>
                     <th className="px-5 py-3">Institution</th>
@@ -692,7 +676,7 @@ export function AdminManagementTab({
                     <th className="px-5 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2a1d0f]">
                   {pendingRequests.map((req) => {
                     const isApproving = isPending && activeAction?.id === req.id && activeAction.type === 'APPROVE';
                     const isRejecting = isPending && activeAction?.id === req.id && activeAction.type === 'REJECT';
@@ -701,23 +685,23 @@ export function AdminManagementTab({
                     const RoleIcon = roleCfg.icon;
 
                     return (
-                      <tr key={req.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-5 py-3.5 font-bold text-slate-800">
+                      <tr key={req.id} className="hover:bg-slate-50/80 dark:hover:bg-[#22170d]/80 transition-colors">
+                        <td className="px-5 py-3.5 font-bold text-slate-800 dark:text-[#faebd0]">
                           <div className="flex flex-col min-w-0">
                             <span className="truncate">{req.name}</span>
                             {(req.branch || req.semester) && (
                               <div className="flex items-center gap-1 flex-wrap mt-1">
                                 <span
-                                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200/60 max-w-[200px] truncate"
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-[2px] border border-purple-200/60 dark:border-purple-800/60 max-w-[200px] truncate"
                                   title={`${req.branch} • ${req.semester}`}
                                 >
-                                  <GraduationCap className="w-3 h-3 text-purple-600 shrink-0" />
+                                  <GraduationCap className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
                                   {req.branch} {req.semester ? `• ${req.semester}` : ''}
                                 </span>
                               </div>
                             )}
                             {(req.roll_number || req.registration_number) && (
-                              <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                              <span className="text-[10px] text-slate-500 dark:text-[#a08862] font-mono mt-0.5">
                                 {req.roll_number ? `Roll: ${req.roll_number}` : ''}
                                 {req.roll_number && req.registration_number ? ' | ' : ''}
                                 {req.registration_number ? `Reg: ${req.registration_number}` : ''}
@@ -730,41 +714,41 @@ export function AdminManagementTab({
                             <div className="flex items-center gap-1.5 max-w-[220px]">
                               <Building2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                               <div className="flex flex-col min-w-0">
-                                <span className="font-semibold text-slate-800 truncate" title={req.college.name}>
+                                <span className="font-semibold text-slate-800 dark:text-[#faebd0] truncate" title={req.college.name}>
                                   {req.college.name}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-mono">
+                                <span className="text-[10px] text-slate-400 dark:text-[#a08862] font-mono">
                                   {req.college.code}
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <span className="text-slate-400 italic text-[11px]">—</span>
+                            <span className="text-slate-400 dark:text-[#8f754c] italic text-[11px]">—</span>
                           )}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold border ${roleCfg.color}`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-[2px] text-[11px] font-bold border ${roleCfg.color}`}>
                             <RoleIcon className="w-3.5 h-3.5" />
                             {roleCfg.label}
                           </span>
                         </td>
                         <td className="px-5 py-3.5">
-                          <div className="font-mono text-slate-600">{req.email}</div>
+                          <div className="font-mono text-slate-600 dark:text-[#c4a97d]">{req.email}</div>
                           {req.phone && (
-                            <div className="text-[11px] font-mono text-purple-700 font-semibold flex items-center gap-1 mt-0.5">
-                              <Phone className="w-3 h-3 text-purple-600 shrink-0" />
+                            <div className="text-[11px] font-mono text-purple-700 dark:text-purple-300 font-semibold flex items-center gap-1 mt-0.5">
+                              <Phone className="w-3 h-3 text-purple-600 dark:text-purple-400 shrink-0" />
                               <a href={`tel:${req.phone}`} className="hover:underline">
                                 {req.phone}
                               </a>
                             </div>
                           )}
                         </td>
-                        <td className="px-5 py-3.5 text-slate-500">
+                        <td className="px-5 py-3.5 text-slate-500 dark:text-[#a08862]">
                           {formatDateShort(req.created_at, hydrated)} at{' '}
                           {formatTime(req.created_at, hydrated)}
                         </td>
                         <td className="px-5 py-3.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[2px] text-[11px] font-semibold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 font-mono">
                             PENDING
                           </span>
                         </td>
@@ -774,7 +758,7 @@ export function AdminManagementTab({
                             type="button"
                             onClick={() => setViewingRequestDetails(req)}
                             title="View Coordinator Details & Statement"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[3px] bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 font-semibold transition-colors cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Details</span>
@@ -785,7 +769,7 @@ export function AdminManagementTab({
                             disabled={isPending}
                             aria-busy={isApproving}
                             title={`Approve as ${roleCfg.label}`}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                           >
                             {isApproving ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -799,7 +783,7 @@ export function AdminManagementTab({
                             onClick={() => handleReject(req.id)}
                             disabled={isPending}
                             aria-busy={isRejecting}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[3px] bg-rose-600 hover:bg-rose-700 text-white font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                           >
                             {isRejecting ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -817,30 +801,23 @@ export function AdminManagementTab({
             </div>
           </>
         )}
-      </div>
+      </PinnedRosterBoard>
 
       {/* 2. REGISTERED ADMINISTRATORS DIRECTORY */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full min-w-0">
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <UserCheck className="w-4 h-4 text-bce-cobalt shrink-0" />
-            <h4 className="text-sm font-bold text-slate-900 truncate">
-              Authorized Administrators ({admins.length})
-            </h4>
-          </div>
-          <span className="text-xs text-slate-400 shrink-0">
-            Active & Inactive Accounts
-          </span>
-        </div>
-
+      <PinnedRosterBoard
+        title="Authorized Administrators"
+        subtitle="Active & inactive administrative credentials across colleges"
+        badge={`${admins.length} ACCOUNTS`}
+        icon={<UserCheck className="w-4 h-4 text-amber-500" />}
+      >
         {admins.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-8 text-center text-xs text-slate-400 dark:text-[#a08862]">
             No administrator accounts configured yet.
           </div>
         ) : (
           <>
             {/* Mobile Cards View */}
-            <div className="md:hidden divide-y divide-slate-100 min-w-0">
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-[#2a1d0f] min-w-0">
               {admins.map((admin) => {
                 const isOperating = isPending && activeAction?.id === admin.id;
                 const isPrimary = isPrimarySuperAdmin({ email: admin.email, user_id: admin.user_id, id: admin.id });
@@ -1006,7 +983,7 @@ export function AdminManagementTab({
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto min-w-0">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100 uppercase tracking-wider">
+                <thead className="bg-slate-50 dark:bg-[#20150b] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-100 dark:border-[#382710] uppercase tracking-wider">
                   <tr>
                     <th className="px-5 py-3">Admin Name</th>
                     <th className="px-5 py-3">Institution</th>
@@ -1017,7 +994,7 @@ export function AdminManagementTab({
                     <th className="px-5 py-3 text-right">Access Control</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-[#2a1d0f]">
                   {admins.map((admin) => {
                     const isOperating = isPending && activeAction?.id === admin.id;
                     const isPrimary = isPrimarySuperAdmin({ email: admin.email, user_id: admin.user_id, id: admin.id });
@@ -1027,11 +1004,11 @@ export function AdminManagementTab({
                     const RoleIcon = roleCfg.icon;
 
                     return (
-                      <tr key={admin.id} className="hover:bg-slate-50/80 transition-colors">
-                        <td className="px-5 py-3.5 font-bold text-slate-800">
+                      <tr key={admin.id} className="hover:bg-slate-50/80 dark:hover:bg-[#22170d]/80 transition-colors">
+                        <td className="px-5 py-3.5 font-bold text-slate-800 dark:text-[#faebd0]">
                           {admin.name}
                           {isSelf && (
-                            <span className="ml-2 text-[10px] text-bce-cobalt font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
+                            <span className="ml-2 text-[10px] text-bce-cobalt dark:text-amber-400 font-semibold bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 rounded-[2px]">
                               (You)
                             </span>
                           )}
@@ -1185,45 +1162,45 @@ export function AdminManagementTab({
             </div>
           </>
         )}
-      </div>
+      </PinnedRosterBoard>
 
       {/* Role Access Management Modal */}
       {changingRoleAdmin && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-[#1a1309] rounded-[3px] max-w-lg w-full p-6 shadow-2xl border border-amber-300/80 dark:border-[#4d3817] space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 border border-indigo-200 text-indigo-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-[3px] bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
                 <Crown className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h4 className="text-base font-bold text-slate-900">
+                <h4 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">
                   Control Administrator Role &amp; Permissions
                 </h4>
-                <p className="text-xs text-slate-500 leading-relaxed">
+                <p className="text-xs text-slate-500 dark:text-[#c4a97d] leading-relaxed">
                   Assign the designated role for this college administrator. Dashboard tabs will be restricted according to this role.
                 </p>
               </div>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1">
+            <div className="p-3 bg-slate-50 dark:bg-[#20150b] rounded-[3px] border border-amber-200/80 dark:border-[#382710] text-xs space-y-1">
               <div className="flex justify-between">
-                <span className="text-slate-500">Administrator:</span>
-                <span className="font-semibold text-slate-800">{changingRoleAdmin.name}</span>
+                <span className="text-slate-500 dark:text-[#a08862]">Administrator:</span>
+                <span className="font-semibold text-slate-800 dark:text-[#faebd0]">{changingRoleAdmin.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Email:</span>
-                <span className="font-mono text-slate-700">{changingRoleAdmin.email}</span>
+                <span className="text-slate-500 dark:text-[#a08862]">Email:</span>
+                <span className="font-mono text-slate-700 dark:text-[#faebd0]">{changingRoleAdmin.email}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Current Role:</span>
-                <span className="font-bold text-indigo-700">
+                <span className="text-slate-500 dark:text-[#a08862]">Current Role:</span>
+                <span className="font-bold text-indigo-700 dark:text-indigo-400">
                   {ADMIN_ROLE_CONFIGS[changingRoleAdmin.role]?.label || changingRoleAdmin.role}
                 </span>
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 dark:text-[#c4a97d] uppercase tracking-wider">
                 Select Designated Role:
               </label>
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
@@ -1242,27 +1219,27 @@ export function AdminManagementTab({
                       key={roleKey}
                       type="button"
                       onClick={() => setSelectedNewRole(roleKey)}
-                      className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-start gap-3 ${
+                      className={`w-full text-left p-3 rounded-[3px] border transition-all cursor-pointer flex items-start gap-3 ${
                         isSelected
-                          ? 'border-indigo-500 bg-indigo-50/70 ring-2 ring-indigo-500/20 shadow-xs'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                          ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 ring-2 ring-indigo-500/20 shadow-xs'
+                          : 'border-slate-200 dark:border-[#382710] hover:border-slate-300 dark:hover:border-amber-700 hover:bg-slate-50 dark:hover:bg-[#20150b]'
                       }`}
                     >
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                          isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                        className={`w-8 h-8 rounded-[3px] flex items-center justify-center shrink-0 ${
+                          isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-[#281b0f] text-slate-500 dark:text-[#a08862]'
                         }`}
                       >
                         <Icon className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-900">{cfg.label}</span>
-                          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                          <span className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">{cfg.label}</span>
+                          <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded-[2px] bg-slate-100 dark:bg-[#281b0f] text-slate-600 dark:text-[#c4a97d]">
                             {cfg.badge}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{cfg.desc}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-[#a08862] mt-0.5">{cfg.desc}</p>
                       </div>
                     </button>
                   );
@@ -1275,7 +1252,7 @@ export function AdminManagementTab({
                 type="button"
                 onClick={() => setChangingRoleAdmin(null)}
                 disabled={isPending}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#281b0f] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -1284,7 +1261,7 @@ export function AdminManagementTab({
                 onClick={confirmChangeRole}
                 disabled={isPending}
                 aria-busy={isPending && activeAction?.type === 'UPDATE_ROLE'}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                className="px-4 py-2 rounded-[3px] text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
               >
                 {isPending && activeAction?.type === 'UPDATE_ROLE' ? (
                   <>
@@ -1436,12 +1413,12 @@ export function AdminManagementTab({
 
       {/* 3. PAST REVIEWED REQUESTS HISTORY */}
       {pastRequests.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden w-full min-w-0">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-2">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider truncate">
-              Reviewed Requests History ({pastRequests.length})
-            </h4>
-          </div>
+        <PinnedRosterBoard
+          title="Reviewed Requests History"
+          subtitle="Audit log of approved and rejected administrator applications"
+          badge={`${pastRequests.length} LOGS`}
+          icon={<FileText className="w-4 h-4 text-amber-500" />}
+        >
           {/* Mobile Cards View */}
           <div className="md:hidden divide-y divide-slate-100 min-w-0">
             {pastRequests.map((req) => (
@@ -1525,7 +1502,7 @@ export function AdminManagementTab({
               </tbody>
             </table>
           </div>
-        </div>
+        </PinnedRosterBoard>
       )}
 
       {/* Confirmation Dialog: Promote to Super Admin */}

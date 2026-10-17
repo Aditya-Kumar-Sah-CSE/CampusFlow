@@ -114,11 +114,11 @@ export function PwaInstallPrompt() {
   }
 
   const tenantSlug = isTenantRoute ? firstSegment : null;
-  const isBce = tenantSlug === 'bce-bgp';
+  const isBce = tenantSlug === 'bce-bhagalpur' || tenantSlug === 'bce-bgp';
   const isGec = tenantSlug === 'gec-gaya';
 
   const appDisplayName = isBce
-    ? 'BCE BGP'
+    ? 'BCE BHAGALPUR'
     : isGec
     ? 'GEC GAYA'
     : 'CampusFlow';

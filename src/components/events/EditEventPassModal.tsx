@@ -336,11 +336,14 @@ export function EditEventPassModal({
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 focus:border-emerald-500 text-sm text-white outline-hidden transition-all"
                 >
                   <option value="">Select Semester</option>
-                  {semesters.map((s) => (
-                    <option key={s.id} value={s.name}>
-                      {s.name}
-                    </option>
-                  ))}
+                  {semesters.map((s) => {
+                    const label = s.programme?.name ? `${s.programme.name} — ${s.name}` : s.name;
+                    return (
+                      <option key={s.id} value={label}>
+                        {label}
+                      </option>
+                    );
+                  })}
                 </select>
               )}
             </div>

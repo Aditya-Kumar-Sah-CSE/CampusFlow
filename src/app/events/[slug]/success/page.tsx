@@ -44,7 +44,7 @@ export default async function EventSuccessPage({ params, searchParams }: Props) 
   const smallEvent = getSmallEventById(slug);
   if (smallEvent) {
     const institutionDisplayName =
-      smallEvent.institutionId === 'bce-bgp'
+      smallEvent.institutionId === 'bce-bhagalpur' || smallEvent.institutionId === 'bce-bgp'
         ? 'Bhagalpur College of Engineering'
         : smallEvent.institutionId === 'gec-gaya'
         ? 'Government Engineering College, Gaya'

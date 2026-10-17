@@ -12,7 +12,7 @@ export async function generateStaticParams() {
     const colleges = await getAllActiveColleges();
     return colleges.map((c) => ({ tenant: c.slug }));
   } catch {
-    return [{ tenant: 'bce-bgp' }];
+    return [{ tenant: 'bce-bhagalpur' }];
   }
 }
 
