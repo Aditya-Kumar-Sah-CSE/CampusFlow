@@ -15,6 +15,7 @@ import type { CollegeEvent } from '@/types/events';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 import { StudentLibraryBorrowForm } from '@/components/public/StudentLibraryBorrowForm';
 import { getLibrarySettings } from '@/lib/library/service';
+import { RedPushpin } from '@/components/ui/RedPushpin';
 
 export const revalidate = 300;
 
@@ -150,50 +151,58 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
           </section>
         )}
 
-        {/* 2. Events Section (Controlled by Events Toggle) */}
+        {/* 2. Events Section (Inside Green Chalkboard Notice Board) */}
         {tenant.showEvents && (
-          <section id="events-section" className="space-y-6 pt-6 border-t border-slate-200/80 dark:border-amber-950/40 scroll-mt-16">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-amber-950/60 text-blue-700 dark:text-amber-300 text-xs font-semibold mb-1 border border-blue-200/60 dark:border-amber-800/60">
-                  <Ticket className="w-3 h-3 text-blue-600 dark:text-amber-400" />
-                  <span>Campus Activities &amp; Programs</span>
-                </div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  Upcoming College Events
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-amber-100/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-medium">
-                  Explore workshops, hackathons, guest lectures, and cultural fests. Enroll online with instant verification.
-                </p>
-              </div>
-              <Link
-                href={`/${tenant.slug}/events`}
-                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-blue-600 dark:text-amber-400 hover:text-blue-800 dark:hover:text-amber-300 transition-colors self-start sm:self-auto py-1"
-              >
-                <span>View All Events ({events.length})</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+          <section id="events-section" className="scroll-mt-16 pt-4">
+            <div className="border-8 sm:border-[12px] border-[#38210f] dark:border-[#201105] rounded-xl shadow-2xl p-4 sm:p-6 bg-[#143527] dark:bg-[#091a13] relative overflow-visible">
+              {/* Brass Corner Brackets */}
+              <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-amber-400/80 pointer-events-none rounded-tl-xs" />
+              <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-amber-400/80 pointer-events-none rounded-tr-xs" />
+              <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-amber-400/80 pointer-events-none rounded-bl-xs" />
+              <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-amber-400/80 pointer-events-none rounded-br-xs" />
 
-            {/* Events Grid */}
-            {events.length === 0 ? (
-              <div className="bg-white dark:bg-[#18110b]/90 rounded-2xl border border-slate-200/80 dark:border-amber-950/70 p-8 sm:p-10 text-center max-w-lg mx-auto space-y-2 shadow-xl backdrop-blur-md">
-                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#251a11] text-slate-400 dark:text-amber-400 mx-auto flex items-center justify-center border border-slate-200 dark:border-amber-950/60">
-                  <Calendar className="w-5 h-5" />
+              {/* Notice Board Header Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-5 border-b border-dashed border-emerald-900/60 dark:border-emerald-950/60">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[3px] bg-emerald-950/80 text-emerald-300 text-xs font-bold mb-1 border border-emerald-600/40">
+                    <Ticket className="w-3.5 h-3.5 text-amber-300" />
+                    <span>CAMPUS ACTIVITIES &amp; EVENTS BULLETIN</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-amber-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
+                    Upcoming College Events
+                  </h2>
+                  <p className="text-xs sm:text-sm text-emerald-200/80 font-medium">
+                    Explore workshops, hackathons, guest lectures, and cultural fests. Enroll online with instant verification.
+                  </p>
                 </div>
-                <h3 className="text-sm font-bold text-slate-800 dark:text-amber-100">No Events Published</h3>
-                <p className="text-xs text-slate-500 dark:text-amber-200/70">
-                  There are currently no active public events scheduled for {tenant.shortName}. Please check back later!
-                </p>
+                <Link
+                  href={`/${tenant.slug}/events`}
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-300 hover:text-amber-200 transition-colors self-start sm:self-auto py-1 px-3 rounded-[3px] bg-emerald-950/60 border border-emerald-600/30"
+                >
+                  <span>View All Events ({events.length})</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {events.slice(0, 6).map((event) => (
-                  <PublicEventCard key={event.id} event={event} tenantSlug={tenant.slug} />
-                ))}
-              </div>
-            )}
+
+              {/* Events Grid */}
+              {events.length === 0 ? (
+                <div className="relative max-w-md mx-auto pinned-paper-sheet bg-[#fffdfa] dark:bg-[#191108] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-8 sm:p-10 text-center shadow-2xl">
+                  <RedPushpin className="-top-3" />
+                  <Calendar className="w-10 h-10 text-amber-700/60 dark:text-amber-400/60 mx-auto mb-2" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">No Events Published</h3>
+                  <p className="text-xs text-slate-600 dark:text-[#c4a97d] mt-1">
+                    There are currently no active public events scheduled for {tenant.shortName}. Please check back later!
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+                  {events.slice(0, 6).map((event) => (
+                    <PublicEventCard key={event.id} event={event} tenantSlug={tenant.slug} />
+                  ))}
+                </div>
+              )}
+            </div>
           </section>
         )}
 

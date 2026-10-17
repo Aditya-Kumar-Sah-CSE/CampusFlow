@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { updateStudentProfileAction, checkStudentRegistrationNumberAction } from '@/app/auth/student/actions';
 import type { StudentProfile } from '@/types/student';
+import { ExamPadClip } from '@/components/ui/ExamPadCard';
 
 interface StudentEditProfileModalProps {
   isOpen: boolean;
@@ -174,36 +175,47 @@ export function StudentEditProfileModal({
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="relative w-full max-w-lg my-auto bg-white dark:bg-[#1a1309] rounded-[3px] shadow-2xl border border-slate-200/90 dark:border-[#382713] overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
-        {/* Modal Top Header (Always visible, shrink-0) */}
-        <div className="px-5 py-3.5 sm:px-6 sm:py-4 border-b border-slate-100 dark:border-[#382713] flex items-center justify-between gap-3 bg-gradient-to-r from-slate-50 via-white to-blue-50/50 dark:from-[#1a1309] dark:via-[#22170d] dark:to-[#1a1309] shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[3px] bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border border-bce-navy dark:border-amber-600/50 flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
-              <User className="w-5 h-5" />
+      <div className="relative w-full max-w-lg my-auto exam-pad-board-dashboard rounded-lg shadow-2xl p-2 sm:p-3 pt-8 sm:pt-9 overflow-visible animate-in zoom-in-95 duration-200 flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-3rem)]">
+        {/* Authentic Top Metal Exam Clip */}
+        <ExamPadClip label="PROFILE" size="compact" />
+
+        {/* Brass Corner Brackets */}
+        <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+
+        {/* The Paper Sheet */}
+        <div className="relative z-10 w-full pinned-paper-sheet bg-[#fffdfa] dark:bg-[#191108] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] shadow-sm flex flex-col flex-1 overflow-hidden min-h-0">
+          {/* Modal Top Header (Always visible, shrink-0) */}
+          <div className="px-5 py-3 sm:px-6 sm:py-3.5 border-b border-amber-900/20 dark:border-[#382713] flex items-center justify-between gap-3 bg-amber-50/70 dark:bg-[#20150b]/80 shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-[3px] bg-amber-600/20 text-amber-900 dark:text-amber-300 border border-amber-600/30 flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                <User className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h3 id="modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#faebd0] truncate">
+                  Edit Student Profile
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-[#c4a97d] truncate">
+                  Update your full name &amp; registration number
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h3 id="modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-[#faebd0] truncate">
-                Edit Student Profile
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-[#c4a97d] truncate">
-                Update your full name &amp; registration number
-              </p>
-            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="text-slate-500 hover:text-slate-800 dark:text-amber-300/80 dark:hover:text-amber-200 hover:bg-black/5 dark:hover:bg-white/5 p-1.5 rounded-[3px] transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isPending}
-            className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#281b0f] p-2 rounded-[3px] transition-colors cursor-pointer disabled:opacity-50 shrink-0"
-            aria-label="Close dialog"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Form Container */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+          {/* Form Container */}
+          <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
           {/* Scrollable Form Body */}
           <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4.5 min-h-0">
             {/* Status Banners */}
@@ -420,7 +432,8 @@ export function StudentEditProfileModal({
           </div>
         </form>
       </div>
-    </div>,
-    document.body
-  );
+    </div>
+  </div>,
+  document.body
+);
 }

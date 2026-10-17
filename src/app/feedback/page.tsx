@@ -5,6 +5,7 @@ import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSec
 import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { School, ArrowLeft, GraduationCap, ExternalLink } from 'lucide-react';
 import { StudentStatusBadge } from '@/components/auth/StudentStatusBadge';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
 
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 
@@ -105,18 +106,20 @@ export default async function FeedbackPortalPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-bce-cobalt text-xs font-semibold mb-2">
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>Student Feedback Portal</span>
+        <ExamPadCard variant="dashboard" clipLabel="STUDENT FEEDBACK">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-[2px] bg-amber-100/80 dark:bg-[#2b1f11] border border-amber-300/80 dark:border-amber-800/60 text-amber-900 dark:text-amber-300 text-xs font-bold">
+              <GraduationCap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Student Feedback Portal</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#faebd0] tracking-tight">
+              Find &amp; Submit Your Faculty Feedback
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-[#c4a97d] max-w-3xl leading-relaxed">
+              Select your academic session, department, semester, faculty member, and subject below to access your real Google Feedback Form.
+            </p>
           </div>
-          <h2 className="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Find & Submit Your Faculty Feedback
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl leading-relaxed">
-            Select your academic session, department, semester, faculty member, and subject below to access your real Google Feedback Form.
-          </p>
-        </div>
+        </ExamPadCard>
 
         <StudentDiscoveryFlow
           academicYears={(academicYears as AcademicYear[]) || []}

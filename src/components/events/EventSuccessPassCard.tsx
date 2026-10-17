@@ -28,6 +28,8 @@ import {
   type StudentPassAuthStatus,
 } from '@/app/admin/events/event-registration-actions';
 import { generateAndDownloadPassPNG } from '@/lib/events/download-pass-png';
+import { ExamPadClip } from '@/components/ui/ExamPadCard';
+import { RedPushpin } from '@/components/ui/RedPushpin';
 
 interface EventSuccessPassCardProps {
   event: {
@@ -284,83 +286,88 @@ export function EventSuccessPassCard({
     <div className="w-full max-w-lg mx-auto space-y-4 pt-2">
       {/* 1. PARTICIPANT FOUND & AUTH CHECKED */}
       {participant ? (
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-700/60 text-white shadow-xl space-y-4 animate-in fade-in zoom-in-95 duration-300">
-          <div className="absolute -top-16 -right-16 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="exam-pad-board-dashboard rounded-lg shadow-2xl p-2.5 sm:p-3 pt-8 sm:pt-9 relative overflow-visible">
+          <ExamPadClip label="ENTRY PASS" size="compact" />
+          <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+          <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+          <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+          <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
 
-          {/* Top Tag Row */}
-          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
-            {checkingAuth ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400 shrink-0" />
-                <span>Checking Student Verification...</span>
-              </span>
-            ) : participant.paymentStatus === 'REJECTED' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>Payment Declined by Admin</span>
-              </span>
-            ) : (event.payment_required && (participant.canGeneratePass === false || participant.hasPendingPayment || participant.paymentStatus !== 'VERIFIED')) ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Payment Verification Pending</span>
-              </span>
-            ) : authStatus === 'AUTHORIZED' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Official Event Pass Ready</span>
-              </span>
-            ) : authStatus === 'LOGIN_REQUIRED' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Sign-In Required to Download</span>
-              </span>
-            ) : authStatus === 'SIGNUP_REQUIRED' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                <UserPlus className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>Student Account Required</span>
-              </span>
-            ) : authStatus === 'ACCOUNT_MISMATCH' ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span>Account Mismatch</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>Email Verification Pending</span>
-              </span>
-            )}
+          <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#191108] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-4 sm:p-5 text-slate-900 dark:text-[#faebd0] space-y-4 shadow-sm">
+            {/* Top Tag Row */}
+            <div className="flex items-center justify-between gap-2 border-b border-amber-900/15 dark:border-[#382713] pb-3">
+              {checkingAuth ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-semibold bg-amber-100/70 dark:bg-[#251a10] text-amber-900 dark:text-amber-200 border border-amber-300/80 dark:border-amber-800/60">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Checking Student Verification...</span>
+                </span>
+              ) : participant.paymentStatus === 'REJECTED' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-900/60">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Payment Declined by Admin</span>
+                </span>
+              ) : (event.payment_required && (participant.canGeneratePass === false || participant.hasPendingPayment || participant.paymentStatus !== 'VERIFIED')) ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-amber-100 dark:bg-[#2b1f11] text-amber-900 dark:text-amber-200 border border-amber-300/80 dark:border-amber-700/60">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Payment Verification Pending</span>
+                </span>
+              ) : authStatus === 'AUTHORIZED' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>Official Event Pass Ready</span>
+                </span>
+              ) : authStatus === 'LOGIN_REQUIRED' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-amber-100 dark:bg-[#2b1f11] text-amber-900 dark:text-amber-200 border border-amber-300/80 dark:border-amber-700/60">
+                  <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Sign-In Required to Download</span>
+                </span>
+              ) : authStatus === 'SIGNUP_REQUIRED' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-800">
+                  <UserPlus className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span>Student Account Required</span>
+                </span>
+              ) : authStatus === 'ACCOUNT_MISMATCH' ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-900/60">
+                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>Account Mismatch</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[2px] text-xs font-bold bg-amber-100 dark:bg-[#2b1f11] text-amber-900 dark:text-amber-200 border border-amber-300/80 dark:border-amber-700/60">
+                  <Mail className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Email Verification Pending</span>
+                </span>
+              )}
 
-            <div className="flex items-center gap-1 text-xs">
-              <span className="font-mono text-amber-400 font-black tracking-wide">
-                {participant.registrationNumber}
-              </span>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                title="Copy pass registration number"
-              >
-                {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="font-mono text-amber-700 dark:text-amber-300 font-black tracking-wide">
+                  {participant.registrationNumber}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="p-1 text-slate-500 hover:text-slate-800 dark:text-amber-300/80 dark:hover:text-amber-200 transition-colors cursor-pointer"
+                  title="Copy pass registration number"
+                >
+                  {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Student Info Details */}
-          <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/50 space-y-1 text-xs text-left">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 flex items-center justify-between">
-              <span>Registered Participant</span>
-              <span className="font-mono text-slate-300 lowercase">{participant.email}</span>
+            {/* Student Info Details */}
+            <div className="bg-amber-50/60 dark:bg-[#22160d] rounded-[3px] p-3 border border-amber-200/80 dark:border-[#382713] space-y-1 text-xs text-left">
+              <div className="text-[10px] uppercase font-bold tracking-wider text-slate-600 dark:text-[#a08255] flex items-center justify-between">
+                <span>Registered Participant</span>
+                <span className="font-mono text-slate-700 dark:text-amber-200 lowercase">{participant.email}</span>
+              </div>
+              <div className="font-bold text-sm sm:text-base text-slate-900 dark:text-[#faebd0] truncate">
+                {participant.fullName}
+              </div>
+              <div className="text-slate-600 dark:text-[#c4a97d] text-[11px] flex flex-wrap gap-x-2">
+                {participant.studentId && <span>Roll: {participant.studentId}</span>}
+                {participant.branch && <span>&bull; {participant.branch}</span>}
+                {participant.semester && <span>&bull; {participant.semester}</span>}
+              </div>
             </div>
-            <div className="font-bold text-sm sm:text-base text-white truncate">
-              {participant.fullName}
-            </div>
-            <div className="text-slate-300 text-[11px] flex flex-wrap gap-x-2">
-              {participant.studentId && <span>Roll: {participant.studentId}</span>}
-              {participant.branch && <span>&bull; {participant.branch}</span>}
-              {participant.semester && <span>&bull; {participant.semester}</span>}
-            </div>
-          </div>
 
           {/* AUTH STATUS NOTICES & ACTION BUTTONS */}
           {checkingAuth ? (
@@ -559,69 +566,78 @@ export function EventSuccessPassCard({
           )}
 
           {errorMessage && (
-            <div className="flex items-center gap-1.5 text-amber-400 text-[11px] font-semibold pt-1">
+            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 text-[11px] font-semibold pt-1">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
         </div>
+      </div>
       ) : (
         /* 2. UNIDENTIFIED: QUICK ONE-FIELD PASS DOWNLOAD CLAIM */
-        <div className="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 text-white shadow-xl space-y-3 text-left">
-          <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <Ticket className="w-4 h-4" />
+        <div className="exam-pad-board-dashboard rounded-lg shadow-2xl p-2.5 sm:p-3 pt-8 sm:pt-9 relative overflow-visible text-left">
+          <ExamPadClip label="CLAIM PASS" size="compact" />
+          <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+          <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+          <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+          <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+
+          <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#191108] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-4 sm:p-5 text-slate-900 dark:text-[#faebd0] space-y-3 shadow-sm">
+            <div className="flex items-center justify-between gap-2 border-b border-amber-900/15 dark:border-[#382713] pb-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-[2px] bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                  <Ticket className="w-4 h-4" />
+                </div>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-[#faebd0] truncate">
+                  Download Your Official Event Pass
+                </h3>
               </div>
-              <h3 className="text-xs sm:text-sm font-bold text-white truncate">
-                Download Your Official Event Pass
-              </h3>
+              <span className="text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-[#2b1f11] px-2 py-0.5 rounded-[2px] border border-amber-300/80 dark:border-[#4d3817] shrink-0">
+                Instant Pass
+              </span>
             </div>
-            <span className="text-[10px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
-              Instant Pass
-            </span>
+
+            <p className="text-[11px] text-slate-600 dark:text-[#c4a97d] leading-relaxed">
+              Enter your <strong>College Roll No</strong> (e.g. 24533), <strong>University Reg No</strong>, or <strong>Email</strong> to verify and download your VIP entry pass (PNG):
+            </p>
+
+            <form onSubmit={handleLookupAndDownload} className="space-y-2">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  required
+                  value={identifierInput}
+                  onChange={(e) => setIdentifierInput(e.target.value)}
+                  placeholder="Roll No (e.g. 24533) or Email"
+                  className="flex-1 px-3.5 py-2.5 rounded-[3px] bg-white dark:bg-[#1f150c] border border-slate-300 dark:border-[#4d3817] text-xs sm:text-sm text-slate-900 dark:text-[#faebd0] placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500 transition-all shadow-2xs"
+                />
+                <button
+                  type="submit"
+                  disabled={loading || downloading}
+                  className="px-4 py-2.5 rounded-[3px] bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0 shadow-xs"
+                >
+                  {loading || downloading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 shrink-0" />
+                      <span>Verify &amp; Download Pass</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {errorMessage && (
+                <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 text-[11px] font-semibold pt-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+            </form>
           </div>
-
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Enter your <strong>College Roll No</strong> (e.g. 24533), <strong>University Reg No</strong>, or <strong>Email</strong> to verify and download your VIP entry pass (PNG):
-          </p>
-
-          <form onSubmit={handleLookupAndDownload} className="space-y-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="text"
-                required
-                value={identifierInput}
-                onChange={(e) => setIdentifierInput(e.target.value)}
-                placeholder="Roll No (e.g. 24533) or Email"
-                className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all"
-              />
-              <button
-                type="submit"
-                disabled={loading || downloading}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
-              >
-                {loading || downloading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 shrink-0" />
-                    <span>Verify & Download Pass</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {errorMessage && (
-              <div className="flex items-center gap-1.5 text-amber-400 text-[11px] font-semibold pt-1">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            )}
-          </form>
         </div>
       )}
 
@@ -629,7 +645,7 @@ export function EventSuccessPassCard({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2 pt-2">
         <Link
           href={viewRegHref}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900/50 active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[3px] bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs sm:text-sm transition-all shadow-xs active:scale-[0.98]"
         >
           <span>View My Registration</span>
           <ArrowRight className="w-4 h-4" />
@@ -637,7 +653,7 @@ export function EventSuccessPassCard({
 
         <Link
           href={moreEventsHref}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs sm:text-sm transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[3px] bg-white dark:bg-[#1a1208] hover:bg-slate-100 dark:hover:bg-[#281b0f] text-slate-800 dark:text-[#faebd0] border border-slate-300 dark:border-[#4d3817] font-bold text-xs sm:text-sm transition-all shadow-2xs active:scale-[0.98]"
         >
           <span>Explore More Events</span>
           <ArrowRight className="w-4 h-4" />
@@ -645,7 +661,7 @@ export function EventSuccessPassCard({
 
         <Link
           href={homeHref}
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[3px] bg-slate-100 dark:bg-[#22160c] hover:bg-slate-200 dark:hover:bg-[#301e0f] text-slate-700 dark:text-[#c4a97d] font-semibold text-xs sm:text-sm transition-colors active:scale-[0.98] border border-slate-200 dark:border-[#382713]"
         >
           <Home className="w-4 h-4" />
           <span>Go to Home</span>
