@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, Users, ArrowRight, Sparkles, Pin } from 'lucide-react';
 import { RedPushpin } from '@/components/ui/RedPushpin';
+import { ExamPadClip } from '@/components/ui/ExamPadCard';
 import type { CollegeEvent } from '@/types/events';
 
 interface EventsNoticeBoardProps {
@@ -22,37 +23,40 @@ export function EventsNoticeBoard({
   className = '',
 }: EventsNoticeBoardProps) {
   return (
-    <div className={`relative overflow-visible w-full ${className}`}>
-      {/* 1. Wooden Moulding Frame */}
-      <div className="notice-board-wood-frame p-2 sm:p-3 md:p-4 rounded-xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-2xl">
-        {/* Brass Corner Brackets */}
-        <div className="absolute top-1 left-1 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/90 pointer-events-none rounded-tl-xs" />
-        <div className="absolute top-1 right-1 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/90 pointer-events-none rounded-tr-xs" />
-        <div className="absolute bottom-1 left-1 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-500/90 pointer-events-none rounded-bl-xs" />
-        <div className="absolute bottom-1 right-1 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/90 pointer-events-none rounded-br-xs" />
+    <div className={`relative overflow-visible w-full scroll-mt-28 ${className}`}>
+      {/* 1. ExamPad Hardboard Clipboard Frame */}
+      <div className="exam-pad-board-dashboard p-3 sm:p-5 md:p-6 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl">
+        {/* Authentic Top Metal Exam Clip */}
+        <ExamPadClip label="CAMPUS BULLETIN" size="default" />
 
-        {/* 2. Top Brass Nameplate / Header Banner */}
+        {/* Brass Corner Brackets */}
+        <div className="absolute top-1.5 left-1.5 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1.5 left-1.5 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+
+        {/* 2. Top Nameplate / Header Banner */}
         <div className="mx-auto max-w-md text-center mb-4 sm:mb-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-sm bg-gradient-to-r from-amber-700 via-amber-600 to-amber-800 text-amber-100 border border-amber-400/50 shadow-md">
-            <Pin className="w-3.5 h-3.5 text-amber-200" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-[3px] bg-amber-100/80 dark:bg-[#2b1f11] text-amber-950 dark:text-amber-200 border border-amber-300/80 dark:border-amber-700/60 shadow-xs">
+            <Pin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-widest">
               {title}
             </span>
           </div>
           {subtitle && (
-            <p className="text-[11px] sm:text-xs text-amber-200/80 font-medium mt-1">
+            <p className="text-[11px] sm:text-xs text-slate-600 dark:text-[#c4a97d] font-medium mt-1">
               {subtitle}
             </p>
           )}
         </div>
 
-        {/* 3. Dark Green Felt / Bulletin Surface */}
-        <div className="notice-board-felt-surface rounded-lg p-3 sm:p-6 md:p-8 min-h-[360px]">
+        {/* 3. Pinned Notices Surface Area */}
+        <div className="rounded-[4px] p-2 sm:p-4 min-h-[360px]">
           {events.length === 0 ? (
             /* Empty Notice State */
-            <div className="relative max-w-sm mx-auto my-8 bg-[#fdfbf7] dark:bg-[#1a1309] text-slate-800 dark:text-[#faebd0] rounded-[3px] p-6 sm:p-8 text-center border border-[#dfd7be] dark:border-[#4d3817] shadow-xl">
+            <div className="relative max-w-sm mx-auto my-8 bg-[#fffdfa] dark:bg-[#1a1309] text-slate-800 dark:text-[#faebd0] rounded-[3px] p-6 sm:p-8 text-center border border-amber-900/30 dark:border-[#4d3817] shadow-xl">
               <RedPushpin className="-top-3" />
-              <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-[#2b1f10] text-amber-700 dark:text-amber-400 mx-auto flex items-center justify-center mb-3">
+              <div className="w-10 h-10 rounded-[2px] bg-amber-100 dark:bg-[#2b1f10] text-amber-700 dark:text-amber-400 mx-auto flex items-center justify-center mb-3 border border-amber-300/60 dark:border-amber-700/60">
                 <Calendar className="w-5 h-5" />
               </div>
               <h4 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">

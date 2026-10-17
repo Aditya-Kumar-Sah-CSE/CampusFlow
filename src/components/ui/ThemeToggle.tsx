@@ -9,16 +9,14 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '', showLabel = false }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    const isDark =
-      document.documentElement.classList.contains('dark') ||
-      localStorage.getItem('campusflow_theme') === 'dark' ||
-      (!localStorage.getItem('campusflow_theme') &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const stored = localStorage.getItem('campusflow_theme');
+    // Default to dark unless explicitly set to 'light'
+    const isDark = stored ? stored === 'dark' : true;
 
     if (isDark) {
       setTheme('dark');

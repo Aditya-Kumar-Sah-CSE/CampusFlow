@@ -10,6 +10,7 @@ import {
   FileCheck2,
   Building2,
   GraduationCap,
+  Layers,
   Clock,
   Search,
   AlertCircle,
@@ -21,6 +22,7 @@ import {
   RefreshCw,
   UserCheck,
 } from 'lucide-react';
+import { resolveAcademicLevel } from '@/lib/academic/level-utils';
 import {
   getConfirmationByTokenAction,
   verifyStudentSubmissionAction,
@@ -280,7 +282,21 @@ function ConfirmationContent() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-slate-400 shrink-0" />
+                  <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase">Academic Level</span>
+                    <span className="font-bold text-slate-900">
+                      {confirmationData.academicLevel ||
+                        resolveAcademicLevel(
+                          null,
+                          `${confirmationData.formTitle} ${confirmationData.branch} ${confirmationData.semester}`
+                        )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-slate-400 shrink-0" />
                   <div>
                     <span className="text-[10px] text-slate-400 block uppercase">Semester Level</span>
                     <span className="font-semibold text-slate-900">{confirmationData.semester}</span>

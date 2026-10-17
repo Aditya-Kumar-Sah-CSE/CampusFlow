@@ -18,6 +18,7 @@ export interface VerifiedConfirmationData {
   academicYear: string;
   branch: string;
   semester: string;
+  academicLevel?: string;
   submittedAt: string | null;
   studentEmail: string;
   studentName: string | null;

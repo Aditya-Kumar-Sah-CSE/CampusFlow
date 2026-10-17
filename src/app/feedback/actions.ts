@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Faculty, Subject, Branch } from '@/types/database';
 import { isValidUUID } from '@/lib/validation';
+import { resolveAcademicLevel } from '@/lib/academic/level-utils';
 
 /**
  * Obtain a database client for public operations.
@@ -22,6 +23,8 @@ export interface PublicFormSummary {
   description?: string | null;
   form_type: string;
   status: string;
+  academic_level?: string;
+  academicLevel?: string;
   google_form_url?: string | null;
   published_at?: string | null;
   closed_at?: string | null;
@@ -496,6 +499,7 @@ export interface PublicActiveFormCard {
   branch: string;
   branchCode: string;
   semester: string;
+  academicLevel: string;
   facultySubjectDisplay: string;
   itemsCount?: number;
 }
@@ -542,7 +546,7 @@ async function fetchPublicActiveFormsDirect(params?: {
         published_at,
         created_at,
         branch:branches(id, name, code),
-        semester:semesters(id, name, semester_number),
+        semester:semesters(id, name, semester_number, programme_id, programme:academic_programmes(id, name, code)),
         academic_year:academic_years(id, name),
         faculty:faculties(id, name),
         subject:subjects(id, name, code),
@@ -569,7 +573,49 @@ async function fetchPublicActiveFormsDirect(params?: {
 
     query = query.range(from, to);
 
-    const { data, count, error } = await query;
+    let { data, count, error } = await query;
+
+    // Graceful fallback if nested academic_programmes relation isn't exposed to anon/client
+    if (error && (error.message?.includes('academic_programmes') || error.code === 'PGRST200')) {
+      const fallbackQuery = supabase
+        .from('feedback_forms')
+        .select(
+          `
+          id,
+          title,
+          form_type,
+          status,
+          google_form_url,
+          published_at,
+          created_at,
+          branch:branches(id, name, code),
+          semester:semesters(id, name, semester_number),
+          academic_year:academic_years(id, name),
+          faculty:faculties(id, name),
+          subject:subjects(id, name, code),
+          items:feedback_form_items(id)
+        `,
+          { count: 'exact' }
+        )
+        .eq('status', 'PUBLISHED')
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+
+      if (params?.collegeId && isValidUUID(params.collegeId)) {
+        fallbackQuery.eq('college_id', params.collegeId);
+      }
+      if (params?.branchId && isValidUUID(params.branchId)) {
+        fallbackQuery.eq('branch_id', params.branchId);
+      }
+      if (params?.search && params.search.trim()) {
+        fallbackQuery.or(`title.ilike.%${params.search.trim()}%`);
+      }
+
+      const res = await fallbackQuery.range(from, to);
+      data = res.data as any;
+      count = res.count;
+      error = res.error;
+    }
 
     if (error) {
       console.error('getPublicActiveFormsAction error:', {
@@ -605,6 +651,12 @@ async function fetchPublicActiveFormsDirect(params?: {
         facultySubjectDisplay = `${facName} — ${subName}`;
       }
 
+      const progName = f.semester?.programme?.name || f.semester?.programme?.code || null;
+      const academicLevel = resolveAcademicLevel(
+        progName,
+        `${f.title} ${f.branch?.name} ${f.semester?.name}`
+      );
+
       return {
         id: f.id,
         title: f.title,
@@ -616,6 +668,7 @@ async function fetchPublicActiveFormsDirect(params?: {
         branch: f.branch?.name || 'Department',
         branchCode: f.branch?.code || 'BCE',
         semester: f.semester?.name || 'Semester',
+        academicLevel,
         facultySubjectDisplay,
         itemsCount,
       };

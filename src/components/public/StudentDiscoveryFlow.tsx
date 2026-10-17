@@ -19,10 +19,12 @@ import {
 } from '@/app/feedback/actions';
 import { PublicFeedbackCard } from '@/components/public/PublicFeedbackCard';
 import { RedPushpin } from '@/components/ui/RedPushpin';
+import { ExamPadClip } from '@/components/ui/ExamPadCard';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useStudentSession } from '@/lib/auth/use-student-session';
 import { checkStudentFormEligibilityAction } from '@/app/auth/student/actions';
+import { resolveAcademicLevel } from '@/lib/academic/level-utils';
 import {
   Calendar,
   Layers,
@@ -370,7 +372,8 @@ export function StudentDiscoveryFlow({
     const progMap = new Map<string, { title: string; programmeName: string; items: Semester[] }>();
 
     semesters.forEach(s => {
-      const progName = s.programme?.name || (s.programme_id ? 'Programme' : 'General');
+      const resolvedLvl = resolveAcademicLevel(s.programme?.name, s.name);
+      const progName = s.programme?.name || resolvedLvl || 'B.Tech';
       const progType = s.programme?.programme_type;
       const typeLabel =
         progType === 'UNDERGRADUATE'
@@ -381,10 +384,10 @@ export function StudentDiscoveryFlow({
           ? 'Diploma'
           : progType === 'SCHOOL'
           ? 'School'
-          : '';
-      const title = s.programme?.name
-        ? `${s.programme.name}${typeLabel ? ` (${typeLabel})` : ''}`
-        : 'All Semesters';
+          : resolvedLvl === 'M.Tech'
+          ? 'Postgraduate'
+          : 'Undergraduate';
+      const title = `${progName} (${typeLabel})`;
 
       if (!progMap.has(progName)) {
         progMap.set(progName, { title, programmeName: progName, items: [] });
@@ -393,7 +396,7 @@ export function StudentDiscoveryFlow({
     });
 
     const groups = Array.from(progMap.values());
-    const distinctProgs = Array.from(progMap.keys()).filter(k => k !== 'General');
+    const distinctProgs = Array.from(progMap.keys());
 
     return {
       semesterGroups: groups,
@@ -404,7 +407,8 @@ export function StudentDiscoveryFlow({
 
   const selectedSemesterLabel = useMemo(() => {
     if (!selectedSemester) return '';
-    const progPrefix = selectedSemester.programme?.name ? `${selectedSemester.programme.name} — ` : '';
+    const resolvedLvl = resolveAcademicLevel(selectedSemester.programme?.name, selectedSemester.name);
+    const progPrefix = selectedSemester.programme?.name ? `${selectedSemester.programme.name} — ` : `${resolvedLvl} — `;
     const semNum = selectedSemester.semester_number ?? selectedSemester.level_number;
     const semPart = semNum ? `${selectedSemester.name} (Sem ${semNum})` : selectedSemester.name;
     return `${progPrefix}${semPart}`;
@@ -412,21 +416,19 @@ export function StudentDiscoveryFlow({
 
   return (
     <div className="space-y-4 sm:space-y-8">
-      {/* 5-Step Cascading Selection Notice Board with Wooden Frame & Felt Surface */}
-      <div className="notice-board-wood-frame p-1.5 sm:p-2.5 md:p-3 rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-xl">
-        {/* Brass corner brackets */}
-        <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
-        <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
-        <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
-        <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+      {/* 5-Step Cascading Selection ExamPad Clipboard with Vintage Metal Clip & Hardboard */}
+      <div className="exam-pad-board-dashboard p-2 sm:p-3 md:p-4 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl scroll-mt-28">
+        {/* Authentic Top Metal Exam Clip */}
+        <ExamPadClip label="FEEDBACK SELECTION" size="default" />
 
-        {/* Felt Surface */}
-        <div className="notice-board-felt-surface rounded-xl p-3 sm:p-5 md:p-6">
-          {/* Main Pinned Paper Document */}
-          <div className="relative rounded-[2px] p-4 sm:p-7 bg-[#fdfbf7] dark:bg-[#241b0e] border border-[#dfd7be] dark:border-[#6c5124] shadow-[0_4px_16px_rgba(0,0,0,0.35),0_12px_28px_rgba(0,0,0,0.25)] space-y-3.5 sm:space-y-6">
-            {/* Top Red Pushpin */}
-            <RedPushpin />
-            <div className="w-2.5 h-1 bg-black/35 dark:bg-black/60 rounded-full mx-auto -mt-1 mb-2 blur-[0.4px]" />
+        {/* Brass corner brackets */}
+        <div className="absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1.5 left-1.5 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+
+        {/* Main Paper Sheet Clamped Beneath Clip */}
+        <div className="relative rounded-[3px] p-4 sm:p-7 bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#4d381c] shadow-[0_2px_8px_rgba(0,0,0,0.12)] space-y-3.5 sm:space-y-6 text-slate-800 dark:text-[#faebd0]">
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 sm:pb-4 border-b border-slate-200/80 dark:border-[#423218]">
               <div>
@@ -511,7 +513,7 @@ export function StudentDiscoveryFlow({
                 <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#d6be8c] flex items-center gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5 text-amber-600 dark:text-[#d4af37] shrink-0" />
-                    3. Semester Level
+                    3. Academic Level & Semester
                   </label>
                   {hasMultipleProgrammes && (
                     <div className="flex items-center gap-1 bg-[#ede4ce] dark:bg-[#2e2110] p-0.5 rounded-[3px] border border-[#d6cbb1] dark:border-[#523c1c]">
@@ -532,8 +534,11 @@ export function StudentDiscoveryFlow({
                           type="button"
                           onClick={() => {
                             setSelectedProgrammeFilter(prog);
-                            const firstSem = semesters.find(s => (s.programme?.name || '') === prog);
-                            if (firstSem && selectedSemester?.programme?.name !== prog) {
+                            const firstSem = semesters.find(s => {
+                              const lvl = resolveAcademicLevel(s.programme?.name, s.name);
+                              return (s.programme?.name || lvl) === prog;
+                            });
+                            if (firstSem && selectedSemesterId !== firstSem.id) {
                               setSelectedSemesterId(firstSem.id);
                             }
                           }}
@@ -554,8 +559,10 @@ export function StudentDiscoveryFlow({
                   onChange={e => {
                     setSelectedSemesterId(e.target.value);
                     const picked = semesters.find(s => s.id === e.target.value);
-                    if (picked?.programme?.name && selectedProgrammeFilter !== 'ALL' && selectedProgrammeFilter !== picked.programme.name) {
-                      setSelectedProgrammeFilter(picked.programme.name);
+                    const pickedLvl = resolveAcademicLevel(picked?.programme?.name, picked?.name);
+                    const progName = picked?.programme?.name || pickedLvl;
+                    if (progName && selectedProgrammeFilter !== 'ALL' && selectedProgrammeFilter !== progName) {
+                      setSelectedProgrammeFilter(progName);
                     }
                   }}
                   className="paper-select w-full min-h-[44px] px-3.5 py-2 text-base sm:text-xs font-semibold cursor-pen"
@@ -565,7 +572,8 @@ export function StudentDiscoveryFlow({
                       <optgroup key={group.programmeName} label={group.title}>
                         {group.items.map(s => {
                           const semNum = s.semester_number ?? s.level_number;
-                          const progPrefix = s.programme?.name ? `${s.programme.name} — ` : '';
+                          const lvl = resolveAcademicLevel(s.programme?.name, s.name);
+                          const progPrefix = s.programme?.name ? `${s.programme.name} — ` : `${lvl} — `;
                           const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
                           return (
                             <option key={s.id} value={s.id}>
@@ -577,10 +585,14 @@ export function StudentDiscoveryFlow({
                     ))
                   ) : (
                     semesters
-                      .filter(s => selectedProgrammeFilter === 'ALL' || (s.programme?.name || '') === selectedProgrammeFilter)
+                      .filter(s => {
+                        const lvl = resolveAcademicLevel(s.programme?.name, s.name);
+                        return selectedProgrammeFilter === 'ALL' || (s.programme?.name || lvl) === selectedProgrammeFilter;
+                      })
                       .map(s => {
                         const semNum = s.semester_number ?? s.level_number;
-                        const progPrefix = s.programme?.name ? `${s.programme.name} — ` : '';
+                        const lvl = resolveAcademicLevel(s.programme?.name, s.name);
+                        const progPrefix = s.programme?.name ? `${s.programme.name} — ` : `${lvl} — `;
                         const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
                         return (
                           <option key={s.id} value={s.id}>
@@ -763,7 +775,6 @@ export function StudentDiscoveryFlow({
             >
               <div className="absolute bottom-0 right-0 w-5 h-5 bg-black/10 dark:bg-black/50 rotate-45 translate-x-2.5 translate-y-2.5 border-t border-l border-black/10 dark:border-amber-500/20" />
             </div>
-          </div>
         </div>
       </div>
 

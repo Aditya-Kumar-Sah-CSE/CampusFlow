@@ -30,6 +30,8 @@ import {
   checkStudentFormEligibilityAction,
 } from '@/app/auth/student/actions';
 import { RedPushpin } from '@/components/ui/RedPushpin';
+import { ExamPadClip } from '@/components/ui/ExamPadCard';
+import { resolveAcademicLevel } from '@/lib/academic/level-utils';
 
 /** Forms per page — desktop shows a 3×2 grid */
 const PAGE_SIZE = 6;
@@ -82,9 +84,30 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
 
   const [data, setData] = useState<PublicActiveFormsResult>(initialData);
   const [search, setSearch] = useState(initialSearch);
+  const [levelFilter, setLevelFilter] = useState<'ALL' | 'B.Tech' | 'M.Tech'>('ALL');
   const [currentPage, setCurrentPage] = useState(initialData.page || 1);
   const [isPending, startTransition] = useTransition();
   const hydrated = useHydrated();
+
+  // Academic level filtering & count calculation
+  const filteredForms = React.useMemo(() => {
+    if (levelFilter === 'ALL') return data.forms;
+    return data.forms.filter(f => {
+      const lvl = f.academicLevel || resolveAcademicLevel(null, `${f.title} ${f.branch} ${f.semester}`);
+      return lvl === levelFilter;
+    });
+  }, [data.forms, levelFilter]);
+
+  const { btechCount, mtechCount } = React.useMemo(() => {
+    let btech = 0;
+    let mtech = 0;
+    (data.forms || []).forEach(f => {
+      const lvl = f.academicLevel || resolveAcademicLevel(null, `${f.title} ${f.branch} ${f.semester}`);
+      if (lvl === 'M.Tech') mtech++;
+      else btech++;
+    });
+    return { btechCount: btech, mtechCount: mtech };
+  }, [data.forms]);
 
   // Student auth session & submission tracking
   const { isAuthenticated, loading: sessionLoading } = useStudentSession();
@@ -234,50 +257,99 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
           </p>
         </div>
 
-        {/* Quick Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 text-slate-400 dark:text-amber-400/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search active forms..."
-            value={search}
-            onChange={e => handleSearchChange(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 sm:py-2 min-h-[42px] sm:min-h-[44px] rounded-xl bg-white dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/20 text-base sm:text-xs text-slate-800 dark:text-amber-100 placeholder-slate-400 dark:placeholder-amber-200/40 shadow-md outline-none transition-all"
-          />
+        {/* Quick Search & Academic Level Filter */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          {/* Level Filter Tabs: All / B.Tech / M.Tech */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/90 dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setLevelFilter('ALL')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                levelFilter === 'ALL'
+                  ? 'bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-950 shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
+              }`}
+            >
+              All ({data.forms.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setLevelFilter('B.Tech')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                levelFilter === 'B.Tech'
+                  ? 'bg-blue-600 text-white dark:bg-blue-500 dark:text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              B.Tech ({btechCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setLevelFilter('M.Tech')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                levelFilter === 'M.Tech'
+                  ? 'bg-purple-600 text-white dark:bg-purple-500 dark:text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              M.Tech ({mtechCount})
+            </button>
+          </div>
+
+          {/* Quick Search */}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 dark:text-amber-400/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search active forms..."
+              value={search}
+              onChange={e => handleSearchChange(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 min-h-[38px] rounded-xl bg-white dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/20 text-base sm:text-xs text-slate-800 dark:text-amber-100 placeholder-slate-400 dark:placeholder-amber-200/40 shadow-xs outline-none transition-all"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Dark Green Notice Board with Wooden Frame & Cork/Felt Texture */}
-      <div className="notice-board-wood-frame p-1.5 sm:p-2.5 md:p-3 rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a]">
-        {/* Brass corner brackets */}
-        <div className="absolute top-1 left-1 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
-        <div className="absolute top-1 right-1 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
-        <div className="absolute bottom-1 left-1 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
-        <div className="absolute bottom-1 right-1 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+      {/* ExamPad Evaluation Clipboard with Vintage Metal Clip & Hardboard */}
+      <div className="exam-pad-board-dashboard p-2 sm:p-3 md:p-4 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl">
+        {/* Authentic Top Metal Exam Clip */}
+        <ExamPadClip label="EVALUATION FORMS" size="default" />
 
-        {/* Felt Surface */}
-        <div className="notice-board-felt-surface rounded-xl p-4 sm:p-6 md:p-8 min-h-[360px]">
+        {/* Brass corner brackets */}
+        <div className="absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1.5 left-1.5 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+
+        {/* Clipboard Surface Area */}
+        <div className="rounded-[4px] p-2 sm:p-4 md:p-6 min-h-[360px]">
           {isPending ? (
-            <div className="py-16 text-center text-emerald-100">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto mb-2" />
-              <p className="text-xs text-emerald-200/80 font-medium">Updating notice board...</p>
+            <div className="py-16 text-center text-slate-700 dark:text-[#faebd0]">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600 dark:text-amber-400 mx-auto mb-2" />
+              <p className="text-xs text-slate-600 dark:text-[#c4a97d] font-medium">Updating evaluation ledger...</p>
             </div>
-          ) : data.forms.length === 0 ? (
-            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl border border-emerald-900/40 p-8 sm:p-12 text-center shadow-lg max-w-md mx-auto my-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-900/20 text-emerald-300 flex items-center justify-center mx-auto mb-3">
+          ) : filteredForms.length === 0 ? (
+            <div className="bg-[#fffdfa] dark:bg-[#1a1208] rounded-[3px] border border-amber-900/30 dark:border-[#422e17] p-8 sm:p-12 text-center shadow-lg max-w-md mx-auto my-6 text-slate-800 dark:text-[#faebd0]">
+              <div className="w-12 h-12 rounded-[2px] bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center mx-auto mb-3 border border-amber-500/30">
                 <Layers className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">No Published Forms Found</h3>
-              <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto mt-1">
-                {search
-                  ? 'No feedback forms match your search query.'
+              <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">No Published Forms Found</h3>
+              <p className="text-xs text-slate-600 dark:text-[#c4a97d] max-w-sm mx-auto mt-1">
+                {search || levelFilter !== 'ALL'
+                  ? `No feedback forms match your filter (${levelFilter !== 'ALL' ? levelFilter : ''}${search ? ` search "${search}"` : ''}).`
                   : 'There are currently no active feedback forms published for open submission.'}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 pt-6 sm:pt-7 pb-2">
-              {data.forms.map((form, index) => {
+              {filteredForms.map((form, index) => {
                 const isSemester = form.formType === 'SEMESTER_FEEDBACK';
+                const academicLevel =
+                  form.academicLevel ||
+                  resolveAcademicLevel(null, `${form.title} ${form.branch} ${form.semester}`);
+
                 const rotations = ['-0.85deg', '0.75deg', '-0.5deg', '0.9deg', '-0.7deg', '0.6deg'];
                 const delays = ['0s', '1.2s', '0.6s', '1.8s', '0.9s', '1.5s'];
                 const durations = ['5.4s', '6.2s', '5.8s', '6.5s', '5.3s', '6.0s'];
@@ -304,16 +376,29 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
 
                     <div className="space-y-2.5 sm:space-y-3.5">
                       {/* Card Badges */}
-                      <div className="flex items-center justify-between gap-2 pt-1">
-                        <span
-                          className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-[3px] text-[10px] font-bold ${
-                            isSemester
-                              ? 'bg-purple-50 dark:bg-[#382612] text-purple-700 dark:text-amber-300 border border-purple-200 dark:border-[#6e4b1e]'
-                              : 'bg-blue-50 dark:bg-[#332210] text-blue-700 dark:text-amber-300 border border-blue-200 dark:border-[#69461b]'
-                          }`}
-                        >
-                          {isSemester ? 'Semester Feedback' : 'Faculty Feedback'}
-                        </span>
+                      <div className="flex items-center justify-between gap-1.5 pt-1 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-[3px] text-[10px] font-bold ${
+                              isSemester
+                                ? 'bg-purple-50 dark:bg-[#382612] text-purple-700 dark:text-amber-300 border border-purple-200 dark:border-[#6e4b1e]'
+                                : 'bg-blue-50 dark:bg-[#332210] text-blue-700 dark:text-amber-300 border border-blue-200 dark:border-[#69461b]'
+                            }`}
+                          >
+                            {isSemester ? 'Semester Feedback' : 'Faculty Feedback'}
+                          </span>
+
+                          {/* Academic Level Badge: B.Tech / M.Tech */}
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10px] font-extrabold uppercase tracking-wide border shadow-2xs ${
+                              academicLevel === 'M.Tech'
+                                ? 'bg-purple-100 text-purple-900 dark:bg-[#2b1733] dark:text-[#f0abfc] border-purple-300 dark:border-[#701a75]'
+                                : 'bg-blue-100 text-blue-900 dark:bg-[#152a42] dark:text-[#93c5fd] border-blue-300 dark:border-[#1d4ed8]'
+                            }`}
+                          >
+                            {academicLevel}
+                          </span>
+                        </div>
 
                         <span className="inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-[#1a2c17] px-2 py-0.5 rounded-[3px] border border-emerald-200 dark:border-[#35582b]">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -338,9 +423,26 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
                           <span className="font-semibold text-slate-800 dark:text-[#fef3c7]">{form.branch}</span>
                         </div>
 
+                        {/* Academic Level (B.Tech / M.Tech) */}
                         <div className="flex items-center justify-between">
                           <span className="text-slate-400 dark:text-[#a88f63] text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
                             <GraduationCap className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37]" />
+                            Academic Level
+                          </span>
+                          <span
+                            className={`font-bold px-2 py-0.5 rounded-[3px] text-[11px] border ${
+                              academicLevel === 'M.Tech'
+                                ? 'bg-purple-50 text-purple-900 dark:bg-[#2b1733] dark:text-[#f0abfc] border-purple-200 dark:border-[#701a75]'
+                                : 'bg-blue-50 text-blue-900 dark:bg-[#152a42] dark:text-[#93c5fd] border-blue-200 dark:border-[#1d4ed8]'
+                            }`}
+                          >
+                            {academicLevel}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 dark:text-[#a88f63] text-[10.5px] sm:text-[11px] flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37]" />
                             Semester Level
                           </span>
                           <span className="font-semibold text-slate-800 dark:text-[#fef3c7]">{form.semester}</span>
