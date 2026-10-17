@@ -241,25 +241,25 @@ export default async function FeedbackFormsPage({
     switch (status) {
       case 'PUBLISHED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[3px] text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/60">
             <CheckCircle2 className="w-3.5 h-3.5" /> PUBLISHED
           </span>
         );
       case 'DRAFT':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[3px] text-[11px] font-bold bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700/60">
             <Clock className="w-3.5 h-3.5" /> DRAFT
           </span>
         );
       case 'CLOSED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-800 border border-red-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[3px] text-[11px] font-bold bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700/60">
             <Ban className="w-3.5 h-3.5" /> CLOSED
           </span>
         );
       case 'ARCHIVED':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700 border border-slate-300">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[3px] text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
             <Archive className="w-3.5 h-3.5" /> ARCHIVED
           </span>
         );
@@ -390,7 +390,7 @@ export default async function FeedbackFormsPage({
           <>
             <div className="overflow-x-auto">
             <table className="w-full text-left text-xs min-w-[650px]">
-              <thead className="bg-slate-50 dark:bg-[#1f150c] text-slate-600 dark:text-[#c4a97d] font-semibold border-b border-slate-200 dark:border-[#382710] uppercase tracking-wider">
+              <thead className="bg-slate-50 dark:bg-[#1f150c] text-slate-700 dark:text-[#c4a97d] font-bold border-b border-slate-200 dark:border-[#382710] uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3">Form Details</th>
                   <th className="px-5 py-3">Faculty & Subject</th>
@@ -401,7 +401,7 @@ export default async function FeedbackFormsPage({
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#2d1f11]">
                 {forms.map(form => {
                   const faculty = form.faculty;
                   const subject = form.subject;
@@ -410,15 +410,18 @@ export default async function FeedbackFormsPage({
                   const isNative = form.response_destination_type === 'NATIVE_SHEET';
 
                   return (
-                    <tr key={form.id} className="hover:bg-slate-50 transition-colors">
+                    <tr
+                      key={form.id}
+                      className="bg-white dark:bg-[#1a1208] hover:bg-amber-50/50 dark:hover:bg-[#25180c] transition-colors"
+                    >
                       <td className="px-5 py-3.5">
                         <Link
                           href={`/admin/dashboard/forms/${form.id}`}
-                          className="font-bold text-slate-900 hover:text-bce-cobalt transition-colors block"
+                          className="font-bold text-slate-900 dark:text-[#faebd0] hover:text-bce-cobalt dark:hover:text-amber-400 transition-colors block"
                         >
                           {form.title}
                         </Link>
-                        <span className="text-[10px] text-slate-400 block font-mono mt-0.5">
+                        <span className="text-[10px] text-slate-400 dark:text-[#8c7453] block font-mono mt-0.5">
                           Created: {new Date(form.created_at).toLocaleDateString()}
                         </span>
                       </td>
@@ -426,7 +429,7 @@ export default async function FeedbackFormsPage({
                       <td className="px-5 py-3.5">
                         {form.form_type === 'SEMESTER_FEEDBACK' || (form.items && form.items.length > 0) ? (
                           <div className="space-y-1">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-700/60">
                               Multi-Faculty ({form.items?.length || 0})
                             </span>
                             {form.items && form.items.length > 0 ? (
@@ -440,37 +443,37 @@ export default async function FeedbackFormsPage({
                                 ).map((name: any, i) => (
                                   <span
                                     key={i}
-                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-medium bg-slate-100 text-slate-800 border border-slate-200"
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10.5px] font-medium bg-slate-100 dark:bg-[#25180c] text-slate-800 dark:text-[#faebd0] border border-slate-200 dark:border-[#4d3817]"
                                   >
                                     {name}
                                   </span>
                                 ))}
                               </div>
                             ) : (
-                              <div className="text-slate-500 text-[11px] mt-0.5">
+                              <div className="text-slate-500 dark:text-[#c4a97d] text-[11px] mt-0.5">
                                 All Semester Assigned Courses
                               </div>
                             )}
                           </div>
                         ) : (
                           <div>
-                            <div className="font-semibold text-slate-800">
+                            <div className="font-semibold text-slate-800 dark:text-[#faebd0]">
                               {faculty?.name || 'Faculty'}
                             </div>
-                            <div className="text-slate-500 text-[11px]">
+                            <div className="text-slate-500 dark:text-[#c4a97d] text-[11px]">
                               {subject?.name || 'Subject'} {subject?.code ? `(${subject.code})` : ''}
                             </div>
                           </div>
                         )}
                       </td>
 
-                      <td className="px-5 py-3.5 text-slate-600">
-                        <div className="font-semibold text-slate-800">{branch?.name || 'Branch'} ({branch?.code})</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">
+                      <td className="px-5 py-3.5 text-slate-600 dark:text-[#c4a97d]">
+                        <div className="font-semibold text-slate-800 dark:text-[#faebd0]">{branch?.name || 'Branch'} ({branch?.code})</div>
+                        <div className="text-[11px] text-slate-500 dark:text-[#c4a97d] mt-0.5">
                           {semester?.name || 'Sem'}
                         </div>
                         {form.academic_year?.name && (
-                          <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                          <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-amber-50 dark:bg-[#2e1f10] text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-700/60 shadow-2xs">
                             <span>Session {form.academic_year.name}</span>
                           </div>
                         )}
@@ -482,16 +485,16 @@ export default async function FeedbackFormsPage({
 
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold ${
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-[2px] text-[10px] font-semibold ${
                             isNative
-                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                              : 'bg-blue-100 text-blue-800 border border-blue-200'
+                              ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-700/60'
+                              : 'bg-blue-100 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60'
                           }`}
                         >
                           {isNative ? '⚡ Native Destination' : '🔄 App Managed Sync'}
                         </span>
                         {typeof form.response_count === 'number' && (
-                          <span className="block text-[10px] text-slate-500 mt-0.5">
+                          <span className="block text-[10px] text-slate-500 dark:text-[#c4a97d] mt-0.5">
                             {form.response_count} response(s)
                           </span>
                         )}
@@ -504,7 +507,7 @@ export default async function FeedbackFormsPage({
                               href={form.google_form_url}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-700 hover:text-purple-900 hover:underline"
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-200 hover:underline"
                               title="Open Google Form Responder View"
                             >
                               <FileCode2 className="w-3.5 h-3.5" />
@@ -512,7 +515,7 @@ export default async function FeedbackFormsPage({
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
+                            <span className="text-slate-400 dark:text-[#8c7453] text-[11px]">—</span>
                           )}
 
                           {form.google_sheet_url || form.google_sheet_id ? (
@@ -523,7 +526,7 @@ export default async function FeedbackFormsPage({
                               }
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-900 hover:underline ml-2"
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200 hover:underline ml-2"
                               title="Open Google Responses Sheet"
                             >
                               <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -531,7 +534,7 @@ export default async function FeedbackFormsPage({
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
+                            <span className="text-slate-400 dark:text-[#8c7453] text-[11px]">—</span>
                           )}
                         </div>
                       </td>

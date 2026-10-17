@@ -5,6 +5,7 @@ import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
 import { Search, RotateCcw } from 'lucide-react';
 import { AcademicYear, Branch, Semester } from '@/types/database';
 import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
 
 interface Props {
   academicYears: AcademicYear[];
@@ -104,132 +105,134 @@ export function FormsFilterClient({
   };
 
   return (
-    <div className="bg-white dark:bg-[#1a1309] p-4 sm:p-5 rounded-[3px] border border-slate-200 dark:border-[#4d3817] shadow-xs space-y-3.5">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* Search */}
-        <div className="relative">
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
-            Search
-          </label>
+    <ExamPadCard variant="compact" clipLabel="CATALOG FILTERS">
+      <div className="space-y-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 dark:text-[#8c7453] absolute left-3 top-2.5" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Faculty, subject, code..."
-              className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 dark:focus:ring-amber-500/20"
-            />
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
+              Search
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 dark:text-[#8c7453] absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Faculty, subject, code..."
+                className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+              />
+            </div>
+          </div>
+
+          {/* Academic Year */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
+              Session
+            </label>
+            <select
+              value={year}
+              onChange={e => {
+                setYear(e.target.value);
+                applyFilters({ year: e.target.value });
+              }}
+              className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            >
+              <option value="ALL">All Academic Years</option>
+              {academicYears.map(y => (
+                <option key={y.id} value={y.id}>
+                  {y.name} {y.is_active ? '(Active)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Branch / Discipline */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
+              Branch / Discipline
+            </label>
+            <select
+              value={branch}
+              onChange={e => {
+                setBranch(e.target.value);
+                applyFilters({ branch: e.target.value });
+              }}
+              aria-label="Filter Branch / Discipline"
+              className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            >
+              <option value="ALL">All Branches</option>
+              {activeBranches.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.name} ({b.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Semester */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
+              Semester
+            </label>
+            <select
+              value={semester}
+              onChange={e => {
+                setSemester(e.target.value);
+                applyFilters({ semester: e.target.value });
+              }}
+              className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            >
+              <option value="ALL">All Semesters</option>
+              {semesters.map(s => {
+                const semNum = s.semester_number ?? s.level_number;
+                const progPrefix = s.programme?.name ? `${s.programme.name} — ` : '';
+                const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
+                return (
+                  <option key={s.id} value={s.id}>
+                    {progPrefix}{semLabel}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Status */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
+              Status
+            </label>
+            <select
+              value={status}
+              onChange={e => {
+                setStatus(e.target.value);
+                applyFilters({ status: e.target.value });
+              }}
+              className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="DRAFT">DRAFT</option>
+              <option value="PUBLISHED">PUBLISHED</option>
+              <option value="CLOSED">CLOSED</option>
+              <option value="ARCHIVED">ARCHIVED</option>
+            </select>
           </div>
         </div>
 
-        {/* Academic Year */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
-            Session
-          </label>
-          <select
-            value={year}
-            onChange={e => {
-              setYear(e.target.value);
-              applyFilters({ year: e.target.value });
-            }}
-            className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 dark:focus:ring-amber-500/20"
+        {/* Reset Bar */}
+        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/80 dark:border-[#382710]">
+          <span className="text-slate-400 dark:text-[#8c7453]">
+            {isPending ? 'Applying filters...' : 'Filter forms by session, branch, semester or lifecycle'}
+          </span>
+          <button
+            onClick={handleReset}
+            className="inline-flex items-center gap-1 text-slate-500 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-[#faebd0] font-semibold cursor-pointer"
           >
-            <option value="ALL">All Academic Years</option>
-            {academicYears.map(y => (
-              <option key={y.id} value={y.id}>
-                {y.name} {y.is_active ? '(Active)' : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Branch / Discipline */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
-            Branch / Discipline
-          </label>
-          <select
-            value={branch}
-            onChange={e => {
-              setBranch(e.target.value);
-              applyFilters({ branch: e.target.value });
-            }}
-            aria-label="Filter Branch / Discipline"
-            className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 dark:focus:ring-amber-500/20"
-          >
-            <option value="ALL">All Branches</option>
-            {activeBranches.map(b => (
-              <option key={b.id} value={b.id}>
-                {b.name} ({b.code})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Semester */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
-            Semester
-          </label>
-          <select
-            value={semester}
-            onChange={e => {
-              setSemester(e.target.value);
-              applyFilters({ semester: e.target.value });
-            }}
-            className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 dark:focus:ring-amber-500/20"
-          >
-            <option value="ALL">All Semesters</option>
-            {semesters.map(s => {
-              const semNum = s.semester_number ?? s.level_number;
-              const progPrefix = s.programme?.name ? `${s.programme.name} — ` : '';
-              const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
-              return (
-                <option key={s.id} value={s.id}>
-                  {progPrefix}{semLabel}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mb-1">
-            Status
-          </label>
-          <select
-            value={status}
-            onChange={e => {
-              setStatus(e.target.value);
-              applyFilters({ status: e.target.value });
-            }}
-            className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-bce-cobalt/20 dark:focus:ring-amber-500/20"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="DRAFT">DRAFT</option>
-            <option value="PUBLISHED">PUBLISHED</option>
-            <option value="CLOSED">CLOSED</option>
-            <option value="ARCHIVED">ARCHIVED</option>
-          </select>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Filters</span>
+          </button>
         </div>
       </div>
-
-      {/* Reset Bar */}
-      <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 dark:border-[#382710]">
-        <span className="text-slate-400 dark:text-[#8c7453]">
-          {isPending ? 'Applying filters...' : 'Filter forms by session, branch, semester or lifecycle'}
-        </span>
-        <button
-          onClick={handleReset}
-          className="inline-flex items-center gap-1 text-slate-500 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-[#faebd0] font-semibold cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Reset Filters</span>
-        </button>
-      </div>
-    </div>
+    </ExamPadCard>
   );
 }

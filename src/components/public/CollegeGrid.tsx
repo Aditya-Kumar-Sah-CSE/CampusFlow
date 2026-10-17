@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import type { TenantContext } from '@/types/tenant';
 import { resolveCollegeLogoUrl } from '@/lib/events/college-logos';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { RedPushpin } from '@/components/ui/RedPushpin';
 
 interface CollegeGridProps {
   colleges: TenantContext[];
@@ -204,356 +206,390 @@ export function CollegeGrid({ colleges }: CollegeGridProps) {
 
   return (
     <div ref={gridTopRef} className="space-y-6">
-      {/* Search & Category Filter Header Controls */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-3.5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Real-time Search Box */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Search by college name, code (e.g. 108, GP-111), slug, district..."
-              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
-            />
-            {searchQuery && (
+      {/* Top College Search in Official Exam Pad */}
+      <ExamPadCard
+        variant="dashboard"
+        clipLabel="INSTITUTION SEARCH"
+        title="Institutional Directory Search"
+        subtitle="Search and filter government engineering colleges and polytechnic institutes across Bihar"
+        icon={<Building2 className="w-5 h-5 text-amber-700 dark:text-amber-400" />}
+        badge={`${totalItems} AVAILABLE`}
+      >
+        <div className="space-y-3.5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Real-time Search Box */}
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 dark:text-[#8c7453] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Search by college name, code (e.g. 108, GP-111), slug, district..."
+                className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] text-xs sm:text-sm text-slate-900 dark:text-[#faebd0] placeholder-slate-400 dark:placeholder-[#8c7453] focus:bg-white dark:focus:bg-[#1f150c] focus:outline-hidden focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all font-medium"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => handleSearchChange('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Result Count Badge */}
+            <div className="text-xs font-semibold text-slate-600 dark:text-[#c4a97d] shrink-0 self-end sm:self-center px-1">
+              {totalItems === 0 ? (
+                <span>0 institutions found</span>
+              ) : (
+                <span>
+                  Showing <span className="text-slate-900 dark:text-[#faebd0] font-bold">{startIndex + 1}–{endIndex}</span> of{' '}
+                  <span className="text-slate-900 dark:text-[#faebd0] font-bold">{totalItems}</span>
+                  {filteredColleges.length !== colleges.length && (
+                    <span className="text-slate-400 dark:text-[#8c7453] font-normal"> (from {colleges.length})</span>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Category Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/80 dark:border-[#382710] text-xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] mr-1 hidden sm:inline">
+              Category:
+            </span>
+            <button
+              type="button"
+              onClick={() => handleCategoryChange('ALL')}
+              className={`px-3 py-1.5 rounded-[3px] font-semibold transition-all text-xs flex items-center gap-1.5 cursor-pointer select-none ${
+                category === 'ALL'
+                  ? 'bg-slate-900 dark:bg-amber-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#1f150c] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-200 dark:hover:bg-[#2a1d10] border border-slate-200 dark:border-[#382710]'
+              }`}
+            >
+              <span>All Institutions</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === 'ALL' ? 'bg-slate-700 dark:bg-amber-800 text-slate-200' : 'bg-slate-200 dark:bg-[#2e1f10] text-slate-600 dark:text-amber-300'}`}>
+                {colleges.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCategoryChange('ENGG')}
+              className={`px-3 py-1.5 rounded-[3px] font-semibold transition-all text-xs flex items-center gap-1.5 cursor-pointer select-none ${
+                category === 'ENGG'
+                  ? 'bg-blue-600 dark:bg-blue-700 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#1f150c] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-200 dark:hover:bg-[#2a1d10] border border-slate-200 dark:border-[#382710]'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Engineering</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === 'ENGG' ? 'bg-blue-700 dark:bg-blue-900 text-blue-100' : 'bg-slate-200 dark:bg-[#2e1f10] text-slate-600 dark:text-amber-300'}`}>
+                {totalEngg}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleCategoryChange('POLY')}
+              className={`px-3 py-1.5 rounded-[3px] font-semibold transition-all text-xs flex items-center gap-1.5 cursor-pointer select-none ${
+                category === 'POLY'
+                  ? 'bg-emerald-600 dark:bg-emerald-700 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#1f150c] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-200 dark:hover:bg-[#2a1d10] border border-slate-200 dark:border-[#382710]'
+              }`}
+            >
+              <School className="w-3.5 h-3.5" />
+              <span>Polytechnic</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === 'POLY' ? 'bg-emerald-700 dark:bg-emerald-900 text-emerald-100' : 'bg-slate-200 dark:bg-[#2e1f10] text-slate-600 dark:text-amber-300'}`}>
+                {totalPoly}
+              </span>
+            </button>
+
+            {(searchQuery || category !== 'ALL') && (
               <button
                 type="button"
-                onClick={() => handleSearchChange('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
-                title="Clear search"
+                onClick={handleResetFilters}
+                className="ml-auto text-xs font-semibold text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-300 hover:underline cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                Reset Filters
               </button>
             )}
           </div>
+        </div>
+      </ExamPadCard>
 
-          {/* Result Count Badge */}
-          <div className="text-xs font-semibold text-slate-500 shrink-0 self-end sm:self-center px-1">
-            {totalItems === 0 ? (
-              <span>0 institutions</span>
-            ) : (
-              <span>
-                Showing <span className="text-slate-900 font-bold">{startIndex + 1}–{endIndex}</span> of{' '}
-                <span className="text-slate-900 font-bold">{totalItems}</span>
-                {filteredColleges.length !== colleges.length && (
-                  <span className="text-slate-400 font-normal"> (from {colleges.length})</span>
-                )}
-              </span>
-            )}
+      {/* Large Rustic Green Chalkboard Notice Board Container */}
+      <div className="relative border-8 sm:border-[12px] md:border-[14px] border-[#38210f] dark:border-[#201105] rounded-xl shadow-2xl p-4 sm:p-6 md:p-8 bg-[#143527] dark:bg-[#091a13] overflow-visible my-4">
+        {/* Decorative Brass Corner Brackets */}
+        <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-amber-400/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-amber-400/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-amber-400/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-amber-400/80 pointer-events-none rounded-br-xs" />
+
+        {/* Vintage Chalkboard Title Banner in Authentic Chalk Lettering */}
+        <div className="text-center mb-6 sm:mb-8 pb-3 border-b border-emerald-800/40 dark:border-emerald-950/60 relative">
+          <div className="inline-block px-3 py-0.5 rounded-[2px] bg-emerald-900/40 border border-emerald-700/30 text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.22em] text-amber-200/95 font-bold mb-1 shadow-2xs">
+            DEPARTMENT OF SCIENCE, TECHNOLOGY &amp; TECHNICAL EDUCATION • BIHAR
           </div>
+          <h2 className="text-base sm:text-xl md:text-2xl font-serif font-black tracking-wider text-emerald-50 dark:text-emerald-100 uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            STATE INSTITUTIONAL NOTICE BOARD
+          </h2>
+          <p className="text-[11px] sm:text-xs text-emerald-200/80 font-mono tracking-wide mt-0.5">
+            Official Registry of Government Engineering Colleges &amp; Polytechnics
+          </p>
         </div>
 
-        {/* Quick Filter Buttons */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100 text-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">
-            Category:
-          </span>
-          <button
-            type="button"
-            onClick={() => handleCategoryChange('ALL')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all text-xs flex items-center gap-1.5 ${
-              category === 'ALL'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <span>All Institutions</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === 'ALL' ? 'bg-slate-700 text-slate-200' : 'bg-slate-200 text-slate-600'}`}>
-              {colleges.length}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleCategoryChange('ENGG')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all text-xs flex items-center gap-1.5 ${
-              category === 'ENGG'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5" />
-            <span>Engineering</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === 'ENGG' ? 'bg-blue-700 text-blue-100' : 'bg-slate-200 text-slate-600'}`}>
-              {totalEngg}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleCategoryChange('POLY')}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all text-xs flex items-center gap-1.5 ${
-              category === 'POLY'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            <School className="w-3.5 h-3.5" />
-            <span>Polytechnic</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${category === 'POLY' ? 'bg-emerald-700 text-emerald-100' : 'bg-slate-200 text-slate-600'}`}>
-              {totalPoly}
-            </span>
-          </button>
-
-          {(searchQuery || category !== 'ALL') && (
+        {/* Filtered Colleges Grid inside the Green Chalkboard */}
+        {filteredColleges.length === 0 ? (
+          <div className="bg-[#faf8f5]/95 dark:bg-[#1a1309]/95 rounded-[3px] border border-amber-900/30 dark:border-[#4d3817] p-8 sm:p-12 text-center max-w-md mx-auto shadow-lg relative pt-7">
+            <RedPushpin className="-top-3" />
+            <div className="w-12 h-12 rounded-[3px] bg-amber-100/60 dark:bg-[#25180c] border border-amber-200 dark:border-[#4d3817] flex items-center justify-center mx-auto mb-3 text-amber-800 dark:text-amber-400">
+              <School className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">No institutions found</h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-[#c4a97d] mt-1">
+              No college matched &ldquo;{searchQuery}&rdquo;. Try searching by name, code, slug, or district.
+            </p>
             <button
               type="button"
               onClick={handleResetFilters}
-              className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+              className="mt-4 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-[3px] shadow-xs transition-colors cursor-pointer"
             >
-              Reset Filters
+              Reset Search
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Filtered Colleges Grid */}
-      {filteredColleges.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-md mx-auto shadow-xs">
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
-            <School className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-900">No institutions found</h3>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            No college matched &ldquo;{searchQuery}&rdquo;. Try searching by name, code, slug, or district.
-          </p>
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
-          >
-            Reset Search
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            {paginatedColleges.map((college) => {
-              const isCopied = justCopiedId === college.collegeId;
-              const isPoly = isPolytechnic(college);
+        ) : (
+          <div className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              {paginatedColleges.map((college) => {
+                const isCopied = justCopiedId === college.collegeId;
+                const isPoly = isPolytechnic(college);
 
-              return (
-                <div
-                  key={college.collegeId}
-                  className="bg-white rounded-xl border border-slate-200 hover:border-slate-300 shadow-xs hover:shadow transition-all duration-200 flex flex-col p-3.5 sm:p-6 text-center group"
-                >
-                  {/* College Logo or Fallback App Icon */}
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2.5 sm:mb-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center p-2 text-slate-700 overflow-hidden shrink-0">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={
-                        college.logo ||
-                        resolveCollegeLogoUrl({
-                          collegeCode: college.code,
-                          collegeSlug: college.slug,
-                          collegeName: college.name,
-                        }) ||
-                        '/icon-192.png'
-                      }
-                      alt={`${college.name} Logo`}
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        // Fallback to app icon if image fails loading
-                        (e.currentTarget as HTMLImageElement).src = '/icon-192.png';
-                      }}
-                    />
-                  </div>
+                return (
+                  <div
+                    key={college.collegeId}
+                    className="relative group bg-[#faf8f5] dark:bg-[#19120a] text-slate-900 dark:text-[#faebd0] border border-amber-900/25 dark:border-[#4d3817] rounded-[3px] p-3.5 sm:p-5 text-center flex flex-col shadow-md hover:shadow-xl transition-all duration-200 pt-6"
+                  >
+                    {/* Authentic 3D Red Pushpin Pinning the College Card */}
+                    <RedPushpin className="-top-3" />
 
-                  {/* College Name */}
-                  <h2 className="text-sm sm:text-base font-bold text-slate-900 group-hover:text-blue-900 transition-colors line-clamp-2 min-h-[2.5rem] flex items-center justify-center">
-                    {college.name}
-                  </h2>
+                    {/* College Logo or Fallback App Icon */}
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2.5 sm:mb-4 rounded-[3px] bg-white dark:bg-[#25180c] border border-slate-200/80 dark:border-[#4d3817] flex items-center justify-center p-2 text-slate-700 overflow-hidden shrink-0 shadow-2xs">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={
+                          college.logo ||
+                          resolveCollegeLogoUrl({
+                            collegeCode: college.code,
+                            collegeSlug: college.slug,
+                            collegeName: college.name,
+                          }) ||
+                          '/icon-192.png'
+                        }
+                        alt={`${college.name} Logo`}
+                        className="max-w-full max-h-full object-contain"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = '/icon-192.png';
+                        }}
+                      />
+                    </div>
 
-                  {/* Short Code & Type Badge */}
-                  <div className="flex items-center justify-center gap-1.5 mt-1 mb-1.5 sm:mb-2">
-                    <span
-                      className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                        isPoly
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200'
-                      }`}
-                    >
-                      {college.code}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400">
-                      /{college.slug}
-                    </span>
-                  </div>
+                    {/* College Name */}
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#faebd0] group-hover:text-amber-800 dark:group-hover:text-amber-300 transition-colors line-clamp-2 min-h-[2.5rem] flex items-center justify-center leading-snug">
+                      {college.name}
+                    </h2>
 
-                  {/* Optional Location / City */}
-                  {college.address && (
-                    <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1 mb-2.5 sm:mb-4 truncate">
-                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                      <span className="truncate">{college.address}</span>
-                    </p>
-                  )}
-
-                  {/* Card Actions */}
-                  <div className="mt-auto pt-2.5 sm:pt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                    <Link
-                      href={`/${college.slug}`}
-                      className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors py-1 group/btn"
-                    >
-                      <span>Open Portal</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-                    </Link>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Link
-                        href={`/${college.slug}?install=true`}
-                        className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 group/pwa relative"
-                        aria-label={`Install ${college.name} App (PWA)`}
-                        title={`Install ${college.shortName || college.name} App (PWA)`}
+                    {/* Short Code & Type Badge */}
+                    <div className="flex items-center justify-center gap-1.5 mt-1.5 mb-1.5 sm:mb-2">
+                      <span
+                        className={`text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-[2px] border ${
+                          isPoly
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/60'
+                            : 'bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700/60'
+                        }`}
                       >
-                        <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        {college.code}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-500 dark:text-[#c4a97d]">
+                        /{college.slug}
+                      </span>
+                    </div>
+
+                    {/* Optional Location / City */}
+                    {college.address && (
+                      <p className="text-[11px] text-slate-600 dark:text-[#c4a97d] flex items-center justify-center gap-1 mb-2.5 sm:mb-4 truncate">
+                        <MapPin className="w-3 h-3 text-slate-400 dark:text-[#8c7453] shrink-0" />
+                        <span className="truncate">{college.address}</span>
+                      </p>
+                    )}
+
+                    {/* Card Actions */}
+                    <div className="mt-auto pt-2.5 sm:pt-4 border-t border-slate-200/80 dark:border-[#382710] flex items-center justify-between gap-2">
+                      <Link
+                        href={`/${college.slug}`}
+                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-bce-cobalt dark:text-amber-400 hover:text-bce-navy dark:hover:text-amber-300 transition-colors py-1 group/btn"
+                      >
+                        <span>Open Portal</span>
+                        <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                       </Link>
 
-                      <button
-                        type="button"
-                        onClick={() => handleShare(college)}
-                        className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                        aria-label={`Share ${college.name} portal link`}
-                        title={`Share ${college.name} Portal`}
-                      >
-                        {isCopied ? (
-                          <Check className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Share2 className="w-4 h-4" />
-                        )}
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Link
+                          href={`/${college.slug}?install=true`}
+                          className="p-1.5 sm:p-2 rounded-[3px] text-slate-500 dark:text-[#c4a97d] hover:text-bce-cobalt dark:hover:text-amber-400 hover:bg-slate-200/70 dark:hover:bg-[#25180c] transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 group/pwa relative"
+                          aria-label={`Install ${college.name} App (PWA)`}
+                          title={`Install ${college.shortName || college.name} App (PWA)`}
+                        >
+                          <Download className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        </Link>
+
+                        <button
+                          type="button"
+                          onClick={() => handleShare(college)}
+                          className="p-1.5 sm:p-2 rounded-[3px] text-slate-500 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-[#faebd0] hover:bg-slate-200/70 dark:hover:bg-[#25180c] transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 cursor-pointer"
+                          aria-label={`Share ${college.name} portal link`}
+                          title={`Share ${college.name} Portal`}
+                        >
+                          {isCopied ? (
+                            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <Share2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Pagination Footer Controls */}
-          {totalItems > 0 && (totalPages > 1 || colleges.length > 12) && (
-            <div className="bg-white rounded-2xl border border-slate-200/90 p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-              {/* Left: Summary + Per Page */}
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                <span className="text-slate-600 text-xs">
-                  Page <strong className="font-bold text-slate-900">{activePage}</strong> of{' '}
-                  <strong className="font-bold text-slate-900">{totalPages}</strong>{' '}
-                  <span className="text-slate-400">({totalItems} {totalItems === 1 ? 'college' : 'colleges'})</span>
-                </span>
-
-                <div className="flex items-center gap-1.5 pl-2.5 border-l border-slate-200">
-                  <label htmlFor="collegePageSizeSelect" className="text-slate-500 text-[11px] hidden sm:inline">
-                    Per page:
-                  </label>
-                  <select
-                    id="collegePageSizeSelect"
-                    value={pageSize}
-                    onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                    className="bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-800 font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer transition-colors"
-                  >
-                    {[12, 24, 36, 48].map((size) => (
-                      <option key={size} value={size}>
-                        {size} / page
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Right: Page Navigation */}
-              {totalPages > 1 && (
-                <nav aria-label="Colleges pagination" className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
-                  {/* First Page (Desktop) */}
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(1)}
-                    disabled={activePage <= 1}
-                    className="hidden md:inline-flex items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="First page"
-                    title="First page"
-                  >
-                    <ChevronsLeft className="w-3.5 h-3.5" />
-                  </button>
-
-                  {/* Previous Page */}
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(activePage - 1)}
-                    disabled={activePage <= 1}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Previous page"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Prev</span>
-                  </button>
-
-                  {/* Page Number Buttons */}
-                  <div className="flex items-center gap-1">
-                    {getPaginationRange().map((p, idx) => {
-                      if (p === '...') {
-                        return (
-                          <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-slate-400 font-medium select-none text-xs">
-                            …
-                          </span>
-                        );
-                      }
-                      const pageNum = Number(p);
-                      const isActive = pageNum === activePage;
-                      return (
-                        <button
-                          key={pageNum}
-                          type="button"
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`min-w-[32px] h-8 rounded-lg text-xs font-bold transition-all ${
-                            isActive
-                              ? 'bg-blue-600 text-white shadow-xs'
-                              : 'border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900'
-                          }`}
-                          aria-label={`Page ${pageNum}`}
-                          aria-current={isActive ? 'page' : undefined}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Next Page */}
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(activePage + 1)}
-                    disabled={activePage >= totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Next page"
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-
-                  {/* Last Page (Desktop) */}
-                  <button
-                    type="button"
-                    onClick={() => handlePageChange(totalPages)}
-                    disabled={activePage >= totalPages}
-                    className="hidden md:inline-flex items-center justify-center p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Last page"
-                    title="Last page"
-                  >
-                    <ChevronsRight className="w-3.5 h-3.5" />
-                  </button>
-                </nav>
-              )}
+                );
+              })}
             </div>
-          )}
-        </>
-      )}
+
+            {/* Pagination Footer Controls pinned within the notice board */}
+            {totalItems > 0 && (totalPages > 1 || colleges.length > 12) && (
+              <div className="bg-[#faf8f5]/95 dark:bg-[#19120a]/95 rounded-[3px] border border-amber-900/30 dark:border-[#4d3817] p-3 sm:p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-700 dark:text-[#c4a97d]">
+                {/* Left: Summary + Per Page */}
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                  <span className="text-slate-700 dark:text-[#c4a97d] text-xs">
+                    Page <strong className="font-bold text-slate-900 dark:text-[#faebd0]">{activePage}</strong> of{' '}
+                    <strong className="font-bold text-slate-900 dark:text-[#faebd0]">{totalPages}</strong>{' '}
+                    <span className="text-slate-500 dark:text-[#8c7453]">({totalItems} {totalItems === 1 ? 'college' : 'colleges'})</span>
+                  </span>
+
+                  <div className="flex items-center gap-1.5 pl-2.5 border-l border-slate-300 dark:border-[#382710]">
+                    <label htmlFor="collegePageSizeSelect" className="text-slate-500 dark:text-[#c4a97d] text-[11px] hidden sm:inline">
+                      Per page:
+                    </label>
+                    <select
+                      id="collegePageSizeSelect"
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      className="bg-white dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-2.5 py-1 text-xs text-slate-900 dark:text-[#faebd0] font-semibold focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 cursor-pointer transition-colors"
+                    >
+                      {[12, 24, 36, 48].map((size) => (
+                        <option key={size} value={size}>
+                          {size} / page
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Right: Page Navigation */}
+                {totalPages > 1 && (
+                  <nav aria-label="Colleges pagination" className="flex items-center gap-1 sm:gap-1.5 flex-wrap justify-center">
+                    {/* First Page (Desktop) */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(1)}
+                      disabled={activePage <= 1}
+                      className="hidden md:inline-flex items-center justify-center p-1.5 sm:p-2 rounded-[3px] border border-slate-300 dark:border-[#382710] bg-white dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#20150b] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="First page"
+                      title="First page"
+                    >
+                      <ChevronsLeft className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Previous Page */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(activePage - 1)}
+                      disabled={activePage <= 1}
+                      className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-[3px] border border-slate-300 dark:border-[#382710] bg-white dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#20150b] font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Prev</span>
+                    </button>
+
+                    {/* Page Number Buttons */}
+                    <div className="flex items-center gap-1">
+                      {getPaginationRange().map((p, idx) => {
+                        if (p === '...') {
+                          return (
+                            <span key={`ellipsis-${idx}`} className="px-1.5 py-1 text-slate-400 dark:text-[#8c7453] font-medium select-none text-xs">
+                              …
+                            </span>
+                          );
+                        }
+                        const pageNum = Number(p);
+                        const isActive = pageNum === activePage;
+                        return (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`min-w-[32px] h-8 rounded-[3px] text-xs font-bold transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-amber-600 dark:bg-amber-500 text-white shadow-xs'
+                                : 'border border-slate-300 dark:border-[#382710] bg-white dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#20150b]'
+                            }`}
+                            aria-label={`Page ${pageNum}`}
+                            aria-current={isActive ? 'page' : undefined}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Next Page */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(activePage + 1)}
+                      disabled={activePage >= totalPages}
+                      className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-[3px] border border-slate-300 dark:border-[#382710] bg-white dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#20150b] font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Next page"
+                    >
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Last Page (Desktop) */}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(totalPages)}
+                      disabled={activePage >= totalPages}
+                      className="hidden md:inline-flex items-center justify-center p-1.5 sm:p-2 rounded-[3px] border border-slate-300 dark:border-[#382710] bg-white dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#20150b] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      aria-label="Last page"
+                      title="Last page"
+                    >
+                      <ChevronsRight className="w-3.5 h-3.5" />
+                    </button>
+                  </nav>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Floating Clipboard Copy Toast */}
       {toastMessage && (
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-900 text-white text-xs sm:text-sm font-medium shadow-xl border border-slate-700 animate-in fade-in slide-in-from-bottom-3"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-[3px] bg-slate-900 text-white text-xs sm:text-sm font-medium shadow-xl border border-slate-700 animate-in fade-in slide-in-from-bottom-3"
         >
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>

@@ -32,6 +32,8 @@ import {
   GraduationCap,
   Loader2,
 } from 'lucide-react';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 interface Props {
   initialReport: FormAnalyticsReport;
@@ -138,188 +140,192 @@ export function FormResultsConsole({ initialReport }: Props) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Top Header & Action Console */}
-      <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 sm:space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
-          <div className="space-y-1">
-            <div className="flex items-start sm:items-center gap-2 sm:gap-2.5">
-              <Link
-                href="/admin/dashboard/results"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 mt-0.5 sm:mt-0"
-                title="Back to All Results"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
-                    {isSemester
-                      ? selectedGridIndex === -1
-                        ? `Semester Feedback — ${report.branch} (${report.semester})`
-                        : `${activeFacultyGrid?.facultyName} — ${activeFacultyGrid?.subjectName}`
-                      : report.facultyName}
-                  </h1>
-                  {isSemester && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
-                      Multi-Faculty Semester Form
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 font-medium mt-1">
-                  <span>{report.branch} • {report.semester} • {report.academicYear}</span>
-                  {isSemester && report.facultyGrids ? <span>• {report.facultyGrids.length} Teachers Evaluated</span> : null}
-                  <span className="text-slate-300">•</span>
-                  <span className="font-semibold text-slate-800">
-                    {report.totalSubmissions ?? report.totalResponses} total submissions •{' '}
-                    <span className="text-emerald-700">{report.includedCount ?? report.totalResponses} included</span> •{' '}
-                    <span className="text-rose-700">{report.excludedCount ?? 0} excluded</span>
+      {/* Top Header on Authentic Exam Pad */}
+      <ExamPadCard
+        variant="dashboard"
+        clipLabel="ANALYTICS CONSOLE"
+        title={
+          <div className="flex items-start sm:items-center gap-2 sm:gap-2.5">
+            <Link
+              href="/admin/dashboard/results"
+              className="p-1.5 rounded-[3px] text-slate-400 dark:text-[#8c7453] hover:text-slate-700 dark:hover:text-[#faebd0] hover:bg-slate-100 dark:hover:bg-[#25180c] transition-colors shrink-0 mt-0.5 sm:mt-0"
+              title="Back to All Results"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-[#faebd0] leading-tight">
+                  {isSemester
+                    ? selectedGridIndex === -1
+                      ? `Semester Feedback — ${report.branch} (${report.semester})`
+                      : `${activeFacultyGrid?.facultyName} — ${activeFacultyGrid?.subjectName}`
+                    : report.facultyName}
+                </h1>
+                {isSemester && (
+                  <span className="px-2.5 py-0.5 rounded-[2px] text-[10px] font-bold bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shrink-0">
+                    Multi-Faculty Semester Form
                   </span>
-                </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 dark:text-[#c4a97d] font-medium mt-1">
+                <span>{report.branch} • {report.semester} • {report.academicYear}</span>
+                {isSemester && report.facultyGrids ? <span>• {report.facultyGrids.length} Teachers Evaluated</span> : null}
+                <span className="text-slate-300 dark:text-[#523c21]">•</span>
+                <span className="font-semibold text-slate-800 dark:text-[#faebd0]">
+                  {report.totalSubmissions ?? report.totalResponses} total submissions •{' '}
+                  <span className="text-emerald-700 dark:text-emerald-400">{report.includedCount ?? report.totalResponses} included</span> •{' '}
+                  <span className="text-rose-700 dark:text-rose-400">{report.excludedCount ?? 0} excluded</span>
+                </span>
               </div>
             </div>
           </div>
+        }
+        badge={`STATUS: ${report.status}`}
+      >
+        <div className="space-y-3.5 pt-1">
+          {/* Action Toolbar */}
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                aria-busy={isSyncing ? 'true' : undefined}
+                className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-bce-cobalt hover:bg-bce-navy text-white rounded-[3px] text-xs font-bold transition-all disabled:opacity-50 shadow-xs cursor-pointer ${
+                  isSyncing ? 'btn-request-active' : ''
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync Responses'}</span>
+              </button>
 
-          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full md:w-auto">
-            <button
-              onClick={handleSync}
-              disabled={isSyncing}
-              aria-busy={isSyncing ? 'true' : undefined}
-              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-bce-cobalt hover:bg-bce-navy text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-xs cursor-pointer ${
-                isSyncing ? 'btn-request-active' : ''
-              }`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Syncing...' : 'Sync Responses'}</span>
-            </button>
+              <Link
+                href={`/admin/dashboard/results/${report.formId}/responses`}
+                onClick={() => setIsNavigatingResponses(true)}
+                aria-busy={isNavigatingResponses ? 'true' : undefined}
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-[3px] text-xs font-bold transition-all border border-indigo-200 dark:border-indigo-800 shadow-xs"
+              >
+                {isNavigatingResponses ? (
+                  <Loader2 className="w-3.5 h-3.5 text-indigo-600 animate-spin" />
+                ) : (
+                  <Users className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                )}
+                <span>{isNavigatingResponses ? 'Opening Responses...' : 'Student Responses'}</span>
+              </Link>
+            </div>
 
-            <Link
-              href={`/admin/dashboard/results/${report.formId}/responses`}
-              onClick={() => setIsNavigatingResponses(true)}
-              aria-busy={isNavigatingResponses ? 'true' : undefined}
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all border border-indigo-200 shadow-xs"
-            >
-              {isNavigatingResponses ? (
-                <Loader2 className="w-3.5 h-3.5 text-indigo-600 animate-spin" />
+            <div className="flex flex-wrap items-center gap-2">
+              {isSemester ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleInitiatePdfDownload(semesterOverviewPdfUrl, `semester-report-${report.formId}.pdf`, 'SEMESTER')}
+                    disabled={Boolean(downloadingPdfType)}
+                    aria-busy={downloadingPdfType === 'SEMESTER' ? 'true' : undefined}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-[3px] text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    {downloadingPdfType === 'SEMESTER' ? (
+                      <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                    ) : (
+                      <FileDown className="w-3.5 h-3.5 text-amber-400" />
+                    )}
+                    <span>{downloadingPdfType === 'SEMESTER' ? 'Downloading Semester PDF...' : 'Download Semester PDF'}</span>
+                  </button>
+                  {activeFacultyGrid && (
+                    <button
+                      type="button"
+                      onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-${encodeURIComponent(activeFacultyGrid.facultyName)}.pdf`, 'FACULTY_GRID')}
+                      disabled={Boolean(downloadingPdfType)}
+                      aria-busy={downloadingPdfType === 'FACULTY_GRID' ? 'true' : undefined}
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-[#140e07] hover:bg-slate-200 dark:hover:bg-[#25180c] text-slate-800 dark:text-[#faebd0] rounded-[3px] text-xs font-bold transition-all border border-slate-300 dark:border-[#382710] disabled:opacity-50 cursor-pointer"
+                    >
+                      {downloadingPdfType === 'FACULTY_GRID' ? (
+                        <Loader2 className="w-3.5 h-3.5 text-bce-cobalt animate-spin" />
+                      ) : (
+                        <FileDown className="w-3.5 h-3.5 text-bce-cobalt" />
+                      )}
+                      <span>{downloadingPdfType === 'FACULTY_GRID' ? 'Generating PDF...' : 'Faculty PDF'}</span>
+                    </button>
+                  )}
+                </>
               ) : (
-                <Users className="w-3.5 h-3.5 text-indigo-600" />
-              )}
-              <span>{isNavigatingResponses ? 'Opening Responses...' : 'Student Responses'}</span>
-            </Link>
-
-            {isSemester ? (
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={() => handleInitiatePdfDownload(semesterOverviewPdfUrl, `semester-report-${report.formId}.pdf`, 'SEMESTER')}
+                  onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-report-${report.formId}.pdf`, 'FACULTY')}
                   disabled={Boolean(downloadingPdfType)}
-                  aria-busy={downloadingPdfType === 'SEMESTER' ? 'true' : undefined}
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                  aria-busy={downloadingPdfType === 'FACULTY' ? 'true' : undefined}
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-[3px] text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                 >
-                  {downloadingPdfType === 'SEMESTER' ? (
+                  {downloadingPdfType === 'FACULTY' ? (
                     <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
                   ) : (
                     <FileDown className="w-3.5 h-3.5 text-amber-400" />
                   )}
-                  <span>{downloadingPdfType === 'SEMESTER' ? 'Downloading Semester PDF...' : 'Download Semester PDF'}</span>
+                  <span>{downloadingPdfType === 'FACULTY' ? 'Generating PDF...' : 'Download Faculty Report (PDF)'}</span>
                 </button>
-                {activeFacultyGrid && (
-                  <button
-                    type="button"
-                    onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-${encodeURIComponent(activeFacultyGrid.facultyName)}.pdf`, 'FACULTY_GRID')}
-                    disabled={Boolean(downloadingPdfType)}
-                    aria-busy={downloadingPdfType === 'FACULTY_GRID' ? 'true' : undefined}
-                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all border border-slate-300 disabled:opacity-50 cursor-pointer"
-                  >
-                    {downloadingPdfType === 'FACULTY_GRID' ? (
-                      <Loader2 className="w-3.5 h-3.5 text-bce-cobalt animate-spin" />
-                    ) : (
-                      <FileDown className="w-3.5 h-3.5 text-bce-cobalt" />
-                    )}
-                    <span>{downloadingPdfType === 'FACULTY_GRID' ? 'Generating PDF...' : 'Faculty PDF'}</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleInitiatePdfDownload(facultyPdfUrl, `faculty-report-${report.formId}.pdf`, 'FACULTY')}
-                disabled={Boolean(downloadingPdfType)}
-                aria-busy={downloadingPdfType === 'FACULTY' ? 'true' : undefined}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-bce-navy hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
-              >
-                {downloadingPdfType === 'FACULTY' ? (
-                  <Loader2 className="w-3.5 h-3.5 text-amber-400 animate-spin" />
-                ) : (
-                  <FileDown className="w-3.5 h-3.5 text-amber-400" />
-                )}
-                <span>{downloadingPdfType === 'FACULTY' ? 'Generating PDF...' : 'Download Faculty Report (PDF)'}</span>
-              </button>
-            )}
+              )}
+            </div>
+          </div>
+
+          {/* Sync / Notification Alert */}
+          {syncMessage && (
+            <div
+              className={`p-3 rounded-[3px] border text-xs flex items-center gap-2 ${
+                syncMessage.type === 'success'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+                  : 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-900 dark:text-red-200'
+              }`}
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{syncMessage.text}</span>
+            </div>
+          )}
+
+          {/* Form Metadata & Quick Google Links */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/80 dark:border-[#382710] text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-500 dark:text-[#c4a97d] text-[11px]">
+                Last synced: {report.lastSyncedAt ? formatDateTimeFull(report.lastSyncedAt, hydrated) : 'Not yet synced'}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {report.googleSheetUrl && (
+                <ExternalActionLink
+                  href={report.googleSheetUrl}
+                  openingText="Opening Sheet..."
+                  className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 font-semibold"
+                  icon={<FileSpreadsheet className="w-3.5 h-3.5" />}
+                >
+                  <span>Google Sheet Responses</span>
+                  <ExternalLink className="w-3 h-3" />
+                </ExternalActionLink>
+              )}
+              {report.googleFormUrl && (
+                <ExternalActionLink
+                  href={report.googleFormUrl}
+                  openingText="Opening Form..."
+                  className="text-purple-700 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 font-semibold"
+                  icon={<FileCode2 className="w-3.5 h-3.5" />}
+                >
+                  <span>Public Form</span>
+                  <ExternalLink className="w-3 h-3" />
+                </ExternalActionLink>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Sync / Notification Alert */}
-        {syncMessage && (
-          <div
-            className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-              syncMessage.type === 'success'
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                : 'bg-red-50 border-red-200 text-red-900'
-            }`}
-          >
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{syncMessage.text}</span>
-          </div>
-        )}
-
-        {/* Form Metadata & Quick Google Links */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-              Status: {report.status}
-            </span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-500 text-[11px]">
-              Last synced: {report.lastSyncedAt ? formatDateTimeFull(report.lastSyncedAt, hydrated) : 'Not yet synced'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {report.googleSheetUrl && (
-              <ExternalActionLink
-                href={report.googleSheetUrl}
-                openingText="Opening Sheet..."
-                className="text-emerald-700 hover:text-emerald-800 font-semibold"
-                icon={<FileSpreadsheet className="w-3.5 h-3.5" />}
-              >
-                <span>Google Sheet Responses</span>
-                <ExternalLink className="w-3 h-3" />
-              </ExternalActionLink>
-            )}
-            {report.googleFormUrl && (
-              <ExternalActionLink
-                href={report.googleFormUrl}
-                openingText="Opening Form..."
-                className="text-purple-700 hover:text-purple-800 font-semibold"
-                icon={<FileCode2 className="w-3.5 h-3.5" />}
-              >
-                <span>Public Form</span>
-                <ExternalLink className="w-3 h-3" />
-              </ExternalActionLink>
-            )}
-          </div>
-        </div>
-      </div>
+      </ExamPadCard>
 
       {/* Scope Selector Tabs for Semester Forms */}
       {isSemester && report.facultyGrids && (
-        <div className="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-          <div className="flex items-center justify-between px-2 pt-1 pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-bce-cobalt" />
+        <div className="bg-white dark:bg-[#1a1309] p-2.5 sm:p-3.5 rounded-[3px] border border-slate-200 dark:border-[#4d3817] shadow-xs space-y-2">
+          <div className="flex items-center justify-between px-1 pt-0.5 pb-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d] flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               Analytics View Scope
             </span>
-            <span className="text-[11px] text-slate-400 font-medium">
+            <span className="text-[11px] text-slate-400 dark:text-[#8c7453] font-medium">
               {report.facultyGrids.length} Evaluated Faculty-Subject Grids
             </span>
           </div>
@@ -327,10 +333,10 @@ export function FormResultsConsole({ initialReport }: Props) {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedGridIndex(-1)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-[3px] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 selectedGridIndex === -1
-                  ? 'bg-bce-navy text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  ? 'bg-bce-navy dark:bg-amber-600 text-white shadow-xs'
+                  : 'bg-slate-100 dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-200 dark:hover:bg-[#25180c] border border-slate-200 dark:border-[#382710]'
               }`}
             >
               <GraduationCap className="w-3.5 h-3.5" />
@@ -343,10 +349,10 @@ export function FormResultsConsole({ initialReport }: Props) {
                 <button
                   key={idx}
                   onClick={() => setSelectedGridIndex(idx)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-[3px] text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                     isSelected
-                      ? 'bg-bce-cobalt text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      ? 'bg-bce-cobalt dark:bg-blue-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-[#140e07] text-slate-700 dark:text-[#c4a97d] hover:bg-slate-200 dark:hover:bg-[#25180c] border border-slate-200 dark:border-[#382710]'
                   }`}
                 >
                   <User className="w-3.5 h-3.5" />
@@ -361,9 +367,9 @@ export function FormResultsConsole({ initialReport }: Props) {
 
       {/* Exclusion Advisory Notice */}
       {Boolean(report.excludedCount && report.excludedCount > 0) && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-[3px] bg-amber-50 dark:bg-[#25180c] border border-amber-300 dark:border-[#4d3817] text-amber-900 dark:text-amber-200 text-xs shadow-xs">
           <div className="flex items-center gap-2.5">
-            <Info className="w-4 h-4 text-amber-600 shrink-0" />
+            <Info className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
             <div>
               <span className="font-bold">Manual Response Moderation Active:</span>{' '}
               <span>
@@ -374,7 +380,7 @@ export function FormResultsConsole({ initialReport }: Props) {
           </div>
           <Link
             href={`/admin/dashboard/results/${report.formId}/responses`}
-            className="inline-flex items-center gap-1 font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-300 hover:underline shrink-0 cursor-pointer"
           >
             <span>Review Excluded Responses</span>
           </Link>
@@ -384,19 +390,19 @@ export function FormResultsConsole({ initialReport }: Props) {
       {/* KPI Metric Summary Blocks */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         {/* Total Responses */}
-        <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+        <div className="bg-white dark:bg-[#1a1309] p-3 sm:p-5 rounded-[3px] border border-amber-900/20 dark:border-[#4d3817] shadow-xs">
+          <div className="flex items-center justify-between text-slate-400 dark:text-[#8c7453]">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d]">
               {isSemester && selectedGridIndex === -1 ? 'Included Students' : 'Included Submissions'}
             </span>
-            <Users className="w-4 h-4 text-blue-600" />
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#faebd0] mt-1.5 sm:mt-2">
             {isSemester && selectedGridIndex === -1
               ? (currentReport.includedCount ?? currentReport.totalStudents ?? currentReport.totalResponses)
               : (currentReport.includedCount ?? currentReport.totalResponses)}
           </div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-[#8c7453] mt-0.5 sm:mt-1 truncate">
             {currentReport.totalSubmissions !== undefined && currentReport.excludedCount !== undefined && currentReport.excludedCount > 0
               ? `${currentReport.totalSubmissions} total • ${currentReport.excludedCount} excluded`
               : isSemester && selectedGridIndex === -1
@@ -406,19 +412,19 @@ export function FormResultsConsole({ initialReport }: Props) {
         </div>
 
         {/* Valid Responses */}
-        <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+        <div className="bg-white dark:bg-[#1a1309] p-3 sm:p-5 rounded-[3px] border border-amber-900/20 dark:border-[#4d3817] shadow-xs">
+          <div className="flex items-center justify-between text-slate-400 dark:text-[#8c7453]">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d]">
               {isSemester && selectedGridIndex === -1 ? 'Evaluated Items' : 'Valid Evaluations'}
             </span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#faebd0] mt-1.5 sm:mt-2">
             {isSemester && selectedGridIndex === -1
               ? (currentReport.evaluatedItems ?? currentReport.validResponses)
               : currentReport.validResponses}
           </div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-[#8c7453] mt-0.5 sm:mt-1 truncate">
             {isSemester && selectedGridIndex === -1
               ? `${report.facultyGrids?.length || 0} faculty grids`
               : `${currentReport.unansweredResponses} incomplete`}
@@ -426,24 +432,24 @@ export function FormResultsConsole({ initialReport }: Props) {
         </div>
 
         {/* Overall Average Score */}
-        <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">
+        <div className="bg-white dark:bg-[#1a1309] p-3 sm:p-5 rounded-[3px] border border-amber-900/20 dark:border-[#4d3817] shadow-xs">
+          <div className="flex items-center justify-between text-slate-400 dark:text-[#8c7453]">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d]">
               {isSemester && selectedGridIndex === -1 ? 'Semester Avg' : 'Overall Rating'}
             </span>
             <Award className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1.5 sm:mt-2">
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#faebd0] mt-1.5 sm:mt-2">
             {currentReport.hasData ? (
               <>
                 {currentReport.averageOverallScore.toFixed(2)}{' '}
-                <span className="text-[11px] sm:text-xs font-medium text-slate-400">/ 5.00</span>
+                <span className="text-[11px] sm:text-xs font-medium text-slate-400 dark:text-[#8c7453]">/ 5.00</span>
               </>
             ) : (
-              <span className="text-sm sm:text-lg text-slate-400 font-semibold">No Data</span>
+              <span className="text-sm sm:text-lg text-slate-400 dark:text-[#8c7453] font-semibold">No Data</span>
             )}
           </div>
-          <p className="text-[10px] sm:text-[11px] text-slate-500 mt-0.5 sm:mt-1 truncate">
+          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-[#8c7453] mt-0.5 sm:mt-1 truncate">
             {currentReport.hasData
               ? `Avg: ${(currentReport.parameterAverageScore ?? currentReport.compositeAverageScore).toFixed(2)}`
               : 'Requires responses'}
@@ -451,78 +457,69 @@ export function FormResultsConsole({ initialReport }: Props) {
         </div>
 
         {/* Performance Grade */}
-        <div className="bg-white p-3 sm:p-5 rounded-2xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Performance Grade</span>
-            <Info className="w-4 h-4 text-slate-400" />
+        <div className="bg-white dark:bg-[#1a1309] p-3 sm:p-5 rounded-[3px] border border-amber-900/20 dark:border-[#4d3817] shadow-xs">
+          <div className="flex items-center justify-between text-slate-400 dark:text-[#8c7453]">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#c4a97d]">Performance Grade</span>
+            <Info className="w-4 h-4 text-slate-400 dark:text-[#8c7453]" />
           </div>
           <div className="mt-2">
             <span
-              className={`inline-block px-2.5 py-1 rounded-lg text-xs font-extrabold border ${gradeInfo.bgColor} ${gradeInfo.color} ${gradeInfo.borderColor}`}
+              className={`inline-block px-2.5 py-1 rounded-[2px] text-xs font-extrabold border ${gradeInfo.bgColor} ${gradeInfo.color} ${gradeInfo.borderColor}`}
             >
               {gradeInfo.label}
             </span>
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Institutional 5-point rating scale</p>
+          <p className="text-[11px] text-slate-500 dark:text-[#8c7453] mt-1">Institutional 5-point rating scale</p>
         </div>
       </div>
 
       {/* Comparative Matrix Section for Semester Forms (When All Subjects Combined is Selected) */}
       {isSemester && selectedGridIndex === -1 && report.facultyGrids && report.facultyGrids.length > 0 && (
-        <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3.5 sm:space-y-4">
-          <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Semester Faculty Comparative Performance Matrix
-              </h3>
-              <p className="text-xs text-slate-500">
-                Comparative ranking and parameter evaluation scores for all course faculty.
-              </p>
-            </div>
-            <span className="text-xs text-slate-400 font-medium">
-              {report.facultyGrids.length} Faculty Members
-            </span>
-          </div>
-
+        <PinnedRosterBoard
+          title="Semester Faculty Comparative Performance Matrix"
+          subtitle="Comparative ranking and parameter evaluation scores for all course faculty."
+          badge={`${report.facultyGrids.length} FACULTY MEMBERS`}
+          icon={<Award className="w-4 h-4 text-amber-500" />}
+        >
           {/* Desktop Table View */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs text-left min-w-[550px]">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase text-[10px]">
-                  <th className="py-2.5 px-3">Faculty Member</th>
-                  <th className="py-2.5 px-3">Subject</th>
-                  <th className="py-2.5 px-3 text-center">Submissions</th>
-                  <th className="py-2.5 px-3 text-center">Average Rating</th>
-                  <th className="py-2.5 px-3">Performance Benchmark</th>
-                  <th className="py-2.5 px-3 text-right">Action</th>
+                <tr className="border-b border-slate-200 dark:border-[#382710] bg-slate-50/70 dark:bg-[#140e07] text-slate-500 dark:text-[#c4a97d] font-bold uppercase text-[10px]">
+                  <th className="py-2.5 px-4">Faculty Member</th>
+                  <th className="py-2.5 px-4">Subject</th>
+                  <th className="py-2.5 px-4 text-center">Submissions</th>
+                  <th className="py-2.5 px-4 text-center">Average Rating</th>
+                  <th className="py-2.5 px-4">Performance Benchmark</th>
+                  <th className="py-2.5 px-4 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-[#2d1f11]">
                 {report.facultyGrids.map((fg, idx) => {
                   const score = fg.report.compositeAverageScore;
                   const scoreColor =
                     score >= 4.0
-                      ? 'text-indigo-700 font-bold'
+                      ? 'text-indigo-700 dark:text-indigo-400 font-bold'
                       : score >= 3.0
-                      ? 'text-emerald-700 font-bold'
+                      ? 'text-emerald-700 dark:text-emerald-400 font-bold'
                       : score >= 2.0
-                      ? 'text-amber-700 font-bold'
-                      : 'text-red-700 font-bold';
+                      ? 'text-amber-700 dark:text-amber-400 font-bold'
+                      : 'text-red-700 dark:text-red-400 font-bold';
 
                   return (
-                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-3 font-bold text-slate-900">{fg.facultyName}</td>
-                      <td className="py-3 px-3 text-slate-600">
+                    <tr key={idx} className="bg-white dark:bg-[#1a1208] hover:bg-amber-50/50 dark:hover:bg-[#25180c] transition-colors">
+                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-[#faebd0]">{fg.facultyName}</td>
+                      <td className="py-3 px-4 text-slate-600 dark:text-[#c4a97d]">
                         {fg.subjectName} {fg.subjectCode && `(${fg.subjectCode})`}
                       </td>
-                      <td className="py-3 px-3 text-center font-semibold text-slate-700">
+                      <td className="py-3 px-4 text-center font-semibold text-slate-700 dark:text-[#faebd0]">
                         {fg.report.validResponses}
                       </td>
-                      <td className={`py-3 px-3 text-center ${scoreColor}`}>
+                      <td className={`py-3 px-4 text-center ${scoreColor}`}>
                         {fg.report.hasData ? `${score.toFixed(2)} / 5.00` : 'No Data'}
                       </td>
-                      <td className="py-3 px-3">
-                        <div className="w-36 bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <td className="py-3 px-4">
+                        <div className="w-36 bg-slate-100 dark:bg-[#140e07] rounded-full h-2 overflow-hidden border border-slate-200 dark:border-[#382710]">
                           <div
                             className={`h-2 rounded-full ${
                               score >= 4.0
@@ -537,10 +534,10 @@ export function FormResultsConsole({ initialReport }: Props) {
                           />
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-right">
+                      <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => setSelectedGridIndex(idx)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-bce-cobalt bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                          className="px-2.5 py-1 text-[11px] font-bold text-bce-cobalt dark:text-amber-400 bg-blue-50 dark:bg-[#25180c] hover:bg-blue-100 dark:hover:bg-[#382710] border border-blue-200 dark:border-[#4d3817] rounded-[3px] transition-colors cursor-pointer"
                         >
                           View Details →
                         </button>
@@ -553,38 +550,38 @@ export function FormResultsConsole({ initialReport }: Props) {
           </div>
 
           {/* Mobile Cards View */}
-          <div className="md:hidden space-y-2.5">
+          <div className="md:hidden p-3.5 space-y-2.5">
             {report.facultyGrids.map((fg, idx) => {
               const score = fg.report.compositeAverageScore;
               const scoreBadgeColor =
                 score >= 4.0
-                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
                   : score >= 3.0
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
                   : score >= 2.0
-                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                  : 'bg-red-50 text-red-700 border-red-200';
+                  ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                  : 'bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800';
 
               return (
-                <div key={idx} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                <div key={idx} className="p-3 bg-slate-50 dark:bg-[#140e07] border border-slate-200 dark:border-[#382710] rounded-[3px] space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <h4 className="font-bold text-slate-900 text-sm leading-snug">{fg.facultyName}</h4>
-                      <p className="text-xs text-slate-600 mt-0.5">
-                        {fg.subjectName} {fg.subjectCode && <span className="font-mono text-[10px] text-slate-400">({fg.subjectCode})</span>}
+                      <h4 className="font-bold text-slate-900 dark:text-[#faebd0] text-sm leading-snug">{fg.facultyName}</h4>
+                      <p className="text-xs text-slate-600 dark:text-[#c4a97d] mt-0.5">
+                        {fg.subjectName} {fg.subjectCode && <span className="font-mono text-[10px] text-slate-400 dark:text-[#8c7453]">({fg.subjectCode})</span>}
                       </p>
                     </div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${scoreBadgeColor}`}>
+                    <span className={`px-2 py-0.5 rounded-[2px] text-[10px] font-bold border shrink-0 ${scoreBadgeColor}`}>
                       {fg.report.hasData ? `${score.toFixed(2)} / 5.00` : 'No Data'}
                     </span>
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[11px] text-slate-500">
-                      <span>Submissions: <strong className="text-slate-800">{fg.report.validResponses}</strong></span>
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#c4a97d]">
+                      <span>Submissions: <strong className="text-slate-800 dark:text-[#faebd0]">{fg.report.validResponses}</strong></span>
                       <span>Benchmark: {fg.report.hasData ? `${Math.round((score / 5) * 100)}%` : '0%'}</span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                    <div className="w-full bg-slate-200 dark:bg-[#20150b] rounded-full h-1.5 overflow-hidden">
                       <div
                         className={`h-1.5 rounded-full ${
                           score >= 4.0
@@ -602,7 +599,7 @@ export function FormResultsConsole({ initialReport }: Props) {
 
                   <button
                     onClick={() => setSelectedGridIndex(idx)}
-                    className="w-full py-2 text-xs font-bold text-bce-cobalt bg-white hover:bg-blue-50 border border-blue-200/80 rounded-xl transition-all shadow-2xs active:scale-98 cursor-pointer text-center"
+                    className="w-full py-1.5 text-xs font-bold text-bce-cobalt dark:text-amber-400 bg-white dark:bg-[#1a1309] hover:bg-blue-50 dark:hover:bg-[#25180c] border border-blue-200 dark:border-[#4d3817] rounded-[3px] transition-all cursor-pointer text-center"
                   >
                     View Details →
                   </button>
@@ -610,31 +607,31 @@ export function FormResultsConsole({ initialReport }: Props) {
               );
             })}
           </div>
-        </div>
+        </PinnedRosterBoard>
       )}
 
       {/* Visual Analytics Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Parameter-wise Average */}
-        <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900">
+        <PinnedRosterBoard className="space-y-3">
+          <div className="border-b border-slate-200 dark:border-[#382613] pb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">
               Evaluation Parameter Scores (1.00 — 5.00)
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-[#c4a97d]">
               Weighted average rating calculated across valid student submissions.
             </p>
           </div>
           <ParameterScoreBarChart parameters={currentReport.parameters} hasData={currentReport.hasData} />
-        </div>
+        </PinnedRosterBoard>
 
         {/* Parameter Distribution Stacked Bar */}
-        <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900">
+        <PinnedRosterBoard className="space-y-3">
+          <div className="border-b border-slate-200 dark:border-[#382613] pb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">
               Parameter Rating Distribution (%)
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-[#c4a97d]">
               Detailed percentage breakdown of Excellent, Very Good, Good, Satisfactory, and Unsatisfactory.
             </p>
           </div>
@@ -642,38 +639,38 @@ export function FormResultsConsole({ initialReport }: Props) {
             parameters={currentReport.parameters}
             hasData={currentReport.hasData}
           />
-        </div>
+        </PinnedRosterBoard>
 
         {/* Overall Distribution Donut */}
-        <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3 lg:col-span-2">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900">Overall Rating Tier Breakdown</h3>
-            <p className="text-xs text-slate-500">
+        <PinnedRosterBoard className="space-y-3 lg:col-span-2">
+          <div className="border-b border-slate-200 dark:border-[#382613] pb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">Overall Rating Tier Breakdown</h3>
+            <p className="text-xs text-slate-500 dark:text-[#c4a97d]">
               Institutional breakdown of all valid submitted evaluation items.
             </p>
           </div>
           <OverallDonutChart distribution={currentReport.distribution} hasData={currentReport.hasData} />
-        </div>
+        </PinnedRosterBoard>
       </div>
 
       {/* Parameter-by-Parameter Breakdown (8 Cards) */}
-      <div className="bg-white p-3.5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-3.5 sm:space-y-4">
-        <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+      <PinnedRosterBoard className="space-y-3.5 sm:space-y-4">
+        <div className="border-b border-slate-200 dark:border-[#382613] pb-3 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-900">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0]">
               Standard BCE 8-Parameter Detailed Performance Breakdown
             </h3>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-[#c4a97d]">
               Itemized metrics, score calculations, and data-driven interpretations.
             </p>
           </div>
-          <span className="text-xs text-slate-400 font-medium">8 Parameters Configured</span>
+          <span className="text-xs text-slate-500 dark:text-[#a88d67] font-medium">8 Parameters Configured</span>
         </div>
 
         {!currentReport.hasData ? (
-          <div className="py-10 text-center text-slate-400 space-y-2">
-            <p className="text-sm font-semibold">No feedback responses are available yet.</p>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
+          <div className="py-10 text-center text-slate-400 dark:text-[#8c7453] space-y-2">
+            <p className="text-sm font-semibold text-slate-700 dark:text-[#faebd0]">No feedback responses are available yet.</p>
+            <p className="text-xs text-slate-500 dark:text-[#c4a97d] max-w-md mx-auto">
               Once responses are recorded in the Google Sheet, this section will automatically display itemized scores, response percentages, and objective observations.
             </p>
           </div>
@@ -682,49 +679,49 @@ export function FormResultsConsole({ initialReport }: Props) {
             {currentReport.parameters.map(p => {
               const scoreColor =
                 p.averageScore >= 4.0
-                  ? 'text-indigo-700 bg-indigo-50 border-indigo-200'
+                  ? 'text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border-indigo-200 dark:border-indigo-800/60'
                   : p.averageScore >= 3.0
-                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800/60'
                   : p.averageScore >= 2.0
-                  ? 'text-amber-700 bg-amber-50 border-amber-200'
-                  : 'text-red-700 bg-red-50 border-red-200';
+                  ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800/60'
+                  : 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/60 border-red-200 dark:border-red-800/60';
 
               return (
                 <div
                   key={p.parameterId}
-                  className="p-3 sm:p-4 bg-slate-50/70 rounded-xl border border-slate-200 space-y-2.5 sm:space-y-3"
+                  className="p-3 sm:p-4 bg-white/80 dark:bg-[#1a1209] rounded-[3px] border border-slate-200 dark:border-[#3d2c18] space-y-2.5 sm:space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-bold text-xs text-slate-900">
+                        <h4 className="font-bold text-xs text-slate-900 dark:text-[#faebd0]">
                           {p.parameterId}. {p.title}
                         </h4>
                         {p.parameterId === 8 ? (
-                          <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 text-amber-800 rounded">
+                          <span className="px-1.5 py-0.5 text-[9px] font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded-[2px] border border-amber-300 dark:border-amber-700/50">
                             Overall Rating (Q8)
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-50 text-blue-700 rounded">
+                          <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 rounded-[2px] border border-blue-200 dark:border-blue-800/50">
                             Evaluation Parameter
                           </span>
                         )}
                       </div>
                       {p.description && (
-                        <p className="text-[11px] text-slate-500 mt-0.5">{p.description}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-[#c4a97d] mt-0.5">{p.description}</p>
                       )}
                     </div>
                     <span
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold border shrink-0 ${scoreColor}`}
+                      className={`px-2 py-0.5 rounded-[2px] text-xs font-bold border shrink-0 ${scoreColor}`}
                     >
                       {p.validCount > 0 ? `${p.averageScore.toFixed(2)} / 5.00` : 'N/A'}
                     </span>
                   </div>
 
                   {/* Progress Bar Visual */}
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-slate-200 dark:bg-[#20150b] rounded-full h-1.5 overflow-hidden">
                     <div
-                      className="bg-bce-cobalt h-2 rounded-full transition-all"
+                      className="bg-bce-cobalt dark:bg-amber-500 h-1.5 rounded-full transition-all"
                       style={{
                         width: `${p.validCount > 0 ? (p.averageScore / 5) * 100 : 0}%`,
                       }}
@@ -732,36 +729,36 @@ export function FormResultsConsole({ initialReport }: Props) {
                   </div>
 
                   {/* 5 Tiers Breakdown Grid */}
-                  <div className="grid grid-cols-5 gap-1 text-center pt-1 border-t border-slate-200/60 text-[10px]">
-                    <div className="p-1 bg-white rounded-lg border border-slate-100">
-                      <span className="text-indigo-700 font-bold block">Excellent</span>
-                      <span className="text-slate-800 font-semibold">{p.excellentCount}</span>
-                      <span className="text-slate-400 block text-[9px]">({p.excellentPct}%)</span>
+                  <div className="grid grid-cols-5 gap-1 text-center pt-1 border-t border-slate-200/60 dark:border-[#382613] text-[10px]">
+                    <div className="p-1 bg-white dark:bg-[#140e06] rounded-[2px] border border-slate-200 dark:border-[#2f2010]">
+                      <span className="text-indigo-700 dark:text-indigo-400 font-bold block">Excellent</span>
+                      <span className="text-slate-800 dark:text-[#faebd0] font-semibold">{p.excellentCount}</span>
+                      <span className="text-slate-400 dark:text-[#8c7453] block text-[9px]">({p.excellentPct}%)</span>
                     </div>
-                    <div className="p-1 bg-white rounded-lg border border-slate-100">
-                      <span className="text-emerald-700 font-bold block">V. Good</span>
-                      <span className="text-slate-800 font-semibold">{p.veryGoodCount}</span>
-                      <span className="text-slate-400 block text-[9px]">({p.veryGoodPct}%)</span>
+                    <div className="p-1 bg-white dark:bg-[#140e06] rounded-[2px] border border-slate-200 dark:border-[#2f2010]">
+                      <span className="text-emerald-700 dark:text-emerald-400 font-bold block">V. Good</span>
+                      <span className="text-slate-800 dark:text-[#faebd0] font-semibold">{p.veryGoodCount}</span>
+                      <span className="text-slate-400 dark:text-[#8c7453] block text-[9px]">({p.veryGoodPct}%)</span>
                     </div>
-                    <div className="p-1 bg-white rounded-lg border border-slate-100">
-                      <span className="text-blue-700 font-bold block">Good</span>
-                      <span className="text-slate-800 font-semibold">{p.goodCount}</span>
-                      <span className="text-slate-400 block text-[9px]">({p.goodPct}%)</span>
+                    <div className="p-1 bg-white dark:bg-[#140e06] rounded-[2px] border border-slate-200 dark:border-[#2f2010]">
+                      <span className="text-blue-700 dark:text-blue-400 font-bold block">Good</span>
+                      <span className="text-slate-800 dark:text-[#faebd0] font-semibold">{p.goodCount}</span>
+                      <span className="text-slate-400 dark:text-[#8c7453] block text-[9px]">({p.goodPct}%)</span>
                     </div>
-                    <div className="p-1 bg-white rounded-lg border border-slate-100">
-                      <span className="text-amber-700 font-bold block">Satisfactory</span>
-                      <span className="text-slate-800 font-semibold">{p.satisfactoryCount}</span>
-                      <span className="text-slate-400 block text-[9px]">({p.satisfactoryPct}%)</span>
+                    <div className="p-1 bg-white dark:bg-[#140e06] rounded-[2px] border border-slate-200 dark:border-[#2f2010]">
+                      <span className="text-amber-700 dark:text-amber-400 font-bold block">Satisfactory</span>
+                      <span className="text-slate-800 dark:text-[#faebd0] font-semibold">{p.satisfactoryCount}</span>
+                      <span className="text-slate-400 dark:text-[#8c7453] block text-[9px]">({p.satisfactoryPct}%)</span>
                     </div>
-                    <div className="p-1 bg-white rounded-lg border border-slate-100">
-                      <span className="text-red-700 font-bold block">Unsat.</span>
-                      <span className="text-slate-800 font-semibold">{p.unsatisfactoryCount}</span>
-                      <span className="text-slate-400 block text-[9px]">({p.unsatisfactoryPct}%)</span>
+                    <div className="p-1 bg-white dark:bg-[#140e06] rounded-[2px] border border-slate-200 dark:border-[#2f2010]">
+                      <span className="text-red-700 dark:text-red-400 font-bold block">Unsat.</span>
+                      <span className="text-slate-800 dark:text-[#faebd0] font-semibold">{p.unsatisfactoryCount}</span>
+                      <span className="text-slate-400 dark:text-[#8c7453] block text-[9px]">({p.unsatisfactoryPct}%)</span>
                     </div>
                   </div>
 
                   {/* Factual Interpretation */}
-                  <p className="text-[11px] text-slate-600 italic bg-white p-2 rounded-lg border border-slate-100">
+                  <p className="text-[11px] text-slate-600 dark:text-[#c4a97d] italic bg-white dark:bg-[#140e06] p-2 rounded-[2px] border border-slate-200 dark:border-[#2f2010]">
                     &ldquo;{p.interpretation}&rdquo;
                   </p>
                 </div>
@@ -769,7 +766,7 @@ export function FormResultsConsole({ initialReport }: Props) {
             })}
           </div>
         )}
-      </div>
+      </PinnedRosterBoard>
 
       {/* PDF Download Upgrade / Watermark Choice Modal */}
       <PdfDownloadUpgradeModal
