@@ -123,6 +123,10 @@ export function StudentLibraryBorrowForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBook || !formData.studentName.trim()) return;
+    if (isAuthenticated && student?.collegeId && student.collegeId !== collegeId) {
+      setError(`Borrowing from ${collegeName || 'this institution'} library is restricted to its enrolled students. You are registered with ${student.collegeName || 'another institution'}.`);
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -254,6 +258,19 @@ export function StudentLibraryBorrowForm({
       ) : (
         /* ═════════════════ BORROW CATALOG & FORM VIEW ═════════════════ */
         <div className="space-y-4">
+          {/* Cross-Institution Warning for Logged-In Students from Another College */}
+          {isAuthenticated && student?.collegeId && student.collegeId !== collegeId && (
+            <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-xs text-amber-900 flex items-start gap-2.5 shadow-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">Institutional Notice</p>
+                <p className="text-[11px] text-amber-800 mt-0.5">
+                  You are viewing the library catalogue for <strong>{collegeName}</strong>. Since your student account is registered with <strong>{student.collegeName}</strong>, you can browse available books, but borrowing requests are restricted to enrolled students of {collegeName}.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Library Info & Operating Schedule Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/90 p-3 rounded-2xl border border-slate-200 shadow-2xs">
             <div className="flex flex-wrap items-center gap-3 sm:gap-5 text-[10px] sm:text-xs text-slate-500">

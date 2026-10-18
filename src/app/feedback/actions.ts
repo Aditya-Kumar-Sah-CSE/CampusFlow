@@ -92,8 +92,12 @@ export async function getPublicFacultiesForSelectionAction(
       .eq('academic_year_id', yearId)
       .eq('is_active', true);
 
-    if (collegeId && isValidUUID(collegeId)) {
-      query = query.eq('college_id', collegeId);
+    if (collegeId) {
+      if (isValidUUID(collegeId)) {
+        query = query.eq('college_id', collegeId);
+      } else {
+        return { success: true, faculties: [] };
+      }
     }
 
     const { data: assignments, error } = await query;
@@ -164,8 +168,12 @@ export async function getPublicSubjectsForFacultyAction(
       .eq('faculty_id', facultyId)
       .eq('is_active', true);
 
-    if (collegeId && isValidUUID(collegeId)) {
-      query = query.eq('college_id', collegeId);
+    if (collegeId) {
+      if (isValidUUID(collegeId)) {
+        query = query.eq('college_id', collegeId);
+      } else {
+        return { success: true, subjects: [] };
+      }
     }
 
     const { data: assignments, error } = await query;
@@ -262,8 +270,17 @@ export async function getPublicFeedbackFormAction(
       .eq('subject_id', subjectId)
       .in('status', ['PUBLISHED', 'CLOSED']);
 
-    if (collegeId && isValidUUID(collegeId)) {
-      query = query.eq('college_id', collegeId);
+    if (collegeId) {
+      if (isValidUUID(collegeId)) {
+        query = query.eq('college_id', collegeId);
+      } else {
+        return {
+          success: true,
+          form: null,
+          status: 'NONE',
+          message: 'No feedback form is currently available for this institution.',
+        };
+      }
     }
 
     const { data: form, error } = await query.maybeSingle();
@@ -452,8 +469,17 @@ export async function getPublicSemesterFeedbackFormAction(
       .in('status', ['PUBLISHED', 'CLOSED'])
       .order('created_at', { ascending: false });
 
-    if (collegeId && isValidUUID(collegeId)) {
-      query = query.eq('college_id', collegeId);
+    if (collegeId) {
+      if (isValidUUID(collegeId)) {
+        query = query.eq('college_id', collegeId);
+      } else {
+        return {
+          success: true,
+          form: null,
+          status: 'NONE',
+          message: 'No semester feedback form available for this institution.',
+        };
+      }
     }
 
     const { data: form, error } = await query.maybeSingle();
@@ -558,8 +584,19 @@ async function fetchPublicActiveFormsDirect(params?: {
       .order('published_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
-    if (params?.collegeId && isValidUUID(params.collegeId)) {
-      query = query.eq('college_id', params.collegeId);
+    if (params?.collegeId) {
+      if (isValidUUID(params.collegeId)) {
+        query = query.eq('college_id', params.collegeId);
+      } else {
+        return {
+          success: true,
+          forms: [],
+          totalCount: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+        };
+      }
     }
 
     if (params?.branchId && isValidUUID(params.branchId)) {
@@ -577,7 +614,7 @@ async function fetchPublicActiveFormsDirect(params?: {
 
     // Graceful fallback if nested academic_programmes relation isn't exposed to anon/client
     if (error && (error.message?.includes('academic_programmes') || error.code === 'PGRST200')) {
-      const fallbackQuery = supabase
+      let fallbackQuery = supabase
         .from('feedback_forms')
         .select(
           `
@@ -601,14 +638,25 @@ async function fetchPublicActiveFormsDirect(params?: {
         .order('published_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
-      if (params?.collegeId && isValidUUID(params.collegeId)) {
-        fallbackQuery.eq('college_id', params.collegeId);
+      if (params?.collegeId) {
+        if (isValidUUID(params.collegeId)) {
+          fallbackQuery = fallbackQuery.eq('college_id', params.collegeId);
+        } else {
+          return {
+            success: true,
+            forms: [],
+            totalCount: 0,
+            page,
+            pageSize,
+            totalPages: 0,
+          };
+        }
       }
       if (params?.branchId && isValidUUID(params.branchId)) {
-        fallbackQuery.eq('branch_id', params.branchId);
+        fallbackQuery = fallbackQuery.eq('branch_id', params.branchId);
       }
       if (params?.search && params.search.trim()) {
-        fallbackQuery.or(`title.ilike.%${params.search.trim()}%`);
+        fallbackQuery = fallbackQuery.or(`title.ilike.%${params.search.trim()}%`);
       }
 
       const res = await fallbackQuery.range(from, to);
@@ -700,20 +748,9 @@ async function fetchPublicActiveFormsDirect(params?: {
   }
 }
 
-const getCachedPublicActiveForms = unstable_cache(
-  async (serializedParams: string): Promise<PublicActiveFormsResult> => {
-    const params = JSON.parse(serializedParams);
-    return fetchPublicActiveFormsDirect(params);
-  },
-  ['public_active_feedback_forms_cache'],
-  {
-    revalidate: 300,
-    tags: ['feedback_forms'],
-  }
-);
-
 /**
  * Fetch all currently PUBLISHED / ACTIVE feedback forms with server-side pagination (60s cache).
+ * Strictly isolated per collegeId to prevent cross-institution cache bleeding.
  */
 export async function getPublicActiveFormsAction(params?: {
   page?: number;
@@ -722,15 +759,21 @@ export async function getPublicActiveFormsAction(params?: {
   search?: string;
   collegeId?: string;
 }): Promise<PublicActiveFormsResult> {
+  const collegeIdKey = params?.collegeId || 'global';
+  const pageKey = params?.page || 1;
+  const pageSizeKey = params?.pageSize || 12;
+  const branchKey = params?.branchId || 'all';
+  const searchKey = (params?.search || '').trim() || 'none';
+
   try {
-    const serialized = JSON.stringify({
-      page: params?.page || 1,
-      pageSize: params?.pageSize || 12,
-      branchId: params?.branchId || '',
-      search: (params?.search || '').trim(),
-      collegeId: params?.collegeId || '',
-    });
-    return await getCachedPublicActiveForms(serialized);
+    return await unstable_cache(
+      async () => fetchPublicActiveFormsDirect(params),
+      [`public_active_forms_${collegeIdKey}_${branchKey}_${pageKey}_${pageSizeKey}_${searchKey}`],
+      {
+        revalidate: 60,
+        tags: ['feedback_forms', `feedback_forms_${collegeIdKey}`],
+      }
+    )();
   } catch {
     return fetchPublicActiveFormsDirect(params);
   }
@@ -752,8 +795,12 @@ export async function getActiveBranchesAction(collegeId?: string): Promise<{
       .select('id, name, code, is_active, created_at, updated_at')
       .eq('is_active', true);
 
-    if (collegeId && isValidUUID(collegeId)) {
-      query = query.eq('college_id', collegeId);
+    if (collegeId) {
+      if (isValidUUID(collegeId)) {
+        query = query.eq('college_id', collegeId);
+      } else {
+        return { success: true, branches: [] };
+      }
     }
 
     const { data: branches, error } = await query.order('name', { ascending: true });

@@ -144,23 +144,23 @@ async function fetchPublicTenantEventsDirect(collegeId: string): Promise<College
   return (data || []).map(enrichEventWithGoogleMetadata);
 }
 
-const getCachedPublicTenantEvents = unstable_cache(
-  async (collegeId: string): Promise<CollegeEvent[]> => {
-    return fetchPublicTenantEventsDirect(collegeId);
-  },
-  ['public_tenant_events_cache'],
-  {
-    revalidate: 300,
-    tags: ['events'],
-  }
-);
-
 /**
  * Fetch published events for public tenant portal with 60s cache.
+ * Strictly scoped per collegeId so events from one institution never leak into another.
  */
 export async function getPublicTenantEvents(collegeId: string): Promise<CollegeEvent[]> {
+  if (!collegeId || !isUuid(collegeId)) {
+    return [];
+  }
   try {
-    return await getCachedPublicTenantEvents(collegeId);
+    return await unstable_cache(
+      async () => fetchPublicTenantEventsDirect(collegeId),
+      [`public_tenant_events_${collegeId}`],
+      {
+        revalidate: 60,
+        tags: ['events', `events_${collegeId}`],
+      }
+    )();
   } catch {
     return fetchPublicTenantEventsDirect(collegeId);
   }

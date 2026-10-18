@@ -133,6 +133,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
 
             {/* Client-side cascading discovery component */}
             <StudentDiscoveryFlow
+              key={`discovery_${tenant.collegeId}`}
               academicYears={(academicYears as AcademicYear[]) || []}
               branches={(branches as Branch[]) || []}
               semesters={(semesters as Semester[]) || []}
@@ -142,6 +143,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
             {/* All Published Forms Grid for this Tenant */}
             <div className="mt-8 sm:mt-12">
               <AllFeedbackFormsSection
+                key={`forms_${tenant.collegeId}`}
                 initialData={initialActiveForms}
                 collegeId={tenant.collegeId}
                 tenantSlug={tenant.slug}
@@ -226,6 +228,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
             </div>
 
             <StudentLibraryBorrowForm
+              key={`library_${tenant.collegeId}`}
               collegeId={tenant.collegeId}
               collegeName={tenant.name}
               collegeLogoUrl={tenant.logo}

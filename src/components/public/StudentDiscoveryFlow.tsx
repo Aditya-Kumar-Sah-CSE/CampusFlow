@@ -126,6 +126,18 @@ export function StudentDiscoveryFlow({
   );
   const [selectedProgrammeFilter, setSelectedProgrammeFilter] = useState<string>('ALL');
 
+  // Reset cascading selections and state when collegeId or master props change
+  useEffect(() => {
+    setBranchList(branches);
+    setSelectedYearId(academicYears.find(y => y.is_active)?.id || academicYears[0]?.id || '');
+    setSelectedBranchId('');
+    setSelectedSemesterId(semesters.find(s => s.is_active)?.id || semesters[0]?.id || '');
+    setSelectedFacultyId('');
+    setSelectedSubjectId('');
+    setMatchedForm(null);
+    setSemesterFormResult(null);
+  }, [collegeId, branches, academicYears, semesters]);
+
   // If currently selected branch was deactivated, reset selection to empty
   useEffect(() => {
     if (selectedBranchId && !activeBranches.some(b => b.id === selectedBranchId)) {

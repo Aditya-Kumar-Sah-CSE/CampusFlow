@@ -80,6 +80,7 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
         </ExamPadCard>
 
         <StudentDiscoveryFlow
+          key={`discovery_${tenant.collegeId}`}
           academicYears={(academicYears as AcademicYear[]) || []}
           branches={(branches as Branch[]) || []}
           semesters={(semesters as Semester[]) || []}
@@ -87,7 +88,13 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
         />
 
         {/* All Currently Active Feedback Forms Section for this Tenant */}
-        <AllFeedbackFormsSection initialData={initialActiveForms} collegeId={tenant.collegeId} tenantSlug={tenant.slug} initialSearch={initialSearch} />
+        <AllFeedbackFormsSection
+          key={`forms_${tenant.collegeId}`}
+          initialData={initialActiveForms}
+          collegeId={tenant.collegeId}
+          tenantSlug={tenant.slug}
+          initialSearch={initialSearch}
+        />
       </main>
 
       {/* Footer */}

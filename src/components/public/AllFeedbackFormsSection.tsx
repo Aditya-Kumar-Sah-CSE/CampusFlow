@@ -88,6 +88,13 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
   const [isPending, startTransition] = useTransition();
   const hydrated = useHydrated();
 
+  // Synchronize state when tenant collegeId or initialData changes (e.g. client router navigation)
+  useEffect(() => {
+    setData(initialData);
+    setSearch(initialSearch);
+    setCurrentPage(initialData.page || 1);
+  }, [initialData, collegeId, initialSearch]);
+
   // Academic level filtering & count calculation
   const filteredForms = React.useMemo(() => {
     if (levelFilter === 'ALL') return data.forms;
@@ -142,7 +149,7 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
       return;
     }
 
-    // Pre-flight check in case response was just synced to Google Sheets
+    // Pre-flight check in case response was just synced to Google Sheets or cross-college enrollment check
     e.preventDefault();
     try {
       const elig = await checkStudentFormEligibilityAction(form.id);
@@ -150,6 +157,10 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
         setSubmittedFormIds((prev) => new Set([...prev, form.id]));
         const slug = tenantSlug || form.college?.slug || '';
         router.push(`/feedback/confirmation?formId=${form.id}${slug ? `&tenant=${slug}` : ''}`);
+        return;
+      }
+      if (!elig.isEligible) {
+        alert(elig.message || 'You are not eligible to submit feedback for this institution.');
         return;
       }
     } catch {
