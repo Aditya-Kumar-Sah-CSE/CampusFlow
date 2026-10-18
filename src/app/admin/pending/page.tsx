@@ -5,9 +5,11 @@ import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Clock, ShieldAlert, LogOut, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { SignOutConfirmModal } from '@/components/ui/SignOutConfirmModal';
 
 export default function AdminPendingPage() {
   const [isChecking, setIsChecking] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const router = useRouter();
@@ -94,8 +96,8 @@ export default function AdminPendingPage() {
             </button>
 
             <button
-              onClick={handleSignOut}
-              className="w-full flex justify-center items-center gap-2 py-2.5 px-4 min-h-[44px] rounded-xl text-sm font-semibold text-slate-300 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 transition-colors"
+              onClick={() => setShowConfirm(true)}
+              className="w-full flex justify-center items-center gap-2 py-2.5 px-4 min-h-[44px] rounded-xl text-sm font-semibold text-slate-300 bg-slate-700/60 hover:bg-slate-700 border border-slate-600 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Sign Out</span>
@@ -109,6 +111,14 @@ export default function AdminPendingPage() {
           </div>
         </div>
       </div>
+
+      <SignOutConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={handleSignOut}
+        userType="admin"
+        title="Admin Sign Out"
+      />
     </div>
   );
 }

@@ -27,6 +27,7 @@ import { studentSignOutAction } from '@/app/auth/student/actions';
 import { useStudentSession } from '@/lib/auth/use-student-session';
 import { StudentEditProfileModal } from './StudentEditProfileModal';
 import { StudentCoordinatorApplyModal } from './StudentCoordinatorApplyModal';
+import { SignOutConfirmModal } from '@/components/ui/SignOutConfirmModal';
 import { RedPushpin } from '@/components/ui/RedPushpin';
 
 function getStudentInitials(name?: string | null, email?: string | null): string {
@@ -57,6 +58,7 @@ export function StudentStatusBadge({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isCoordinatorModalOpen, setIsCoordinatorModalOpen] = useState(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -378,7 +380,10 @@ export function StudentStatusBadge({
                 <div className="pt-1 mt-1 border-t border-amber-900/15 dark:border-[#332311] px-1.5">
                   <button
                     type="button"
-                    onClick={handleSignOut}
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      setIsSignOutModalOpen(true);
+                    }}
                     disabled={loggingOut}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[3px] text-xs font-bold text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-50"
                   >
@@ -414,6 +419,16 @@ export function StudentStatusBadge({
             student={student}
             userEmail={email}
             userName={displayName}
+          />
+
+          {/* Sign Out Confirmation Modal */}
+          <SignOutConfirmModal
+            isOpen={isSignOutModalOpen}
+            onClose={() => setIsSignOutModalOpen(false)}
+            onConfirm={handleSignOut}
+            isLoading={loggingOut}
+            userType="student"
+            title="Student Sign Out"
           />
         </div>
       );
@@ -505,7 +520,7 @@ export function StudentStatusBadge({
               </Link>
               <button
                 type="button"
-                onClick={handleSignOut}
+                onClick={() => setIsSignOutModalOpen(true)}
                 disabled={loggingOut}
                 className="justify-center inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#1a1208] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-[3px] text-xs font-bold border border-rose-300 dark:border-rose-900/60 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 text-center"
               >
@@ -536,6 +551,16 @@ export function StudentStatusBadge({
             student={student}
             userEmail={email}
             userName={displayName}
+          />
+
+          {/* Sign Out Confirmation Modal */}
+          <SignOutConfirmModal
+            isOpen={isSignOutModalOpen}
+            onClose={() => setIsSignOutModalOpen(false)}
+            onConfirm={handleSignOut}
+            isLoading={loggingOut}
+            userType="student"
+            title="Student Sign Out"
           />
         </div>
       </div>

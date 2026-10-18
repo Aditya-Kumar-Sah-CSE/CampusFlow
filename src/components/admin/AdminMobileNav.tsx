@@ -25,6 +25,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import type { AdminTab } from './AdminDashboardTabs';
+import { SignOutConfirmModal } from '@/components/ui/SignOutConfirmModal';
 
 interface Props {
   adminName: string;
@@ -54,6 +55,7 @@ export function AdminMobileNav({
   allowedTabs,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -329,8 +331,7 @@ export function AdminMobileNav({
                 type="button"
                 suppressHydrationWarning
                 onClick={() => {
-                  setIsOpen(false);
-                  onSignOut();
+                  setShowConfirm(true);
                 }}
                 className="w-full py-2.5 px-4 rounded-lg bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-800/50 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
@@ -342,6 +343,18 @@ export function AdminMobileNav({
         </div>,
         document.body
       )}
+
+      <SignOutConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={() => {
+          setShowConfirm(false);
+          setIsOpen(false);
+          onSignOut();
+        }}
+        userType="admin"
+        title="Admin Sign Out"
+      />
     </>
   );
 }
