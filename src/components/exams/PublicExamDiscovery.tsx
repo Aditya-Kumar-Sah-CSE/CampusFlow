@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useStudentSession } from '@/lib/auth/use-student-session';
 import type { Exam } from '@/types/exams';
-import { ExamPadCard, ExamPadClip } from '@/components/ui/ExamPadCard';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
 import { RedPushpin } from '@/components/ui/RedPushpin';
 
 interface PublicExamDiscoveryProps {
@@ -134,27 +134,24 @@ export function PublicExamDiscovery({
         </div>
       </div>
 
-      {/* 3. Examination Bulletin ExamPad Clipboard */}
-      <div className="exam-pad-board-dashboard p-3 sm:p-5 md:p-6 pt-9 sm:pt-11 rounded-lg shadow-2xl relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] scroll-mt-28">
-        {/* Authentic Top Metal Exam Clip */}
-        <ExamPadClip label="EXAM SCHEDULE" size="default" />
-
+      {/* 3. Large Green Chalkboard Examination Bulletin Board */}
+      <div className="border-8 sm:border-[12px] border-[#38210f] dark:border-[#201105] rounded-xl shadow-2xl p-4 sm:p-6 bg-[#143527] dark:bg-[#091a13] relative overflow-visible">
         {/* Brass Corner Brackets */}
-        <div className="absolute top-1.5 left-1.5 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
-        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
-        <div className="absolute bottom-1.5 left-1.5 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
-        <div className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+        <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-amber-400/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-amber-400/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-amber-400/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-amber-400/80 pointer-events-none rounded-br-xs" />
 
-        {/* Title Bar */}
-        <div className="text-center pb-5 mb-5 border-b border-dashed border-amber-900/30 dark:border-[#422e17]">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] bg-amber-100/80 dark:bg-[#2b1f11] border border-amber-300/80 dark:border-amber-700/60 text-amber-950 dark:text-amber-200 text-xs font-bold uppercase tracking-widest mb-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+        {/* Chalk Title Bar */}
+        <div className="text-center pb-5 mb-5 border-b border-dashed border-emerald-900/60 dark:border-emerald-950/60">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] bg-emerald-950/70 border border-emerald-600/40 text-emerald-300 text-xs font-bold uppercase tracking-widest mb-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             <span>CAMPUS EXAMINATION BULLETIN</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#faebd0] tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] font-mono">
+          <h2 className="text-xl sm:text-2xl font-black text-amber-100 tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] font-mono">
             Official Scheduled Evaluations &amp; Quizzes
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-[#c4a97d] mt-1 max-w-xl mx-auto">
+          <p className="text-xs sm:text-sm text-emerald-200/80 mt-1 max-w-xl mx-auto">
             Papers pinned below are verified departmental examinations. Verify your student session to attempt.
           </p>
         </div>

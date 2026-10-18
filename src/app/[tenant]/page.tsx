@@ -16,7 +16,6 @@ import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
 import { getLibrarySettings } from '@/lib/library/service';
 import { StudentLibraryBorrowForm } from '@/components/public/StudentLibraryBorrowForm';
 import { RedPushpin } from '@/components/ui/RedPushpin';
-import { ExamPadClip } from '@/components/ui/ExamPadCard';
 
 export const revalidate = 300;
 
@@ -152,37 +151,34 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
           </section>
         )}
 
-        {/* 2. Events Section (Inside ExamPad Clipboard) */}
+        {/* 2. Events Section (Inside Green Chalkboard Notice Board) */}
         {tenant.showEvents && (
-          <section id="events-section" className="scroll-mt-28 pt-4">
-            <div className="exam-pad-board-dashboard p-3 sm:p-5 md:p-6 pt-9 sm:pt-11 rounded-lg shadow-2xl relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a]">
-              {/* Authentic Top Metal Exam Clip */}
-              <ExamPadClip label="CAMPUS EVENTS" size="default" />
-
+          <section id="events-section" className="scroll-mt-16 pt-4">
+            <div className="border-8 sm:border-[12px] border-[#38210f] dark:border-[#201105] rounded-xl shadow-2xl p-4 sm:p-6 bg-[#143527] dark:bg-[#091a13] relative overflow-visible">
               {/* Brass Corner Brackets */}
-              <div className="absolute top-1.5 left-1.5 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
-              <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
-              <div className="absolute bottom-1.5 left-1.5 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
-              <div className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+              <div className="absolute top-1 left-1 w-4 h-4 border-t-2 border-l-2 border-amber-400/80 pointer-events-none rounded-tl-xs" />
+              <div className="absolute top-1 right-1 w-4 h-4 border-t-2 border-r-2 border-amber-400/80 pointer-events-none rounded-tr-xs" />
+              <div className="absolute bottom-1 left-1 w-4 h-4 border-b-2 border-l-2 border-amber-400/80 pointer-events-none rounded-bl-xs" />
+              <div className="absolute bottom-1 right-1 w-4 h-4 border-b-2 border-r-2 border-amber-400/80 pointer-events-none rounded-br-xs" />
 
               {/* Notice Board Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-5 border-b border-dashed border-amber-900/30 dark:border-[#422e17]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 mb-5 border-b border-dashed border-emerald-900/60 dark:border-emerald-950/60">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[3px] bg-amber-100/80 dark:bg-[#2b1f11] text-amber-900 dark:text-amber-300 text-xs font-bold mb-1 border border-amber-300/80 dark:border-amber-700/60">
-                    <Ticket className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[3px] bg-emerald-950/80 text-emerald-300 text-xs font-bold mb-1 border border-emerald-600/40">
+                    <Ticket className="w-3.5 h-3.5 text-amber-300" />
                     <span>CAMPUS ACTIVITIES &amp; EVENTS BULLETIN</span>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#faebd0] drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)] flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                  <h2 className="text-xl sm:text-2xl font-black text-amber-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.7)]" />
                     Upcoming College Events
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-[#c4a97d] font-medium">
+                  <p className="text-xs sm:text-sm text-emerald-200/80 font-medium">
                     Explore workshops, hackathons, guest lectures, and cultural fests. Enroll online with instant verification.
                   </p>
                 </div>
                 <Link
                   href={`/${tenant.slug}/events`}
-                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-200 hover:text-amber-800 dark:hover:text-amber-100 transition-colors self-start sm:self-auto py-1 px-3 rounded-[3px] bg-amber-100/70 dark:bg-[#24170a] border border-amber-300/80 dark:border-[#4d3817]"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-300 hover:text-amber-200 transition-colors self-start sm:self-auto py-1 px-3 rounded-[3px] bg-emerald-950/60 border border-emerald-600/30"
                 >
                   <span>View All Events ({events.length})</span>
                   <ArrowRight className="w-3.5 h-3.5" />

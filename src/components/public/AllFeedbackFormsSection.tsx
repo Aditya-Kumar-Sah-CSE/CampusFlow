@@ -30,7 +30,6 @@ import {
   checkStudentFormEligibilityAction,
 } from '@/app/auth/student/actions';
 import { RedPushpin } from '@/components/ui/RedPushpin';
-import { ExamPadClip } from '@/components/ui/ExamPadCard';
 import { resolveAcademicLevel } from '@/lib/academic/level-utils';
 
 /** Forms per page — desktop shows a 3×2 grid */
@@ -312,31 +311,28 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
         </div>
       </div>
 
-      {/* ExamPad Evaluation Clipboard with Vintage Metal Clip & Hardboard */}
-      <div className="exam-pad-board-dashboard p-2 sm:p-3 md:p-4 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl">
-        {/* Authentic Top Metal Exam Clip */}
-        <ExamPadClip label="EVALUATION FORMS" size="default" />
-
+      {/* Dark Green Notice Board with Wooden Frame & Cork/Felt Texture */}
+      <div className="notice-board-wood-frame p-1.5 sm:p-2.5 md:p-3 rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-2xl">
         {/* Brass corner brackets */}
-        <div className="absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
-        <div className="absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
-        <div className="absolute bottom-1.5 left-1.5 w-3 h-3 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
-        <div className="absolute bottom-1.5 right-1.5 w-3 h-3 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+        <div className="absolute top-1 left-1 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1 right-1 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1 left-1 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1 right-1 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
 
-        {/* Clipboard Surface Area */}
-        <div className="rounded-[4px] p-2 sm:p-4 md:p-6 min-h-[360px]">
+        {/* Felt Surface */}
+        <div className="notice-board-felt-surface rounded-xl p-4 sm:p-6 md:p-8 min-h-[360px]">
           {isPending ? (
-            <div className="py-16 text-center text-slate-700 dark:text-[#faebd0]">
-              <Loader2 className="w-8 h-8 animate-spin text-amber-600 dark:text-amber-400 mx-auto mb-2" />
-              <p className="text-xs text-slate-600 dark:text-[#c4a97d] font-medium">Updating evaluation ledger...</p>
+            <div className="py-16 text-center text-emerald-100">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto mb-2" />
+              <p className="text-xs text-emerald-200/80 font-medium">Updating notice board...</p>
             </div>
           ) : filteredForms.length === 0 ? (
-            <div className="bg-[#fffdfa] dark:bg-[#1a1208] rounded-[3px] border border-amber-900/30 dark:border-[#422e17] p-8 sm:p-12 text-center shadow-lg max-w-md mx-auto my-6 text-slate-800 dark:text-[#faebd0]">
-              <div className="w-12 h-12 rounded-[2px] bg-amber-500/15 text-amber-700 dark:text-amber-400 flex items-center justify-center mx-auto mb-3 border border-amber-500/30">
+            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-2xl border border-emerald-900/40 p-8 sm:p-12 text-center shadow-lg max-w-md mx-auto my-6 text-slate-800 dark:text-[#faebd0]">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-900/20 text-emerald-300 flex items-center justify-center mx-auto mb-3 border border-emerald-500/30">
                 <Layers className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-[#faebd0]">No Published Forms Found</h3>
-              <p className="text-xs text-slate-600 dark:text-[#c4a97d] max-w-sm mx-auto mt-1">
+              <p className="text-xs text-slate-600 dark:text-emerald-200/80 max-w-sm mx-auto mt-1">
                 {search || levelFilter !== 'ALL'
                   ? `No feedback forms match your filter (${levelFilter !== 'ALL' ? levelFilter : ''}${search ? ` search "${search}"` : ''}).`
                   : 'There are currently no active feedback forms published for open submission.'}
