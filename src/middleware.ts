@@ -62,11 +62,33 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-active-tenant-id', activeTenantCookie);
   }
 
+  // Capture TWA / Android App platform hint from launch parameters or cookie
+  const platformParam = request.nextUrl.searchParams.get('app_platform') || request.nextUrl.searchParams.get('platform');
+  const isAndroidTwa =
+    platformParam === 'android' ||
+    request.headers.get('x-client-platform') === 'ANDROID' ||
+    request.cookies.get('cf_admin_platform')?.value === 'ANDROID';
+  if (isAndroidTwa) {
+    requestHeaders.set('x-client-platform', 'ANDROID');
+  }
+
   let response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+
+  if (isAndroidTwa) {
+    response.headers.set('x-client-platform', 'ANDROID');
+    if (platformParam === 'android') {
+      response.cookies.set('cf_admin_platform', 'ANDROID', {
+        path: '/',
+        httpOnly: false,
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+      });
+    }
+  }
 
   if (firstSegment && !reservedPrefixes.includes(firstSegment)) {
     response.headers.set('x-tenant-slug', firstSegment);

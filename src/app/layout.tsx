@@ -55,7 +55,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('campusflow_theme');if(t==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('campusflow_theme');if(t==='dark'){document.documentElement.classList.add('dark');}else{document.documentElement.classList.remove('dark');}}catch(e){}try{var sp=new URLSearchParams(window.location.search);if(sp.get('app_platform')==='android'||sp.get('platform')==='android'||(document.referrer&&document.referrer.indexOf('android-app://')===0)){sessionStorage.setItem('cf_twa_session','1');document.cookie='cf_admin_platform=ANDROID; path=/; max-age=2592000; SameSite=Lax';}}catch(e){}})();`,
           }}
         />
       </head>

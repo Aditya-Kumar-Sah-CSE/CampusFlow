@@ -35,11 +35,14 @@ export function PwaInstallPrompt() {
   const [showIosInstructions, setShowIosInstructions] = useState(false);
 
   useEffect(() => {
-    // Check if already running standalone PWA
+    // Check if already running standalone PWA or Android TWA app
     const checkStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-      document.referrer.includes('android-app://');
+      document.referrer.includes('android-app://') ||
+      sessionStorage.getItem('cf_twa_session') === '1' ||
+      document.cookie.includes('cf_admin_platform=ANDROID') ||
+      window.location.search.includes('app_platform=android');
 
     if (checkStandalone) {
       setIsStandalone(true);

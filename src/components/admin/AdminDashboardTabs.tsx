@@ -581,7 +581,7 @@ export function AdminDashboardTabs({
       )}
 
       {/* Mobile Navigation Bar with Drawer Trigger */}
-      <div className="md:hidden flex items-center justify-between bg-white/90 dark:bg-[#18110b]/90 backdrop-blur-md px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-[3px] border border-amber-300/80 dark:border-[#4d3817] shadow-sm min-w-0">
+      <div className="md:hidden flex items-center justify-between bg-white/95 dark:bg-[#18110b]/95 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-[3px] border border-amber-300/80 dark:border-[#4d3817] shadow-xs min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] font-bold text-slate-400 dark:text-[#a08862] uppercase tracking-wider shrink-0">Tab:</span>
           <span className="text-xs font-bold text-bce-navy dark:text-amber-200 bg-amber-100 dark:bg-amber-950/60 border border-amber-300/60 dark:border-amber-700/60 px-2 py-0.5 rounded-[2px] truncate">

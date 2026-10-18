@@ -108,9 +108,9 @@ export function OverviewTab({
       subtab: 'subjects',
     },
     {
-      title: 'Branches / Depts',
+      title: 'Branches',
       value: branches.length,
-      subtitle: `${activeBranchesCount} active • ${activeSemestersCount} semesters`,
+      subtitle: `${activeBranchesCount} active • ${activeSemestersCount} sem`,
       icon: Layers,
       color: 'from-emerald-600 to-teal-600',
       tab: 'academic',
@@ -126,9 +126,9 @@ export function OverviewTab({
       subtab: 'years',
     },
     {
-      title: 'Faculty Assignments',
+      title: 'Assignments',
       value: totalAssignments,
-      subtitle: 'Mapped to subjects',
+      subtitle: 'Faculty mapping',
       icon: GraduationCap,
       color: 'from-cyan-600 to-blue-600',
       tab: 'academic',
@@ -144,7 +144,7 @@ export function OverviewTab({
       subtab: undefined,
     },
     {
-      title: 'Pending Admin Requests',
+      title: 'Admin Requests',
       value: pendingRequestsCount,
       subtitle: pendingRequestsCount > 0 ? 'Requires attention' : 'All reviewed',
       icon: Clock,
@@ -174,7 +174,7 @@ export function OverviewTab({
       {/* ══════════════════════════════════════════════════════════════════
           LARGE CAMPUS NOTICE BOARD — PINNED INSTITUTIONAL METRICS & CENSUS
           ══════════════════════════════════════════════════════════════════ */}
-      <div className="notice-board-wood-frame p-2.5 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-2xl w-full">
+      <div className="notice-board-wood-frame p-2 sm:p-3.5 md:p-4 rounded-xl sm:rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-2xl w-full">
         {/* Brass Corner Brackets with Rivets */}
         <div className="absolute top-1 left-1 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/90 pointer-events-none rounded-tl-xs" />
         <div className="absolute top-1 right-1 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/90 pointer-events-none rounded-tr-xs" />
@@ -182,24 +182,24 @@ export function OverviewTab({
         <div className="absolute bottom-1 right-1 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/90 pointer-events-none rounded-br-xs" />
 
         {/* Top Polished Brass Header Plaque */}
-        <div className="mx-auto max-w-xl text-center mb-3 sm:mb-4 pt-0.5">
-          <div className="inline-flex items-center gap-2 px-4 sm:px-6 py-1.5 rounded-xs bg-gradient-to-r from-amber-800 via-amber-600 to-amber-900 text-amber-100 border border-amber-400/60 shadow-lg">
-            <Pin className="w-3.5 h-3.5 text-amber-200" />
-            <span className="text-[11px] sm:text-xs font-black uppercase tracking-widest">
+        <div className="mx-auto max-w-xl text-center mb-3 sm:mb-4 pt-0.5 px-1">
+          <div className="inline-flex items-center gap-1.5 xs:gap-2 px-3 sm:px-6 py-1.5 rounded-xs bg-gradient-to-r from-amber-800 via-amber-600 to-amber-900 text-amber-100 border border-amber-400/60 shadow-lg max-w-full">
+            <Pin className="w-3.5 h-3.5 text-amber-200 shrink-0" />
+            <span className="text-[10px] xs:text-[11px] sm:text-xs font-black uppercase tracking-wider sm:tracking-widest truncate">
               CAMPUS NOTICE BOARD • INSTITUTIONAL METRICS
             </span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-1" />
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5 sm:ml-1 shrink-0" />
           </div>
-          <p className="text-[10.5px] sm:text-[11px] text-amber-200/80 font-medium mt-1">
+          <p className="text-[10px] sm:text-[11px] text-amber-200/80 font-medium mt-1 truncate">
             Official Live Census & Academic Department Ledgers
           </p>
         </div>
 
         {/* Dark Green Felt Bulletin Board Surface */}
-        <div className="notice-board-felt-surface rounded-lg sm:rounded-xl p-3 sm:p-5 md:p-6 min-h-[320px] relative overflow-visible shadow-inner">
+        <div className="notice-board-felt-surface rounded-lg sm:rounded-xl p-2.5 sm:p-5 md:p-6 min-h-[320px] relative overflow-visible shadow-inner">
           {/* Administrator Urgent Bulletin if Pending Requests */}
           {pendingRequestsCount > 0 && (
-            <div className="relative mb-5 bg-[#fffdfa] dark:bg-[#25180c] border border-amber-300 dark:border-amber-800/80 rounded-[2px] p-3 sm:p-4 text-xs shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-800 dark:text-[#faebd0]">
+            <div className="relative mb-4 sm:mb-5 bg-[#fffdfa] dark:bg-[#25180c] border border-amber-300 dark:border-amber-800/80 rounded-[2px] p-3 sm:p-4 text-xs shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-slate-800 dark:text-[#faebd0]">
               <RedPushpin className="-top-3.5" />
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-[2px] bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 border border-amber-300/80 dark:border-amber-700/60">
@@ -207,7 +207,7 @@ export function OverviewTab({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-xs bg-red-600 text-white">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-xs bg-red-600 text-white shrink-0">
                       URGENT ACTION
                     </span>
                     <p className="text-xs sm:text-sm font-bold text-amber-950 dark:text-amber-200 truncate">
@@ -231,7 +231,7 @@ export function OverviewTab({
           )}
 
           {/* Grid of Pinned Statistics Paper Sheets with 3D Red Pushpins */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 pt-3 pb-2 w-full min-w-0">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 xs:gap-3.5 sm:gap-6 pt-3 pb-2 w-full min-w-0">
             {stats.map((item, idx) => {
               const Icon = item.icon;
               return (
@@ -240,7 +240,8 @@ export function OverviewTab({
                   type="button"
                   suppressHydrationWarning
                   onClick={() => onNavigateTab(item.tab, item.subtab)}
-                  className="notice-paper-card text-left p-3.5 sm:p-4 rounded-[2px] shadow-md hover:shadow-2xl flex flex-col justify-between group w-full min-w-0 relative overflow-visible cursor-pointer select-none transition-all"
+                  title={item.title}
+                  className="notice-paper-card text-left p-2.5 xs:p-3 sm:p-4 rounded-[2px] shadow-md hover:shadow-2xl flex flex-col justify-between group w-full min-w-0 relative overflow-visible cursor-pointer select-none transition-all"
                   style={
                     {
                       '--notice-rot': rotations[idx % rotations.length],
@@ -261,19 +262,19 @@ export function OverviewTab({
                       <p className="text-[10px] sm:text-[11px] font-bold text-slate-600 dark:text-[#c4a97d] uppercase tracking-wider truncate">
                         {item.title}
                       </p>
-                      <p className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-[#faebd0] mt-0.5 sm:mt-1 truncate tracking-tight">
+                      <p className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-[#faebd0] mt-0.5 sm:mt-1 truncate tracking-tight">
                         {item.value}
                       </p>
                     </div>
                     <div
-                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[2px] bg-gradient-to-tr ${item.color} text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0`}
+                      className={`w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 rounded-[2px] bg-gradient-to-tr ${item.color} text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0`}
                     >
-                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <Icon className="w-3 h-3 xs:w-3.5 xs:h-3.5 sm:w-4 sm:h-4" />
                     </div>
                   </div>
 
                   {/* Subtitle & Manage Action */}
-                  <div className="mt-2.5 sm:mt-3.5 pt-2 sm:pt-2.5 border-t border-slate-200/80 dark:border-[#382713] flex items-center justify-between text-[10px] sm:text-[11px] text-slate-600 dark:text-[#c4a97d] min-w-0 w-full">
+                  <div className="mt-2 sm:mt-3.5 pt-1.5 sm:pt-2.5 border-t border-slate-200/80 dark:border-[#382713] flex items-center justify-between text-[9.5px] xs:text-[10px] sm:text-[11px] text-slate-600 dark:text-[#c4a97d] min-w-0 w-full">
                     <span className="truncate">{item.subtitle}</span>
                     <span className="text-amber-800 dark:text-amber-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline shrink-0">
                       Manage →

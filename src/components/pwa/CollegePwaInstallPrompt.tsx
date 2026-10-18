@@ -26,12 +26,15 @@ export function CollegePwaInstallPrompt({ tenant }: CollegePwaInstallPromptProps
   const dismissKey = `fms_pwa_dismissed_${tenant.slug}`;
 
   useEffect(() => {
-    // 1. Check if already running standalone PWA
+    // 1. Check if already running standalone PWA or Android TWA app
     const checkStandalone =
       typeof window !== 'undefined' &&
       (window.matchMedia('(display-mode: standalone)').matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-        document.referrer.includes('android-app://'));
+        document.referrer.includes('android-app://') ||
+        sessionStorage.getItem('cf_twa_session') === '1' ||
+        document.cookie.includes('cf_admin_platform=ANDROID') ||
+        window.location.search.includes('app_platform=android'));
 
     if (checkStandalone) {
       setIsStandalone(true);

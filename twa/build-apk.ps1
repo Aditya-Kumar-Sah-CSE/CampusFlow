@@ -33,10 +33,26 @@ Write-Host "==========================================================" -Foregro
 Write-Host "`n[1/6] Checking Environment Prerequisites..." -ForegroundColor Yellow
 
 # Ensure JAVA_HOME and tools are in PATH
+if (-not $env:JAVA_HOME -or -not (Test-Path $env:JAVA_HOME)) {
+  $candidateJavas = @(
+    "C:\Program Files\Android\Android Studio\jbr",
+    "C:\Program Files\Android\Android Studio1\jbr",
+    "C:\Program Files\Java\jdk-17",
+    "C:\Program Files\Eclipse Adoptium\jdk-17"
+  )
+  foreach ($candidate in $candidateJavas) {
+    if (Test-Path (Join-Path $candidate "bin\java.exe")) {
+      $env:JAVA_HOME = $candidate
+      Write-Host "  [AUTO-CONFIG] JAVA_HOME set to: $candidate" -ForegroundColor Cyan
+      break
+    }
+  }
+}
+
 if ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin"))) {
   $javaBin = (Join-Path $env:JAVA_HOME "bin").TrimEnd('\')
   if ($env:PATH -notlike "*$javaBin*") {
-    $env:PATH = "$javaBin;$env:PATH"
+    $env:PATH = "$javaBin;$($env:PATH)"
   }
 }
 
@@ -126,7 +142,7 @@ $variantConfigs = @(
     FlavorLower = "bcebgp"
     PackageId = "com.campusflow.bcebgp"
     Name = "BCE-BGP CampusFlow"
-    LaunchUrl = "/bce-bgp"
+    LaunchUrl = "/bce-bhagalpur"
   },
   @{
     Slug = "gec-gaya"
