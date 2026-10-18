@@ -514,6 +514,7 @@ export function AdminManagementTab({
             title="Administrator Access & Authorization"
             subtitle="Manage admin registration requests, role privileges, and account activation states across your institution."
             badge={isSuperAdmin ? "SUPER ADMIN ACCESS" : "CAMPUS ADMIN"}
+            clipLabel={isSuperAdmin ? "SUPER ADMIN ACCESS" : "CAMPUS ADMIN"}
             icon={<ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
           />
 

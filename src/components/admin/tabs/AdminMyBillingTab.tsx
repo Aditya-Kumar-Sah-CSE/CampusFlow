@@ -58,6 +58,7 @@ export function AdminMyBillingTab() {
             title="My Billing & Subscription"
             subtitle="View your institutional entitlement, trial status, and available subscription plans."
             badge={billing?.planType ? `${billing.planType} PLAN` : "BILLING"}
+            clipLabel="MY SUBSCRIPTION"
             icon={<CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
           />
         </div>

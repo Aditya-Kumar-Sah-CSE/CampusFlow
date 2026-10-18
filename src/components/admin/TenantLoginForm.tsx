@@ -200,7 +200,7 @@ export function TenantLoginForm({
   const backPortalUrl = collegeSlug ? `/${collegeSlug}` : '/';
 
   return (
-    <ExamPadCard paperClassName="space-y-4 sm:space-y-5 text-slate-900 dark:text-[#faebd0]">
+    <ExamPadCard clipLabel="ADMIN LOGIN" paperClassName="space-y-4 sm:space-y-5 text-slate-900 dark:text-[#faebd0]">
       <form className="space-y-4 sm:space-y-5" onSubmit={handleLogin}>
         {(errorMsg || initialError) && (
           <div className="p-3.5 bg-red-50 dark:bg-red-950/60 border border-red-300 dark:border-red-800/70 rounded-[3px] text-red-700 dark:text-red-200 text-xs flex items-start gap-2.5 animate-in fade-in">

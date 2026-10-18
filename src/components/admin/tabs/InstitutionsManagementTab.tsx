@@ -347,6 +347,7 @@ export function InstitutionsManagementTab() {
             title="Institutions & Campus Registry"
             subtitle="Manage registered colleges, public feedback portals, and multi-tenant subdomains."
             badge={`${colleges.length} CAMPUSES`}
+            clipLabel="CAMPUS REGISTRY"
             icon={<Building2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
           />
         </div>

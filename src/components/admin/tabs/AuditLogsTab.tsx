@@ -39,6 +39,7 @@ export function AuditLogsTab({ auditLogs }: Props) {
         subtitle="Tamper-evident chronological log of all administrative modifications and approvals."
         icon={<Activity className="w-5 h-5 text-bce-cobalt dark:text-amber-400" />}
         badge="AUDIT LOGS"
+        clipLabel="AUDIT TRAIL"
         action={
           <div className="text-xs font-mono text-slate-500 dark:text-[#c4a97d] bg-slate-100 dark:bg-[#140e07] px-3 py-1.5 rounded-[3px] border border-slate-200 dark:border-[#382710]">
             {filteredLogs.length} of {auditLogs.length} entries shown

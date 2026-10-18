@@ -384,6 +384,7 @@ export function LibraryManagementTab({ activeCollegeId }: Props) {
         subtitle="Manage physical book catalog, track student borrow & return slips, and configure operating schedules."
         icon={<BookOpen className="w-5 h-5 text-bce-cobalt" />}
         badge="COLLEGE LIBRARY"
+        clipLabel="COLLEGE LIBRARY"
         action={
           <button
             type="button"
@@ -601,6 +602,7 @@ export function LibraryManagementTab({ activeCollegeId }: Props) {
               subtitle="Register a new academic title or physical volume into the institutional library."
               icon={<Plus className="w-4 h-4 text-amber-500" />}
               badge="INVENTORY ENTRY"
+              clipLabel="BOOK ENTRY"
             >
               <form onSubmit={handleAddBook} className="space-y-3.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -908,6 +910,7 @@ export function LibraryManagementTab({ activeCollegeId }: Props) {
           subtitle="These rules are enforced automatically. Students cannot exceed these limits."
           icon={<Settings className="w-4 h-4 text-amber-500" />}
           badge="RULES CONFIG"
+          clipLabel="RULES CONFIG"
           className="max-w-3xl"
         >
           <div className="space-y-5 text-slate-800 dark:text-[#faebd0]">

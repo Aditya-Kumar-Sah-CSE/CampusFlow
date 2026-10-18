@@ -180,6 +180,7 @@ export function ExamsManagementTab({ initialExams, collegeId, initialSubTab }: E
         subtitle="Create, manage, and evaluate multi-tenant examinations with automatic grading and official scorecards."
         icon={<FileText className="w-5 h-5 text-amber-700 dark:text-amber-400" />}
         badge="EXAM CONTROLLER"
+        clipLabel="EXAM CONTROLLER"
         action={
           <Link
             href="/admin/dashboard/exams/create"

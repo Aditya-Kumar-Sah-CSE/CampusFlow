@@ -1196,7 +1196,7 @@ export function AcademicManagementTab({
             title="Add New Faculty"
             icon={<Users className="w-4 h-4 text-amber-700" />}
             badge="Faculty Card"
-            clipLabel="ROYAL"
+            clipLabel="FACULTY ENTRY"
             className="min-w-0 w-full"
             paperClassName="space-y-3 text-slate-800"
           >
@@ -1524,7 +1524,7 @@ export function AcademicManagementTab({
             title="Add New Subject"
             icon={<BookOpen className="w-4 h-4 text-amber-700" />}
             badge="Subject Card"
-            clipLabel="ROYAL"
+            clipLabel="SUBJECT ENTRY"
             className="min-w-0 w-full"
             paperClassName="space-y-3 text-slate-800"
           >
@@ -1934,7 +1934,7 @@ export function AcademicManagementTab({
             title="Assign Faculty to Subject"
             icon={<GraduationCap className="w-4 h-4 text-amber-700" />}
             badge="Assignment Card"
-            clipLabel="ROYAL"
+            clipLabel="FACULTY ALLOCATION"
             className="min-w-0 w-full"
             paperClassName="space-y-3 text-slate-800"
           >
@@ -2344,7 +2344,7 @@ export function AcademicManagementTab({
             title="Add Academic Year"
             icon={<Calendar className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
             badge="Session Card"
-            clipLabel="ROYAL"
+            clipLabel="ACADEMIC SESSION"
             className="min-w-0 w-full"
             paperClassName="space-y-3 text-slate-800"
           >
@@ -2440,7 +2440,7 @@ export function AcademicManagementTab({
             title="Add Engineering Branch"
             icon={<Layers className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
             badge="Branch Card"
-            clipLabel="ROYAL"
+            clipLabel="BRANCH ENTRY"
             className="min-w-0 w-full"
             paperClassName="space-y-3 text-slate-800"
           >
@@ -2703,7 +2703,7 @@ export function AcademicManagementTab({
                 subtitle="Multi-select standard programme & level generator"
                 icon={<Zap className="w-4 h-4 text-amber-700 dark:text-amber-400 fill-amber-500" />}
                 badge="Generator"
-                clipLabel="ROYAL"
+                clipLabel="PROGRAMME SETUP"
                 className="min-w-0 w-full"
                 paperClassName="space-y-4 text-slate-800"
               >
@@ -2883,7 +2883,7 @@ export function AcademicManagementTab({
                 title="Add Single Academic Level"
                 icon={<Plus className="w-4 h-4 text-amber-700 dark:text-amber-400" />}
                 badge="Level Card"
-                clipLabel="ROYAL"
+                clipLabel="ACADEMIC LEVEL"
                 className="min-w-0 w-full"
                 paperClassName="space-y-3 text-slate-800"
               >

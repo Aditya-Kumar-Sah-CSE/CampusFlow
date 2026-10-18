@@ -17,11 +17,12 @@ export interface ExamPadCardProps {
 }
 
 /**
- * High-fidelity SVG render of the vintage "ROYAL" metallic exam pad clip
+ * High-fidelity SVG render of the vintage metallic exam pad clip
  * matching the authentic Indian student examination clipboard.
+ * Features an authentic brushed chrome clamp, spring mechanism, and embossed label badge.
  */
 export function ExamPadClip({
-  label = 'ROYAL',
+  label = 'CAMPUSFLOW',
   size = 'default',
   className = '',
 }: {
@@ -30,21 +31,41 @@ export function ExamPadClip({
   className?: string;
 }) {
   const isCompact = size === 'compact';
-  const width = isCompact ? 140 : 180;
-  const height = isCompact ? 46 : 56;
+  const cleanLabel = (label || 'CAMPUSFLOW').trim();
+
+  // Dynamic badge width: scales smoothly with text length to ensure text never touches rivets
+  const badgeWidth = Math.max(120, Math.min(236, cleanLabel.length * 11.5 + 24));
+  const badgeX = 170 - badgeWidth / 2;
+
+  // Dynamic typography so text always fits cleanly inside the embossed badge
+  let fontSize = 10;
+  let letterSpacing = 2.4;
+  if (cleanLabel.length > 18) {
+    fontSize = 8.2;
+    letterSpacing = 1.1;
+  } else if (cleanLabel.length > 14) {
+    fontSize = 9;
+    letterSpacing = 1.5;
+  } else if (cleanLabel.length > 10) {
+    fontSize = 9.5;
+    letterSpacing = 2.0;
+  }
+
+  const width = isCompact ? 240 : 320;
+  const height = isCompact ? 44 : 54;
 
   return (
     <div
       aria-hidden="true"
-      className={`absolute top-1 sm:top-1.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.38)] ${className}`}
+      className={`absolute top-1 sm:top-1.5 left-1/2 -translate-x-1/2 z-20 pointer-events-none select-none filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.38)] max-w-[94%] sm:max-w-[88%] ${className}`}
     >
       <svg
         width={width}
         height={height}
-        viewBox="0 0 190 58"
+        viewBox="0 0 340 58"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-auto h-9 sm:h-12 md:h-14 overflow-visible"
+        className="w-auto h-9 sm:h-11 md:h-13 overflow-visible"
       >
         <defs>
           {/* Main Brushed Chrome Gradient */}
@@ -101,28 +122,28 @@ export function ExamPadClip({
 
         {/* 1. TOP HANGING ARCH & HOLE (Mounted to board) */}
         <path
-          d="M 80 18 C 80 4, 110 4, 110 18 Z"
+          d="M 152 18 C 152 4, 188 4, 188 18 Z"
           fill="url(#chromeBodyGrad)"
           stroke="#475569"
           strokeWidth="0.8"
         />
         {/* Arch inner highlight & border */}
         <path
-          d="M 82 17 C 82 7, 108 7, 108 17"
+          d="M 154 17 C 154 7, 186 7, 186 17"
           stroke="rgba(255,255,255,0.7)"
           strokeWidth="0.8"
           fill="none"
         />
         {/* Hanging Hole (allows board to be hung on wall hook/nail) */}
-        <circle cx="95" cy="11.5" r="5.5" fill="#4a2209" stroke="#1e293b" strokeWidth="1" />
-        <circle cx="95" cy="11.5" r="4.2" fill="#2d1304" />
-        <circle cx="95" cy="11.5" r="5" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" fill="none" />
+        <circle cx="170" cy="11.5" r="5.5" fill="#4a2209" stroke="#1e293b" strokeWidth="1" />
+        <circle cx="170" cy="11.5" r="4.2" fill="#2d1304" />
+        <circle cx="170" cy="11.5" r="5" stroke="rgba(255,255,255,0.4)" strokeWidth="0.6" fill="none" />
 
         {/* 2. MAIN SPRING MECHANISM BARREL (behind bracket) */}
         <rect
-          x="77"
+          x="146"
           y="15"
-          width="36"
+          width="48"
           height="8"
           rx="3"
           fill="url(#springGrad)"
@@ -130,42 +151,44 @@ export function ExamPadClip({
           strokeWidth="0.8"
         />
         {/* Spring coil grooves */}
-        <line x1="83" y1="15" x2="83" y2="23" stroke="#1e293b" strokeWidth="1" />
-        <line x1="89" y1="15" x2="89" y2="23" stroke="#1e293b" strokeWidth="1" />
-        <line x1="95" y1="15" x2="95" y2="23" stroke="#1e293b" strokeWidth="1" />
-        <line x1="101" y1="15" x2="101" y2="23" stroke="#1e293b" strokeWidth="1" />
-        <line x1="107" y1="15" x2="107" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="152" y1="15" x2="152" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="158" y1="15" x2="158" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="164" y1="15" x2="164" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="170" y1="15" x2="170" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="176" y1="15" x2="176" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="182" y1="15" x2="182" y2="23" stroke="#1e293b" strokeWidth="1" />
+        <line x1="188" y1="15" x2="188" y2="23" stroke="#1e293b" strokeWidth="1" />
 
-        {/* 3. BASE MOUNTING PLATE (with side wings and curved ears) */}
+        {/* 3. BASE MOUNTING PLATE (Extended wings spanning across the clipboard) */}
         <path
-          d="M 16 26 C 16 20, 24 18, 32 18 L 158 18 C 166 18, 174 20, 174 26 L 176 38 C 176 43, 168 44, 160 44 L 30 44 C 22 44, 14 43, 14 38 Z"
+          d="M 22 26 C 22 19, 32 17, 44 17 L 296 17 C 308 17, 318 19, 318 26 L 322 38 C 322 43, 312 44, 298 44 L 42 44 C 28 44, 18 43, 18 38 Z"
           fill="url(#chromeBodyGrad)"
           stroke="#475569"
           strokeWidth="0.9"
         />
         {/* Top edge metallic gloss highlight */}
         <path
-          d="M 22 19.5 L 168 19.5"
+          d="M 28 18.5 L 312 18.5"
           stroke="rgba(255,255,255,0.85)"
           strokeWidth="1"
           strokeLinecap="round"
         />
 
         {/* 4. LEFT MOUNTING RIVET */}
-        <circle cx="28" cy="30" r="5.5" fill="url(#rivetGrad1)" stroke="#334155" strokeWidth="0.8" />
-        <circle cx="28" cy="30" r="4.2" stroke="rgba(255,255,255,0.6)" strokeWidth="0.6" fill="none" />
-        <line x1="25.5" y1="30" x2="30.5" y2="30" stroke="#1e293b" strokeWidth="1" />
+        <circle cx="36" cy="30" r="5.5" fill="url(#rivetGrad1)" stroke="#334155" strokeWidth="0.8" />
+        <circle cx="36" cy="30" r="4.2" stroke="rgba(255,255,255,0.6)" strokeWidth="0.6" fill="none" />
+        <line x1="33.5" y1="30" x2="38.5" y2="30" stroke="#1e293b" strokeWidth="1" />
 
         {/* 5. RIGHT MOUNTING RIVET */}
-        <circle cx="162" cy="30" r="5.5" fill="url(#rivetGrad1)" stroke="#334155" strokeWidth="0.8" />
-        <circle cx="162" cy="30" r="4.2" stroke="rgba(255,255,255,0.6)" strokeWidth="0.6" fill="none" />
-        <line x1="159.5" y1="30" x2="164.5" y2="30" stroke="#1e293b" strokeWidth="1" />
+        <circle cx="304" cy="30" r="5.5" fill="url(#rivetGrad1)" stroke="#334155" strokeWidth="0.8" />
+        <circle cx="304" cy="30" r="4.2" stroke="rgba(255,255,255,0.6)" strokeWidth="0.6" fill="none" />
+        <line x1="301.5" y1="30" x2="306.5" y2="30" stroke="#1e293b" strokeWidth="1" />
 
-        {/* 6. EMBOSSED BRAND BADGE (Stamped "ROYAL" as in original exam board) */}
+        {/* 6. EMBOSSED BRAND BADGE (Stamped recessed plate, dynamically sized) */}
         <rect
-          x="58"
+          x={badgeX}
           y="22"
-          width="74"
+          width={badgeWidth}
           height="16"
           rx="3"
           fill="url(#recessGrad)"
@@ -173,9 +196,9 @@ export function ExamPadClip({
           strokeWidth="0.8"
         />
         <rect
-          x="59"
+          x={badgeX + 1}
           y="23"
-          width="72"
+          width={badgeWidth - 2}
           height="14"
           rx="2"
           stroke="rgba(255,255,255,0.3)"
@@ -184,39 +207,39 @@ export function ExamPadClip({
         />
         {/* Stamped Text with Authentic Chiseled Bevel Effect */}
         <text
-          x="95"
+          x="170"
           y="34"
           textAnchor="middle"
           fill="#1e293b"
-          fontSize="10"
+          fontSize={fontSize}
           fontWeight="900"
-          letterSpacing="2.8"
+          letterSpacing={letterSpacing}
           fontFamily="system-ui, -apple-system, sans-serif"
           className="select-none"
         >
-          {label}
+          {cleanLabel}
         </text>
         <text
-          x="95"
+          x="170"
           y="33.3"
           textAnchor="middle"
           fill="#f8fafc"
-          fontSize="10"
+          fontSize={fontSize}
           fontWeight="900"
-          letterSpacing="2.8"
+          letterSpacing={letterSpacing}
           fontFamily="system-ui, -apple-system, sans-serif"
-          className="select-none opacity-80"
+          className="select-none opacity-85"
         >
-          {label}
+          {cleanLabel}
         </text>
 
         {/* 7. LOWER GRIPPING CLAMP BAR (Clamps down onto paper sheet) */}
         <g filter="url(#clampShadow)">
           {/* Main Grip Bar Cylinder */}
           <rect
-            x="8"
+            x="10"
             y="41"
-            width="174"
+            width="320"
             height="12"
             rx="4.5"
             fill="url(#chromeBarGrad)"
@@ -225,9 +248,9 @@ export function ExamPadClip({
           />
           {/* Gloss Specular Highlight Line on Grip Bar */}
           <line
-            x1="14"
+            x1="18"
             y1="43.5"
-            x2="176"
+            x2="322"
             y2="43.5"
             stroke="rgba(255,255,255,0.9)"
             strokeWidth="1.2"
@@ -235,9 +258,9 @@ export function ExamPadClip({
           />
           {/* Lower Contact Shadow Edge */}
           <line
-            x1="12"
+            x1="16"
             y1="51.5"
-            x2="178"
+            x2="324"
             y2="51.5"
             stroke="#1e293b"
             strokeWidth="0.8"
@@ -261,7 +284,7 @@ export function ExamPadCard({
   badge,
   icon,
   action,
-  clipLabel = 'ROYAL',
+  clipLabel,
   variant = 'card',
   className = '',
   paperClassName = '',
@@ -273,20 +296,31 @@ export function ExamPadCard({
   // Board style variations
   const boardClass = isDashboard || isCompact ? 'exam-pad-board-dashboard' : 'exam-pad-board';
 
+  // Derive meaningful clip label if not explicitly provided or if legacy 'ROYAL' was passed
+  const resolvedClipLabel = (
+    clipLabel && clipLabel !== 'ROYAL'
+      ? clipLabel
+      : typeof badge === 'string' && badge.trim()
+      ? badge.replace(/\s*card$/i, '').trim().toUpperCase()
+      : typeof title === 'string' && title.trim()
+      ? title.replace(/^(add|create|manage|new)\s+/i, '').trim().toUpperCase()
+      : 'CAMPUSFLOW'
+  );
+
   return (
     <div
       id={id}
       className={`relative w-full ${boardClass} ${
         isDashboard
-          ? 'rounded-lg p-2 sm:p-3 md:p-3.5 pt-7 sm:pt-8 md:pt-9'
+          ? 'rounded-lg p-2 sm:p-3 md:p-3.5 pt-8 sm:pt-10 md:pt-11'
           : isCompact
-          ? 'rounded-md p-2 sm:p-2.5 pt-6 sm:pt-7'
-          : 'rounded-xl p-2.5 sm:p-4 md:p-5 pt-8 sm:pt-10 md:pt-12'
+          ? 'rounded-md p-2 sm:p-2.5 pt-7 sm:pt-8'
+          : 'rounded-xl p-2.5 sm:p-4 md:p-5 pt-9 sm:pt-11 md:pt-13'
       } ${className}`}
     >
       {/* Authentic Top Metal Exam Clip */}
       <ExamPadClip
-        label={clipLabel}
+        label={resolvedClipLabel}
         size={isDashboard || isCompact ? 'compact' : 'default'}
       />
 

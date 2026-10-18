@@ -308,6 +308,7 @@ export function BillingManagementTab({ currentUserEmail: _currentUserEmail }: { 
                 ? `${data.length} COLLEGES`
                 : `${filteredData.length} of ${data.length} MATCHED`
             }
+            clipLabel="SUBSCRIPTION BILLING"
             icon={<CreditCard className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
           />
         </div>

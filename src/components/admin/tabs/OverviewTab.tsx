@@ -297,6 +297,7 @@ export function OverviewTab({
           subtitle="Frequently performed foundation tasks."
           icon={<Activity className="w-4 h-4" />}
           badge="COMMAND"
+          clipLabel="QUICK ACTIONS"
           className="min-w-0 w-full"
         >
           <div className="space-y-2.5 pt-1 text-slate-800 dark:text-[#faebd0]">

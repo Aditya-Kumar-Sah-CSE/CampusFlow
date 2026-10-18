@@ -236,6 +236,7 @@ export function FeedbackFormsTab({
         subtitle="Create standard 8-parameter BCE Google Feedback Forms, manage connected response Sheets, and control publishing."
         icon={<FileSpreadsheet className="w-5 h-5 text-bce-cobalt" />}
         badge="ASSESSMENT HUB"
+        clipLabel="ASSESSMENT HUB"
         action={
           <div className="flex items-center gap-2 flex-wrap">
             <Link

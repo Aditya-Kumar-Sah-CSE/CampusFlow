@@ -417,7 +417,7 @@ export function StudentDiscoveryFlow({
   return (
     <div className="space-y-4 sm:space-y-8">
       {/* 5-Step Cascading Selection ExamPad Clipboard with Vintage Metal Clip & Hardboard */}
-      <div className="exam-pad-board-dashboard p-2 sm:p-3 md:p-4 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl scroll-mt-28">
+      <div className="exam-pad-board-dashboard p-2 sm:p-3 md:p-4 pt-10 sm:pt-12 md:pt-14 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl scroll-mt-28">
         {/* Authentic Top Metal Exam Clip */}
         <ExamPadClip label="FEEDBACK SELECTION" size="default" />
 

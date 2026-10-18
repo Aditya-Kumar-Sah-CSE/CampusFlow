@@ -344,7 +344,7 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       )}
 
       {/* ExamPad Clipboard Frame with Authentic Vintage Metal Clip */}
-      <div className="exam-pad-board-dashboard p-2.5 sm:p-4 md:p-6 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl">
+      <div className="exam-pad-board-dashboard p-2.5 sm:p-4 md:p-6 pt-10 sm:pt-12 md:pt-14 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl">
         <ExamPadClip label={isEdit ? "EDIT EVENT" : "EVENT SPECIFICATION"} size="default" />
 
         {/* Brass Corner Brackets */}
