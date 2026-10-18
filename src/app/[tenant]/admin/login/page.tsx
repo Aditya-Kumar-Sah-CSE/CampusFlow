@@ -36,7 +36,7 @@ export default async function TenantAdminLoginPage({ params }: TenantAdminLoginP
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900 text-slate-100 flex flex-col justify-center py-5 sm:py-12 px-2.5 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950/40 backdrop-blur-xs text-slate-100 flex flex-col justify-center py-5 sm:py-12 px-2.5 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Dynamic Institution Logo or Monogram */}
         <div className="mx-auto w-14 h-14 sm:w-16 sm:h-16 rounded-[4px] bg-gradient-to-tr from-slate-800 to-slate-700 p-0.5 shadow-xl flex items-center justify-center border border-slate-700">

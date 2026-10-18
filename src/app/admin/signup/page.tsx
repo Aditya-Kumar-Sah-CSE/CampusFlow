@@ -686,7 +686,7 @@ function AdminSignupForm() {
 
 export default function AdminSignupPage() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-6 sm:py-12 px-2.5 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900">
+    <div className="min-h-screen bg-slate-950/40 backdrop-blur-xs text-slate-100 flex flex-col justify-center py-6 sm:py-12 px-2.5 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
         <Suspense
           fallback={

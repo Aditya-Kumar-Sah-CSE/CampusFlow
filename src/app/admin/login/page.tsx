@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900 text-slate-100 flex flex-col justify-center py-6 sm:py-12 px-2.5 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-950/40 backdrop-blur-xs text-slate-100 flex flex-col justify-center py-6 sm:py-12 px-2.5 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
         <Suspense
           fallback={
@@ -26,7 +26,7 @@ export default function AdminLoginPage() {
           <TenantLoginForm isTenantSpecific={false} />
         </Suspense>
 
-        <div className="mt-6 text-center text-xs text-slate-500">
+        <div className="mt-6 text-center text-xs text-amber-100/60 drop-shadow-xs">
           <span>Multi-tenant institutional system • Authorized access only</span>
         </div>
       </div>
