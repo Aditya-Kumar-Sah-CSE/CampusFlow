@@ -99,11 +99,19 @@ $alias = "campusflow"
 
 $pw = if ($StorePassword) { $StorePassword } elseif ($env:BUBBLEWRAP_KEYSTORE_PASSWORD) { $env:BUBBLEWRAP_KEYSTORE_PASSWORD } else { "campusflow2026" }
 
+$keytoolExe = if (Get-Command keytool -ErrorAction SilentlyContinue) {
+  "keytool"
+} elseif ($env:JAVA_HOME -and (Test-Path (Join-Path $env:JAVA_HOME "bin\keytool.exe"))) {
+  Join-Path $env:JAVA_HOME "bin\keytool.exe"
+} else {
+  "keytool"
+}
+
 if (-not (Test-Path $keystorePath)) {
   Write-Host "  No keystore found at '$keystorePath'." -ForegroundColor Yellow
   Write-Host "  Generating a new signing keystore..." -ForegroundColor Yellow
   
-  keytool -genkey -v -keystore $keystorePath -alias $alias -keyalg RSA -keysize 2048 -validity 10000 `
+  & $keytoolExe -genkey -v -keystore $keystorePath -alias $alias -keyalg RSA -keysize 2048 -validity 10000 `
     -dname "CN=CampusFlow, OU=Engineering, O=CampusFlow, L=Bhagalpur, ST=Bihar, C=IN" `
     -storepass $pw -keypass $pw
 
@@ -114,7 +122,7 @@ if (-not (Test-Path $keystorePath)) {
 
 # 4. Extract and Display SHA-256 Fingerprint for Digital Asset Links
 Write-Host "`n[4/6] Extracting SHA-256 Certificate Fingerprint..." -ForegroundColor Yellow
-$certInfo = keytool -list -v -keystore $keystorePath -alias $alias -storepass $pw 2>&1 | Out-String
+$certInfo = & $keytoolExe -list -v -keystore $keystorePath -alias $alias -storepass $pw 2>&1 | Out-String
 
 $sha256Match = [regex]::Match($certInfo, "SHA256:\s*([A-F0-9:]{95})")
 if ($sha256Match.Success) {
