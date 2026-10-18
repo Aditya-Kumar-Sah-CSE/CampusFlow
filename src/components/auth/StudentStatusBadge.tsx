@@ -199,7 +199,7 @@ export function StudentStatusBadge({
 
           {/* ExamPad Wooden Board Popover Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-72 sm:w-84 max-h-[min(540px,calc(100vh-4.5rem))] exam-pad-board-dashboard p-1.5 sm:p-2 pt-5 sm:pt-6 rounded-lg shadow-2xl z-50 flex flex-col overflow-visible animate-in fade-in zoom-in-95 duration-150">
+            <div className="!absolute right-0 top-full mt-2 w-72 sm:w-84 max-h-[calc(100vh-5rem)] exam-pad-board-dashboard p-1.5 sm:p-2 pt-5 sm:pt-6 rounded-lg shadow-2xl !z-50 flex flex-col overflow-visible animate-in fade-in zoom-in-95 duration-150">
               {/* Pushpin at top (overflow-visible ensures pin head is never clipped) */}
               <RedPushpin className="-top-3" />
 
@@ -210,7 +210,7 @@ export function StudentStatusBadge({
               <div className="absolute bottom-1 right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-amber-500/70 pointer-events-none rounded-br-xs" />
 
               {/* Pinned Paper Sheet Container */}
-              <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] flex flex-col max-h-[min(500px,calc(100vh-6rem))] shadow-xs text-slate-800 dark:text-[#faebd0] overflow-hidden">
+              <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] flex flex-col max-h-[calc(100vh-6.5rem)] min-h-0 shadow-xs text-slate-800 dark:text-[#faebd0] overflow-hidden">
                 {/* 1. FIXED TOP HEADER: Student Details (Permanently visible, never scrolls away or hides) */}
                 <div className="shrink-0 px-3.5 py-2.5 border-b border-amber-900/25 dark:border-[#382713] bg-[#fcf8f0] dark:bg-[#20140a] flex items-start gap-2.5 shadow-2xs">
                   <div className="relative shrink-0">
@@ -287,7 +287,7 @@ export function StudentStatusBadge({
                 </div>
 
                 {/* 3. SCROLLABLE NAVIGATION LINKS ONLY (Scrolls smoothly without hiding the top profile) */}
-                <div className="flex-1 overflow-y-auto scrollbar-thin">
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
 
                 {/* Student Portal Navigation */}
                 <div className="py-1 px-1.5 space-y-0.5 text-xs">

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import type { CollegeEvent, EventFormData, EventStatus, EventRegistrationType } from '@/types/events';
 import { createEventAction, updateEventAction, resyncEventGoogleResourcesAction } from '@/app/admin/events/actions';
+import { ExamPadClip } from '@/components/ui/ExamPadCard';
 
 interface Props {
   initialEvent?: CollegeEvent | null;
@@ -325,29 +326,55 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
       <div className="flex items-center justify-between">
         <Link
           href="/admin/dashboard?tab=events"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-[#c4a97d] hover:text-slate-900 dark:hover:text-[#faebd0] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Events</span>
         </Link>
-        <span className="text-xs font-medium text-slate-400">
+        <span className="text-xs font-medium text-slate-400 dark:text-[#9e835b]">
           {isEdit ? 'Editing Existing Event' : 'New Event Setup'}
         </span>
       </div>
 
       {errorMsg && (
-        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-start gap-2">
+        <div className="p-4 rounded-[3px] bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-xs flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Basic Event Information */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-bce-cobalt shrink-0" />
-          <span>Basic Event Information</span>
-        </h3>
+      {/* ExamPad Clipboard Frame with Authentic Vintage Metal Clip */}
+      <div className="exam-pad-board-dashboard p-2.5 sm:p-4 md:p-6 pt-9 sm:pt-11 rounded-lg relative overflow-visible border-2 border-amber-950/60 dark:border-[#24160a] shadow-2xl">
+        <ExamPadClip label={isEdit ? "EDIT EVENT" : "EVENT SPECIFICATION"} size="default" />
+
+        {/* Brass Corner Brackets */}
+        <div className="absolute top-1.5 left-1.5 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
+        <div className="absolute top-1.5 right-1.5 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />
+        <div className="absolute bottom-1.5 left-1.5 w-3.5 h-3.5 border-b-2 border-l-2 border-amber-500/80 pointer-events-none rounded-bl-xs" />
+        <div className="absolute bottom-1.5 right-1.5 w-3.5 h-3.5 border-b-2 border-r-2 border-amber-500/80 pointer-events-none rounded-br-xs" />
+
+        {/* Pinned Paper Form Document Clamped to the Board */}
+        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-4 sm:p-6 md:p-8 space-y-6 text-slate-800 dark:text-[#faebd0] shadow-sm">
+          {/* Header Banner inside paper */}
+          <div className="border-b border-amber-900/20 dark:border-[#382713] pb-4">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[3px] bg-amber-100/80 dark:bg-[#2b1f11] text-amber-900 dark:text-amber-300 text-xs font-bold mb-1 border border-amber-300/80 dark:border-amber-700/60">
+              <Ticket className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>OFFICIAL EVENT SPECIFICATION LEDGER</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#faebd0] tracking-tight">
+              {isEdit ? 'Update College Event' : 'Create College Event'}
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-[#c4a97d] mt-0.5 font-medium">
+              Configure event schedules, venues, registrations, and capacity limits.
+            </p>
+          </div>
+
+          {/* Basic Event Information */}
+          <div className="bg-white/80 dark:bg-[#140e08]/70 p-4 sm:p-6 rounded-[3px] border border-slate-200/90 dark:border-[#382713] shadow-2xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Basic Event Information</span>
+            </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -399,12 +426,12 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         </div>
       </div>
 
-      {/* Dates & Schedule */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-bce-cobalt shrink-0" />
-          <span>Dates &amp; Schedule</span>
-        </h3>
+          {/* Dates & Schedule */}
+          <div className="bg-white/80 dark:bg-[#140e08]/70 p-4 sm:p-6 rounded-[3px] border border-slate-200/90 dark:border-[#382713] shadow-2xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Dates &amp; Schedule</span>
+            </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
@@ -453,14 +480,14 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         </div>
       </div>
 
-      {/* Registration Section */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="space-y-0.5">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Ticket className="w-4 h-4 text-bce-cobalt shrink-0" />
-              <span>Registration Settings</span>
-            </h3>
+          {/* Registration Section */}
+          <div className="bg-white/80 dark:bg-[#140e08]/70 p-4 sm:p-6 rounded-[3px] border border-slate-200/90 dark:border-[#382713] shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-[#382713]">
+              <div className="space-y-0.5">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
+                  <Ticket className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>Registration Settings</span>
+                </h3>
             <p className="text-[11px] text-slate-500">
               Configure how students register for this event (Google Form or CampusFlow portal).
             </p>
@@ -1051,12 +1078,12 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         )}
       </div>
 
-      {/* Capacity & Lifecycle Status */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Users className="w-4 h-4 text-bce-cobalt shrink-0" />
-          <span>Capacity &amp; Availability</span>
-        </h3>
+          {/* Capacity & Lifecycle Status */}
+          <div className="bg-white/80 dark:bg-[#140e08]/70 p-4 sm:p-6 rounded-[3px] border border-slate-200/90 dark:border-[#382713] shadow-2xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
+              <Users className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Capacity &amp; Availability</span>
+            </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="space-y-1">
@@ -1089,13 +1116,13 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         </div>
       </div>
 
-      {/* Payment Configuration */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 sm:space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-bce-cobalt shrink-0" />
-            <span>Registration Fee &amp; Payment Options</span>
-          </h3>
+          {/* Payment Configuration */}
+          <div className="bg-white/80 dark:bg-[#140e08]/70 p-4 sm:p-6 rounded-[3px] border border-slate-200/90 dark:border-[#382713] shadow-2xs space-y-4 sm:space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-[#faebd0] flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>Registration Fee &amp; Payment Options</span>
+              </h3>
 
           {/* Free vs Paid Toggle */}
           <div className="inline-flex p-1 bg-slate-100 rounded-xl self-start sm:self-auto">
@@ -1210,23 +1237,25 @@ export function EventForm({ initialEvent, activeCollegeId, isEdit = false }: Pro
         )}
       </div>
 
-      {/* Submit Buttons */}
-      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-2">
-        <Link
-          href="/admin/dashboard?tab=events"
-          className="w-full sm:w-auto text-center px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
-        >
-          Cancel
-        </Link>
+        {/* Submit Buttons */}
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 pt-4 border-t border-amber-900/20 dark:border-[#382713]">
+          <Link
+            href="/admin/dashboard?tab=events"
+            className="w-full sm:w-auto text-center px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 dark:text-[#c4a97d] hover:text-slate-900 dark:hover:text-[#faebd0] border border-slate-300 dark:border-[#4d3817] rounded-[3px] hover:bg-slate-50 dark:hover:bg-[#20150b] transition-colors"
+          >
+            Cancel
+          </Link>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50"
-        >
-          {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-          <span>{isEdit ? 'Save Changes' : 'Create Event'}</span>
-        </button>
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-[3px] transition-all shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            <span>{isEdit ? 'Save Changes' : 'Create Event'}</span>
+          </button>
+        </div>
+        </div>
       </div>
       {/* Google Registration Created Success Modal (Requirement 7) */}
       {createdGoogleResources && (

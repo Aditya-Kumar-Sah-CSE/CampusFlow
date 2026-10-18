@@ -44,13 +44,13 @@ export async function EventEditView({ idOrSlug }: EventEditViewProps) {
               <span>Back to Events</span>
             </Link>
           </div>
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-2 flex-wrap">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-[#faebd0] flex items-center gap-2 flex-wrap">
             <span className="break-words">Edit Event: {event.title}</span>
-            <span className="text-xs font-mono font-medium px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 break-all">
+            <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-[3px] bg-slate-100 dark:bg-[#20150b] text-slate-700 dark:text-amber-300 border border-slate-200 dark:border-[#4d3817] break-all">
               /{event.slug}
             </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-[#c4a97d] mt-1 font-medium">
             Update event details, venue, dates, capacity, or payment settings.
           </p>
         </div>

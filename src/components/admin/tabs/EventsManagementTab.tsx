@@ -20,6 +20,8 @@ import {
 import type { CollegeEvent, EventStatus } from '@/types/events';
 import type { CanonicalEventStats } from '@/lib/events/canonical-stats';
 import { updateEventStatusAction, deleteEventAction } from '@/app/admin/events/actions';
+import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 interface Props {
   activeCollegeId?: string | null;
@@ -168,32 +170,37 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center gap-2 sm:gap-2.5">
-            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-bce-cobalt shrink-0" />
-            <span>College Events &amp; Registration</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Organize institutional workshops, seminars, and fests with capacity management and student enrollment.
-          </p>
-        </div>
+      <ExamPadCard variant="dashboard" clipLabel="CAMPUS EVENTS">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[3px] bg-amber-100/80 dark:bg-[#2b1f11] text-amber-900 dark:text-amber-300 text-xs font-bold mb-1 border border-amber-300/80 dark:border-amber-700/60">
+              <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>COLLEGE EVENTS &amp; REGISTRATIONS</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#faebd0] tracking-tight">
+              College Events &amp; Registration
+            </h2>
+            <p className="text-xs text-slate-600 dark:text-[#c4a97d] mt-1 font-medium">
+              Organize institutional workshops, seminars, and fests with capacity management and student enrollment.
+            </p>
+          </div>
 
-        <Link
-          href="/admin/dashboard/events/create"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New Event</span>
-        </Link>
-      </div>
+          <Link
+            href="/admin/dashboard/events/create"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-bce-cobalt hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Event</span>
+          </Link>
+        </div>
+      </ExamPadCard>
 
       {feedbackMsg && (
         <div
-          className={`p-3.5 rounded-xl text-xs font-medium border flex items-center justify-between ${
+          className={`p-3.5 rounded-[3px] text-xs font-medium border flex items-center justify-between ${
             feedbackMsg.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              : 'bg-red-50 text-red-800 border-red-200'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+              : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-800'
           }`}
         >
           <span>{feedbackMsg.text}</span>
@@ -208,34 +215,36 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Events</p>
-          <p className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">{events.length}</p>
+        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] p-3.5 sm:p-4 rounded-[3px] border border-slate-200/80 dark:border-[#382713] shadow-2xs text-slate-800 dark:text-[#faebd0]">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-[#a88f63] uppercase tracking-wider">Total Events</p>
+          <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-[#faebd0] mt-1">{events.length}</p>
         </div>
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Active Published</p>
-          <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">{publishedCount}</p>
+        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] p-3.5 sm:p-4 rounded-[3px] border border-slate-200/80 dark:border-[#382713] shadow-2xs text-slate-800 dark:text-[#faebd0]">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-[#a88f63] uppercase tracking-wider">Active Published</p>
+          <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{publishedCount}</p>
         </div>
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Registrations</p>
+        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] p-3.5 sm:p-4 rounded-[3px] border border-slate-200/80 dark:border-[#382713] shadow-2xs text-slate-800 dark:text-[#faebd0]">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-[#a88f63] uppercase tracking-wider">Registrations</p>
           {statsLoading && Object.keys(statsMap).length === 0 ? (
-            <div className="w-16 h-7 bg-slate-200 animate-pulse rounded-md mt-1" />
+            <div className="w-16 h-7 bg-slate-200 dark:bg-slate-800 animate-pulse rounded-[2px] mt-1" />
           ) : (
-            <p className="text-xl sm:text-2xl font-bold text-bce-cobalt mt-1">{totalRegistrations}</p>
+            <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-amber-400 mt-1">{totalRegistrations}</p>
           )}
         </div>
-        <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-2xs">
-          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Paid Events</p>
-          <p className="text-xl sm:text-2xl font-bold text-amber-600 mt-1">{paidCount}</p>
+        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] p-3.5 sm:p-4 rounded-[3px] border border-slate-200/80 dark:border-[#382713] shadow-2xs text-slate-800 dark:text-[#faebd0]">
+          <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 dark:text-[#a88f63] uppercase tracking-wider">Paid Events</p>
+          <p className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{paidCount}</p>
         </div>
       </div>
 
-      {/* Events List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-4 sm:px-5 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-xs sm:text-sm font-bold text-slate-900">Events Directory</h3>
-          <span className="text-xs text-slate-500">{events.length} event{events.length === 1 ? '' : 's'}</span>
-        </div>
+      {/* Events List on Pinned Roster Board */}
+      <PinnedRosterBoard
+        title={`Events Directory (${events.length})`}
+        subtitle="Manage and administer campus competitions, workshops, and student registrations"
+        badge={`${events.length} EVENTS`}
+        icon={<Calendar className="w-4 h-4" />}
+        className="w-full"
+      >
 
         {loading ? (
           <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2">
@@ -260,7 +269,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
             </Link>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-[#382713]">
             {events.map((event) => {
               const isUpdating = updatingId === event.id;
               const eventStats = statsMap[event.id];
@@ -275,11 +284,11 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
               return (
                 <div
                   key={event.id}
-                  className="p-4 sm:p-5 hover:bg-slate-50/70 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                  className="p-4 sm:p-5 hover:bg-slate-50/70 dark:hover:bg-[#22170d] transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-4"
                 >
                   <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="text-sm sm:text-base font-bold text-slate-900 break-words">
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-[#faebd0] break-words">
                         {event.title}
                       </h4>
 
@@ -335,8 +344,8 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                           <span>Registration data unavailable</span>
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 font-medium text-slate-700">
-                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="flex items-center gap-1 font-medium text-slate-700 dark:text-[#faebd0]">
+                          <Users className="w-3.5 h-3.5 text-slate-400 dark:text-[#d4af37] shrink-0" />
                           <span>
                             {eventStats ? eventStats.totalEnrolled : 0}
                             {event.max_capacity ? ` / ${event.max_capacity} Seats` : ' Enrolled'}
@@ -411,7 +420,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
 
                     <Link
                       href={`/admin/dashboard/events/${event.id}/edit`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-slate-600 hover:text-slate-900 text-xs font-medium rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-slate-600 dark:text-[#c4a97d] hover:text-slate-900 dark:hover:text-[#faebd0] text-xs font-medium rounded-[3px] hover:bg-slate-100 dark:hover:bg-[#2a1d10] transition-colors border border-slate-200 dark:border-[#4d3817]"
                     >
                       <Edit className="w-3.5 h-3.5" />
                       <span>Edit</span>
@@ -425,7 +434,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
                         value={event.status}
                         disabled={isUpdating}
                         onChange={(e) => onStatusSelect(event, e.target.value as EventStatus)}
-                        className="appearance-none text-xs font-semibold rounded-lg pl-3 pr-8 py-1.5 bg-white border border-slate-300 text-slate-800 hover:border-slate-400 focus:outline-hidden focus:ring-2 focus:ring-bce-cobalt/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs transition-colors"
+                        className="appearance-none text-xs font-semibold rounded-[3px] pl-3 pr-8 py-1.5 bg-white dark:bg-[#1e150c] border border-slate-300 dark:border-[#4d3817] text-slate-800 dark:text-[#faebd0] hover:border-slate-400 focus:outline-hidden focus:ring-1 focus:ring-amber-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs transition-colors"
                       >
                         <option value="DRAFT">DRAFT (Hidden from public)</option>
                         <option value="PUBLISHED">PUBLISHED (Visible to students)</option>
@@ -456,7 +465,7 @@ export function EventsManagementTab({ activeCollegeId, initialEvents }: Props) {
             })}
           </div>
         )}
-      </div>
+      </PinnedRosterBoard>
 
       {/* Confirmation Modal for CLOSED or CANCELLED status changes */}
       {confirmModal && (
