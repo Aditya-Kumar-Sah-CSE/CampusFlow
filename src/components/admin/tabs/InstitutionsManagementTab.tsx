@@ -15,6 +15,9 @@ import {
   X,
   School,
   MapPin,
+  ArrowRight,
+  ArrowLeft,
+  Check,
 } from 'lucide-react';
 import {
   getInstitutionsAction,
@@ -24,8 +27,9 @@ import {
   updateLandingTogglesAction,
 } from '@/app/admin/institutions/actions';
 import { PaginationControl } from '@/components/ui/PaginationControl';
-import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { ExamPadCard, ExamPadClip } from '@/components/ui/ExamPadCard';
 import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
+import { InstitutionModal } from '@/components/admin/institutions/InstitutionModal';
 import type { College } from '@/types/tenant';
 import type { CreateCollegeInput, UpdateCollegeInput } from '@/lib/validation';
 
@@ -43,6 +47,7 @@ export function InstitutionsManagementTab() {
   const [editingCollege, setEditingCollege] = useState<College | null>(null);
   const [deactivatingCollege, setDeactivatingCollege] = useState<College | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [instStep, setInstStep] = useState<1 | 2>(1);
 
   // Form state
   const [formData, setFormData] = useState<CreateCollegeInput>({
@@ -122,6 +127,7 @@ export function InstitutionsManagementTab() {
     });
     setFormError(null);
     setIsSlugManuallyEdited(false);
+    setInstStep(1);
     setIsAddModalOpen(true);
   };
 
@@ -146,6 +152,25 @@ export function InstitutionsManagementTab() {
     });
     setFormError(null);
     setIsSlugManuallyEdited(true);
+    setInstStep(1);
+  };
+
+  const handleNextStep = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    if (!formData.name?.trim()) {
+      setFormError('Please enter the College Name.');
+      return;
+    }
+    if (!formData.code?.trim()) {
+      setFormError('Please enter the College Code / Short Name.');
+      return;
+    }
+    if (!formData.slug?.trim()) {
+      setFormError('Please enter a valid Public Slug.');
+      return;
+    }
+    setFormError(null);
+    setInstStep(2);
   };
 
   // Handle direct toggle for Landing Page Feedbacks / Events
@@ -623,537 +648,39 @@ export function InstitutionsManagementTab() {
       </PinnedRosterBoard>
 
       {/* ==================================================================== */}
-      {/* MODAL 1: ADD COLLEGE                                                  */}
-      {/* ==================================================================== */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-hidden">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-150 overflow-hidden">
-            <div className="flex items-center justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">Add New Institution</h3>
-                <p className="text-xs text-slate-500">
-                  Register a new college tenant and generate its public feedback portal.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-1.5 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* 2-Step ExamPad Modal: Add College */}
+      <InstitutionModal
+        isOpen={isAddModalOpen}
+        isEdit={false}
+        editingCollege={null}
+        formData={formData}
+        setFormData={setFormData}
+        formError={formError}
+        setFormError={setFormError}
+        submitting={submitting}
+        handleNameChange={handleNameChange}
+        setIsSlugManuallyEdited={setIsSlugManuallyEdited}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleCreateSubmit}
+      />
 
-            <form onSubmit={handleCreateSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
-                {formError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                    <span>{formError}</span>
-                  </div>
-                )}
+      {/* 2-Step ExamPad Modal: Edit College */}
+      <InstitutionModal
+        isOpen={Boolean(editingCollege)}
+        isEdit={true}
+        editingCollege={editingCollege}
+        formData={formData}
+        setFormData={setFormData}
+        formError={formError}
+        setFormError={setFormError}
+        submitting={submitting}
+        handleNameChange={handleNameChange}
+        setIsSlugManuallyEdited={setIsSlugManuallyEdited}
+        onClose={() => setEditingCollege(null)}
+        onSubmit={handleEditSubmit}
+      />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* College Name */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                    College Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Munger College of Engineering"
-                    value={formData.name}
-                    onChange={(e) => handleNameChange(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
-                  />
-                </div>
-
-                {/* College Code */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    College Code / Short Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. MCE-MUNGER"
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono font-bold"
-                  />
-                </div>
-
-                {/* Slug */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Public Slug <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center">
-                    <span className="px-2.5 py-2 text-xs bg-slate-100 border border-r-0 border-slate-200 text-slate-500 rounded-l-lg font-mono">
-                      /
-                    </span>
-                    <input
-                      type="text"
-                      required
-                      placeholder="mce-munger"
-                      value={formData.slug}
-                      onChange={(e) => {
-                        setIsSlugManuallyEdited(true);
-                        setFormData({ ...formData, slug: e.target.value.toLowerCase() });
-                      }}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-r-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono font-medium"
-                    />
-                  </div>
-                </div>
-
-                {/* Logo URL */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Logo Image URL <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://example.com/logo.png"
-                    value={formData.logoUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Address / City */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Campus Address / City <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Munger, Bihar - 811201"
-                    value={formData.address || ''}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contact Email <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="principal@mce.ac.in"
-                    value={formData.contactEmail || ''}
-                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contact Phone <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="+91 94708 70830"
-                    value={formData.contactPhone || ''}
-                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Website */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Official Website <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="url"
-                    placeholder="https://mcemunger.ac.in"
-                    value={formData.websiteUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Affiliated University */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Affiliated University <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Bihar Engineering University"
-                    value={formData.affiliatedUniversity || ''}
-                    onChange={(e) => setFormData({ ...formData, affiliatedUniversity: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Established Year */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Established Year <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1800"
-                    max="2100"
-                    placeholder="2019"
-                    value={formData.establishedYear || ''}
-                    onChange={(e) => setFormData({ ...formData, establishedYear: e.target.value ? parseInt(e.target.value, 10) : null })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Tagline */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Institutional Tagline <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Excellence in Engineering"
-                    value={formData.tagline || ''}
-                    onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Public Landing Page Display Modules */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">Public Landing Page Modules</h4>
-                  <p className="text-[11px] text-slate-500">Control what sections appear on the institution&apos;s public landing page.</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.showFeedbacks !== false}
-                      onChange={(e) => setFormData({ ...formData, showFeedbacks: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500 mt-0.5"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 block">Feedbacks Module</span>
-                      <span className="text-[11px] text-slate-500 block leading-tight">Display discovery flow &amp; forms on landing page</span>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.showEvents !== false}
-                      onChange={(e) => setFormData({ ...formData, showEvents: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500 mt-0.5"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 block">Events Module</span>
-                      <span className="text-[11px] text-slate-500 block leading-tight">Display upcoming events &amp; registrations on landing page</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Status Toggle */}
-              <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500"
-                  />
-                  <span>Active (Available on public portal & institution switcher)</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Action Buttons (Sticky Footer) */}
-            <div className="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 rounded-b-2xl">
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
-              >
-                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Create Institution</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      )}
-
-      {/* ==================================================================== */}
-      {/* MODAL 2: EDIT COLLEGE                                                 */}
-      {/* ==================================================================== */}
-      {editingCollege && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-hidden">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-150 overflow-hidden">
-            <div className="flex items-center justify-between p-5 sm:p-6 pb-4 border-b border-slate-100 shrink-0 bg-white">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-900">Edit Institution</h3>
-                <p className="text-xs text-slate-500">
-                  Modify institution metadata, code, or portal slug.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingCollege(null)}
-                className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg p-1.5 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleEditSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1 overscroll-contain">
-                {formError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                    <span>{formError}</span>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* College Name */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                    College Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
-                  />
-                </div>
-
-                {/* College Code */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    College Code <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono font-bold"
-                  />
-                </div>
-
-                {/* Slug */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Public Slug <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex items-center">
-                    <span className="px-2.5 py-2 text-xs bg-slate-100 border border-r-0 border-slate-200 text-slate-500 rounded-l-lg font-mono">
-                      /
-                    </span>
-                    <input
-                      type="text"
-                      required
-                      value={formData.slug}
-                      onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase() })}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-r-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono font-medium"
-                    />
-                  </div>
-                </div>
-
-                {/* Logo URL */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Logo Image URL <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.logoUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Address / City */}
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Campus Address / City <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.address || ''}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contact Email <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={formData.contactEmail || ''}
-                    onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Phone */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Contact Phone <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.contactPhone || ''}
-                    onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Website */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Official Website <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.websiteUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Affiliated University */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Affiliated University <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.affiliatedUniversity || ''}
-                    onChange={(e) => setFormData({ ...formData, affiliatedUniversity: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Established Year */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Established Year <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1800"
-                    max="2100"
-                    value={formData.establishedYear || ''}
-                    onChange={(e) => setFormData({ ...formData, establishedYear: e.target.value ? parseInt(e.target.value, 10) : null })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Tagline */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Institutional Tagline <span className="text-slate-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.tagline || ''}
-                    onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              {/* Public Landing Page Display Modules */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 space-y-3">
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">Public Landing Page Modules</h4>
-                  <p className="text-[11px] text-slate-500">Control what sections appear on the institution&apos;s public landing page.</p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.showFeedbacks !== false}
-                      onChange={(e) => setFormData({ ...formData, showFeedbacks: e.target.checked })}
-                      className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500 mt-0.5"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 block">Feedbacks Module</span>
-                      <span className="text-[11px] text-slate-500 block leading-tight">Display discovery flow &amp; forms on landing page</span>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-2.5 p-2.5 rounded-lg bg-white border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.showEvents !== false}
-                      onChange={(e) => setFormData({ ...formData, showEvents: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 rounded-md border-slate-300 focus:ring-emerald-500 mt-0.5"
-                    />
-                    <div>
-                      <span className="text-xs font-bold text-slate-900 block">Events Module</span>
-                      <span className="text-[11px] text-slate-500 block leading-tight">Display upcoming events &amp; registrations on landing page</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Status Toggle */}
-              <div className="pt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800">
-                  <input
-                    type="checkbox"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500"
-                  />
-                  <span>Active (Available on public portal & institution switcher)</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Action Buttons (Sticky Footer) */}
-            <div className="px-5 sm:px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 rounded-b-2xl">
-              <button
-                type="button"
-                onClick={() => setEditingCollege(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer"
-              >
-                {submitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Save Changes</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      )}
-
-      {/* ==================================================================== */}
-      {/* MODAL 3: DEACTIVATION CONFIRMATION                                    */}
+            {/* MODAL 3: DEACTIVATION CONFIRMATION                                    */}
       {/* ==================================================================== */}
       {deactivatingCollege && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">

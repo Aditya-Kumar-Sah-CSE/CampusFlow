@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { TenantLoginForm } from '@/components/admin/TenantLoginForm';
-import { School, Loader2, Shield } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,29 +13,8 @@ export const metadata: Metadata = {
 
 export default function AdminLoginPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900 text-slate-100 flex flex-col justify-center py-5 sm:py-12 px-2.5 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        {/* Platform Identity */}
-        <div className="mx-auto w-12 h-12 sm:w-14 sm:h-14 rounded-[4px] bg-gradient-to-tr from-blue-600 to-amber-500 p-0.5 shadow-xl flex items-center justify-center">
-          <div className="w-full h-full bg-slate-950 rounded-[3px] flex items-center justify-center">
-            <School className="w-6 h-6 sm:w-7 sm:h-7 text-amber-400" />
-          </div>
-        </div>
-
-        <div className="mt-3.5 sm:mt-4">
-          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[2px] bg-blue-500/10 text-blue-300 border border-blue-500/20 mb-2">
-            <Shield className="w-3 h-3" /> Platform Administration
-          </span>
-          <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
-            CampusFlow
-          </h1>
-          <p className="mt-1 text-xs text-slate-400 font-medium">
-            Super Admin & Institutional Portal Sign In
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 sm:mt-6 sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900 text-slate-100 flex flex-col justify-center py-6 sm:py-12 px-2.5 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
         <Suspense
           fallback={
             <div className="bg-slate-800/90 py-12 px-6 rounded-[3px] border border-slate-700/60 text-center space-y-3">

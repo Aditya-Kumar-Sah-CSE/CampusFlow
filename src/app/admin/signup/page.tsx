@@ -6,7 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
 import { createClient } from '@/lib/supabase/client';
 import {
-  School,
   Building2,
   User,
   Lock,
@@ -270,7 +269,7 @@ function AdminSignupForm() {
   };
 
   return (
-    <ExamPadCard paperClassName="space-y-4 text-slate-900 dark:text-[#faebd0]">
+    <ExamPadCard clipLabel="ADMIN REQUEST" paperClassName="space-y-4 text-slate-900 dark:text-[#faebd0]">
       {/* 2-Step Progress Indicator */}
       <div className="pb-3 border-b border-slate-200/80 dark:border-[#4d3817]">
         <div className="flex items-center justify-between text-xs mb-2">
@@ -687,23 +686,8 @@ function AdminSignupForm() {
 
 export default function AdminSignupPage() {
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-5 sm:py-12 px-2.5 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="mx-auto w-12 h-12 sm:w-14 sm:h-14 rounded-[4px] bg-gradient-to-tr from-bce-cobalt to-amber-500 p-0.5 shadow-xl flex items-center justify-center">
-          <div className="w-full h-full bg-bce-navy rounded-[3px] flex items-center justify-center">
-            <School className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400" />
-          </div>
-        </div>
-
-        <h2 className="mt-4 sm:mt-5 text-xl sm:text-3xl font-extrabold tracking-tight text-white">
-          Request Admin Access
-        </h2>
-        <p className="mt-1 sm:mt-1.5 text-xs text-slate-400 font-medium">
-          Campus Management Platform • Administrator Portal
-        </p>
-      </div>
-
-      <div className="mt-4 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center py-6 sm:py-12 px-2.5 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-950 via-bce-navy to-slate-900">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-1 sm:px-0">
         <Suspense
           fallback={
             <div className="bg-slate-800/90 py-12 px-6 rounded-[3px] border border-slate-700/60 text-center space-y-3">
