@@ -584,12 +584,15 @@ export function StudentDiscoveryFlow({
                       <optgroup key={group.programmeName} label={group.title}>
                         {group.items.map(s => {
                           const semNum = s.semester_number ?? s.level_number;
-                          const lvl = resolveAcademicLevel(s.programme?.name, s.name);
-                          const progPrefix = s.programme?.name ? `${s.programme.name} — ` : `${lvl} — `;
-                          const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
+                          let semLabel = s.name || '';
+                          if (/^\d+$/.test(semLabel.trim())) {
+                            semLabel = `Semester ${semLabel.trim()}`;
+                          } else if (!/semester|sem|class|grade|year/i.test(semLabel) && semNum) {
+                            semLabel = `${semLabel} (Sem ${semNum})`;
+                          }
                           return (
                             <option key={s.id} value={s.id}>
-                              {progPrefix}{semLabel}
+                              {group.programmeName} — {semLabel}
                             </option>
                           );
                         })}
@@ -604,8 +607,13 @@ export function StudentDiscoveryFlow({
                       .map(s => {
                         const semNum = s.semester_number ?? s.level_number;
                         const lvl = resolveAcademicLevel(s.programme?.name, s.name);
-                        const progPrefix = s.programme?.name ? `${s.programme.name} — ` : `${lvl} — `;
-                        const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
+                        const progPrefix = hasMultipleProgrammes ? (s.programme?.name ? `${s.programme.name} — ` : `${lvl} — `) : '';
+                        let semLabel = s.name || '';
+                        if (/^\d+$/.test(semLabel.trim())) {
+                          semLabel = `Semester ${semLabel.trim()}`;
+                        } else if (!/semester|sem|class|grade|year/i.test(semLabel) && semNum) {
+                          semLabel = `${semLabel} (Sem ${semNum})`;
+                        }
                         return (
                           <option key={s.id} value={s.id}>
                             {progPrefix}{semLabel}

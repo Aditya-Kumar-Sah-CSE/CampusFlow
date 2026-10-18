@@ -59,7 +59,11 @@ export default async function AdminResultsHubPage() {
 
   let yearQuery = supabase.from('academic_years').select('id, name, is_active').order('name', { ascending: false });
   let branchQuery = supabase.from('branches').select('id, name, code, is_active').eq('is_active', true).order('name', { ascending: true });
-  let semesterQuery = supabase.from('semesters').select('id, name, year_number, semester_number, is_active').order('semester_number', { ascending: true });
+  let programmesQuery = supabase.from('academic_programmes').select('id, name, code, programme_type, is_active').order('name');
+  let semesterQuery = supabase.from('semesters').select(`
+    id, name, year_number, semester_number, programme_id, is_active,
+    programme:academic_programmes(id, name, code, programme_type, is_active)
+  `).order('semester_number', { ascending: true });
   let facultyQuery = supabase.from('faculties').select('id, name, employee_id, department, designation, is_active').order('name', { ascending: true });
   let subjectQuery = supabase.from('subjects').select('id, name, code, branch_id, semester_id, is_active').order('name', { ascending: true });
 
@@ -67,6 +71,7 @@ export default async function AdminResultsHubPage() {
     formsQuery = formsQuery.eq('college_id', session.activeCollegeId);
     yearQuery = yearQuery.eq('college_id', session.activeCollegeId);
     branchQuery = branchQuery.eq('college_id', session.activeCollegeId);
+    programmesQuery = programmesQuery.eq('college_id', session.activeCollegeId);
     semesterQuery = semesterQuery.eq('college_id', session.activeCollegeId);
     facultyQuery = facultyQuery.eq('college_id', session.activeCollegeId);
     subjectQuery = subjectQuery.eq('college_id', session.activeCollegeId);
@@ -76,18 +81,26 @@ export default async function AdminResultsHubPage() {
   const [
     { data: academicYears },
     { data: branches },
-    { data: semesters },
+    { data: rawProgrammes },
+    { data: rawSemesters },
     { data: faculties },
     { data: subjects },
     { data: forms },
   ] = await Promise.all([
     yearQuery,
     branchQuery,
+    programmesQuery,
     semesterQuery,
     facultyQuery,
     subjectQuery,
     formsQuery,
   ]);
+
+  const progMap = new Map<string, any>((rawProgrammes || []).map((p: any) => [p.id, p]));
+  const semesters = (rawSemesters || []).map((s: any) => ({
+    ...s,
+    programme: s.programme || (s.programme_id ? progMap.get(s.programme_id) : null),
+  }));
 
   // 2. Resolve Initial Aggregated Analytics Report:
   // If warm in memory cache, return immediately with full chart data.

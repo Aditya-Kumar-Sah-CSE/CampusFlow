@@ -34,7 +34,7 @@ export default async function FeedbackFormDetailPage({
       subject:subjects(*),
       academic_year:academic_years(*),
       branch:branches(*),
-      semester:semesters(*)
+      semester:semesters(*, programme:academic_programmes(id, name, code, programme_type))
     `)
     .eq('id', id)
     .maybeSingle();
@@ -62,7 +62,7 @@ export default async function FeedbackFormDetailPage({
         adminDb.from('subjects').select('*').eq('id', baseForm.subject_id).maybeSingle(),
         adminDb.from('academic_years').select('*').eq('id', baseForm.academic_year_id).maybeSingle(),
         adminDb.from('branches').select('*').eq('id', baseForm.branch_id).maybeSingle(),
-        adminDb.from('semesters').select('*').eq('id', baseForm.semester_id).maybeSingle(),
+        adminDb.from('semesters').select('*, programme:academic_programmes(id, name, code, programme_type)').eq('id', baseForm.semester_id).maybeSingle(),
       ]);
 
       form = {

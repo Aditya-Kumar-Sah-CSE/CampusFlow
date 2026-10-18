@@ -336,7 +336,7 @@ export function ExamPadCard({
       >
         {/* Optional Header (for Add Faculty, Add Subject, Assignment, etc.) */}
         {(title || icon || badge || action) && (
-          <div className="flex items-start justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-slate-200/80 dark:border-[#4d3817]">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3 mb-4 sm:mb-5 pb-3 border-b border-slate-200/80 dark:border-[#4d3817]">
             <div className="flex items-center gap-2.5 min-w-0">
               {icon && (
                 <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-sm bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-2xs">
@@ -363,7 +363,7 @@ export function ExamPadCard({
                 )}
               </div>
             </div>
-            {action && <div className="shrink-0">{action}</div>}
+            {action && <div className="shrink-0 w-full sm:w-auto">{action}</div>}
           </div>
         )}
 

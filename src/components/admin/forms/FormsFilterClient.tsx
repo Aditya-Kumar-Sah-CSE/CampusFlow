@@ -6,6 +6,7 @@ import { Search, RotateCcw } from 'lucide-react';
 import { AcademicYear, Branch, Semester } from '@/types/database';
 import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
 import { ExamPadCard } from '@/components/ui/ExamPadCard';
+import { resolveAcademicLevel } from '@/lib/academic/level-utils';
 
 interface Props {
   academicYears: AcademicYear[];
@@ -42,6 +43,43 @@ export function FormsFilterClient({
     () => (branches || []).filter((b: Branch) => b.is_active).sort((a: Branch, b: Branch) => a.name.localeCompare(b.name)),
     [branches]
   );
+
+  // Group semesters by programme (e.g. B.Tech, M.Tech) to eliminate duplicate ambiguity
+  const { semesterGroups, hasMultipleProgrammes } = useMemo(() => {
+    const groupsMap = new Map<string, { programmeName: string; title: string; items: Semester[] }>();
+
+    for (const s of semesters || []) {
+      const lvl = resolveAcademicLevel(s.programme?.name, s.name || s.display_name);
+      const progName = s.programme?.name || lvl || 'General';
+      const isPg = progName.toLowerCase().includes('m.tech') || progName.toLowerCase().includes('pg');
+      const isDip = progName.toLowerCase().includes('diploma');
+      const title = isDip
+        ? `${progName} (Polytechnic / Diploma)`
+        : isPg
+        ? `${progName} (Postgraduate / 2-Year)`
+        : `${progName} (Undergraduate / 4-Year)`;
+
+      if (!groupsMap.has(progName)) {
+        groupsMap.set(progName, { programmeName: progName, title, items: [] });
+      }
+      groupsMap.get(progName)!.items.push(s);
+    }
+
+    // Sort items inside each group by semester_number
+    for (const group of groupsMap.values()) {
+      group.items.sort((a, b) => {
+        const aNum = a.semester_number ?? a.level_number ?? 0;
+        const bNum = b.semester_number ?? b.level_number ?? 0;
+        return aNum - bNum;
+      });
+    }
+
+    const groups = Array.from(groupsMap.values());
+    return {
+      semesterGroups: groups,
+      hasMultipleProgrammes: groups.length > 1,
+    };
+  }, [semesters]);
 
   const applyFilters = useCallback(
     (newParams: {
@@ -184,16 +222,41 @@ export function FormsFilterClient({
               className="w-full bg-slate-50 dark:bg-[#140e07] border border-slate-300 dark:border-[#382710] rounded-[3px] px-3 py-2 text-xs text-slate-900 dark:text-[#faebd0] focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             >
               <option value="ALL">All Semesters</option>
-              {semesters.map(s => {
-                const semNum = s.semester_number ?? s.level_number;
-                const progPrefix = s.programme?.name ? `${s.programme.name} — ` : '';
-                const semLabel = semNum ? `${s.name} (Sem ${semNum})` : s.name;
-                return (
-                  <option key={s.id} value={s.id}>
-                    {progPrefix}{semLabel}
-                  </option>
-                );
-              })}
+              {hasMultipleProgrammes ? (
+                semesterGroups.map(group => (
+                  <optgroup key={group.programmeName} label={group.title}>
+                    {group.items.map(s => {
+                      const semNum = s.semester_number ?? s.level_number;
+                      let semLabel = s.name || '';
+                      if (/^\d+$/.test(semLabel.trim())) {
+                        semLabel = `Semester ${semLabel.trim()}`;
+                      } else if (!/semester|sem|class|grade|year/i.test(semLabel) && semNum) {
+                        semLabel = `${semLabel} (Sem ${semNum})`;
+                      }
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {group.programmeName} — {semLabel}
+                        </option>
+                      );
+                    })}
+                  </optgroup>
+                ))
+              ) : (
+                (semesters || []).map(s => {
+                  const semNum = s.semester_number ?? s.level_number;
+                  let semLabel = s.name || '';
+                  if (/^\d+$/.test(semLabel.trim())) {
+                    semLabel = `Semester ${semLabel.trim()}`;
+                  } else if (!/semester|sem|class|grade|year/i.test(semLabel) && semNum) {
+                    semLabel = `${semLabel} (Sem ${semNum})`;
+                  }
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {semLabel}
+                    </option>
+                  );
+                })
+              )}
             </select>
           </div>
 
@@ -220,13 +283,13 @@ export function FormsFilterClient({
         </div>
 
         {/* Reset Bar */}
-        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/80 dark:border-[#382710]">
-          <span className="text-slate-400 dark:text-[#8c7453]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs pt-2.5 border-t border-slate-200/80 dark:border-[#382710]">
+          <span className="text-slate-400 dark:text-[#8c7453] text-[11px] sm:text-xs">
             {isPending ? 'Applying filters...' : 'Filter forms by session, branch, semester or lifecycle'}
           </span>
           <button
             onClick={handleReset}
-            className="inline-flex items-center gap-1 text-slate-500 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-[#faebd0] font-semibold cursor-pointer"
+            className="inline-flex items-center gap-1 text-slate-500 dark:text-[#c4a97d] hover:text-slate-800 dark:hover:text-[#faebd0] font-semibold cursor-pointer self-end sm:self-auto"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Filters</span>

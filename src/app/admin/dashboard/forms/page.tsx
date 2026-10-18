@@ -63,11 +63,16 @@ export default async function FeedbackFormsPage({
 
   let yearsQuery = supabase.from('academic_years').select('id, name, is_active').order('name', { ascending: false });
   let branchesQuery = supabase.from('branches').select('id, name, code, is_active').eq('is_active', true).order('name', { ascending: true });
-  let semestersQuery = supabase.from('semesters').select('id, name, semester_number, is_active').order('semester_number');
+  let programmesQuery = supabase.from('academic_programmes').select('id, name, code, programme_type, is_active').order('name');
+  let semestersQuery = supabase.from('semesters').select(`
+    id, name, semester_number, year_number, level_type, level_number, display_name, programme_id, is_active,
+    programme:academic_programmes(id, name, code, programme_type, is_active)
+  `).order('semester_number', { ascending: true });
 
   if (targetCollegeId) {
     yearsQuery = yearsQuery.eq('college_id', targetCollegeId);
     branchesQuery = branchesQuery.eq('college_id', targetCollegeId);
+    programmesQuery = programmesQuery.eq('college_id', targetCollegeId);
     semestersQuery = semestersQuery.eq('college_id', targetCollegeId);
   }
 
@@ -85,18 +90,42 @@ export default async function FeedbackFormsPage({
   const [
     { data: years },
     { data: branches },
-    { data: semesters },
+    { data: rawProgrammes },
+    { data: rawSemesters, error: semErr },
     { count: publishedCount },
     { count: draftCount },
     { count: closedCount },
   ] = await Promise.all([
     yearsQuery,
     branchesQuery,
+    programmesQuery,
     semestersQuery,
     pubCountQuery,
     draftCountQuery,
     closedCountQuery,
   ]);
+
+  let semesters: any[] = (rawSemesters as any[]) || [];
+  if (semErr || semesters.length === 0) {
+    let fallbackQuery = supabase
+      .from('semesters')
+      .select('id, name, semester_number, year_number, programme_id, display_name, is_active')
+      .order('semester_number');
+    if (targetCollegeId) {
+      fallbackQuery = fallbackQuery.eq('college_id', targetCollegeId);
+    }
+    const { data: fallbackSems } = await fallbackQuery;
+    if (fallbackSems && fallbackSems.length > 0) {
+      semesters = fallbackSems;
+    }
+  }
+
+  // Attach joined programme records if missing due to fallback query
+  const progMap = new Map<string, any>((rawProgrammes || []).map((p: any) => [p.id, p]));
+  semesters = semesters.map(s => ({
+    ...s,
+    programme: s.programme || (s.programme_id ? progMap.get(s.programme_id) : null),
+  }));
 
   // Query forms with lean relational projections
   let query = adminDb
@@ -278,7 +307,7 @@ export default async function FeedbackFormsPage({
         icon={<FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-bce-cobalt dark:text-amber-400" />}
         badge="FORMS CATALOG"
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/admin/dashboard?tab=forms"
               className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-[3px] border border-slate-300 dark:border-[#4d3817] text-slate-700 dark:text-[#faebd0] bg-slate-100 dark:bg-[#1a1309] text-xs font-semibold hover:bg-slate-200 dark:hover:bg-[#25180c] transition-colors cursor-pointer select-none"
@@ -310,7 +339,7 @@ export default async function FeedbackFormsPage({
           </div>
           <Link
             href={`/api/auth/google?collegeId=${encodeURIComponent(session.activeCollegeId || '')}&returnTo=/admin/dashboard/forms`}
-            className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-all shadow-xs inline-flex items-center gap-2 shrink-0 self-start sm:self-auto"
+            className="w-full sm:w-auto justify-center px-3.5 py-1.5 sm:px-4 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-all shadow-xs inline-flex items-center gap-2 shrink-0 text-center"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-200" />
             <span>Connect Google Account</span>
@@ -320,11 +349,11 @@ export default async function FeedbackFormsPage({
         <div className="p-2.5 sm:p-3.5 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-[3px] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 text-xs text-emerald-950 dark:text-emerald-200">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span>
+            <span className="break-words">
               <strong>Google API Connected:</strong> {googleStatus.message}
             </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/60 rounded-[3px] text-[10.5px] sm:text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
               {googleStatus.hasAppsScript ? 'Apps Script Web App Configured' : 'Application-Managed Sync Active'}
             </span>
@@ -388,7 +417,143 @@ export default async function FeedbackFormsPage({
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* Mobile Form Cards (Visible only on screens below md) */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-[#2d1f11]">
+              {forms.map(form => {
+                const isNative = form.response_destination_type === 'NATIVE_SHEET';
+                return (
+                  <div key={form.id} className="p-3.5 sm:p-4 space-y-2.5 bg-white dark:bg-[#1a1208]">
+                    {/* Title & Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={`/admin/dashboard/forms/${form.id}`}
+                        className="font-bold text-xs sm:text-sm text-slate-900 dark:text-[#faebd0] hover:text-bce-cobalt dark:hover:text-amber-400 transition-colors flex-1"
+                      >
+                        {form.title}
+                      </Link>
+                      <div className="shrink-0">{statusBadge(form.status)}</div>
+                    </div>
+
+                    {/* Academic Meta Chips */}
+                    <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                      {form.branch && (
+                        <span className="font-semibold px-2 py-0.5 rounded-[2px] bg-slate-100 dark:bg-[#25180c] text-slate-800 dark:text-[#faebd0] border border-slate-200 dark:border-[#4d3817]">
+                          {form.branch.name} ({form.branch.code})
+                        </span>
+                      )}
+                      {form.semester && (
+                        <span className="px-2 py-0.5 rounded-[2px] bg-amber-50 dark:bg-[#291b0e] text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60 font-medium">
+                          {form.semester.name}
+                        </span>
+                      )}
+                      {form.academic_year && (
+                        <span className="px-2 py-0.5 rounded-[2px] bg-amber-100/60 dark:bg-[#201509] text-amber-800 dark:text-amber-400 border border-amber-300/60 font-mono text-[10px]">
+                          {form.academic_year.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Multi-Faculty / Faculty Info */}
+                    {form.form_type === 'SEMESTER_FEEDBACK' || (form.items && form.items.length > 0) ? (
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-bold bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-700/60">
+                          Multi-Faculty ({form.items?.length || 0})
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {Array.from(
+                            new Set(
+                              form.items
+                                ?.map((it: any) => it.faculty?.name || it.grid_title?.split(/—|-/)[1]?.trim())
+                                .filter(Boolean)
+                            )
+                          ).slice(0, 4).map((name: any, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium bg-slate-100 dark:bg-[#25180c] text-slate-700 dark:text-[#faebd0] border border-slate-200 dark:border-[#4d3817]"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                          {(form.items?.length || 0) > 4 && (
+                            <span className="text-[10px] text-slate-400 dark:text-[#8c7453] font-medium self-center">
+                              +{(form.items?.length || 0) - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-slate-700 dark:text-[#ebd5b3]">
+                        {form.faculty?.name ? (
+                          <span className="font-semibold">{form.faculty.name}</span>
+                        ) : null}
+                        {form.subject?.name ? (
+                          <span className="text-slate-500 dark:text-[#8c7453] block text-[10px]">{form.subject.name}</span>
+                        ) : null}
+                      </div>
+                    )}
+
+                    {/* Responses & Destination Info */}
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#8c7453] pt-1">
+                      <div className="flex items-center gap-1.5">
+                        {isNative ? (
+                          <span className="font-bold text-amber-700 dark:text-amber-400">⚡ Native Destination</span>
+                        ) : (
+                          <span className="font-medium text-slate-600 dark:text-[#c4a97d]">🔄 App-Managed</span>
+                        )}
+                        <span>•</span>
+                        <span className="font-semibold text-slate-700 dark:text-[#faebd0]">{form.response_count || 0} response(s)</span>
+                      </div>
+                      <span className="text-[10px] font-mono">
+                        {new Date(form.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* Mobile Action Buttons Bar */}
+                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-[#2d1f11]">
+                      <div className="flex items-center gap-2">
+                        {form.google_form_url && (
+                          <a
+                            href={form.google_form_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] text-[11px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800"
+                          >
+                            <FileCode2 className="w-3 h-3" />
+                            <span>Form</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                        {(form.google_sheet_url || form.google_sheet_id) && (
+                          <a
+                            href={form.google_sheet_url || `https://docs.google.com/spreadsheets/d/${form.google_sheet_id}/edit`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[3px] text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800"
+                          >
+                            <FileSpreadsheet className="w-3 h-3" />
+                            <span>Sheet</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Link
+                          href={`/admin/dashboard/forms/${form.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-[3px] text-xs font-bold text-slate-800 dark:text-[#faebd0] bg-slate-100 dark:bg-[#25180c] hover:bg-slate-200 border border-slate-200 dark:border-[#4d3817]"
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>Manage</span>
+                        </Link>
+                        <DeleteFormButton formId={form.id} formTitle={form.title} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (Hidden on mobile) */}
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs min-w-[650px]">
               <thead className="bg-slate-50 dark:bg-[#1f150c] text-slate-700 dark:text-[#c4a97d] font-bold border-b border-slate-200 dark:border-[#382710] uppercase tracking-wider">
                 <tr>

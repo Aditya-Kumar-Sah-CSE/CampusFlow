@@ -47,7 +47,7 @@ export default async function FeedbackPortalPage() {
   ] = await Promise.all([
     supabase.from('academic_years').select('id, name, is_active').eq('is_active', true).order('name', { ascending: false }),
     supabase.from('branches').select('id, name, code, is_active').eq('is_active', true).order('name', { ascending: true }),
-    supabase.from('semesters').select('id, name, year_number, semester_number, is_active').eq('is_active', true).order('semester_number', { ascending: true }),
+    supabase.from('semesters').select('id, name, year_number, semester_number, level_number, programme_id, is_active, programme:academic_programmes(id, name, code, programme_type)').eq('is_active', true).order('semester_number', { ascending: true }),
     getPublicActiveFormsAction({ page: 1, pageSize: 6 }),
     collegeQuery.limit(1),
   ]);
@@ -122,9 +122,9 @@ export default async function FeedbackPortalPage() {
         </ExamPadCard>
 
         <StudentDiscoveryFlow
-          academicYears={(academicYears as AcademicYear[]) || []}
-          branches={(branches as Branch[]) || []}
-          semesters={(semesters as Semester[]) || []}
+          academicYears={(academicYears as unknown as AcademicYear[]) || []}
+          branches={(branches as unknown as Branch[]) || []}
+          semesters={(semesters as unknown as Semester[]) || []}
         />
 
         {/* All Currently Active Feedback Forms Section */}

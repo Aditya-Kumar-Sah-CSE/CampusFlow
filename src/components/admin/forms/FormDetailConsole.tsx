@@ -182,20 +182,20 @@ export function FormDetailConsole({
         variant="dashboard"
         clipLabel="FORM CONSOLE"
         title={
-          <div className="flex items-center gap-2">
+          <div className="flex items-start sm:items-center gap-2 min-w-0">
             <Link
               href="/admin/dashboard/forms"
-              className="p-1 rounded-[3px] text-slate-400 dark:text-[#8c7453] hover:text-slate-700 dark:hover:text-[#faebd0] hover:bg-slate-100 dark:hover:bg-[#25180c] transition-colors shrink-0"
+              className="p-1 rounded-[3px] text-slate-400 dark:text-[#8c7453] hover:text-slate-700 dark:hover:text-[#faebd0] hover:bg-slate-100 dark:hover:bg-[#25180c] transition-colors shrink-0 mt-0.5 sm:mt-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-[#faebd0] break-words">
+            <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-900 dark:text-[#faebd0] break-words min-w-0 flex-1">
               {form.title}
             </h1>
           </div>
         }
         subtitle={
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-[#c4a97d] sm:ml-8 mt-1">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-slate-500 dark:text-[#c4a97d] sm:ml-8 mt-1">
             <span>Form ID: <code className="font-mono text-[11px] text-slate-700 dark:text-[#ebd5b3]" title={form.id}>{form.id.length > 12 ? `${form.id.slice(0, 8)}…` : form.id}</code></span>
             <span>•</span>
             <span>Created {formatDateShort(form.created_at, hydrated)}</span>
@@ -225,9 +225,9 @@ export function FormDetailConsole({
           )}
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-200/80 dark:border-[#382710]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-200/80 dark:border-[#382710]">
             {/* External Google Links */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {form.google_form_url && (
                 <>
                   <ExternalActionLink
@@ -312,7 +312,7 @@ export function FormDetailConsole({
             </div>
 
             {/* Lifecycle State Changer */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {form.status === 'DRAFT' && (
                 <button
                   type="button"
@@ -600,7 +600,9 @@ export function FormDetailConsole({
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-200/80 dark:border-[#382710]">
                     <span className="text-slate-500 dark:text-[#c4a97d]">Semester:</span>
-                    <span className="font-semibold text-slate-900 dark:text-[#faebd0]">{form.semester?.name || '—'}</span>
+                    <span className="font-semibold text-slate-900 dark:text-[#faebd0]">
+                      {form.semester?.programme?.name ? `${form.semester.programme.name} — ${form.semester?.name}` : form.semester?.display_name || form.semester?.name || '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-200/80 dark:border-[#382710]">
                     <span className="text-slate-500 dark:text-[#c4a97d]">Academic Session:</span>
@@ -645,7 +647,9 @@ export function FormDetailConsole({
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-200/80 dark:border-[#382710]">
                     <span className="text-slate-500 dark:text-[#c4a97d]">Semester:</span>
-                    <span className="text-slate-800 dark:text-[#faebd0]">{form.semester?.name || '—'}</span>
+                    <span className="text-slate-800 dark:text-[#faebd0]">
+                      {form.semester?.programme?.name ? `${form.semester.programme.name} — ${form.semester?.name}` : form.semester?.display_name || form.semester?.name || '—'}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1.5 border-b border-slate-200/80 dark:border-[#382710]">
                     <span className="text-slate-500 dark:text-[#c4a97d]">Academic Session:</span>

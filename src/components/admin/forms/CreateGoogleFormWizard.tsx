@@ -1423,12 +1423,12 @@ export function CreateGoogleFormWizard({
                 )}
 
                 {/* Navigation Controls */}
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-[#382710]">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-0 pt-4 border-t border-slate-100 dark:border-[#382710]">
                   <button
                     type="button"
                     onClick={handleBack}
                     disabled={currentStep === 1 || isPending || isGenerating}
-                    className="px-4 py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#1f150c] disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
+                    className="w-full sm:w-auto text-center px-4 py-2.5 sm:py-2 rounded-[3px] text-xs font-semibold text-slate-600 dark:text-[#c4a97d] hover:bg-slate-100 dark:hover:bg-[#1f150c] disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer"
                   >
                     ← Back
                   </button>
@@ -1438,7 +1438,7 @@ export function CreateGoogleFormWizard({
                       type="button"
                       onClick={handleNext}
                       disabled={!canGoToNext() || isPending || isGenerating}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-[3px] text-xs font-bold text-white bg-bce-cobalt hover:bg-bce-navy disabled:opacity-40 transition-colors shadow-xs cursor-pointer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-[3px] text-xs font-bold text-white bg-bce-cobalt hover:bg-bce-navy disabled:opacity-40 transition-colors shadow-xs cursor-pointer"
                     >
                       <span>Next Step</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1448,7 +1448,7 @@ export function CreateGoogleFormWizard({
                       type="button"
                       onClick={handleGenerateForm}
                       disabled={!canGoToNext() || isPending || isGenerating || !googleStatus.isConfigured || requiresReconnect}
-                      className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-[3px] text-xs font-bold text-white bg-gradient-to-r from-bce-cobalt to-indigo-600 hover:from-bce-navy hover:to-indigo-700 disabled:opacity-40 transition-all shadow-md cursor-pointer ${
+                      className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-[3px] text-xs font-bold text-white bg-gradient-to-r from-bce-cobalt to-indigo-600 hover:from-bce-navy hover:to-indigo-700 disabled:opacity-40 transition-all shadow-md cursor-pointer ${
                         isPending || isGenerating ? 'btn-request-active opacity-80 cursor-wait' : ''
                       }`}
                     >
