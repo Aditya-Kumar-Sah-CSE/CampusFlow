@@ -35,7 +35,7 @@ export function CollegeInstallButton({ tenant, className }: CollegeInstallButton
         title={`${tenant.shortName || tenant.name} App is currently installed`}
       >
         <Check className="w-3.5 h-3.5 text-emerald-600" />
-        <span className="hidden sm:inline">Installed</span>
+        <span className="text-xs font-semibold">Installed</span>
       </span>
     );
   }

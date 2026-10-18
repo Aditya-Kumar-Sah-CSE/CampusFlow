@@ -421,50 +421,55 @@ export function StudentStatusBadge({
 
     // NON-COMPACT VIEW (e.g. In Feedback Discovery Banners or Drawer)
     return (
-      <div className="exam-pad-board-dashboard rounded-lg p-2 sm:p-2.5 relative overflow-visible shadow-md w-full">
+      <div className="exam-pad-board-dashboard rounded-lg p-2 sm:p-2.5 relative overflow-visible shadow-md w-full max-w-full">
         <RedPushpin className="-top-3" />
-        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-slate-800 dark:text-[#faebd0]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="relative shrink-0">
+        <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-slate-800 dark:text-[#faebd0] w-full min-w-0">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="relative shrink-0 mt-0.5 sm:mt-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[2px] bg-amber-600 dark:bg-amber-700 text-white font-black text-sm flex items-center justify-center shadow-xs border border-amber-700/60 dark:border-amber-500/60">
                 {initials}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-1 ring-white dark:ring-black" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-extrabold text-slate-900 dark:text-[#faebd0] text-xs sm:text-sm truncate">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline sm:items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="font-extrabold text-slate-900 dark:text-[#faebd0] text-xs sm:text-sm truncate max-w-[140px] sm:max-w-none">
                   {displayName}
                 </span>
                 {isVerified ? (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                    Verified Student
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[9.5px] sm:text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 shrink-0">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                    <span>Verified Student</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800">
-                    <AlertCircle className="w-3 h-3 text-amber-600" />
-                    Email Unverified
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[2px] text-[9.5px] sm:text-[10px] font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 shrink-0">
+                    <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                    <span>Email Unverified</span>
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-[#c4a97d] truncate mt-0.5 font-mono">
-                {email} {collegeName ? `• ${collegeName}` : ''}
+              <p className="text-[11px] text-slate-600 dark:text-[#c4a97d] truncate mt-0.5 font-mono max-w-full" title={email}>
+                {email}
               </p>
-              <div className="flex items-center gap-2 mt-1">
+              {collegeName && (
+                <p className="text-[10px] text-slate-500 dark:text-[#a08255] truncate font-medium">
+                  {collegeName}
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 {registrationNumber ? (
-                  <span className="text-[10px] font-mono font-bold text-amber-900 dark:text-amber-300 bg-amber-100/70 dark:bg-[#2b1f11] border border-amber-300/80 dark:border-[#4d3817] px-2 py-0.5 rounded-[2px]">
+                  <span className="text-[10px] font-mono font-bold text-amber-900 dark:text-amber-300 bg-amber-100/70 dark:bg-[#2b1f11] border border-amber-300/80 dark:border-[#4d3817] px-2 py-0.5 rounded-[2px] shrink-0">
                     Reg #{registrationNumber}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-amber-800 dark:text-amber-300 bg-amber-100/60 dark:bg-[#2b1f11] border border-amber-300/80 dark:border-[#4d3817] px-2 py-0.5 rounded-[2px] font-semibold">
+                  <span className="text-[10px] text-amber-800 dark:text-amber-300 bg-amber-100/60 dark:bg-[#2b1f11] border border-amber-300/80 dark:border-[#4d3817] px-2 py-0.5 rounded-[2px] font-semibold shrink-0">
                     Reg. Number Not Set
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => setIsEditProfileOpen(true)}
-                  className="text-[11px] text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200 font-bold hover:underline inline-flex items-center gap-1 cursor-pointer shrink-0"
                 >
                   <Pencil className="w-2.5 h-2.5" />
                   <span>Edit Profile</span>
@@ -473,11 +478,11 @@ export function StudentStatusBadge({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0 flex-wrap">
+          <div className="w-full sm:w-auto flex flex-col sm:flex-row sm:items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-amber-900/10 dark:border-[#422e17]/50 sm:border-0">
             {!isVerified && (
               <Link
                 href={`/auth/student/verify?email=${encodeURIComponent(email)}`}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-colors shadow-2xs"
+                className="w-full sm:w-auto text-center px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-colors shadow-2xs"
               >
                 Verify Email
               </Link>
@@ -485,31 +490,33 @@ export function StudentStatusBadge({
             <button
               type="button"
               onClick={() => setIsCoordinatorModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100/80 hover:bg-amber-200/80 dark:bg-[#2a1c0e] dark:hover:bg-[#382613] text-amber-950 dark:text-amber-200 rounded-[3px] text-xs font-bold border border-amber-300/80 dark:border-amber-800/60 transition-colors shadow-2xs cursor-pointer"
+              className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100/80 hover:bg-amber-200/80 dark:bg-[#2a1c0e] dark:hover:bg-[#382613] text-amber-950 dark:text-amber-200 rounded-[3px] text-xs font-bold border border-amber-300/80 dark:border-amber-800/60 transition-colors shadow-2xs cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
               <span>Apply as Coordinator</span>
             </button>
-            <Link
-              href={targetAdminUrl}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1a1208] hover:bg-slate-100 dark:hover:bg-[#281b0f] text-slate-800 dark:text-[#faebd0] rounded-[3px] text-xs font-semibold border border-slate-300 dark:border-[#4d3817] transition-colors shadow-2xs"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              <span>Faculty Login</span>
-            </Link>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={loggingOut}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1a1208] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-[3px] text-xs font-bold border border-rose-300 dark:border-rose-900/60 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
-            >
-              {loggingOut ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
-              ) : (
-                <LogOut className="w-3.5 h-3.5 text-rose-600" />
-              )}
-              <span>Sign Out</span>
-            </button>
+            <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
+              <Link
+                href={targetAdminUrl}
+                className="justify-center inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#1a1208] hover:bg-slate-100 dark:hover:bg-[#281b0f] text-slate-800 dark:text-[#faebd0] rounded-[3px] text-xs font-semibold border border-slate-300 dark:border-[#4d3817] transition-colors shadow-2xs text-center"
+              >
+                <UserCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="truncate">Faculty Login</span>
+              </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={loggingOut}
+                className="justify-center inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-[#1a1208] hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-[3px] text-xs font-bold border border-rose-300 dark:border-rose-900/60 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 text-center"
+              >
+                {loggingOut ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600 shrink-0" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                )}
+                <span>Sign Out</span>
+              </button>
+            </div>
           </div>
 
           <StudentEditProfileModal
@@ -556,31 +563,31 @@ export function StudentStatusBadge({
   }
 
   return (
-    <div className="exam-pad-board-dashboard rounded-lg p-2 sm:p-2.5 relative overflow-visible shadow-md w-full">
+    <div className="exam-pad-board-dashboard rounded-lg p-2 sm:p-2.5 relative overflow-visible shadow-md w-full max-w-full">
       <RedPushpin className="-top-3" />
-      <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-slate-800 dark:text-[#faebd0]">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[2px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0">
+      <div className="pinned-paper-sheet bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#422e17] rounded-[3px] p-3 sm:p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-slate-800 dark:text-[#faebd0] w-full min-w-0">
+        <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[2px] bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
             <User className="w-5 h-5" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-slate-900 dark:text-[#faebd0]">Student Login Required</p>
-            <p className="text-[11px] text-slate-600 dark:text-[#c4a97d]">
+            <p className="text-[11px] text-slate-600 dark:text-[#c4a97d] leading-snug">
               Sign in to submit faculty feedback, attempt online tests, and access official event passes.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+        <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center shrink-0 pt-2 sm:pt-0 border-t border-amber-900/10 dark:border-[#422e17]/50 sm:border-0">
           <Link
             href={`/auth/student/signup?redirect=${encodeURIComponent(pathname)}`}
-            className="px-3.5 py-1.5 bg-slate-100 dark:bg-[#251a0f] hover:bg-slate-200 dark:hover:bg-[#342211] text-slate-800 dark:text-[#faebd0] rounded-[3px] text-xs font-semibold border border-slate-300 dark:border-[#4d3817] transition-colors"
+            className="w-full sm:w-auto justify-center px-3.5 py-1.5 bg-slate-100 dark:bg-[#251a0f] hover:bg-slate-200 dark:hover:bg-[#342211] text-slate-800 dark:text-[#faebd0] rounded-[3px] text-xs font-semibold border border-slate-300 dark:border-[#4d3817] transition-colors text-center"
           >
             Register
           </Link>
           <Link
             href={`/auth/student/login?redirect=${encodeURIComponent(pathname)}`}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-colors shadow-2xs active:scale-98"
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-[3px] text-xs font-bold transition-colors shadow-2xs active:scale-98 text-center"
           >
             <span>Login</span>
           </Link>
