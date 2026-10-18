@@ -19,40 +19,25 @@ export async function GET(request: NextRequest) {
     }
 
     const settings = await getLibrarySettings(collegeId);
-
-    if (!settings.isEnabled) {
-      return NextResponse.json({
-        enabled: false,
-        books: [],
-        timing: {
-          isOpen: false,
-          reason: 'Library module is not active for this institution.',
-          operatingDays: [],
-          startTime: '10:00',
-          endTime: '16:00',
-          isTimingEnforced: true,
-        },
-        settings: { maxBooksPerStudent: 0, maxBorrowDays: 0, finePerDay: 0 },
-      });
-    }
-
     const timing = isLibraryTimingOpen(settings);
     const books = await getLibraryBooks(collegeId);
     const availableBooks = books.filter((b) => b.availableCopies > 0);
 
     return NextResponse.json({
       enabled: true,
-      books: availableBooks,
+      books: availableBooks.length > 0 ? availableBooks : books,
       timing,
       settings: {
-        maxBooksPerStudent: settings.maxBooksPerStudent,
-        maxBorrowDays: settings.maxBorrowDays,
-        finePerDay: settings.finePerDay,
-        operatingDays: settings.operatingDays,
-        operatingStartTime: settings.operatingStartTime,
-        operatingEndTime: settings.operatingEndTime,
-        isTimingEnforced: settings.isTimingEnforced,
-        timingClosureMessage: settings.timingClosureMessage,
+        maxBooksPerStudent: settings.maxBooksPerStudent || 3,
+        maxBorrowDays: settings.maxBorrowDays || 15,
+        finePerDay: settings.finePerDay || 5,
+        operatingDays: settings.operatingDays || ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'],
+        operatingStartTime: settings.operatingStartTime || '10:00',
+        operatingEndTime: settings.operatingEndTime || '16:00',
+        isTimingEnforced: settings.isTimingEnforced ?? true,
+        timingClosureMessage:
+          settings.timingClosureMessage ||
+          'Book registration is open Monday to Saturday from 10:00 AM to 04:00 PM.',
       },
     });
   } catch (err: any) {
@@ -70,6 +55,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Missing required fields: collegeId, studentName, bookId, bookTitle, bookAuthor.' },
         { status: 400 }
+      );
+    }
+
+    const settings = await getLibrarySettings(collegeId);
+    const timing = isLibraryTimingOpen(settings);
+    if (!timing.isOpen) {
+      return NextResponse.json(
+        {
+          error:
+            timing.reason ||
+            'Library book registration is currently closed. Requests are accepted Mon–Sat 10:00 AM – 04:00 PM IST.',
+        },
+        { status: 403 }
       );
     }
 

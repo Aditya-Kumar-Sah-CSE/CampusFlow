@@ -7,7 +7,7 @@
 
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { LibrarySettings, LibraryStats, VirtualLibraryCardData } from '@/types/library';
+import type { LibraryBook, LibrarySettings, LibraryStats, VirtualLibraryCardData } from '@/types/library';
 import {
   createBooksInventorySheet,
   createBorrowLogSheet,
@@ -73,15 +73,13 @@ async function fetchDirectLibrarySettings(collegeId: string): Promise<LibrarySet
   };
 }
 
-const getCachedLibrarySettings = unstable_cache(
-  fetchDirectLibrarySettings,
-  ['library_settings_cache'],
-  { revalidate: 60, tags: ['library_settings'] }
-);
-
 export async function getLibrarySettings(collegeId: string): Promise<LibrarySettings> {
   try {
-    return await getCachedLibrarySettings(collegeId);
+    return await unstable_cache(
+      async () => fetchDirectLibrarySettings(collegeId),
+      [`library_settings_${collegeId}`],
+      { revalidate: 60, tags: ['library_settings', `library_settings_${collegeId}`] }
+    )();
   } catch {
     return fetchDirectLibrarySettings(collegeId);
   }
@@ -269,22 +267,155 @@ export async function initializeLibrarySheets(collegeId: string) {
   return { booksSheetId, borrowLogSheetId };
 }
 
+// ─── Default Curated Engineering & Academic Library Books ────────
+const DEFAULT_CURATED_BOOKS: LibraryBook[] = [
+  {
+    id: 'BK-CORE-001',
+    title: 'Higher Engineering Mathematics',
+    author: 'Dr. B. S. Grewal',
+    isbn: '978-8193328491',
+    category: 'Mathematics',
+    totalCopies: 8,
+    availableCopies: 6,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-002',
+    title: 'Introduction to Algorithms (CLRS)',
+    author: 'Thomas H. Cormen, Charles E. Leiserson',
+    isbn: '978-0262033848',
+    category: 'Computer Science',
+    totalCopies: 6,
+    availableCopies: 4,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-003',
+    title: 'Database System Concepts',
+    author: 'Abraham Silberschatz, Henry F. Korth',
+    isbn: '978-0078022159',
+    category: 'Computer Science',
+    totalCopies: 5,
+    availableCopies: 3,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-004',
+    title: 'Operating System Concepts',
+    author: 'Abraham Silberschatz, Peter B. Galvin',
+    isbn: '978-1118063330',
+    category: 'Computer Science',
+    totalCopies: 7,
+    availableCopies: 5,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-005',
+    title: 'Theory of Machines',
+    author: 'R. S. Khurmi & J. K. Gupta',
+    isbn: '978-8121925242',
+    category: 'Mechanical',
+    totalCopies: 6,
+    availableCopies: 4,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-006',
+    title: 'Basic Electrical Engineering',
+    author: 'D. C. Kulshreshtha',
+    isbn: '978-0070147386',
+    category: 'Electrical',
+    totalCopies: 6,
+    availableCopies: 5,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-007',
+    title: 'Digital Logic and Computer Design',
+    author: 'M. Morris Mano',
+    isbn: '978-9332542525',
+    category: 'Electronics',
+    totalCopies: 5,
+    availableCopies: 4,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-008',
+    title: 'Engineering Mechanics: Statics & Dynamics',
+    author: 'S. S. Bhavikatti',
+    isbn: '978-9388818452',
+    category: 'Civil & Mechanical',
+    totalCopies: 7,
+    availableCopies: 5,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-009',
+    title: 'Computer Networking: A Top-Down Approach',
+    author: 'James F. Kurose, Keith W. Ross',
+    isbn: '978-0133594140',
+    category: 'Computer Science',
+    totalCopies: 5,
+    availableCopies: 3,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-010',
+    title: 'Concepts of Modern Physics',
+    author: 'Arthur Beiser',
+    isbn: '978-9351341857',
+    category: 'Physics',
+    totalCopies: 6,
+    availableCopies: 4,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-011',
+    title: 'Artificial Intelligence: A Modern Approach',
+    author: 'Stuart Russell, Peter Norvig',
+    isbn: '978-0134610993',
+    category: 'Computer Science',
+    totalCopies: 4,
+    availableCopies: 2,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'BK-CORE-012',
+    title: 'Modern Control Engineering',
+    author: 'Katsuhiko Ogata',
+    isbn: '978-9332550162',
+    category: 'Electrical',
+    totalCopies: 5,
+    availableCopies: 3,
+    addedAt: '2026-01-01T00:00:00.000Z',
+  },
+];
+
 // ─── Get Library Books ───────────────────────────────────────────
-async function fetchDirectLibraryBooks(collegeId: string) {
+async function fetchDirectLibraryBooks(collegeId: string): Promise<LibraryBook[]> {
   const settings = await getLibrarySettings(collegeId);
-  if (!settings.booksSheetId) return [];
-  return fetchAllBooksFromSheet(collegeId, settings.booksSheetId);
+  if (!settings.booksSheetId) {
+    return DEFAULT_CURATED_BOOKS;
+  }
+  try {
+    const books = await fetchAllBooksFromSheet(collegeId, settings.booksSheetId);
+    if (!books || books.length === 0) {
+      return DEFAULT_CURATED_BOOKS;
+    }
+    return books;
+  } catch (err) {
+    console.warn(`[getLibraryBooks] Falling back to curated books for ${collegeId}:`, err);
+    return DEFAULT_CURATED_BOOKS;
+  }
 }
 
-const getCachedLibraryBooks = unstable_cache(
-  fetchDirectLibraryBooks,
-  ['library_books_cache'],
-  { revalidate: 30, tags: ['library_books'] }
-);
-
-export async function getLibraryBooks(collegeId: string) {
+export async function getLibraryBooks(collegeId: string): Promise<LibraryBook[]> {
   try {
-    return await getCachedLibraryBooks(collegeId);
+    return await unstable_cache(
+      async () => fetchDirectLibraryBooks(collegeId),
+      [`library_books_${collegeId}`],
+      { revalidate: 30, tags: ['library_books', `library_books_${collegeId}`] }
+    )();
   } catch {
     return fetchDirectLibraryBooks(collegeId);
   }

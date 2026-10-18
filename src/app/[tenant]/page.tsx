@@ -210,23 +210,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
 
         {/* 3. Library Section */}
         {isLibraryEnabled && (
-          <section id="library-section" className="space-y-6 pt-6 border-t border-slate-200/80 dark:border-amber-950/40 scroll-mt-16">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-xs font-semibold mb-1 border border-purple-200/60 dark:border-purple-800">
-                  <BookOpen className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                  <span>Campus Library</span>
-                </div>
-                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-600 dark:bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
-                  Borrow a Book
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-amber-100/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-medium">
-                  Browse available books and submit a borrow request. Admin approval required.
-                </p>
-              </div>
-            </div>
-
+          <section id="library-section" className="scroll-mt-16 pt-4">
             <StudentLibraryBorrowForm
               key={`library_${tenant.collegeId}`}
               collegeId={tenant.collegeId}
