@@ -9,14 +9,14 @@ interface ThemeToggleProps {
 }
 
 export function ThemeToggle({ className = '', showLabel = false }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem('campusflow_theme');
-    // Default to dark unless explicitly set to 'light'
-    const isDark = stored ? stored === 'dark' : true;
+    // Default to light (Day mode) unless explicitly set to 'dark'
+    const isDark = stored === 'dark';
 
     if (isDark) {
       setTheme('dark');
@@ -45,9 +45,9 @@ export function ThemeToggle({ className = '', showLabel = false }: ThemeTogglePr
       <button
         type="button"
         aria-label="Toggle day/night theme"
-        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-[3px] flex items-center justify-center text-slate-400 bg-slate-800/80 border border-slate-700 transition-colors ${className}`}
+        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-[3px] flex items-center justify-center text-slate-700 bg-white/90 border border-slate-300 transition-colors ${className}`}
       >
-        <Moon className="w-4 h-4 opacity-50" />
+        <Sun className="w-4 h-4 text-amber-500 opacity-70" />
       </button>
     );
   }
