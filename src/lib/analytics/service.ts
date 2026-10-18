@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getAdminSession } from '@/lib/auth/admin-auth';
-import { fetchRawSheetResponses } from '@/lib/analytics/sheets-reader';
+import { fetchRawSheetResponses, type RawSheetData } from '@/lib/analytics/sheets-reader';
 import {
   normalizeSheetRows,
   detectMultiGrids,
@@ -32,6 +32,39 @@ export interface ScopeFilters {
   semesterId?: string;
   facultyId?: string;
   subjectId?: string;
+}
+
+interface CachedOverallReport {
+  report: AggregatedAnalyticsReport;
+  timestamp: number;
+}
+
+// In-memory cache for aggregated institutional reports (60s TTL)
+const overallReportCache = new Map<string, CachedOverallReport>();
+const OVERALL_CACHE_TTL_MS = 60 * 1000;
+
+export function getCachedOverallAnalytics(
+  collegeId?: string,
+  filters?: ScopeFilters
+): AggregatedAnalyticsReport | null {
+  const cacheKey = `${collegeId || 'all'}_${JSON.stringify(filters || {})}`;
+  const cached = overallReportCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < OVERALL_CACHE_TTL_MS)) {
+    return cached.report;
+  }
+  return null;
+}
+
+export function invalidateOverallAnalyticsCache(collegeId?: string) {
+  if (!collegeId) {
+    overallReportCache.clear();
+    return;
+  }
+  for (const key of overallReportCache.keys()) {
+    if (key.startsWith(collegeId)) {
+      overallReportCache.delete(key);
+    }
+  }
 }
 
 /**
@@ -93,6 +126,72 @@ export async function getFormExcludedResponseIds(supabase: any, formId: string):
   }
 
   return { excludedIds, totalRecordCount, totalExcludedCount };
+}
+
+/**
+ * Batch retrieves excluded response IDs for an array of form IDs in a single database roundtrip.
+ */
+export async function getBatchFormExcludedResponseIds(
+  supabase: any,
+  formIds: string[]
+): Promise<Map<string, { excludedIds: Set<string>; totalRecordCount: number; totalExcludedCount: number }>> {
+  const result = new Map<string, { excludedIds: Set<string>; totalRecordCount: number; totalExcludedCount: number }>();
+  for (const id of formIds) {
+    result.set(id, { excludedIds: new Set<string>(), totalRecordCount: 0, totalExcludedCount: 0 });
+  }
+  if (formIds.length === 0) return result;
+
+  try {
+    const { data: records, error: recErr } = await supabase
+      .from('feedback_response_records')
+      .select('id, form_id, google_response_id, is_excluded')
+      .in('form_id', formIds);
+
+    if (!recErr && records && records.length > 0) {
+      for (const r of records) {
+        const item = result.get(r.form_id);
+        if (item) {
+          item.totalRecordCount++;
+          if (r.is_excluded) {
+            item.totalExcludedCount++;
+            if (r.google_response_id) item.excludedIds.add(r.google_response_id.trim());
+            if (r.id) item.excludedIds.add(r.id.trim());
+          }
+        }
+      }
+    } else {
+      // Fallback: Check audit_logs
+      const { data: auditLogs } = await supabase
+        .from('audit_logs')
+        .select('action, entity_id, metadata, created_at')
+        .in('action', ['EXCLUDE_FEEDBACK_RESPONSE', 'INCLUDE_FEEDBACK_RESPONSE'])
+        .order('created_at', { ascending: true });
+
+      if (auditLogs) {
+        for (const log of auditLogs) {
+          const meta = (log.metadata as any) || {};
+          if (meta.formId && result.has(meta.formId)) {
+            const item = result.get(meta.formId)!;
+            const respId = meta.googleResponseId || log.entity_id;
+            if (log.action === 'EXCLUDE_FEEDBACK_RESPONSE') {
+              if (respId) item.excludedIds.add(respId.trim());
+              if (meta.recordId) item.excludedIds.add(meta.recordId.trim());
+            } else if (log.action === 'INCLUDE_FEEDBACK_RESPONSE') {
+              if (respId) item.excludedIds.delete(respId.trim());
+              if (meta.recordId) item.excludedIds.delete(meta.recordId.trim());
+            }
+          }
+        }
+        for (const item of result.values()) {
+          item.totalExcludedCount = item.excludedIds.size;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Analytics Service] Error batch fetching exclusions:', err);
+  }
+
+  return result;
 }
 
 /**
@@ -440,6 +539,13 @@ export async function getOverallAnalyticsData(
     return { success: false, error: 'Invalid Subject filter format.' };
   }
 
+  // 1. Check in-memory report cache for sub-second responses
+  const cacheKey = `${targetCollegeId || 'all'}_${JSON.stringify(filters || {})}`;
+  const cachedReport = overallReportCache.get(cacheKey);
+  if (cachedReport && (Date.now() - cachedReport.timestamp < OVERALL_CACHE_TTL_MS)) {
+    return { success: true, report: cachedReport.report };
+  }
+
   const supabase = await getAdminDb(options?.client);
 
   // Query matching feedback forms
@@ -518,7 +624,39 @@ export async function getOverallAnalyticsData(
     }
   }
 
-  // Compute individual form reports
+  // 2. Pre-fetch response exclusions across all forms in 1 batch query
+  const formIds = allForms.map((f: any) => f.id);
+  const exclusionsMap = await getBatchFormExcludedResponseIds(supabase, formIds);
+
+  // 3. Concurrently fetch raw sheet responses in parallel batches of 8
+  const formsToFetch = allForms.filter((f: any) => f.google_sheet_id && isGoogleConfigured() && !isGoogleInvalid);
+  const sheetDataMap = new Map<string, RawSheetData>();
+
+  const BATCH_SIZE = 8;
+  for (let i = 0; i < formsToFetch.length; i += BATCH_SIZE) {
+    const batch = formsToFetch.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.all(
+      batch.map(async (form: any) => {
+        try {
+          const sheetData = await fetchRawSheetResponses(form.google_sheet_id, form.college_id);
+          return { formId: form.id, sheetData };
+        } catch (err) {
+          console.warn(`Error reading sheet for form ${form.id}:`, err);
+          return { formId: form.id, sheetData: { headers: [], rows: [], totalRowCount: 0 } as RawSheetData };
+        }
+      })
+    );
+    for (const res of batchResults) {
+      sheetDataMap.set(res.formId, res.sheetData);
+      if (res.sheetData.isAuthError) {
+        isGoogleInvalid = true;
+        googleAuthError = true;
+        googleErrorMessage = res.sheetData.error || 'Google connection authorization expired';
+      }
+    }
+  }
+
+  // 4. Compute individual form reports in-memory
   const formReports: FormAnalyticsReport[] = [];
 
   for (const form of allForms) {
@@ -526,82 +664,75 @@ export async function getOverallAnalyticsData(
     const isSemesterForm = form.form_type === 'SEMESTER_FEEDBACK';
     let facultyGrids: FacultyGridAnalyticsItem[] = [];
 
-    const { excludedIds, totalRecordCount, totalExcludedCount } = await getFormExcludedResponseIds(supabase, form.id);
+    const { excludedIds, totalRecordCount, totalExcludedCount } = exclusionsMap.get(form.id) || {
+      excludedIds: new Set<string>(),
+      totalRecordCount: 0,
+      totalExcludedCount: 0,
+    };
     let totalRawSubmissions = 0;
 
-    if (form.google_sheet_id && isGoogleConfigured() && !isGoogleInvalid) {
-      try {
-        const sheetData = await fetchRawSheetResponses(form.google_sheet_id, form.college_id);
-        if (sheetData.isAuthError) {
-          isGoogleInvalid = true;
-          googleAuthError = true;
-          googleErrorMessage = sheetData.error || 'Google connection authorization expired';
+    const sheetData = sheetDataMap.get(form.id);
+    if (sheetData && sheetData.rows.length > 0) {
+      const rawCanonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
+      totalRawSubmissions = countUniqueStudentResponses(rawCanonicalRows);
+
+      if (isSemesterForm) {
+        const detectedGrids = detectMultiGrids(sheetData.headers);
+        if (detectedGrids.length > 0) {
+          facultyGrids = detectedGrids.map(grid => {
+            const rawGridRows = normalizeSheetRowsForSpecificGrid(
+              sheetData.headers,
+              sheetData.rows,
+              grid.paramColIndices
+            );
+
+            const includedGridRows = rawGridRows.filter(
+              r => !excludedIds.has(r.responseId?.trim())
+            );
+
+            const gridReport = calculateFormAnalytics({
+              formId: form.id,
+              title: `${grid.subjectName} — ${grid.facultyName}`,
+              academicYear: form.academic_year?.name || 'Academic Session',
+              branch: form.branch?.name || 'Branch',
+              semester: form.semester?.name || 'Semester',
+              facultyName: grid.facultyName || 'Faculty Member',
+              subjectName: grid.subjectName || 'Subject',
+              subjectCode: grid.subjectCode || '',
+              formType: 'SEMESTER_FEEDBACK',
+              status: form.status,
+              lastSyncedAt: form.last_synced_at,
+              googleSheetUrl: form.google_sheet_url,
+              googleFormUrl: form.google_form_url,
+              responses: includedGridRows,
+            });
+
+            gridReport.totalSubmissions = countUniqueStudentResponses(rawGridRows);
+            gridReport.includedCount = countUniqueStudentResponses(includedGridRows);
+            gridReport.excludedCount = Math.max(0, gridReport.totalSubmissions - gridReport.includedCount);
+
+            return {
+              gridTitle: grid.gridTitle,
+              facultyName: grid.facultyName,
+              subjectName: grid.subjectName,
+              subjectCode: grid.subjectCode,
+              report: gridReport,
+            };
+          });
+
+          canonicalRows = detectedGrids.flatMap(grid => {
+            const rawRows = normalizeSheetRowsForSpecificGrid(
+              sheetData.headers,
+              sheetData.rows,
+              grid.paramColIndices
+            );
+            return rawRows.filter(r => !excludedIds.has(r.responseId?.trim()));
+          });
+        } else {
+          canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
         }
-        if (sheetData.rows.length > 0) {
-          const rawCanonicalRows = normalizeSheetRows(sheetData.headers, sheetData.rows);
-          totalRawSubmissions = countUniqueStudentResponses(rawCanonicalRows);
-
-          if (isSemesterForm) {
-            const detectedGrids = detectMultiGrids(sheetData.headers);
-            if (detectedGrids.length > 0) {
-              facultyGrids = detectedGrids.map(grid => {
-                const rawGridRows = normalizeSheetRowsForSpecificGrid(
-                  sheetData.headers,
-                  sheetData.rows,
-                  grid.paramColIndices
-                );
-
-                const includedGridRows = rawGridRows.filter(
-                  r => !excludedIds.has(r.responseId?.trim())
-                );
-
-                const gridReport = calculateFormAnalytics({
-                  formId: form.id,
-                  title: `${grid.subjectName} — ${grid.facultyName}`,
-                  academicYear: form.academic_year?.name || 'Academic Session',
-                  branch: form.branch?.name || 'Branch',
-                  semester: form.semester?.name || 'Semester',
-                  facultyName: grid.facultyName || 'Faculty Member',
-                  subjectName: grid.subjectName || 'Subject',
-                  subjectCode: grid.subjectCode || '',
-                  formType: 'SEMESTER_FEEDBACK',
-                  status: form.status,
-                  lastSyncedAt: form.last_synced_at,
-                  googleSheetUrl: form.google_sheet_url,
-                  googleFormUrl: form.google_form_url,
-                  responses: includedGridRows,
-                });
-
-                gridReport.totalSubmissions = countUniqueStudentResponses(rawGridRows);
-                gridReport.includedCount = countUniqueStudentResponses(includedGridRows);
-                gridReport.excludedCount = Math.max(0, gridReport.totalSubmissions - gridReport.includedCount);
-
-                return {
-                  gridTitle: grid.gridTitle,
-                  facultyName: grid.facultyName,
-                  subjectName: grid.subjectName,
-                  subjectCode: grid.subjectCode,
-                  report: gridReport,
-                };
-              });
-
-              canonicalRows = detectedGrids.flatMap(grid => {
-                const rawRows = normalizeSheetRowsForSpecificGrid(
-                  sheetData.headers,
-                  sheetData.rows,
-                  grid.paramColIndices
-                );
-                return rawRows.filter(r => !excludedIds.has(r.responseId?.trim()));
-              });
-            } else {
-              canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
-            }
-          } else {
-            canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
-          }
-        }
-      } catch (err) {
-        console.warn(`Error reading sheet for form ${form.id}:`, err);
+      } else {
+        canonicalRows = rawCanonicalRows.filter(r => !excludedIds.has(r.responseId?.trim()));
       }
     }
 
@@ -741,6 +872,8 @@ export async function getOverallAnalyticsData(
     formReports.find(r => r.academicLevel)?.academicLevel,
     `${scopeTitle} ${branchName} ${semesterName}`
   );
+
+  overallReportCache.set(cacheKey, { report: aggregated, timestamp: Date.now() });
 
   return { success: true, report: aggregated };
 }

@@ -648,7 +648,11 @@ export function AdminDashboardTabs({
         {hasFullAnalytics || isSuperAdmin ? (
           <Link
             href="/admin/dashboard/results"
-            onClick={() => setIsNavigatingToResults(true)}
+            prefetch={true}
+            onClick={() => {
+              setIsNavigatingToResults(true);
+              setTimeout(() => setIsNavigatingToResults(false), 3000);
+            }}
             className="group relative inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-[3px] text-xs sm:text-sm font-bold text-slate-800 dark:text-[#faebd0] hover:text-slate-950 dark:hover:text-white bg-gradient-to-r from-amber-50 to-amber-100/80 hover:from-amber-100 hover:to-amber-200/90 dark:from-[#2a1c0e] dark:to-[#382613] dark:hover:from-[#352312] dark:hover:to-[#442e18] border border-amber-300/80 dark:border-[#5a3f1a] shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0 transition-all duration-200 shrink-0 whitespace-nowrap md:ml-auto cursor-pointer select-none"
           >
             {isNavigatingToResults ? (
@@ -661,7 +665,11 @@ export function AdminDashboardTabs({
         ) : (
           <Link
             href="/admin/dashboard/results"
-            onClick={() => setIsNavigatingToResults(true)}
+            prefetch={true}
+            onClick={() => {
+              setIsNavigatingToResults(true);
+              setTimeout(() => setIsNavigatingToResults(false), 3000);
+            }}
             title="Full Analytics Access Required - Click to upgrade your plan"
             className="group relative inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-[3px] text-xs sm:text-sm font-bold text-slate-600 dark:text-[#c4a97d] hover:text-slate-900 dark:hover:text-[#faebd0] bg-slate-100 dark:bg-[#1f150c] hover:bg-slate-200/80 dark:hover:bg-[#281b0f] border border-amber-400/50 dark:border-[#4d3817] hover:border-amber-400 shadow-2xs hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:translate-y-0 transition-all duration-200 shrink-0 whitespace-nowrap md:ml-auto cursor-pointer select-none"
           >

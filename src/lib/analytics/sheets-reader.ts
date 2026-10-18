@@ -12,6 +12,34 @@ export interface RawSheetData {
   isAuthError?: boolean;
 }
 
+interface SheetCacheEntry {
+  data: RawSheetData;
+  timestamp: number;
+}
+
+// In-memory cache for raw sheet data, keyed by `${collegeId}:${spreadsheetId}`
+const sheetCache = new Map<string, SheetCacheEntry>();
+const SHEET_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+/**
+ * Invalidates sheet responses cache.
+ */
+export function invalidateSheetCache(spreadsheetId?: string, collegeId?: string) {
+  if (!spreadsheetId) {
+    sheetCache.clear();
+    return;
+  }
+  if (collegeId) {
+    sheetCache.delete(`${collegeId}:${spreadsheetId}`);
+  } else {
+    for (const key of sheetCache.keys()) {
+      if (key.endsWith(`:${spreadsheetId}`)) {
+        sheetCache.delete(key);
+      }
+    }
+  }
+}
+
 /**
  * Fetches raw response rows from a connected Google Sheet
  * Reads from 'Form Responses' sheet (or the first sheet in the spreadsheet)
@@ -23,6 +51,12 @@ export async function fetchRawSheetResponses(
 ): Promise<RawSheetData> {
   if (!spreadsheetId || !collegeId) {
     return { headers: [], rows: [], totalRowCount: 0 };
+  }
+
+  const cacheKey = `${collegeId}:${spreadsheetId}`;
+  const cached = sheetCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < SHEET_CACHE_TTL_MS)) {
+    return cached.data;
   }
 
   try {
@@ -83,14 +117,17 @@ export async function fetchRawSheetResponses(
     // Convert all row cells to clean strings
     const rows = rawRows.map(row => row.map(cell => String(cell || '').trim()));
 
-    // Filter out rows that are completely empty
     const cleanRows = rows.filter(r => r.some(cell => cell.length > 0));
 
-    return {
+    const result: RawSheetData = {
       headers,
       rows: cleanRows,
       totalRowCount: cleanRows.length,
     };
+
+    sheetCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+    return result;
   } catch (err: unknown) {
     const isAuth =
       isGoogleOAuthError(err) ||

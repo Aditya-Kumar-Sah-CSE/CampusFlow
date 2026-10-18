@@ -280,7 +280,11 @@ export function FormDetailConsole({
               {hasAnalyticsAccess ? (
                 <Link
                   href={`/admin/dashboard/results/${form.id}`}
-                  onClick={() => setIsNavigatingResults(true)}
+                  prefetch={true}
+                  onClick={() => {
+                    setIsNavigatingResults(true);
+                    setTimeout(() => setIsNavigatingResults(false), 3000);
+                  }}
                   aria-busy={isNavigatingResults ? 'true' : undefined}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-bce-navy hover:bg-slate-800 text-amber-300 border border-slate-700 rounded-[3px] text-xs font-bold transition-colors shadow-2xs cursor-pointer"
                 >

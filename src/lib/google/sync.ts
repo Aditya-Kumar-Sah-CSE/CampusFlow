@@ -702,6 +702,18 @@ export async function syncFormResponsesToSheet(params: {
         ? allResponses.length
         : sheetDataRows.length;
 
+    // Invalidate cached sheet and analytics reports when new rows are added
+    if (rowsToAppend.length > 0) {
+      try {
+        const { invalidateSheetCache } = await import('@/lib/analytics/sheets-reader');
+        const { invalidateOverallAnalyticsCache } = await import('@/lib/analytics/service');
+        invalidateSheetCache(resolvedSheetId, collegeId);
+        invalidateOverallAnalyticsCache(collegeId);
+      } catch (cacheErr) {
+        // Safe to ignore cache invalidation error
+      }
+    }
+
     return {
       success: true,
       syncedCount: rowsToAppend.length,

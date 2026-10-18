@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useMemo } from 'react';
+import React, { useState, useTransition, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ParameterScoreBarChart,
@@ -58,6 +58,8 @@ export function ResultsDashboardClient({
 }: Props) {
   const [report, setReport] = useState<AggregatedAnalyticsReport>(initialReport);
   const [isPending, startTransition] = useTransition();
+  const hasSubmissions = forms.some(f => (f.response_count || 0) > 0);
+  const [isInitialLoading, setIsInitialLoading] = useState(!initialReport.hasData && hasSubmissions);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [navigatingFormId, setNavigatingFormId] = useState<string | null>(null);
   const [downloadingPdfFormId, setDownloadingPdfFormId] = useState<string | null>(null);
@@ -178,6 +180,34 @@ export function ResultsDashboardClient({
     handleFilterChange('ALL', 'ALL', 'ALL', 'ALL', 'ALL');
   };
 
+  // Progressive background hydration for live aggregated analytics
+  useEffect(() => {
+    if (!initialReport.hasData && hasSubmissions) {
+      let isMounted = true;
+      getOverallAnalyticsAction({
+        academicYearId,
+        branchId,
+        semesterId,
+        facultyId,
+        subjectId,
+      }).then((res) => {
+        if (isMounted) {
+          if (res.success && res.report) {
+            setReport(res.report);
+          }
+          setIsInitialLoading(false);
+        }
+      }).catch((err) => {
+        console.warn('[Results Dashboard] Error loading live analytics:', err);
+        if (isMounted) setIsInitialLoading(false);
+      });
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, []);
+
   // Form Filter & Pagination Logic
   const matchingForms = useMemo(() => {
     return forms.filter(form => {
@@ -253,7 +283,7 @@ export function ResultsDashboardClient({
     if (facultyId !== 'ALL') params.set('facultyId', facultyId);
     if (subjectId !== 'ALL') params.set('subjectId', subjectId);
     const qs = params.toString();
-    return `/api/admin/results/overall/pdf${qs ? `?${qs}` : ''}`;
+    return `/api/admin/results/export-pdf${qs ? `?${qs}` : ''}`;
   }, [academicYearId, branchId, semesterId, facultyId, subjectId]);
 
   // Pagination state
@@ -356,9 +386,9 @@ export function ResultsDashboardClient({
               <span className="font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-900/60 break-words max-w-full text-[11px] sm:text-xs">
                 {report.scopeTitle}
               </span>
-              {isPending && (
+              {(isPending || isInitialLoading) && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
-                  <RefreshCw className="w-3 h-3 animate-spin" /> Recalculating...
+                  <RefreshCw className="w-3 h-3 animate-spin" /> {isInitialLoading ? 'Syncing live ratings...' : 'Recalculating...'}
                 </span>
               )}
             </div>
@@ -568,6 +598,10 @@ export function ResultsDashboardClient({
                 {report.averageOverallScore.toFixed(2)}{' '}
                 <span className="text-[11px] sm:text-xs font-medium text-slate-400 dark:text-amber-200/50">/ 5.00</span>
               </>
+            ) : isInitialLoading ? (
+              <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-amber-600 dark:text-amber-400 font-bold">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing ratings...
+              </span>
             ) : displayTotalResponses > 0 ? (
               <span className="text-xs sm:text-base text-amber-600 dark:text-amber-400 font-bold">Pending Sync</span>
             ) : (
@@ -577,6 +611,8 @@ export function ResultsDashboardClient({
           <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-amber-200/60 truncate">
             {report.hasData
               ? `Avg: ${report.compositeAverageScore.toFixed(2)}/5.00`
+              : isInitialLoading
+              ? 'Fetching live student ratings'
               : displayTotalResponses > 0
               ? `${displayTotalResponses} submissions awaiting sync`
               : 'Pending responses'}
@@ -607,6 +643,10 @@ export function ResultsDashboardClient({
                 const safePct = Math.min(100, Math.max(0, pct));
                 return safePct >= 99.95 ? '100%' : `${safePct.toFixed(1)}%`;
               })()
+            ) : isInitialLoading ? (
+              <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-emerald-600 dark:text-emerald-400 font-bold">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Computing...
+              </span>
             ) : displayTotalResponses > 0 ? (
               <span className="text-xs sm:text-base text-amber-600 dark:text-amber-400 font-bold">Sync Needed</span>
             ) : (
@@ -614,7 +654,11 @@ export function ResultsDashboardClient({
             )}
           </div>
           <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-amber-200/60 truncate">
-            {displayTotalResponses > 0 && !report.hasData
+            {report.hasData
+              ? 'Positive rating index'
+              : isInitialLoading
+              ? 'Calculating student satisfaction index'
+              : displayTotalResponses > 0
               ? 'Reconnect Google to view ratings'
               : 'Positive rating index'}
           </p>
