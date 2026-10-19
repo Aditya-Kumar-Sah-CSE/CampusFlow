@@ -3,7 +3,6 @@
 import React, { useState, useTransition, useCallback, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  Sparkles,
   Search,
   Building2,
   Calendar,
@@ -288,74 +287,58 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
   }, []);
 
   return (
-    <section className="space-y-4 sm:space-y-6 pt-6 sm:pt-8 border-t border-slate-200/80 dark:border-amber-950/40">
-      {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div className="p-3 sm:p-4 rounded-2xl bg-white/85 dark:bg-[#18110b]/85 backdrop-blur-md border border-slate-200/80 dark:border-amber-950/70 shadow-xs max-w-xl">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/70 border border-amber-200 dark:border-amber-700/60 text-amber-800 dark:text-amber-300 text-xs font-bold mb-1.5 shadow-xs">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-            <span>Open Submissions</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            All Feedback Forms
-          </h2>
-          <p className="text-xs text-slate-600 dark:text-amber-100/90 font-medium mt-0.5">
-            Browse all currently active semester and faculty evaluations. Sorted recently published first.
-          </p>
+    <section className="space-y-4 sm:space-y-6 pt-4 sm:pt-6 border-t border-slate-200/80 dark:border-amber-950/40">
+      {/* Quick Search & Academic Level Filter Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+        {/* Level Filter Tabs: All / B.Tech / M.Tech */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-white/90 dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setLevelFilter('ALL')}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+              levelFilter === 'ALL'
+                ? 'bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-950 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
+            }`}
+          >
+            All ({data.forms.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setLevelFilter('B.Tech')}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              levelFilter === 'B.Tech'
+                ? 'bg-blue-600 text-white dark:bg-blue-500 dark:text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            B.Tech ({btechCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setLevelFilter('M.Tech')}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+              levelFilter === 'M.Tech'
+                ? 'bg-purple-600 text-white dark:bg-purple-500 dark:text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            M.Tech ({mtechCount})
+          </button>
         </div>
 
-        {/* Quick Search & Academic Level Filter */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-          {/* Level Filter Tabs: All / B.Tech / M.Tech */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/90 dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 shadow-xs">
-            <button
-              type="button"
-              onClick={() => setLevelFilter('ALL')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                levelFilter === 'ALL'
-                  ? 'bg-amber-700 text-white dark:bg-amber-500 dark:text-slate-950 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
-              }`}
-            >
-              All ({data.forms.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setLevelFilter('B.Tech')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                levelFilter === 'B.Tech'
-                  ? 'bg-blue-600 text-white dark:bg-blue-500 dark:text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              B.Tech ({btechCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setLevelFilter('M.Tech')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                levelFilter === 'M.Tech'
-                  ? 'bg-purple-600 text-white dark:bg-purple-500 dark:text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-amber-200/70 dark:hover:text-amber-100 hover:bg-slate-100 dark:hover:bg-amber-950/40'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5" />
-              M.Tech ({mtechCount})
-            </button>
-          </div>
-
-          {/* Quick Search */}
-          <div className="relative w-full sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 dark:text-amber-400/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search active forms..."
-              value={search}
-              onChange={e => handleSearchChange(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 min-h-[38px] rounded-xl bg-white dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/20 text-base sm:text-xs text-slate-800 dark:text-amber-100 placeholder-slate-400 dark:placeholder-amber-200/40 shadow-xs outline-none transition-all"
-            />
-          </div>
+        {/* Quick Search */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-4 h-4 text-slate-400 dark:text-amber-400/80 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search active forms..."
+            value={search}
+            onChange={e => handleSearchChange(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 min-h-[38px] rounded-xl bg-white dark:bg-[#18110b]/95 border border-slate-200 dark:border-amber-950/70 focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/20 text-base sm:text-xs text-slate-800 dark:text-amber-100 placeholder-slate-400 dark:placeholder-amber-200/40 shadow-xs outline-none transition-all"
+          />
         </div>
       </div>
 
@@ -369,6 +352,13 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
 
         {/* Felt Surface */}
         <div className="notice-board-felt-surface rounded-xl p-4 sm:p-6 md:p-8 min-h-[360px]">
+          {/* Centered Board Title */}
+          <div className="text-center pb-3 sm:pb-4 mb-2 sm:mb-4 border-b border-emerald-500/20 dark:border-amber-500/20">
+            <h2 className="text-lg sm:text-2xl font-black text-amber-200 dark:text-[#faebd0] tracking-wide uppercase drop-shadow-sm font-sans">
+              All Feedback Forms
+            </h2>
+          </div>
+
           {isPending ? (
             <div className="py-16 text-center text-emerald-100">
               <Loader2 className="w-8 h-8 animate-spin text-amber-400 mx-auto mb-2" />
