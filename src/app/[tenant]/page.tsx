@@ -7,7 +7,7 @@ import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { PublicEventCard } from '@/components/events/PublicEventCard';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
-import { School, UserCheck, ArrowRight, ExternalLink, Ticket, Calendar, BookOpen } from 'lucide-react';
+import { School, UserCheck, ArrowRight, Ticket, Calendar, BookOpen } from 'lucide-react';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import { CollegePublicFooter } from '@/components/layout/CollegePublicFooter';
 import type { Branch, AcademicYear, Semester } from '@/types/database';
@@ -62,36 +62,8 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
 
   return (
     <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
-      {/* Top Banner */}
-      <div className="bg-slate-900 dark:bg-[#120b07]/95 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-2.5 sm:px-4 border-b border-slate-800 dark:border-amber-950/60">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="truncate">{brand.displayName} · {tenant.name}</span>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-4 text-slate-300 text-[10px] sm:text-xs">
-            {tenant.websiteUrl && (
-              <>
-                <a
-                  href={tenant.websiteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-amber-300 transition-colors flex items-center gap-1"
-                >
-                  Official Website <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-                <span>•</span>
-              </>
-            )}
-            <Link href={`/${tenant.slug}/admin/login`} className="hover:text-amber-300 transition-colors flex items-center gap-1 font-medium">
-              Admin Portal <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Responsive Header with Tenant Branding & Mobile Drawer */}
-      <PublicTenantNavbar tenant={tenant} currentPage="home" />
+      {/* Main Responsive Header with Tenant Branding */}
+      <PublicTenantNavbar tenant={tenant} currentPage="home" hideHamburger={true} />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-4 sm:py-10 space-y-10 sm:space-y-14">
@@ -122,15 +94,6 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
         {/* 1. Feedbacks Section (Controlled by Feedbacks Toggle) */}
         {tenant.showFeedbacks && (
           <section id="feedback-section" className="space-y-6 scroll-mt-16">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-white/85 dark:bg-[#18110b]/85 backdrop-blur-md border border-slate-200/80 dark:border-amber-950/70 shadow-xs">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100">
-                  Find Your Feedback Form
-                </h2>
-              </div>
-            </div>
-
             {/* Client-side cascading discovery component */}
             <StudentDiscoveryFlow
               key={`discovery_${tenant.collegeId}`}

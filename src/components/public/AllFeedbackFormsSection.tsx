@@ -81,6 +81,7 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
   const router = useRouter();
   const pathname = usePathname();
 
+  const boardRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState<PublicActiveFormsResult>(initialData);
   const [search, setSearch] = useState(initialSearch);
   const [levelFilter, setLevelFilter] = useState<'ALL' | 'B.Tech' | 'M.Tech'>('ALL');
@@ -88,12 +89,16 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
   const [isPending, startTransition] = useTransition();
   const hydrated = useHydrated();
 
-  // Synchronize state when tenant collegeId or initialData changes (e.g. client router navigation)
+  // Synchronize state only when tenant collegeId changes (e.g. client router navigation between institutions)
+  const prevCollegeRef = useRef(collegeId);
   useEffect(() => {
-    setData(initialData);
-    setSearch(initialSearch);
-    setCurrentPage(initialData.page || 1);
-  }, [initialData, collegeId, initialSearch]);
+    if (prevCollegeRef.current !== collegeId) {
+      prevCollegeRef.current = collegeId;
+      setData(initialData);
+      setSearch(initialSearch);
+      setCurrentPage(initialData.page || 1);
+    }
+  }, [collegeId, initialData, initialSearch]);
 
   // Academic level filtering & count calculation
   const filteredForms = React.useMemo(() => {
@@ -191,14 +196,16 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
   );
 
   /**
-   * Push URL state without full navigation — uses router.replace for shallow update.
+   * Push URL state without full navigation — uses window.history.replaceState for shallow update.
    */
   const syncUrl = useCallback(
     (page: number, searchTerm: string) => {
       const url = buildUrl(page, searchTerm);
-      router.replace(url, { scroll: false });
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', url);
+      }
     },
-    [buildUrl, router]
+    [buildUrl]
   );
 
   const handleSearchChange = (val: string) => {
@@ -209,39 +216,69 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
 
     searchTimerRef.current = setTimeout(() => {
       startTransition(async () => {
-        const res = await getPublicActiveFormsAction({
-          page: 1,
-          pageSize: PAGE_SIZE,
-          search: val,
-          collegeId,
-        });
-        if (res.success) {
-          setData(res);
-          setCurrentPage(1);
-          syncUrl(1, val);
+        try {
+          const res = await getPublicActiveFormsAction({
+            page: 1,
+            pageSize: PAGE_SIZE,
+            search: val,
+            collegeId,
+          });
+          if (res && res.success) {
+            setData(res);
+            setCurrentPage(1);
+            syncUrl(1, val);
+          }
+        } catch (err) {
+          console.error('Search error:', err);
         }
       });
     }, 300);
   };
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > data.totalPages) return;
+  const handlePageChange = (newPage: number, explicitSearch?: string) => {
+    const activeSearch = explicitSearch !== undefined ? explicitSearch : search;
+    if (newPage < 1 || (data.totalPages > 0 && newPage > data.totalPages)) return;
     startTransition(async () => {
-      const res = await getPublicActiveFormsAction({
-        page: newPage,
-        pageSize: PAGE_SIZE,
-        search,
-        collegeId,
-      });
-      if (res.success) {
-        // Clamp to valid page if backend returns fewer pages than requested
-        const safePage = Math.min(newPage, res.totalPages || 1);
-        setData(res);
-        setCurrentPage(safePage);
-        syncUrl(safePage, search);
+      try {
+        const res = await getPublicActiveFormsAction({
+          page: newPage,
+          pageSize: PAGE_SIZE,
+          search: activeSearch,
+          collegeId,
+        });
+        if (res && res.success) {
+          // Clamp to valid page if backend returns fewer pages than requested
+          const safePage = Math.min(newPage, res.totalPages || 1);
+          setData(res);
+          setCurrentPage(safePage);
+          syncUrl(safePage, activeSearch);
+
+          if (boardRef.current) {
+            boardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          console.error('Failed to change page:', res?.error);
+        }
+      } catch (err) {
+        console.error('Error changing page:', err);
       }
     });
   };
+
+  // Restore URL page/search parameters on initial client mount if present
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const urlPage = parseInt(params.get('page') || '1', 10);
+    const urlSearch = params.get('search') || '';
+
+    if (urlPage > 1 || (urlSearch && urlSearch !== initialSearch)) {
+      handlePageChange(urlPage > 1 ? urlPage : 1, urlSearch);
+      if (urlSearch) {
+        setSearch(urlSearch);
+      }
+    }
+  }, []); // Run once on mount
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -323,7 +360,7 @@ export function AllFeedbackFormsSection({ initialData, collegeId, tenantSlug, in
       </div>
 
       {/* Dark Green Notice Board with Wooden Frame & Cork/Felt Texture */}
-      <div className="notice-board-wood-frame p-1.5 sm:p-2.5 md:p-3 rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-2xl">
+      <div ref={boardRef} className="notice-board-wood-frame p-1.5 sm:p-2.5 md:p-3 rounded-2xl relative overflow-visible border-2 sm:border-[3px] border-[#362013] dark:border-[#22130a] shadow-2xl">
         {/* Brass corner brackets */}
         <div className="absolute top-1 left-1 w-3.5 h-3.5 border-t-2 border-l-2 border-amber-500/80 pointer-events-none rounded-tl-xs" />
         <div className="absolute top-1 right-1 w-3.5 h-3.5 border-t-2 border-r-2 border-amber-500/80 pointer-events-none rounded-tr-xs" />

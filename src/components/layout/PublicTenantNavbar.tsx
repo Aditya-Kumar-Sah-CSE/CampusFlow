@@ -29,11 +29,13 @@ export interface PublicTenantNavbarProps {
   backUrl?: string;
   backLabel?: string;
   hideAnonymousBadge?: boolean;
+  hideHamburger?: boolean;
 }
 
 export function PublicTenantNavbar({
   tenant,
   currentPage = 'home',
+  hideHamburger = false,
 }: PublicTenantNavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -145,22 +147,24 @@ export function PublicTenantNavbar({
               </Link>
             )}
 
-            <button
-              type="button"
-              onClick={() => setIsOpen(!isOpen)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-[#251a11] hover:bg-slate-200 dark:hover:bg-[#342417] text-slate-700 dark:text-amber-100 border border-slate-200/90 dark:border-amber-950/60 active:scale-95 transition-all focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-              aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={isOpen}
-              aria-controls="mobile-public-nav"
-            >
-              {isOpen ? <X className="w-5 h-5 text-slate-900 dark:text-amber-100" /> : <Menu className="w-5 h-5 text-slate-800 dark:text-amber-100" />}
-            </button>
+            {!hideHamburger && (
+              <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-[#251a11] hover:bg-slate-200 dark:hover:bg-[#342417] text-slate-700 dark:text-amber-100 border border-slate-200/90 dark:border-amber-950/60 active:scale-95 transition-all focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                aria-expanded={isOpen}
+                aria-controls="mobile-public-nav"
+              >
+                {isOpen ? <X className="w-5 h-5 text-slate-900 dark:text-amber-100" /> : <Menu className="w-5 h-5 text-slate-800 dark:text-amber-100" />}
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Mobile Slide-Over Drawer & Overlay */}
-      {isOpen && (
+      {!hideHamburger && isOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           {/* Backdrop */}
           <div

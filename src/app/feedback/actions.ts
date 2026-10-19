@@ -749,8 +749,8 @@ async function fetchPublicActiveFormsDirect(params?: {
 }
 
 /**
- * Fetch all currently PUBLISHED / ACTIVE feedback forms with server-side pagination (60s cache).
- * Strictly isolated per collegeId to prevent cross-institution cache bleeding.
+ * Fetch all currently PUBLISHED / ACTIVE feedback forms with server-side pagination.
+ * Strictly isolated per collegeId to prevent cross-institution data bleeding.
  */
 export async function getPublicActiveFormsAction(params?: {
   page?: number;
@@ -759,23 +759,19 @@ export async function getPublicActiveFormsAction(params?: {
   search?: string;
   collegeId?: string;
 }): Promise<PublicActiveFormsResult> {
-  const collegeIdKey = params?.collegeId || 'global';
-  const pageKey = params?.page || 1;
-  const pageSizeKey = params?.pageSize || 12;
-  const branchKey = params?.branchId || 'all';
-  const searchKey = (params?.search || '').trim() || 'none';
-
   try {
-    return await unstable_cache(
-      async () => fetchPublicActiveFormsDirect(params),
-      [`public_active_forms_${collegeIdKey}_${branchKey}_${pageKey}_${pageSizeKey}_${searchKey}`],
-      {
-        revalidate: 60,
-        tags: ['feedback_forms', `feedback_forms_${collegeIdKey}`],
-      }
-    )();
-  } catch {
-    return fetchPublicActiveFormsDirect(params);
+    return await fetchPublicActiveFormsDirect(params);
+  } catch (err: unknown) {
+    console.error('getPublicActiveFormsAction error:', err);
+    return {
+      success: false,
+      forms: [],
+      totalCount: 0,
+      page: params?.page || 1,
+      pageSize: params?.pageSize || 6,
+      totalPages: 0,
+      error: 'Failed to load feedback forms.',
+    };
   }
 }
 

@@ -5,7 +5,7 @@ import { getPublicActiveFormsAction } from '@/app/feedback/actions';
 import { StudentDiscoveryFlow } from '@/components/public/StudentDiscoveryFlow';
 import { AllFeedbackFormsSection } from '@/components/public/AllFeedbackFormsSection';
 import { getPwaInstallCount } from '@/lib/pwa/installations';
-import { GraduationCap, ArrowLeft, ExternalLink } from 'lucide-react';
+import { GraduationCap, ExternalLink } from 'lucide-react';
 import { PublicTenantNavbar } from '@/components/layout/PublicTenantNavbar';
 import type { AcademicYear, Branch, Semester } from '@/types/database';
 import { getCampusFlowBrand } from '@/lib/tenant/campusflow-brand';
@@ -43,24 +43,8 @@ export default async function TenantFeedbackPortalPage({ params }: TenantFeedbac
 
   return (
     <div className="min-h-screen flex flex-col bg-transparent text-slate-800 dark:text-slate-100 transition-colors duration-200">
-      {/* Top Banner */}
-      <div className="bg-slate-900 dark:bg-[#120b07]/95 text-white text-[11px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 border-b border-slate-800 dark:border-amber-950/60">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 text-center sm:text-left">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <span className="truncate">{getCampusFlowBrand(tenant).displayName} · {tenant.name}</span>
-          </div>
-          <Link
-            href={`/${tenant.slug}`}
-            className="text-slate-300 hover:text-white flex items-center gap-1 text-[10px] sm:text-xs shrink-0"
-          >
-            <ArrowLeft className="w-3 h-3" /> {tenant.shortName} Home
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Responsive Header with Tenant Branding & Mobile Drawer */}
-      <PublicTenantNavbar tenant={tenant} currentPage="feedback" />
+      {/* Main Responsive Header with Tenant Branding */}
+      <PublicTenantNavbar tenant={tenant} currentPage="feedback" hideHamburger={true} />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-2.5 sm:px-6 lg:px-8 py-3.5 sm:py-8 space-y-4 sm:space-y-6">
