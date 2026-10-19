@@ -79,7 +79,7 @@ export function ExamsManagementTab({ initialExams, collegeId, initialSubTab }: E
       } else {
         url.searchParams.set('subtab', nextStatus.toLowerCase());
       }
-      window.history.pushState(null, '', url.toString());
+      window.history.replaceState(null, '', url.toString());
     }
   }, []);
 

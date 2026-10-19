@@ -103,7 +103,7 @@ export function FeedbackFormsTab({
       } else {
         url.searchParams.set('subtab', nextStatus.toLowerCase());
       }
-      window.history.pushState(null, '', url.toString());
+      window.history.replaceState(null, '', url.toString());
     }
   }, []);
 

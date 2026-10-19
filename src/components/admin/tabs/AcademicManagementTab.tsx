@@ -125,15 +125,24 @@ export function AcademicManagementTab({
     return 'faculties';
   }, [searchParams, initialSubTab]);
 
+  const [selectedSubTab, setSelectedSubTab] = useState<AcademicSubTab>(() => resolveSubTab());
   const [activeSubTab, setActiveSubTab] = useState<AcademicSubTab>(() => resolveSubTab());
+  const [isSubTabTransitioning, startSubTabTransition] = useTransition();
 
   const handleSubTabChange = useCallback((nextSubTab: AcademicSubTab) => {
-    setActiveSubTab(nextSubTab);
+    // 1. Instant optimistic visual feedback on the tab button (< 1ms paint budget)
+    setSelectedSubTab(nextSubTab);
+
+    // 2. Non-blocking concurrent transition to mount/reconcile heavy subtab DOM trees without blocking INP
+    startSubTabTransition(() => {
+      setActiveSubTab(nextSubTab);
+    });
+
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', 'academic');
       url.searchParams.set('subtab', nextSubTab);
-      window.history.pushState(null, '', url.toString());
+      window.history.replaceState(null, '', url.toString());
     }
   }, []);
 
@@ -142,11 +151,13 @@ export function AcademicManagementTab({
     const handlePopState = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const sub = urlParams.get('subtab');
-      if (sub && VALID_ACADEMIC_SUBTABS.includes(sub as AcademicSubTab)) {
-        setActiveSubTab(sub as AcademicSubTab);
-      } else {
-        setActiveSubTab(resolveSubTab());
-      }
+      const target = (sub && VALID_ACADEMIC_SUBTABS.includes(sub as AcademicSubTab))
+        ? (sub as AcademicSubTab)
+        : resolveSubTab();
+      setSelectedSubTab(target);
+      startSubTabTransition(() => {
+        setActiveSubTab(target);
+      });
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -160,10 +171,13 @@ export function AcademicManagementTab({
       ? (sub as AcademicSubTab)
       : resolveSubTab();
 
-    if (targetSub !== activeSubTab) {
-      setActiveSubTab(targetSub);
+    if (targetSub !== selectedSubTab) {
+      setSelectedSubTab(targetSub);
+      startSubTabTransition(() => {
+        setActiveSubTab(targetSub);
+      });
     }
-  }, [resolveSubTab, activeSubTab, searchParams]);
+  }, [resolveSubTab, selectedSubTab]);
 
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -1154,7 +1168,7 @@ export function AcademicManagementTab({
           { id: 'semesters', label: `Academic Levels (${semesterList.length})`, icon: Layers },
         ].map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeSubTab === tab.id;
+          const isActive = selectedSubTab === tab.id;
           return (
             <button
               key={tab.id}
@@ -1187,7 +1201,9 @@ export function AcademicManagementTab({
         </div>
       )}
 
-      {/* 1. FACULTIES SUBTAB */}
+      {/* Subtab Panels Container with Smooth Non-blocking Transition */}
+      <div className={`transition-opacity duration-150 ${isSubTabTransitioning ? 'opacity-75 pointer-events-none' : 'opacity-100'}`}>
+        {/* 1. FACULTIES SUBTAB */}
       {activeSubTab === 'faculties' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
           {/* Add Faculty Form (Exam Pad Design) */}
@@ -3275,6 +3291,7 @@ export function AcademicManagementTab({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

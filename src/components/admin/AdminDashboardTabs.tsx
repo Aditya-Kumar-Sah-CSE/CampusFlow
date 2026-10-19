@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 import { useAppRouter as useRouter } from '@/lib/hooks/use-app-router';
 import { createClient } from '@/lib/supabase/client';
@@ -386,11 +386,19 @@ export function AdminDashboardTabs({
     return allowedTabs.includes('overview') ? 'overview' : allowedTabs[0] || 'overview';
   }, [searchParams, initialTab, allowedTabs]);
 
+  const [selectedTab, setSelectedTab] = useState<AdminTab>(() => resolveTab());
   const [activeTab, setActiveTab] = useState<AdminTab>(() => resolveTab());
+  const [isTabTransitioning, startTabTransition] = useTransition();
 
   const handleSelectTab = useCallback((nextTab: AdminTab, nextSubTab?: string) => {
     if (!allowedTabs.includes(nextTab)) return;
-    setActiveTab(nextTab);
+    // 1. Instant optimistic tab highlight
+    setSelectedTab(nextTab);
+    // 2. Non-blocking transition to render the tab panel
+    startTabTransition(() => {
+      setActiveTab(nextTab);
+    });
+
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       if (nextTab === 'overview') {
@@ -404,7 +412,7 @@ export function AdminDashboardTabs({
           url.searchParams.delete('subtab');
         }
       }
-      window.history.pushState(null, '', url.toString());
+      window.history.replaceState(null, '', url.toString());
     }
   }, [allowedTabs]);
 
@@ -413,11 +421,13 @@ export function AdminDashboardTabs({
     const handlePopState = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const tabParam = urlParams.get('tab');
-      if (tabParam && allowedTabs.includes(tabParam as AdminTab)) {
-        setActiveTab(tabParam as AdminTab);
-      } else {
-        setActiveTab(resolveTab());
-      }
+      const target = (tabParam && allowedTabs.includes(tabParam as AdminTab))
+        ? (tabParam as AdminTab)
+        : resolveTab();
+      setSelectedTab(target);
+      startTabTransition(() => {
+        setActiveTab(target);
+      });
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -432,10 +442,13 @@ export function AdminDashboardTabs({
       ? (tabParam as AdminTab)
       : resolveTab();
 
-    if (targetTab !== activeTab) {
-      setActiveTab(targetTab);
+    if (targetTab !== selectedTab) {
+      setSelectedTab(targetTab);
+      startTabTransition(() => {
+        setActiveTab(targetTab);
+      });
     }
-  }, [resolveTab, activeTab, searchParams, allowedTabs]);
+  }, [resolveTab, selectedTab, searchParams, allowedTabs]);
 
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [isNavigatingToResults, setIsNavigatingToResults] = useState(false);
@@ -473,7 +486,7 @@ export function AdminDashboardTabs({
     'institutions',
     'google',
     'settings',
-  ].includes(activeTab);
+  ].includes(selectedTab);
 
   const settingsSubTabs: {
     id: AdminTab;
@@ -533,7 +546,7 @@ export function AdminDashboardTabs({
     label: sub.label,
     icon: sub.icon,
     badge: sub.badge,
-    isActive: activeTab === sub.id,
+    isActive: selectedTab === sub.id,
     onClick: () => handleSelectTab(sub.id),
   }));
 
@@ -585,14 +598,14 @@ export function AdminDashboardTabs({
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] font-bold text-slate-400 dark:text-[#a08862] uppercase tracking-wider shrink-0">Tab:</span>
           <span className="text-xs font-bold text-bce-navy dark:text-amber-200 bg-amber-100 dark:bg-amber-950/60 border border-amber-300/60 dark:border-amber-700/60 px-2 py-0.5 rounded-[2px] truncate">
-            {getActiveTabTitle(activeTab)}
+            {getActiveTabTitle(selectedTab)}
           </span>
         </div>
         <AdminMobileNav
           adminName={currentUserName || currentUserEmail.split('@')[0]}
           adminEmail={currentUserEmail}
           isSuperAdmin={isSuperAdmin}
-          activeTab={activeTab}
+          activeTab={selectedTab}
           onSelectTab={(tab) => handleSelectTab(tab)}
           pendingRequestsCount={pendingRequestsCount}
           onSignOut={handleSignOut}
@@ -608,7 +621,7 @@ export function AdminDashboardTabs({
         {/* Direct Tabs: Overview, Academic Structure, Feedback Forms, Events, Exams, Library */}
         {visibleDirectTabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
+          const isActive = selectedTab === tab.id;
           return (
             <button
               key={tab.id}
@@ -693,7 +706,7 @@ export function AdminDashboardTabs({
           <div className="flex items-center gap-1 min-w-0 overflow-x-auto no-scrollbar">
             {settingsSubTabs.map((sub) => {
               const SubIcon = sub.icon;
-              const isCurrent = activeTab === sub.id;
+              const isCurrent = selectedTab === sub.id;
               return (
                 <button
                   key={sub.id}
@@ -728,7 +741,7 @@ export function AdminDashboardTabs({
       )}
 
       {/* Tab Panels */}
-      <div className="relative w-full max-w-full min-w-0">
+      <div className={`relative w-full max-w-full min-w-0 transition-opacity duration-150 ${isTabTransitioning ? 'opacity-75 pointer-events-none' : 'opacity-100'}`}>
         {activeTab === 'overview' && (
           <OverviewTab
             academicYears={academicYears}

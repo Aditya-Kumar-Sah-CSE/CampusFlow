@@ -128,25 +128,35 @@ export function AdminManagementTab({
   const [isPending, startTransition] = useTransition();
   const [admins, setAdmins] = useState<Admin[]>(adminsList);
   const [requests, setRequests] = useState<AdminRequest[]>(adminRequests);
+  const [selectedSubTab, setSelectedSubTab] = useState<'admins' | 'students' | 'editors'>(
+    initialSubTab === 'students' ? 'students' : initialSubTab === 'editors' ? 'editors' : 'admins'
+  );
   const [subTab, setSubTab] = useState<'admins' | 'students' | 'editors'>(
     initialSubTab === 'students' ? 'students' : initialSubTab === 'editors' ? 'editors' : 'admins'
   );
+  const [isSubTabPending, startSubTabTransition] = useTransition();
 
   const canControlRoles = isSuperAdmin || isPrimaryAdmin;
 
   useEffect(() => {
     if (initialSubTab === 'students' || initialSubTab === 'admins' || initialSubTab === 'editors') {
-      setSubTab(initialSubTab);
+      setSelectedSubTab(initialSubTab);
+      startSubTabTransition(() => {
+        setSubTab(initialSubTab);
+      });
     }
   }, [initialSubTab]);
 
   const handleSubTabChange = (tab: 'admins' | 'students' | 'editors') => {
-    setSubTab(tab);
+    setSelectedSubTab(tab);
+    startSubTabTransition(() => {
+      setSubTab(tab);
+    });
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', 'admins');
       url.searchParams.set('subtab', tab);
-      window.history.pushState(null, '', url.toString());
+      window.history.replaceState(null, '', url.toString());
     }
   };
 
@@ -444,7 +454,7 @@ export function AdminManagementTab({
           type="button"
           onClick={() => handleSubTabChange('admins')}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs sm:text-sm font-semibold transition-all cursor-pointer border ${
-            subTab === 'admins'
+            selectedSubTab === 'admins'
               ? 'bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border-bce-navy dark:border-amber-600/60 shadow-xs font-bold'
               : 'bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#281b0f] border-amber-200/80 dark:border-[#382710]'
           }`}
@@ -462,7 +472,7 @@ export function AdminManagementTab({
           type="button"
           onClick={() => handleSubTabChange('students')}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs sm:text-sm font-semibold transition-all cursor-pointer border ${
-            subTab === 'students'
+            selectedSubTab === 'students'
               ? 'bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border-bce-navy dark:border-amber-600/60 shadow-xs font-bold'
               : 'bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#281b0f] border-amber-200/80 dark:border-[#382710]'
           }`}
@@ -471,7 +481,7 @@ export function AdminManagementTab({
           <span>Signed-Up Students</span>
           <span
             className={`px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold ${
-              subTab === 'students' ? 'bg-amber-400 text-slate-950' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
+              selectedSubTab === 'students' ? 'bg-amber-400 text-slate-950' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
             }`}
           >
             {initialStudents?.length ?? 0}
@@ -482,7 +492,7 @@ export function AdminManagementTab({
           type="button"
           onClick={() => handleSubTabChange('editors')}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-[3px] text-xs sm:text-sm font-semibold transition-all cursor-pointer border ${
-            subTab === 'editors'
+            selectedSubTab === 'editors'
               ? 'bg-bce-navy text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border-bce-navy dark:border-amber-600/60 shadow-xs font-bold'
               : 'bg-white dark:bg-[#1a1309] text-slate-700 dark:text-[#faebd0] hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-[#281b0f] border-amber-200/80 dark:border-[#382710]'
           }`}
@@ -492,6 +502,7 @@ export function AdminManagementTab({
         </button>
       </div>
 
+      <div className={`transition-opacity duration-150 ${isSubTabPending ? 'opacity-75 pointer-events-none' : 'opacity-100'}`}>
       {subTab === 'students' ? (
         <SignedUpStudentsSection
           initialStudents={initialStudents}
@@ -1854,6 +1865,7 @@ export function AdminManagementTab({
       )}
         </>
       )}
+      </div>
     </div>
   );
 }
