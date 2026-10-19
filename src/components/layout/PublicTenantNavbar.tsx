@@ -127,7 +127,7 @@ export function PublicTenantNavbar({
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-amber-100 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-[#251a11] hover:bg-slate-200/80 dark:hover:bg-[#342417] rounded-full border border-slate-200/90 dark:border-amber-950/60 transition-all shrink-0 active:scale-98 shadow-2xs"
               >
                 <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-amber-400 shrink-0" />
-                <span>Faculty / Admin</span>
+                <span>Admin Login</span>
               </Link>
             )}
           </div>
@@ -140,10 +140,10 @@ export function PublicTenantNavbar({
               <Link
                 href={`/${tenant.slug}/admin/login`}
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-amber-100 bg-slate-100 dark:bg-[#251a11] hover:bg-slate-200 dark:hover:bg-[#342417] rounded-full border border-slate-200/90 dark:border-amber-950/60 transition-colors shadow-2xs"
-                title="Faculty / Admin Login"
+                title="Admin Login"
               >
                 <UserCheck className="w-3.5 h-3.5 text-blue-600 dark:text-amber-400" />
-                <span className="hidden xs:inline">Admin</span>
+                <span>Admin Login</span>
               </Link>
             )}
 
@@ -312,7 +312,7 @@ export function PublicTenantNavbar({
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold leading-tight">Faculty &amp; Admin Login</p>
+                      <p className="text-xs font-bold leading-tight">Admin Login</p>
                       <p className="text-[10px] text-slate-300 dark:text-slate-400">Manage forms, results &amp; events</p>
                     </div>
                   </div>

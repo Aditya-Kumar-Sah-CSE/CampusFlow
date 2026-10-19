@@ -116,7 +116,7 @@ export function RootPublicNavbar({
                 href="/admin/login"
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-full shadow-2xs transition-all shrink-0 active:scale-98"
               >
-                <span>Super Admin Login</span>
+                <span>Admin Login</span>
                 <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-300" />
               </Link>
             )}
@@ -132,7 +132,7 @@ export function RootPublicNavbar({
                 href="/admin/login"
                 className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full border border-slate-200 dark:border-slate-700 transition-colors"
               >
-                <span>Admin</span>
+                <span>Admin Login</span>
                 <ArrowRight className="w-3 h-3 text-slate-400" />
               </Link>
             )}
@@ -256,7 +256,7 @@ export function RootPublicNavbar({
                       <img src="/icon-192.png" alt="CampusFlow Logo" className="w-full h-full object-contain rounded-md" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold leading-tight">Super Admin Login</p>
+                      <p className="text-xs font-bold leading-tight">Admin Login</p>
                       <p className="text-[10px] text-slate-300">Access platform administration</p>
                     </div>
                   </div>

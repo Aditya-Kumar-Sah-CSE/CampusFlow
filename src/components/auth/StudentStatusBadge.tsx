@@ -338,7 +338,7 @@ export function StudentStatusBadge({
                       </div>
                       <div>
                         <p className="font-bold text-xs text-slate-900 dark:text-[#faebd0] leading-tight">
-                          Faculty / Admin Login
+                          Admin Login
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-[#a08255] font-normal">
                           Switch to institutional portal

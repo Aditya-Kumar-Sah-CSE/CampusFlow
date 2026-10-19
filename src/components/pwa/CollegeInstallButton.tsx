@@ -45,11 +45,11 @@ export function CollegeInstallButton({ tenant, className }: CollegeInstallButton
       type="button"
       suppressHydrationWarning
       onClick={handleInstallClick}
-      className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 hover:text-amber-950 border border-amber-200/80 rounded-lg transition-all shadow-2xs active:scale-98 cursor-pointer ${className || ''}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-[#251a11] hover:bg-amber-100 dark:hover:bg-[#342417] hover:text-amber-950 dark:hover:text-amber-100 border border-amber-200/80 dark:border-amber-950/70 rounded-lg transition-all shadow-2xs active:scale-98 cursor-pointer ${className || ''}`}
       aria-label={`Install ${tenant.name} App`}
       title={`Install ${tenant.shortName || tenant.name} App on your device`}
     >
-      <Download className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+      <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
       <span className="hidden sm:inline">Install App</span>
       <span className="sm:hidden font-medium">Install</span>
     </button>

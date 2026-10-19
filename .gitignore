@@ -41,6 +41,7 @@ next-env.d.ts
 *.keystore
 *.jks
 *.apk
+!public/downloads/*.apk
 *.aab
 *.idsig
 /twa/*.keystore
