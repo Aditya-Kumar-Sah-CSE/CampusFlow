@@ -615,8 +615,36 @@ export function StudentDiscoveryFlow({
         {/* 3D UNROLLED PAPER SHEET (EXPANDED STATE WITH SMOOTH TWO-WAY ROLLING TRANSITION) */}
         {isSheetActive && (
           <div className="paper-unroll-perspective">
+            {/* Top Rolling Cylinder — visible during roll/unroll transitions */}
+            {(scrollState === 'unrolling' || scrollState === 'rolling') && (
+              <div className="paper-roll-top-roller" aria-hidden="true">
+                <PaperRollEndCap
+                  side="left"
+                  spinDirection={scrollState === 'unrolling' ? 'forward' : 'reverse'}
+                />
+                <div
+                  className={`flex-1 paper-roll-active-roller-body ${
+                    scrollState === 'unrolling' ? 'animate-roller-spin-down' : 'animate-roller-spin-up'
+                  }`}
+                />
+                <PaperRollEndCap
+                  side="right"
+                  spinDirection={scrollState === 'unrolling' ? 'forward' : 'reverse'}
+                />
+              </div>
+            )}
+
+            {/* 3D Top Paper Curl — simulates paper wrapping around cylinder */}
+            <div className={`paper-top-curl-wrapper ${
+              scrollState === 'unrolling' ? 'animate-top-curl-appear' :
+              scrollState === 'rolling' ? 'animate-top-curl-disappear' : ''
+            }`}>
+              <div className="paper-top-curl" aria-hidden="true" />
+            </div>
+
+            {/* Main Paper Sheet */}
             <div
-              className={`paper-unrolled-sheet relative rounded-[3px] p-3 sm:p-4 md:p-4.5 bg-[#fffdfa] dark:bg-[#1a1208] border border-amber-900/30 dark:border-[#4d381c] shadow-[0_2px_8px_rgba(0,0,0,0.12)] space-y-3 text-slate-800 dark:text-[#faebd0] ${
+              className={`paper-unrolled-sheet relative rounded-b-[3px] p-3 sm:p-4 md:p-4.5 bg-[#fffdfa] dark:bg-[#1a1208] border border-t-0 border-amber-900/30 dark:border-[#4d381c] shadow-[0_2px_8px_rgba(0,0,0,0.12)] space-y-3 text-slate-800 dark:text-[#faebd0] ${
                 scrollState === 'unrolling'
                   ? 'animate-paper-unroll-wavefront overflow-hidden'
                   : scrollState === 'rolling'
@@ -1111,9 +1139,14 @@ export function StudentDiscoveryFlow({
                 </div>
               </div>
 
-              {/* Active Rolling Cylinder that rolls round and round during unrolling & rolling */}
+              {/* Resting bottom curl when fully unrolled */}
+              {scrollState === 'unrolled' && (
+                <div className="paper-scroll-bottom-curl" aria-hidden="true" />
+              )}
+
+              {/* Bottom rolling cylinder visible during transitions */}
               {(scrollState === 'unrolling' || scrollState === 'rolling') && (
-                <div className="paper-roll-active-roller" aria-hidden="true">
+                <div className="paper-roll-bottom-roller" aria-hidden="true">
                   <PaperRollEndCap
                     side="left"
                     spinDirection={scrollState === 'unrolling' ? 'forward' : 'reverse'}
@@ -1128,11 +1161,6 @@ export function StudentDiscoveryFlow({
                     spinDirection={scrollState === 'unrolling' ? 'forward' : 'reverse'}
                   />
                 </div>
-              )}
-
-              {/* Resting bottom curl when fully unrolled */}
-              {scrollState === 'unrolled' && (
-                <div className="paper-scroll-bottom-curl" aria-hidden="true" />
               )}
 
               {/* Paper Dog-Ear Crease Effect on Bottom Right */}
