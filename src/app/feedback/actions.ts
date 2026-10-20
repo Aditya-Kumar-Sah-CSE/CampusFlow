@@ -862,3 +862,159 @@ export async function getMorePublishedFormsForCollegeAction(
     return [];
   }
 }
+
+export interface PublicFormSearchResult extends PublicActiveFormCard {
+  facultyId?: string | null;
+  subjectId?: string | null;
+  academicYearId?: string | null;
+  branchId?: string | null;
+  semesterId?: string | null;
+}
+
+/**
+ * High-speed multi-field search for active feedback forms.
+ * Searches across: Form Title, Faculty Name, Subject Name, Subject Code, Branch / Department, and Semester.
+ */
+export async function searchPublicFormsComprehensiveAction(params: {
+  query?: string;
+  collegeId?: string;
+  limit?: number;
+}): Promise<{
+  success: boolean;
+  forms: PublicFormSearchResult[];
+  error?: string;
+}> {
+  try {
+    const supabase = await getPublicDb();
+    let query = supabase
+      .from('feedback_forms')
+      .select(`
+        id,
+        title,
+        form_type,
+        status,
+        google_form_url,
+        published_at,
+        created_at,
+        academic_year_id,
+        branch_id,
+        semester_id,
+        faculty_id,
+        subject_id,
+        branch:branches(id, name, code),
+        semester:semesters(id, name, semester_number, programme_id, programme:academic_programmes(id, name, code)),
+        academic_year:academic_years(id, name),
+        faculty:faculties(id, name, department, designation),
+        subject:subjects(id, name, code),
+        items:feedback_form_items(id)
+      `)
+      .eq('status', 'PUBLISHED')
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false });
+
+    if (params.collegeId && isValidUUID(params.collegeId)) {
+      query = query.eq('college_id', params.collegeId);
+    }
+
+    const queryRes = await query;
+    let data: any = queryRes.data;
+    let error = queryRes.error;
+
+    // Fallback if nested academic_programmes relation is not permitted for anon
+    if (error && (error.message?.includes('academic_programmes') || error.code === 'PGRST200')) {
+      let fallbackQuery = supabase
+        .from('feedback_forms')
+        .select(`
+          id,
+          title,
+          form_type,
+          status,
+          google_form_url,
+          published_at,
+          created_at,
+          academic_year_id,
+          branch_id,
+          semester_id,
+          faculty_id,
+          subject_id,
+          branch:branches(id, name, code),
+          semester:semesters(id, name, semester_number),
+          academic_year:academic_years(id, name),
+          faculty:faculties(id, name, department, designation),
+          subject:subjects(id, name, code),
+          items:feedback_form_items(id)
+        `)
+        .eq('status', 'PUBLISHED')
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false });
+
+      if (params.collegeId && isValidUUID(params.collegeId)) {
+        fallbackQuery = fallbackQuery.eq('college_id', params.collegeId);
+      }
+      const res = await fallbackQuery;
+      data = res.data as any;
+      error = res.error;
+    }
+
+    if (error || !data) {
+      console.error('[SEARCH_PUBLIC_FORMS_ERROR]', error);
+      return { success: false, forms: [], error: 'Failed to search feedback forms.' };
+    }
+
+    const rawForms: PublicFormSearchResult[] = data.map((f: any) => {
+      const isSemester = f.form_type === 'SEMESTER_FEEDBACK';
+      const itemsCount = f.items ? f.items.length : 0;
+      let facultySubjectDisplay = 'All Faculty';
+      if (isSemester) {
+        facultySubjectDisplay = itemsCount > 0 ? `All Faculty (${itemsCount} Teachers Evaluated)` : 'All Faculty (Semester Cohort)';
+      } else {
+        const facName = f.faculty?.name || 'Faculty Member';
+        const subName = f.subject?.name ? `${f.subject.name}${f.subject.code ? ` (${f.subject.code})` : ''}` : 'Subject';
+        facultySubjectDisplay = `${facName} — ${subName}`;
+      }
+      const progName = f.semester?.programme?.name || f.semester?.programme?.code || null;
+      const academicLevel = resolveAcademicLevel(progName, `${f.title} ${f.branch?.name} ${f.semester?.name}`);
+
+      return {
+        id: f.id,
+        title: f.title,
+        formType: f.form_type,
+        status: f.status,
+        googleFormUrl: f.google_form_url || null,
+        publishedAt: f.published_at || f.created_at,
+        academicYear: f.academic_year?.name || 'Academic Session',
+        branch: f.branch?.name || 'Department',
+        branchCode: f.branch?.code || 'BCE',
+        semester: f.semester?.name || 'Semester',
+        academicLevel,
+        facultySubjectDisplay,
+        itemsCount,
+        facultyId: f.faculty_id,
+        subjectId: f.subject_id,
+        academicYearId: f.academic_year_id,
+        branchId: f.branch_id,
+        semesterId: f.semester_id,
+      };
+    });
+
+    const searchTerm = (params.query || '').trim().toLowerCase();
+    if (!searchTerm) {
+      return { success: true, forms: rawForms.slice(0, params.limit || 20) };
+    }
+
+    const tokens = searchTerm.split(/\s+/).filter(Boolean);
+    const filtered = rawForms.filter((f) => {
+      const combined = `${f.title} ${f.facultySubjectDisplay} ${f.branch} ${f.branchCode} ${f.semester} ${f.academicYear} ${f.academicLevel}`.toLowerCase();
+      return tokens.every((token) => combined.includes(token));
+    });
+
+    return {
+      success: true,
+      forms: filtered.slice(0, params.limit || 20),
+    };
+  } catch (err: unknown) {
+    console.error('[SEARCH_PUBLIC_FORMS_EXCEPTION]', err);
+    return { success: false, forms: [], error: 'Unexpected error during search.' };
+  }
+}
+

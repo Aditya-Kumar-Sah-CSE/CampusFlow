@@ -687,7 +687,421 @@ main.min-h-screen.bg-white {
   color: #faebd0;
 }
 
+/* ========================================================
+   3D ROLLED PAPER SCROLL & UNROLL ANIMATION SYSTEM
+   Simulates authentic rolled parchment cylinder clamped under metal exam pad clip
+   ======================================================== */
 
+.paper-scroll-cylinder {
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    #cfc2a7 0%,
+    #faf6ec 14%,
+    #ffffff 26%,
+    #fbf8f0 46%,
+    #dfceaa 76%,
+    #bfa87e 92%,
+    #7a633c 100%
+  );
+  border-top: 1px solid rgba(255, 255, 255, 0.95);
+  border-bottom: 2.5px solid #5a3d1c;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 4px rgba(70, 40, 10, 0.35),
+    0 8px 22px -3px rgba(25, 10, 2, 0.55),
+    0 3px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
 
+.dark .paper-scroll-cylinder {
+  background: linear-gradient(
+    180deg,
+    #1f1408 0%,
+    #3f2c14 14%,
+    #5a3f1f 26%,
+    #382610 46%,
+    #24180a 76%,
+    #180e05 92%,
+    #0d0702 100%
+  );
+  border-top: 1px solid rgba(255, 215, 140, 0.35);
+  border-bottom: 2.5px solid #140b03;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 215, 140, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+    0 8px 22px -3px rgba(0, 0, 0, 0.75),
+    0 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+.paper-scroll-cylinder:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 4px rgba(70, 40, 10, 0.3),
+    0 12px 28px -3px rgba(25, 10, 2, 0.62),
+    0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .paper-scroll-cylinder:hover {
+  box-shadow:
+    inset 0 2px 3px rgba(255, 215, 140, 0.35),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+    0 12px 28px -3px rgba(0, 0, 0, 0.85),
+    0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* 3D Paper Unroll Perspective and Animations */
+.paper-unroll-perspective {
+  perspective: 1400px;
+  perspective-origin: 50% 10%;
+  transform-style: preserve-3d;
+}
+
+.paper-unrolled-sheet {
+  transform-origin: top center;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+/* Authentic 3D Paper Scroll Unrolling (Rolling Down) Keyframe */
+@keyframes realScrollUnroll {
+  0% {
+    opacity: 0.15;
+    max-height: 0px;
+    transform: perspective(1400px) rotateX(-48deg) translateY(-18px) scale(0.96);
+    filter: drop-shadow(0 2px 4px rgba(25, 10, 2, 0.5));
+  }
+  35% {
+    opacity: 0.9;
+    transform: perspective(1400px) rotateX(-14deg) translateY(-5px) scale(0.99);
+  }
+  75% {
+    transform: perspective(1400px) rotateX(3deg) translateY(1.5px) scale(1.004);
+  }
+  100% {
+    opacity: 1;
+    max-height: 3500px;
+    transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1);
+    filter: drop-shadow(0 4px 14px rgba(25, 10, 2, 0.14));
+  }
+}
+
+/* Authentic 3D Paper Scroll Rolling Up (Wrapping) Keyframe */
+@keyframes realScrollRollUp {
+  0% {
+    opacity: 1;
+    max-height: 3500px;
+    transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1);
+    filter: drop-shadow(0 4px 14px rgba(25, 10, 2, 0.14));
+  }
+  30% {
+    transform: perspective(1400px) rotateX(-12deg) translateY(-6px) scale(0.985);
+    opacity: 0.95;
+  }
+  65% {
+    transform: perspective(1400px) rotateX(-32deg) translateY(-14px) scale(0.95);
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0px;
+    transform: perspective(1400px) rotateX(-50deg) translateY(-24px) scale(0.92);
+    filter: drop-shadow(0 1px 3px rgba(25, 10, 2, 0.2));
+  }
+}
+
+/* Cylinder Entrance Keyframe when roll-up completes */
+@keyframes cylinderRollIn {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) rotateX(42deg) scale(0.93) translateY(-10px);
+  }
+  65% {
+    transform: perspective(800px) rotateX(-5deg) scale(1.01) translateY(1px);
+  }
+  100% {
+    opacity: 1;
+    transform: perspective(800px) rotateX(0deg) scale(1) translateY(0);
+  }
+}
+
+/* Cylinder Exit Keyframe when unrolling begins */
+@keyframes cylinderRollOut {
+  0% {
+    opacity: 1;
+    transform: perspective(800px) rotateX(0deg) scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: perspective(800px) rotateX(-42deg) scale(0.93) translateY(-12px);
+  }
+}
+
+.animate-paper-unroll-real {
+  animation: realScrollUnroll 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: top center;
+  overflow: hidden;
+}
+
+.animate-paper-rollup-real {
+  animation: realScrollRollUp 0.44s cubic-bezier(0.32, 0, 0.15, 1) forwards;
+  transform-origin: top center;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.animate-cylinder-in {
+  animation: cylinderRollIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-cylinder-out {
+  animation: cylinderRollOut 0.25s cubic-bezier(0.32, 0, 0.15, 1) forwards;
+  pointer-events: none;
+}
+
+/* ========================================================
+   AUTHENTIC ROUND-AND-ROUND PAPER SCROLL ROLLING SYSTEM
+   Simulates a physical cylinder rolling round & round down the board
+   ======================================================== */
+
+@keyframes spinSpiralForwardRight {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(1080deg);
+  }
+}
+
+@keyframes spinSpiralForwardLeft {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-1080deg);
+  }
+}
+
+@keyframes spinSpiralReverseRight {
+  0% {
+    transform: rotate(1080deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes spinSpiralReverseLeft {
+  0% {
+    transform: rotate(-1080deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-spiral-forward-right {
+  transform-origin: 10.5px 28px;
+  animation: spinSpiralForwardRight 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-spin-spiral-forward-left {
+  transform-origin: 10.5px 28px;
+  animation: spinSpiralForwardLeft 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-spin-spiral-reverse-right {
+  transform-origin: 10.5px 28px;
+  animation: spinSpiralReverseRight 0.6s cubic-bezier(0.32, 0, 0.15, 1) forwards;
+}
+
+.animate-spin-spiral-reverse-left {
+  transform-origin: 10.5px 28px;
+  animation: spinSpiralReverseLeft 0.6s cubic-bezier(0.32, 0, 0.15, 1) forwards;
+}
+
+@keyframes rollSurfaceBandsDown {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 380px;
+  }
+}
+
+@keyframes rollSurfaceBandsUp {
+  0% {
+    background-position: 0 380px;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+.paper-roll-active-roller {
+  position: absolute;
+  bottom: -6px;
+  left: -2px;
+  right: -2px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 16px rgba(25, 10, 2, 0.65));
+}
+
+.paper-roll-active-roller-body {
+  height: 24px;
+  margin: 0 -2px;
+  border-radius: 9999px;
+  border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+  border-bottom: 2px solid #5a3d1c;
+  background: repeating-linear-gradient(
+    180deg,
+    #cfc2a7 0px,
+    #faf6ec 5px,
+    #ffffff 10px,
+    #faf6ec 15px,
+    #dfceaa 20px,
+    #bfa87e 25px,
+    #7a633c 30px,
+    #cfc2a7 35px
+  );
+  background-size: 100% 35px;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 3px rgba(70, 40, 10, 0.45);
+}
+
+.dark .paper-roll-active-roller-body {
+  height: 24px;
+  margin: 0 -2px;
+  border-radius: 9999px;
+  border-top: 1.5px solid rgba(255, 215, 140, 0.4);
+  border-bottom: 2px solid #140b03;
+  background: repeating-linear-gradient(
+    180deg,
+    #1f1408 0px,
+    #3f2c14 5px,
+    #5a3f1f 10px,
+    #382610 15px,
+    #24180a 20px,
+    #180e05 25px,
+    #0d0702 30px,
+    #1f1408 35px
+  );
+  background-size: 100% 35px;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 215, 140, 0.3),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.7);
+}
+
+.animate-roller-spin-down {
+  animation: rollSurfaceBandsDown 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-roller-spin-up {
+  animation: rollSurfaceBandsUp 0.6s cubic-bezier(0.32, 0, 0.15, 1) forwards;
+}
+
+@keyframes paperUnrollWavefront {
+  0% {
+    max-height: 0px;
+    opacity: 0.85;
+    transform: perspective(1200px) rotateX(-20deg);
+  }
+  50% {
+    opacity: 1;
+    transform: perspective(1200px) rotateX(-5deg);
+  }
+  100% {
+    max-height: 2500px;
+    opacity: 1;
+    transform: perspective(1200px) rotateX(0deg);
+  }
+}
+
+@keyframes paperRollUpWavefront {
+  0% {
+    max-height: 2500px;
+    opacity: 1;
+    transform: perspective(1200px) rotateX(0deg);
+  }
+  50% {
+    opacity: 0.95;
+    transform: perspective(1200px) rotateX(-8deg);
+  }
+  100% {
+    max-height: 0px;
+    opacity: 0.2;
+    transform: perspective(1200px) rotateX(-28deg);
+  }
+}
+
+.animate-paper-unroll-wavefront {
+  animation: paperUnrollWavefront 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  transform-origin: top center;
+}
+
+.animate-paper-rollup-wavefront {
+  animation: paperRollUpWavefront 0.6s cubic-bezier(0.32, 0, 0.15, 1) forwards;
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+/* Legacy alias for backwards compatibility */
+.animate-paper-unroll {
+  animation: paperUnrollWavefront 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Subtle glowing pulse for the call-to-action on the rolled scroll */
+@keyframes subtleScrollPulse {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.45);
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 6px rgba(217, 119, 6, 0);
+  }
+}
+
+.animate-scroll-cta {
+  animation: subtleScrollPulse 2.4s infinite ease-in-out;
+}
+
+/* Bottom Paper Roll Curl bar simulating rolled edge at bottom of parchment */
+.paper-scroll-bottom-curl {
+  position: relative;
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    180deg,
+    rgba(207, 194, 167, 0.7) 0%,
+    rgba(255, 255, 255, 0.95) 28%,
+    rgba(223, 206, 170, 0.8) 68%,
+    rgba(122, 99, 60, 0.85) 100%
+  );
+  box-shadow:
+    0 4px 6px -1px rgba(30, 15, 5, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8),
+    inset 0 -1px 2px rgba(80, 50, 20, 0.3);
+}
+
+.dark .paper-scroll-bottom-curl {
+  background: linear-gradient(
+    180deg,
+    rgba(31, 20, 8, 0.8) 0%,
+    rgba(90, 63, 31, 0.85) 28%,
+    rgba(56, 38, 16, 0.75) 68%,
+    rgba(13, 7, 2, 0.95) 100%
+  );
+  box-shadow:
+    0 4px 8px -1px rgba(0, 0, 0, 0.6),
+    inset 0 1px 2px rgba(255, 215, 140, 0.25),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.7);
+}
 
 

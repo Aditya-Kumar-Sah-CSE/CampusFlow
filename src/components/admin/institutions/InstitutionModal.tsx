@@ -398,7 +398,7 @@ export function InstitutionModal({
                             Feedback Module
                           </span>
                           <span className="text-[10px] text-slate-500 dark:text-[#c4a97d] block leading-tight">
-                            Student forms &amp; cascading discovery
+                            Student forms &amp; search feedback discovery
                           </span>
                         </div>
                       </label>

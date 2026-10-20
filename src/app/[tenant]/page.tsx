@@ -94,7 +94,7 @@ export default async function TenantHomePage({ params }: TenantPageProps) {
         {/* 1. Feedbacks Section (Controlled by Feedbacks Toggle) */}
         {tenant.showFeedbacks && (
           <section id="feedback-section" className="space-y-6 scroll-mt-16">
-            {/* Client-side cascading discovery component */}
+            {/* Client-side search feedback form discovery component */}
             <StudentDiscoveryFlow
               key={`discovery_${tenant.collegeId}`}
               academicYears={(academicYears as AcademicYear[]) || []}
