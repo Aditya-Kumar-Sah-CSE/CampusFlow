@@ -90,7 +90,7 @@ export function StudentDiscoveryFlow({
     setScrollState('unrolling');
     unrollTimerRef.current = setTimeout(() => {
       setScrollState('unrolled');
-    }, 720);
+    }, 850);
   };
 
   const handleRollUp = () => {
@@ -99,7 +99,7 @@ export function StudentDiscoveryFlow({
     setScrollState('rolling');
     rollupTimerRef.current = setTimeout(() => {
       setScrollState('rolled');
-    }, 600);
+    }, 720);
   };
 
   // Instant Live Search Feedback Form State
