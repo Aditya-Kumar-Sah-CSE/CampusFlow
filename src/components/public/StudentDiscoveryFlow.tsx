@@ -90,7 +90,7 @@ export function StudentDiscoveryFlow({
     setScrollState('unrolling');
     unrollTimerRef.current = setTimeout(() => {
       setScrollState('unrolled');
-    }, 850);
+    }, 1550);
   };
 
   const handleRollUp = () => {
@@ -99,7 +99,7 @@ export function StudentDiscoveryFlow({
     setScrollState('rolling');
     rollupTimerRef.current = setTimeout(() => {
       setScrollState('rolled');
-    }, 720);
+    }, 1350);
   };
 
   // Instant Live Search Feedback Form State
@@ -571,7 +571,7 @@ export function StudentDiscoveryFlow({
               }
             }}
             aria-label="Unroll search feedback form"
-            className="group paper-scroll-cylinder animate-cylinder-in rounded-full py-1.5 sm:py-2 px-1.5 sm:px-2.5 flex items-center justify-between gap-1 sm:gap-2 cursor-pointer border border-[#8f744e]/60 dark:border-[#52391b] select-none transition-all duration-200 active:scale-[0.99] focus:outline-hidden focus:ring-2 focus:ring-amber-500/60"
+            className="group paper-scroll-cylinder animate-cylinder-in rounded-full py-1.5 sm:py-2 px-1.5 sm:px-2.5 flex items-center justify-between gap-1 sm:gap-2 cursor-pointer border border-slate-300/80 dark:border-slate-700/80 select-none transition-all duration-200 active:scale-[0.99] focus:outline-hidden focus:ring-2 focus:ring-amber-500/60"
           >
             {/* Left Curled Spiral Paper End Cap */}
             <PaperRollEndCap side="left" />
@@ -644,7 +644,7 @@ export function StudentDiscoveryFlow({
 
             {/* Main Paper Sheet */}
             <div
-              className={`paper-unrolled-sheet relative rounded-b-[3px] p-3 sm:p-4 md:p-4.5 bg-[#fffdfa] dark:bg-[#1a1208] border border-t-0 border-amber-900/30 dark:border-[#4d381c] shadow-[0_2px_8px_rgba(0,0,0,0.12)] space-y-3 text-slate-800 dark:text-[#faebd0] ${
+              className={`paper-unrolled-sheet relative rounded-b-[3px] p-3 sm:p-4 md:p-4.5 bg-[#ffffff] dark:bg-[#171a22] border border-t-0 border-slate-300 dark:border-slate-800 shadow-[0_4px_16px_rgba(0,0,0,0.08)] space-y-3 text-slate-800 dark:text-[#faebd0] ${
                 scrollState === 'unrolling'
                   ? 'animate-paper-unroll-wavefront overflow-hidden'
                   : scrollState === 'rolling'
@@ -1163,12 +1163,12 @@ export function StudentDiscoveryFlow({
                 </div>
               )}
 
-              {/* Paper Dog-Ear Crease Effect on Bottom Right */}
+              {/* Paper Dog-Ear Crease Effect on Bottom Right (authentic folded corner) */}
               <div
-                className="absolute bottom-0 right-0 w-3.5 h-3.5 pointer-events-none overflow-hidden"
+                className="absolute bottom-0 right-0 w-6 h-6 pointer-events-none overflow-hidden rounded-br-[3px]"
                 aria-hidden="true"
               >
-                <div className="absolute bottom-0 right-0 w-5 h-5 bg-black/10 dark:bg-black/50 rotate-45 translate-x-2.5 translate-y-2.5 border-t border-l border-black/10 dark:border-amber-500/20" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 bg-gradient-to-tl from-slate-200 via-slate-100 to-white dark:from-[#282d38] dark:via-[#1f232d] dark:to-[#171a22] rotate-45 translate-x-4 translate-y-4 border-t border-l border-slate-300 dark:border-slate-700 shadow-[-2px_-2px_4px_rgba(0,0,0,0.1)]" />
               </div>
             </div>
           </div>
