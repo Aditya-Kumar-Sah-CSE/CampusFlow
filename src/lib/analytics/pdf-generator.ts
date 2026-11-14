@@ -562,8 +562,8 @@ export async function generateIndividualFacultyPDF(
   currentY += 14;
 
   const tableTop = currentY;
-  // Optimized column widths: 255pt for parameter title, compact allocations for metrics (Total 523pt)
-  const colWidths = [255, 42, 38, 40, 34, 30, 34, 50];
+  // Optimized column widths: balanced allocation so headers never wrap (Total 523pt)
+  const colWidths = [215, 44, 46, 46, 40, 38, 40, 54];
   const headers = ['Parameter (1 to 8)', 'Avg (5.0)', 'Excell %', 'V. Good %', 'Good %', 'Sat %', 'Unsat %', 'Visual Bar'];
 
   // Table header background
@@ -789,9 +789,10 @@ export async function generateOverallFeedbackPDF(
 
   let currentY = 104;
 
+  const filters = report.filters || {};
   const resolvedLevel = resolveAcademicLevel(
     report.academicLevel,
-    `${report.scopeTitle} ${report.filters.branchName} ${report.filters.semesterName}`
+    `${report.scopeTitle || ''} ${filters.branchName || ''} ${filters.semesterName || ''}`
   );
 
   // Scope Metadata Grid (2 Columns, dynamic wrapped row heights)
@@ -801,12 +802,12 @@ export async function generateOverallFeedbackPDF(
       right: { label: 'Academic Level: ', value: resolvedLevel },
     },
     {
-      left: { label: 'Branch / Discipline: ', value: report.filters.branchName || 'All Branches' },
-      right: { label: 'Academic Session: ', value: report.filters.academicYearName || 'All Sessions' },
+      left: { label: 'Branch / Discipline: ', value: filters.branchName || 'All Branches' },
+      right: { label: 'Academic Session: ', value: filters.academicYearName || 'All Sessions' },
     },
     {
-      left: { label: 'Target Semester: ', value: report.filters.semesterName || 'All Semesters' },
-      right: { label: 'Target Faculty: ', value: report.filters.facultyName || 'All Faculty Members' },
+      left: { label: 'Target Semester: ', value: filters.semesterName || 'All Semesters' },
+      right: { label: 'Target Faculty: ', value: filters.facultyName || 'All Faculty Members' },
     },
     {
       left: { label: 'Evaluation System: ', value: `${brand.name} Feedback System` },
@@ -887,8 +888,8 @@ export async function generateOverallFeedbackPDF(
   currentY += 14;
 
   const tableTop = currentY;
-  // Optimized column widths: 255pt for parameter title, compact allocations for metrics (Total 523pt)
-  const colWidths = [255, 42, 38, 40, 34, 30, 34, 50];
+  // Optimized column widths: balanced allocation so headers never wrap (Total 523pt)
+  const colWidths = [215, 44, 46, 46, 40, 38, 40, 54];
   const headers = ['Parameter (1 to 8)', 'Avg (5.0)', 'Excell %', 'V. Good %', 'Good %', 'Sat %', 'Unsat %', 'Visual Bar'];
 
   doc.rect(margin, tableTop, contentWidth, 18).fill(COLORS.bgHeader);
@@ -977,7 +978,8 @@ export async function generateOverallFeedbackPDF(
     doc.font('Helvetica-Bold').fontSize(10).fillColor(COLORS.primary).text('FACULTY FEEDBACK PERFORMANCE MATRIX (ACTUAL DATA ONLY)', margin, currentY);
     currentY += 14;
 
-    const compColWidths = [120, 110, 75, 45, 65, 48, 60];
+    // Optimized column allocations: 95pt for Branch so "Mechanical Engineering" fits on 1 line; 60pt for Responses so header never wraps (Total 523pt)
+    const compColWidths = [105, 100, 95, 38, 55, 60, 70];
     const compHeaders = ['Faculty Member', 'Subject', 'Branch', 'Sem', 'Session', 'Responses', 'Avg Rating'];
 
     const renderMatrixHeader = () => {
@@ -995,7 +997,17 @@ export async function generateOverallFeedbackPDF(
     renderMatrixHeader();
 
     report.facultyComparisons.forEach((fc, fIdx) => {
-      const rowHeight = 18;
+      // Dynamically calculate exact required height so multi-line text never overflows into next rows
+      doc.font('Helvetica-Bold').fontSize(7.5);
+      const facH = doc.heightOfString(fc.facultyName || '-', { width: compColWidths[0] - 8, lineGap: 1 });
+      const fullSubText = fc.subjectCode ? `${fc.subjectName} (${fc.subjectCode})` : (fc.subjectName || '-');
+      doc.font('Helvetica').fontSize(7);
+      const subH = doc.heightOfString(fullSubText, { width: compColWidths[1] - 8, lineGap: 1 });
+      const branchText = fc.branch || '-';
+      const branchH = doc.heightOfString(branchText, { width: compColWidths[2] - 8, lineGap: 1 });
+      const maxTextH = Math.max(facH, subH, branchH, 9);
+      const rowHeight = Math.max(19, Math.ceil(maxTextH + 8));
+
       if (currentY + rowHeight > pageHeight - 75) {
         doc.addPage();
         drawHeader(doc, 'Institutional Feedback Analytics Report', brand, logoBuffer);
@@ -1009,27 +1021,45 @@ export async function generateOverallFeedbackPDF(
       doc.strokeColor('#E2E8F0').lineWidth(0.5).moveTo(margin, currentY + rowHeight).lineTo(margin + contentWidth, currentY + rowHeight).stroke();
 
       let cellX = margin;
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary).text(fc.facultyName, cellX + 4, currentY + 5, { width: compColWidths[0] - 8, ellipsis: true });
+      // Col 0: Faculty Member
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary);
+      const facY = currentY + Math.max(4, (rowHeight - facH) / 2);
+      doc.text(fc.facultyName || '-', cellX + 4, facY, { width: compColWidths[0] - 8, lineGap: 1 });
       cellX += compColWidths[0];
 
-      const fullSubText = fc.subjectCode ? `${fc.subjectName} (${fc.subjectCode})` : fc.subjectName;
-      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fullSubText, cellX + 4, currentY + 5, { width: compColWidths[1] - 8, ellipsis: true });
+      // Col 1: Subject
+      doc.font('Helvetica').fontSize(7).fillColor('#475569');
+      const subY = currentY + Math.max(4, (rowHeight - subH) / 2);
+      doc.text(fullSubText, cellX + 4, subY, { width: compColWidths[1] - 8, lineGap: 1 });
       cellX += compColWidths[1];
 
-      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fc.branch, cellX + 4, currentY + 5, { width: compColWidths[2] - 8, ellipsis: true });
+      // Col 2: Branch
+      doc.font('Helvetica').fontSize(7).fillColor('#475569');
+      const branchY = currentY + Math.max(4, (rowHeight - branchH) / 2);
+      doc.text(branchText, cellX + 4, branchY, { width: compColWidths[2] - 8, lineGap: 1 });
       cellX += compColWidths[2];
 
-      doc.font('Helvetica-Bold').fontSize(7).fillColor('#475569').text(fc.semester || 'N/A', cellX + 2, currentY + 5, { width: compColWidths[3] - 4, align: 'center', ellipsis: true });
+      const numY = currentY + (rowHeight - 8) / 2;
+
+      // Col 3: Sem
+      doc.font('Helvetica-Bold').fontSize(7).fillColor('#475569');
+      doc.text(fc.semester || 'N/A', cellX + 2, numY, { width: compColWidths[3] - 4, align: 'center' });
       cellX += compColWidths[3];
 
-      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(fc.academicYear || 'All Sessions', cellX + 2, currentY + 5, { width: compColWidths[4] - 4, align: 'center', ellipsis: true });
+      // Col 4: Session
+      doc.font('Helvetica').fontSize(7).fillColor('#475569');
+      doc.text(fc.academicYear || 'All Sessions', cellX + 2, numY, { width: compColWidths[4] - 4, align: 'center' });
       cellX += compColWidths[4];
 
-      doc.font('Helvetica').fontSize(7.5).fillColor('#334155').text(String(fc.responseCount), cellX + 2, currentY + 5, { width: compColWidths[5] - 4, align: 'center' });
+      // Col 5: Responses
+      doc.font('Helvetica').fontSize(7.5).fillColor('#334155');
+      doc.text(String(fc.responseCount), cellX + 2, numY, { width: compColWidths[5] - 4, align: 'center' });
       cellX += compColWidths[5];
 
+      // Col 6: Avg Rating
       const fScoreColor = fc.averageScore >= 4.0 ? '#4F46E5' : fc.averageScore >= 3.0 ? '#059669' : fc.averageScore >= 2.0 ? '#D97706' : '#DC2626';
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(fScoreColor).text(`${fc.averageScore.toFixed(2)}/5.00`, cellX + 2, currentY + 5, { width: compColWidths[6] - 4, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(fScoreColor);
+      doc.text(`${fc.averageScore.toFixed(2)}/5.00`, cellX + 2, numY, { width: compColWidths[6] - 4, align: 'center' });
 
       currentY += rowHeight;
     });
@@ -1215,31 +1245,44 @@ export async function generateSemesterComparativePDF(
     currentY += 16;
 
     report.facultyGrids.forEach((fg, fIdx) => {
-      const rowHeight = 19;
+      doc.font('Helvetica-Bold').fontSize(7.5);
+      const facH = doc.heightOfString(fg.facultyName || '-', { width: compColWidths[0] - 8, lineGap: 1 });
+      const subText = `${fg.subjectName}${fg.subjectCode ? ` (${fg.subjectCode})` : ''}`;
+      doc.font('Helvetica').fontSize(7);
+      const subH = doc.heightOfString(subText, { width: compColWidths[1] - 8, lineGap: 1 });
+      const rowHeight = Math.max(19, Math.ceil(Math.max(facH, subH, 10) + 8));
+
       if (fIdx % 2 === 1) doc.rect(margin, currentY, contentWidth, rowHeight).fill('#F8FAFC');
       doc.strokeColor('#E2E8F0').lineWidth(0.5).moveTo(margin, currentY + rowHeight).lineTo(margin + contentWidth, currentY + rowHeight).stroke();
 
       let cellX = margin;
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary).text(fg.facultyName, cellX + 4, currentY + 5, { width: compColWidths[0] - 8 });
+      // Col 0: Faculty
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COLORS.secondary);
+      const facY = currentY + Math.max(4, (rowHeight - facH) / 2);
+      doc.text(fg.facultyName || '-', cellX + 4, facY, { width: compColWidths[0] - 8, lineGap: 1 });
       cellX += compColWidths[0];
 
-      doc.font('Helvetica').fontSize(7).fillColor('#475569').text(
-        `${fg.subjectName}${fg.subjectCode ? ` (${fg.subjectCode})` : ''}`,
-        cellX + 4,
-        currentY + 5,
-        { width: compColWidths[1] - 8 }
-      );
+      // Col 1: Subject
+      doc.font('Helvetica').fontSize(7).fillColor('#475569');
+      const subY = currentY + Math.max(4, (rowHeight - subH) / 2);
+      doc.text(subText, cellX + 4, subY, { width: compColWidths[1] - 8, lineGap: 1 });
       cellX += compColWidths[1];
 
-      doc.font('Helvetica').fontSize(7.5).fillColor('#334155').text(String(fg.report.totalResponses), cellX + 2, currentY + 5, { width: compColWidths[2] - 4, align: 'center' });
+      const numY = currentY + (rowHeight - 8) / 2;
+
+      // Col 2: Submissions
+      doc.font('Helvetica').fontSize(7.5).fillColor('#334155');
+      doc.text(String(fg.report.totalResponses), cellX + 2, numY, { width: compColWidths[2] - 4, align: 'center' });
       cellX += compColWidths[2];
 
+      // Col 3: Avg Rating
       const score = fg.report.compositeAverageScore;
       const fScoreColor = score >= 4.0 ? '#4F46E5' : score >= 3.0 ? '#059669' : score >= 2.0 ? '#D97706' : '#DC2626';
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(fScoreColor).text(
+      doc.font('Helvetica-Bold').fontSize(8).fillColor(fScoreColor);
+      doc.text(
         fg.report.hasData ? `${score.toFixed(2)}/5.00` : 'N/A',
         cellX + 2,
-        currentY + 5,
+        numY,
         { width: compColWidths[3] - 4, align: 'center' }
       );
       cellX += compColWidths[3];
@@ -1247,8 +1290,8 @@ export async function generateSemesterComparativePDF(
       // Visual Bar
       const barWidth = 70;
       const barHeight = 7;
-      const barX = cellX + 14;
-      const barY = currentY + 6;
+      const barX = cellX + Math.round((compColWidths[4] - barWidth) / 2);
+      const barY = currentY + (rowHeight - barHeight) / 2;
       doc.rect(barX, barY, barWidth, barHeight).fill('#E2E8F0');
       if (fg.report.hasData) {
         const fillW = Math.max(2, Math.min(barWidth, (score / 5.0) * barWidth));
@@ -1275,8 +1318,8 @@ export async function generateSemesterComparativePDF(
   doc.font('Helvetica-Bold').fontSize(9.5).fillColor(COLORS.primary).text('ALL-SUBJECTS COMBINED 8-PARAMETER EVALUATION BENCHMARK', margin, currentY);
   currentY += 13;
 
-  // Optimized column widths: 255pt for parameter title, compact allocations for metrics (Total 523pt)
-  const tableColWidths = [255, 42, 38, 40, 34, 30, 34, 50];
+  // Optimized column widths: balanced allocation so headers never wrap (Total 523pt)
+  const tableColWidths = [215, 44, 46, 46, 40, 38, 40, 54];
   const tableHeaders = ['Parameter (1 to 8)', 'Avg (5.0)', 'Excell %', 'V. Good %', 'Good %', 'Sat %', 'Unsat %', 'Visual Bar'];
 
   doc.rect(margin, currentY, contentWidth, 16).fill(COLORS.bgHeader);

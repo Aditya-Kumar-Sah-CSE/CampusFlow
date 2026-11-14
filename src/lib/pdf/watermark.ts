@@ -239,7 +239,7 @@ export function renderWatermark(
   const textColor = config.textColor || '#64748B';
   const fontFamily = config.fontFamily || 'Helvetica-Bold';
   const fontSize = config.fontSize || 13;
-  const opacity = Math.min(Math.max(config.opacity || 0.55, 0.05), 0.95);
+  const opacity = Math.min(Math.max(config.opacity ?? 0.14, 0.05), 0.95);
   const rotationAngle = typeof config.rotationAngle === 'number' ? config.rotationAngle : -24;
 
   // -------------------------------------------------------------
@@ -253,7 +253,7 @@ export function renderWatermark(
       const centerLogoY = (pageHeight - centerLogoSize) / 2;
 
       doc.save();
-      doc.opacity(Math.max(0.08, opacity * 0.9));
+      doc.opacity(Math.max(0.04, opacity * 0.7));
       try {
         doc.image(rawLogoBuf, centerLogoX, centerLogoY, {
           width: centerLogoSize,

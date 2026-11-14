@@ -4,11 +4,17 @@
  * filename preservation from Content-Disposition, and memory cleanup.
  */
 
+export interface DownloadPdfProgress {
+  percent: number;
+  stage: string;
+}
+
 export interface DownloadPdfOptions {
   url: string;
   defaultFilename?: string;
   onError?: (error: Error | string) => void;
   onSuccess?: (filename: string) => void;
+  onProgress?: (progress: DownloadPdfProgress) => void;
 }
 
 export interface DownloadPdfResult {
@@ -18,7 +24,27 @@ export interface DownloadPdfResult {
 }
 
 export async function downloadPdfFile(options: DownloadPdfOptions): Promise<DownloadPdfResult> {
-  const { url, defaultFilename = 'download.pdf', onError, onSuccess } = options;
+  const { url, defaultFilename = 'download.pdf', onError, onSuccess, onProgress } = options;
+
+  let currentPercent = 12;
+  onProgress?.({ percent: 12, stage: 'Connecting to server...' });
+
+  // Progressive timer while server compiles evaluation data and renders PDFKit
+  const progressTimer = setInterval(() => {
+    if (currentPercent < 88) {
+      const step = currentPercent < 40 ? 7 : currentPercent < 65 ? 4 : 2;
+      currentPercent += step;
+      let stage = 'Compiling analytics data...';
+      if (currentPercent > 30 && currentPercent <= 58) {
+        stage = 'Rendering vector tables & typography...';
+      } else if (currentPercent > 58 && currentPercent <= 80) {
+        stage = 'Applying security watermark & branding...';
+      } else if (currentPercent > 80) {
+        stage = 'Finalizing document stream...';
+      }
+      onProgress?.({ percent: currentPercent, stage });
+    }
+  }, 110);
 
   try {
     const res = await fetch(url, {
@@ -28,6 +54,8 @@ export async function downloadPdfFile(options: DownloadPdfOptions): Promise<Down
         Accept: 'application/pdf, application/json, text/plain',
       },
     });
+
+    clearInterval(progressTimer);
 
     if (!res.ok) {
       let errMsg = `PDF request failed with status ${res.status} (${res.statusText})`;
@@ -59,12 +87,43 @@ export async function downloadPdfFile(options: DownloadPdfOptions): Promise<Down
       return { success: false, error: errorText };
     }
 
-    const blob = await res.blob();
+    // Stream reading
+    const contentLength = res.headers.get('content-length');
+    const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+    let blob: Blob;
+
+    if (res.body && typeof res.body.getReader === 'function') {
+      const reader = res.body.getReader();
+      const chunks: BlobPart[] = [];
+      let receivedBytes = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          chunks.push(value);
+          receivedBytes += value.length;
+          if (totalBytes > 0) {
+            const streamPct = Math.min(96, Math.round(88 + (receivedBytes / totalBytes) * 8));
+            onProgress?.({ percent: streamPct, stage: 'Transferring PDF bytes...' });
+          } else {
+            onProgress?.({ percent: 93, stage: 'Receiving document payload...' });
+          }
+        }
+      }
+      blob = new Blob(chunks, { type: 'application/pdf' });
+    } else {
+      blob = await res.blob();
+    }
+
     if (blob.size === 0) {
       const error = new Error('Received an empty PDF file.');
       onError?.(error);
       return { success: false, error: 'Empty file' };
     }
+
+    // Snap to 100%
+    onProgress?.({ percent: 100, stage: 'Download complete! Saving to device...' });
 
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -98,11 +157,12 @@ export async function downloadPdfFile(options: DownloadPdfOptions): Promise<Down
     // Revoke object URL after delay to release memory
     setTimeout(() => {
       window.URL.revokeObjectURL(blobUrl);
-    }, 1500);
+    }, 2000);
 
     onSuccess?.(filename);
     return { success: true, filename };
   } catch (err: any) {
+    clearInterval(progressTimer);
     const message = err?.message || 'Network error occurred while downloading PDF.';
     onError?.(message);
     return { success: false, error: message };

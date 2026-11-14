@@ -617,24 +617,24 @@ export function WatermarkManagementModal({
                     <div className="flex justify-between text-[11px] font-semibold text-slate-300 mb-1">
                       <span>Watermark Opacity</span>
                       <span className="font-mono text-amber-400">
-                        {Math.round((config.opacity || 0.55) * 100)}%
+                        {Math.round((config.opacity ?? 0.14) * 100)}%
                       </span>
                     </div>
                     <input
                       type="range"
-                      min="0.10"
-                      max="0.85"
-                      step="0.05"
-                      value={config.opacity || 0.55}
+                      min="0.05"
+                      max="0.70"
+                      step="0.01"
+                      value={config.opacity ?? 0.14}
                       onChange={(e) =>
                         setConfig((c) => ({ ...c, opacity: parseFloat(e.target.value) }))
                       }
                       className="w-full accent-amber-500"
                     />
                     <div className="flex justify-between text-[9px] text-slate-500 px-0.5 mt-0.5">
-                      <span>10% (Subtle)</span>
-                      <span>55% (Default)</span>
-                      <span>85% (Prominent)</span>
+                      <span>5% (Subtle)</span>
+                      <span>14% (Default - Clear & Readable)</span>
+                      <span>70% (Prominent)</span>
                     </div>
                   </div>
 
@@ -676,7 +676,7 @@ export function WatermarkManagementModal({
                 config={config}
                 collegeName={college.name}
                 collegeCode={college.code}
-                collegeLogoUrl={college.logo_url}
+                collegeLogoUrl={college.logo_url || undefined}
                 isPaid={isPaid}
               />
             </div>

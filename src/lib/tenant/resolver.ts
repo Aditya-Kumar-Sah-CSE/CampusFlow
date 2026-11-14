@@ -72,6 +72,15 @@ const publicResolverClient = createSupabaseClient(getSupabaseUrl(), getSupabaseA
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
+// High-speed in-memory cache layer (<1ms resolution, 5-minute TTL)
+interface FastCacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+const collegeMemoryCache = new Map<string, FastCacheEntry<College | null>>();
+let allCollegesMemoryCache: FastCacheEntry<College[]> | null = null;
+const MEMORY_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Cross-request cached lookup for college record by slug.
  * Tagged for on-demand invalidation when college settings change.
@@ -79,6 +88,11 @@ const publicResolverClient = createSupabaseClient(getSupabaseUrl(), getSupabaseA
  */
 const fetchCollegeBySlugDirect = async (slug: string): Promise<College | null> => {
   const canonicalSlug = slug === 'bce-bgp' ? 'bce-bhagalpur' : slug;
+  const memoryHit = collegeMemoryCache.get(canonicalSlug);
+  if (memoryHit && Date.now() < memoryHit.expiresAt) {
+    return memoryHit.data;
+  }
+
   const { data, error } = await publicResolverClient
     .from('colleges')
     .select('*')
@@ -86,10 +100,19 @@ const fetchCollegeBySlugDirect = async (slug: string): Promise<College | null> =
     .maybeSingle();
 
   if (error || !data) {
+    collegeMemoryCache.set(canonicalSlug, {
+      data: null,
+      expiresAt: Date.now() + 30 * 1000, // 30s cache for missing
+    });
     return null;
   }
 
-  return data as College;
+  const college = data as College;
+  collegeMemoryCache.set(canonicalSlug, {
+    data: college,
+    expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
+  });
+  return college;
 };
 
 const getCachedCollegeBySlug = unstable_cache(
@@ -187,6 +210,10 @@ export async function resolveTenantOrNotFound(rawSlug: string): Promise<TenantCo
 export const requireTenant = resolveTenantOrNotFound;
 
 const fetchAllActiveCollegesDirect = async (): Promise<College[]> => {
+  if (allCollegesMemoryCache && Date.now() < allCollegesMemoryCache.expiresAt) {
+    return allCollegesMemoryCache.data;
+  }
+
   const { data, error } = await publicResolverClient
     .from('colleges')
     .select('*')
@@ -194,7 +221,12 @@ const fetchAllActiveCollegesDirect = async (): Promise<College[]> => {
     .order('name', { ascending: true });
 
   if (error || !data) return [];
-  return data as College[];
+  const list = data as College[];
+  allCollegesMemoryCache = {
+    data: list,
+    expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
+  };
+  return list;
 };
 
 const getCachedAllActiveColleges = unstable_cache(

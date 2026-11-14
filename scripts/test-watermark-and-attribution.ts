@@ -34,6 +34,10 @@ import {
   OFFICIAL_ORDER_URL,
 } from '../src/lib/utils/pdf-attribution';
 import {
+  generateOverallFeedbackPDF,
+  generateSemesterComparativePDF,
+} from '../src/lib/analytics/pdf-generator';
+import {
   type CollegeWatermarkConfig,
   DEFAULT_WATERMARK_CONFIG,
   renderWatermark,
@@ -287,6 +291,85 @@ async function runTests() {
     }
   } catch (err) {
     console.warn('DB test note:', err);
+  }
+
+  // --------------------------------------------------------------------
+  // TEST 6: Parameter Benchmark & Faculty Performance Matrix PDF Generation
+  // --------------------------------------------------------------------
+  console.log('\n--- TEST 6: Parameter Benchmark & Faculty Matrix Overlap Verification ---');
+  try {
+    const mockReport = {
+      scopeTitle: 'Institutional Parameter Benchmark (All Forms In Scope)',
+      collegeId: 'test-college-id',
+      totalForms: 8,
+      formsWithResponses: 8,
+      totalResponses: 160,
+      validResponses: 160,
+      parameterAverageScore: 4.52,
+      averageOverallScore: 4.52,
+      compositeAverageScore: 4.52,
+      performanceGrade: 'EXCELLENT',
+      hasData: true,
+      parameters: [
+        { parameterId: 1, title: 'Syllabus covered by teacher as per curriculum', averageScore: 4.38, excellentPct: 38, veryGoodPct: 63, goodPct: 0, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 2, title: 'Communication skills', averageScore: 4.63, excellentPct: 63, veryGoodPct: 38, goodPct: 0, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 3, title: 'Effectiveness of Teaching/Learning in terms of: Interactive classroom/Laboratory sessions', averageScore: 4.88, excellentPct: 88, veryGoodPct: 0, goodPct: 13, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 4, title: 'Accessibility of the teacher in and out of the class', averageScore: 4.25, excellentPct: 25, veryGoodPct: 75, goodPct: 0, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 5, title: 'Willingness to offer help and advice to students beyond the classroom and multidisciplinary areas', averageScore: 4.38, excellentPct: 50, veryGoodPct: 38, goodPct: 13, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 6, title: 'Ability of teacher to teach/explain confidently and answer queries in the class', averageScore: 4.38, excellentPct: 50, veryGoodPct: 38, goodPct: 13, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 7, title: 'Teacher shown fairness in the evaluation', averageScore: 4.38, excellentPct: 38, veryGoodPct: 63, goodPct: 0, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+        { parameterId: 8, title: 'Overall Rating', averageScore: 4.63, excellentPct: 63, veryGoodPct: 38, goodPct: 0, satisfactoryPct: 0, unsatisfactoryPct: 0, validCount: 8 },
+      ],
+      facultyComparisons: [
+        { facultyName: 'Raushan Kumar', subjectName: 'NCM', subjectCode: '803', branch: 'Mechanical Engineering', semester: 'Semester 8', academicYear: '2025-2026', responseCount: 1, averageScore: 4.75 },
+        { facultyName: 'Kumar Jyotiraditya', subjectName: 'OR', subjectCode: '702', branch: 'Mechanical Engineering', semester: 'Semester 7', academicYear: '2023-2024', responseCount: 1, averageScore: 4.75 },
+        { facultyName: 'Dr. Paridhi Rai', subjectName: 'Safety Management', subjectCode: '804', branch: 'Mechanical Engineering', semester: 'Semester 8', academicYear: '2025-2026', responseCount: 1, averageScore: 4.63 },
+        { facultyName: 'Kumar Gaurav', subjectName: 'ECM', subjectCode: '802', branch: 'Mechanical Engineering', semester: 'Semester 8', academicYear: '2025-2026', responseCount: 1, averageScore: 4.63 },
+        { facultyName: 'Janmejay Kumar', subjectName: 'RAC', subjectCode: '704', branch: 'Mechanical Engineering', semester: 'Semester 7', academicYear: '2023-2024', responseCount: 1, averageScore: 4.63 },
+      ],
+      distribution: {
+        excellentCount: 100,
+        veryGoodCount: 45,
+        goodCount: 15,
+        satisfactoryCount: 0,
+        unsatisfactoryCount: 0,
+      },
+    };
+
+    const mockBranding = {
+      name: 'Bhagalpur College of Engineering',
+      code: '108',
+      slug: 'bce-bhagalpur',
+      primaryColor: '#1B365D',
+      accentColor: '#2563EB',
+    };
+
+    const exportBuf = await generateOverallFeedbackPDF(mockReport as any, mockBranding as any);
+    assert(Buffer.isBuffer(exportBuf) && exportBuf.length > 5000, 'College feedback export PDF generated successfully without overlap');
+    assert(exportBuf.subarray(0, 4).toString() === '%PDF', 'Export buffer begins with valid PDF magic bytes (%PDF)');
+
+    // Test Institutional Comparative Analytics PDF
+    const mockInstitutionalReport = {
+      ...mockReport,
+      facultyGrids: [
+        {
+          facultyName: 'Dr. Paridhi Rai',
+          subjectName: 'Safety Management',
+          subjectCode: '804',
+          report: {
+            hasData: true,
+            totalResponses: 45,
+            compositeAverageScore: 4.63,
+          },
+        },
+      ],
+    };
+    const instBuf = await generateSemesterComparativePDF(mockInstitutionalReport as any, mockBranding as any);
+    assert(Buffer.isBuffer(instBuf) && instBuf.length > 5000, 'Institutional feedback analytics PDF generated successfully');
+    assert(instBuf.subarray(0, 4).toString() === '%PDF', 'Institutional buffer begins with valid PDF magic bytes (%PDF)');
+  } catch (err: any) {
+    console.error('Error in Test 6:', err);
+    assert(false, `Test 6 failed: ${err.message}`);
   }
 
   console.log('\n========================================================');

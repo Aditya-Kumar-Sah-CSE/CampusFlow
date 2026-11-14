@@ -20,7 +20,7 @@ interface WatermarkLivePreviewProps {
   config: CollegeWatermarkConfig;
   collegeName: string;
   collegeCode: string;
-  collegeLogoUrl?: string;
+  collegeLogoUrl?: string | null;
   isPaid?: boolean;
 }
 
@@ -41,7 +41,7 @@ export function WatermarkLivePreview({
   const primaryText = formatWatermarkText(config.text, effectiveCollege, effectiveCode);
   const secondaryText = config.subText || 'CampusFlow • 143campusflow.vercel.app';
   const textColor = config.textColor || '#64748B';
-  const opacity = Math.min(Math.max(config.opacity || 0.55, 0.05), 0.95);
+  const opacity = Math.min(Math.max(config.opacity ?? 0.14, 0.05), 0.95);
   const rotationAngle = typeof config.rotationAngle === 'number' ? config.rotationAngle : -24;
 
   const showWatermark =

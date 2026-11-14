@@ -34,6 +34,7 @@ import {
 import { syncSingleFormResponsesAction } from '@/app/admin/results/actions';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
 import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
+import { PdfDownloadProgressModal } from '@/components/ui/PdfDownloadProgressModal';
 import { ExamPadCard } from '@/components/ui/ExamPadCard';
 import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
@@ -72,6 +73,19 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
     type: 'error' | 'success';
     message: string;
   } | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<{
+    isOpen: boolean;
+    progress: number;
+    stage: string;
+    filename: string;
+    documentTitle: string;
+  }>({
+    isOpen: false,
+    progress: 0,
+    stage: '',
+    filename: '',
+    documentTitle: '',
+  });
   const [isSyncing, setIsSyncing] = useState(false);
 
   // Exclusion & Restoration Modal State
@@ -131,27 +145,54 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
 
     setDownloadingPdfId(responseId);
     setDownloadNotification(null);
+    const targetFilename = `student-response-${responseId.slice(0, 8)}.pdf`;
+
+    setDownloadProgress({
+      isOpen: true,
+      progress: 10,
+      stage: 'Connecting to server...',
+      filename: targetFilename,
+      documentTitle: `Student Response #${responseId.slice(0, 8)}`,
+    });
 
     try {
       await downloadPdfFile({
         url: `/api/admin/results/${formId}/responses/${encodeURIComponent(responseId)}/pdf`,
-        defaultFilename: `student-response-${responseId.slice(0, 8)}.pdf`,
-        onError: (err) => {
-          const msg = typeof err === 'string' ? err : err.message;
-          setDownloadNotification({
-            type: 'error',
-            message: `PDF Download Error: ${msg}`,
-          });
+        defaultFilename: targetFilename,
+        onProgress: (p) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: p.percent,
+            stage: p.stage,
+          }));
         },
-        onSuccess: () => {
+        onSuccess: (fn) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: 100,
+            stage: 'Download ready! Saving...',
+            filename: fn,
+          }));
+          setTimeout(() => {
+            setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
+          }, 800);
           setDownloadNotification({
             type: 'success',
             message: 'Student Response PDF downloaded successfully.',
           });
           setTimeout(() => setDownloadNotification(null), 4000);
         },
+        onError: (err) => {
+          setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
+          const msg = typeof err === 'string' ? err : err.message;
+          setDownloadNotification({
+            type: 'error',
+            message: `PDF Download Error: ${msg}`,
+          });
+        },
       });
     } catch (err: any) {
+      setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
       console.error('PDF download error:', err);
       setDownloadNotification({
         type: 'error',
@@ -1499,6 +1540,9 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
         isDownloading={Boolean(downloadingPdfId)}
         documentTitle={`Student Response Submission Record — #${(pendingResponsePdfId || '').slice(0, 8)}`}
       />
+
+      {/* 0% to 100% Download Progress Animation */}
+      <PdfDownloadProgressModal {...downloadProgress} />
     </div>
   );
 }

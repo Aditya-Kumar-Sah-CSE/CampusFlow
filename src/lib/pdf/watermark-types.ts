@@ -54,7 +54,7 @@ export const DEFAULT_WATERMARK_CONFIG: Omit<CollegeWatermarkConfig, 'collegeId'>
   logoSource: 'campusflow',
   customLogoUrl: '',
   logoSize: 150,
-  opacity: 0.55,
+  opacity: 0.14, // Subtle professional opacity that protects authenticity without obscuring table text
   rotationAngle: -24,
   repeatDensity: 'normal',
 };

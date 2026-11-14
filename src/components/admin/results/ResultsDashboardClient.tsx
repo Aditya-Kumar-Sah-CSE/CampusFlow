@@ -20,6 +20,7 @@ import {
 } from '@/types/database';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
 import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
+import { PdfDownloadProgressModal } from '@/components/ui/PdfDownloadProgressModal';
 import { PaginationControl } from '@/components/ui/PaginationControl';
 import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 import {
@@ -65,6 +66,20 @@ export function ResultsDashboardClient({
   const [downloadingPdfFormId, setDownloadingPdfFormId] = useState<string | null>(null);
   const [downloadingScopePdf, setDownloadingScopePdf] = useState(false);
   const [pdfNotification, setPdfNotification] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<{
+    isOpen: boolean;
+    progress: number;
+    stage: string;
+    filename: string;
+    documentTitle: string;
+  }>({
+    isOpen: false,
+    progress: 0,
+    stage: '',
+    filename: '',
+    documentTitle: '',
+  });
+
   const [pendingPdfDownload, setPendingPdfDownload] = useState<{
     url: string;
     defaultFilename: string;
@@ -76,11 +91,41 @@ export function ResultsDashboardClient({
     if (downloadingPdfFormId) return;
     setDownloadingPdfFormId(formId);
     setPdfNotification(null);
+    const targetFilename = facultyName ? `evaluation-${encodeURIComponent(facultyName)}.pdf` : `form-report-${formId}.pdf`;
+    const docTitle = facultyName ? `Faculty Evaluation: ${facultyName}` : 'Form Feedback Report';
+
+    setDownloadProgress({
+      isOpen: true,
+      progress: 10,
+      stage: 'Connecting to server...',
+      filename: targetFilename,
+      documentTitle: docTitle,
+    });
+
     try {
       await downloadPdfFile({
         url: `/api/admin/results/${formId}/pdf`,
-        defaultFilename: facultyName ? `evaluation-${encodeURIComponent(facultyName)}.pdf` : `form-report-${formId}.pdf`,
+        defaultFilename: targetFilename,
+        onProgress: (p) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: p.percent,
+            stage: p.stage,
+          }));
+        },
+        onSuccess: (fn) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: 100,
+            stage: 'Download ready! Saving...',
+            filename: fn,
+          }));
+          setTimeout(() => {
+            setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
+          }, 800);
+        },
         onError: (err) => {
+          setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
           setPdfNotification(typeof err === 'string' ? err : err.message);
           setTimeout(() => setPdfNotification(null), 4500);
         },
@@ -94,11 +139,39 @@ export function ResultsDashboardClient({
     if (downloadingScopePdf) return;
     setDownloadingScopePdf(true);
     setPdfNotification(null);
+
+    setDownloadProgress({
+      isOpen: true,
+      progress: 10,
+      stage: 'Connecting to server...',
+      filename: 'institutional-feedback-report.pdf',
+      documentTitle: 'Institutional Feedback Report',
+    });
+
     try {
       await downloadPdfFile({
         url: pdfExportUrl,
         defaultFilename: 'institutional-feedback-report.pdf',
+        onProgress: (p) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: p.percent,
+            stage: p.stage,
+          }));
+        },
+        onSuccess: (fn) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: 100,
+            stage: 'Download ready! Saving...',
+            filename: fn,
+          }));
+          setTimeout(() => {
+            setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
+          }, 800);
+        },
         onError: (err) => {
+          setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
           setPdfNotification(typeof err === 'string' ? err : err.message);
           setTimeout(() => setPdfNotification(null), 5000);
         },
@@ -1074,6 +1147,9 @@ export function ResultsDashboardClient({
         isDownloading={Boolean(downloadingPdfFormId || downloadingScopePdf)}
         documentTitle={pendingPdfDownload?.title || 'Feedback Report'}
       />
+
+      {/* 0% to 100% Download Progress Animation */}
+      <PdfDownloadProgressModal {...downloadProgress} />
     </div>
   );
 }
