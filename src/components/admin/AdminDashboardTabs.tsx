@@ -81,48 +81,56 @@ const FeedbackFormsTab = dynamic(
 const AdminManagementTab = dynamic(
   () => import('./tabs/AdminManagementTab').then((mod) => mod.AdminManagementTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Admin Management" />,
   }
 );
 const AuditLogsTab = dynamic(
   () => import('./tabs/AuditLogsTab').then((mod) => mod.AuditLogsTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Audit Trail" />,
   }
 );
 const BillingManagementTab = dynamic(
   () => import('./tabs/BillingManagementTab').then((mod) => mod.BillingManagementTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Billing & Access" />,
   }
 );
 const AdminMyBillingTab = dynamic(
   () => import('./tabs/AdminMyBillingTab').then((mod) => mod.AdminMyBillingTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Billing & Subscription" />,
   }
 );
 const InstitutionsManagementTab = dynamic(
   () => import('./tabs/InstitutionsManagementTab').then((mod) => mod.InstitutionsManagementTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Institutions" />,
   }
 );
 const EventsManagementTab = dynamic(
   () => import('./tabs/EventsManagementTab').then((mod) => mod.EventsManagementTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Events Management" />,
   }
 );
 const ExamsTab = dynamic(
   () => import('./tabs/ExamsTab').then((mod) => mod.ExamsTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Examinations Management" />,
   }
 );
 const LibraryManagementTab = dynamic(
   () => import('./tabs/LibraryManagementTab').then((mod) => mod.LibraryManagementTab),
   {
+    ssr: false,
     loading: () => <TabLoadingSkeleton title="Library Management" />,
   }
 );

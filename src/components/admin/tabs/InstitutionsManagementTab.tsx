@@ -380,6 +380,7 @@ export function InstitutionsManagementTab() {
           />
         </div>
         <button
+          suppressHydrationWarning
           type="button"
           onClick={handleOpenAddModal}
           className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-bce-navy hover:bg-slate-900 text-amber-300 dark:bg-amber-600/30 dark:text-amber-200 border border-bce-navy dark:border-amber-600/60 rounded-[3px] text-xs sm:text-sm font-bold shadow-xs hover:shadow-md transition-all active:scale-95 shrink-0 self-start sm:self-auto cursor-pointer"
@@ -410,6 +411,7 @@ export function InstitutionsManagementTab() {
         <div className="relative max-w-xs w-full">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#a08862] pointer-events-none" />
           <input
+            suppressHydrationWarning
             type="text"
             placeholder="Search colleges, codes, slugs..."
             value={searchQuery}
@@ -421,6 +423,7 @@ export function InstitutionsManagementTab() {
           />
           {searchQuery && (
             <button
+              suppressHydrationWarning
               type="button"
               onClick={() => {
                 setSearchQuery('');
