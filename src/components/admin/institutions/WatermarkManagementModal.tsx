@@ -28,7 +28,7 @@ import {
   type WatermarkPaymentPolicy,
   type WatermarkLogoSource,
   DEFAULT_WATERMARK_CONFIG,
-} from '@/lib/pdf/watermark';
+} from '@/lib/pdf/watermark-types';
 import {
   getCollegeWatermarkAction,
   saveCollegeWatermarkAction,

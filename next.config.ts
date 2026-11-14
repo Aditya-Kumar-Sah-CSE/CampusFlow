@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   reactStrictMode: true,
-  serverExternalPackages: ['pdfkit'],
+  serverExternalPackages: ['pdfkit', 'sharp'],
   transpilePackages: ['lucide-react'],
   images: {
     remotePatterns: [
@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
   // Ensure Vercel output tracing includes all pdfkit runtime assets
   // (standard font .cjs chunks resolved via package #imports map at runtime)
   outputFileTracingIncludes: {
+    '/api/admin/watermark/preview-pdf': [
+      './node_modules/pdfkit/js/**/*.cjs',
+      './node_modules/pdfkit/js/**/*.js',
+      './node_modules/pdfkit/js/**/*.mjs',
+    ],
     '/api/admin/events/[id]/pdf': [
       './node_modules/pdfkit/js/**/*.cjs',
       './node_modules/pdfkit/js/**/*.js',

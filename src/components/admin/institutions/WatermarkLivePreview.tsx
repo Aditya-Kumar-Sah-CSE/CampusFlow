@@ -13,8 +13,8 @@ import {
   CheckCircle2,
   Sparkles,
 } from 'lucide-react';
-import type { CollegeWatermarkConfig } from '@/lib/pdf/watermark';
-import { formatWatermarkText } from '@/lib/pdf/watermark';
+import type { CollegeWatermarkConfig } from '@/lib/pdf/watermark-types';
+import { formatWatermarkText } from '@/lib/pdf/watermark-types';
 
 interface WatermarkLivePreviewProps {
   config: CollegeWatermarkConfig;
