@@ -43,6 +43,7 @@ export function ThemeToggle({ className = '', showLabel = false }: ThemeTogglePr
   if (!mounted) {
     return (
       <button
+        suppressHydrationWarning
         type="button"
         aria-label="Switch to Day mode"
         className={`relative inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-[3px] transition-all duration-200 focus:outline-hidden focus:ring-1 focus:ring-amber-500/50 cursor-pointer text-xs font-semibold select-none bg-slate-800/90 text-amber-300 border border-slate-700 shadow-2xs ${className}`}
@@ -59,6 +60,7 @@ export function ThemeToggle({ className = '', showLabel = false }: ThemeTogglePr
 
   return (
     <button
+      suppressHydrationWarning
       type="button"
       onClick={toggleTheme}
       aria-label={isDark ? 'Switch to Day mode' : 'Switch to Night mode'}

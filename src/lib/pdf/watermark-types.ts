@@ -79,3 +79,4 @@ export function formatWatermarkText(
     .replace(/{college_code}/gi, effectiveCode)
     .replace(/{date}/gi, new Date().toLocaleDateString('en-IN'));
 }
+
