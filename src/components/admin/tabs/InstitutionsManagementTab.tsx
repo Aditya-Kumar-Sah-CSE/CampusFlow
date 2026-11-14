@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
+  Stamp,
 } from 'lucide-react';
 import {
   getInstitutionsAction,
@@ -30,6 +31,7 @@ import { PaginationControl } from '@/components/ui/PaginationControl';
 import { ExamPadCard, ExamPadClip } from '@/components/ui/ExamPadCard';
 import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 import { InstitutionModal } from '@/components/admin/institutions/InstitutionModal';
+import { WatermarkManagementModal } from '@/components/admin/institutions/WatermarkManagementModal';
 import type { College } from '@/types/tenant';
 import type { CreateCollegeInput, UpdateCollegeInput } from '@/lib/validation';
 
@@ -46,6 +48,7 @@ export function InstitutionsManagementTab() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingCollege, setEditingCollege] = useState<College | null>(null);
   const [deactivatingCollege, setDeactivatingCollege] = useState<College | null>(null);
+  const [watermarkCollege, setWatermarkCollege] = useState<College | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [instStep, setInstStep] = useState<1 | 2>(1);
 
@@ -595,6 +598,17 @@ export function InstitutionsManagementTab() {
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Watermark Management Button */}
+                          <button
+                            type="button"
+                            onClick={() => setWatermarkCollege(col)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 rounded-[3px] transition-colors font-medium text-xs cursor-pointer shadow-xs"
+                            title="Manage PDF Watermark settings & live preview"
+                          >
+                            <Stamp className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                            <span>Watermark</span>
+                          </button>
+
                           {/* Edit Button */}
                           <button
                             type="button"
@@ -678,6 +692,16 @@ export function InstitutionsManagementTab() {
         setIsSlugManuallyEdited={setIsSlugManuallyEdited}
         onClose={() => setEditingCollege(null)}
         onSubmit={handleEditSubmit}
+      />
+
+      {/* PDF Watermark Management & Live Preview Modal */}
+      <WatermarkManagementModal
+        college={watermarkCollege}
+        isOpen={Boolean(watermarkCollege)}
+        onClose={() => setWatermarkCollege(null)}
+        onSaved={() => {
+          showToast(`Watermark settings updated for ${watermarkCollege?.name || 'institution'}`, 'success');
+        }}
       />
 
             {/* MODAL 3: DEACTIVATION CONFIRMATION                                    */}

@@ -1,13 +1,78 @@
-import fs from 'fs';
-import path from 'path';
 import type PDFKit from 'pdfkit';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import type { CollegeBranding } from '@/lib/tenant/branding';
+import { getAppIconBuffer, resolvePdfLogoBuffer } from './pdf-logo';
+
+export type WatermarkFormat =
+  | 'diagonal_bands'
+  | 'center_prominent'
+  | 'full_grid'
+  | 'top_bottom_banner';
+
+export type WatermarkContentType = 'both' | 'text_only' | 'logo_only';
+
+export type WatermarkPaymentPolicy =
+  | 'auto' // Default: Hide watermark when college has active paid plan; show when unpaid/trial
+  | 'always_show' // Superadmin force: always show watermark even if paid
+  | 'always_hide'; // Superadmin waiver: never show watermark even if unpaid
+
+export type WatermarkLogoSource = 'campusflow' | 'college' | 'custom';
+
+export interface CollegeWatermarkConfig {
+  collegeId: string;
+  enabled: boolean; // Master toggle for this institution
+  paymentPolicy: WatermarkPaymentPolicy;
+  contentType: WatermarkContentType;
+  format: WatermarkFormat;
+
+  // Text options
+  text: string; // e.g. "CampusFlow provides FREE TRIAL to {college_name}"
+  subText: string; // e.g. "CampusFlow • 143campusflow.vercel.app"
+  fontFamily: 'Helvetica-Bold' | 'Helvetica' | 'Times-Bold' | 'Courier-Bold';
+  fontSize: number; // 8 - 28 pt
+  textColor: string; // Hex color code
+
+  // Logo options
+  logoSource: WatermarkLogoSource;
+  customLogoUrl?: string;
+  logoSize: number; // 60 - 260 pt
+
+  // Visual layout
+  opacity: number; // 0.10 - 0.90
+  rotationAngle: number; // -90 to 90 degrees
+  repeatDensity: 'sparse' | 'normal' | 'dense';
+
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export const DEFAULT_WATERMARK_CONFIG: Omit<CollegeWatermarkConfig, 'collegeId'> = {
+  enabled: true,
+  paymentPolicy: 'auto',
+  contentType: 'both',
+  format: 'diagonal_bands',
+  text: 'CampusFlow provides FREE TRIAL to {college_name}',
+  subText: 'CampusFlow • 143campusflow.vercel.app',
+  fontFamily: 'Helvetica-Bold',
+  fontSize: 13,
+  textColor: '#64748B',
+  logoSource: 'campusflow',
+  customLogoUrl: '',
+  logoSize: 150,
+  opacity: 0.55,
+  rotationAngle: -24,
+  repeatDensity: 'normal',
+};
+
+// In-memory fast cache with 60-second TTL for watermark configs
+const memoryCache = new Map<string, { config: CollegeWatermarkConfig; expiresAt: number }>();
+const CACHE_TTL_MS = 60 * 1000;
 
 /**
  * Checks whether an institution has an active, unexpired paid subscription.
  * When active, watermarking is automatically removed during the allowed paid period.
- * When on free trial, unpaid, or expired, watermarking is rendered.
+ * When on free trial, unpaid, or expired, watermarking is rendered (unless waived by superadmin).
  */
 export async function isCollegePaidSubscriptionActive(
   collegeIdOrBranding?: string | CollegeBranding | null
@@ -57,105 +122,451 @@ export async function isCollegePaidSubscriptionActive(
   }
 }
 
-import { getAppIconBuffer } from './pdf-logo';
+/**
+ * Retrieves the persisted watermark configuration for an institution.
+ * Merges with DEFAULT_WATERMARK_CONFIG and substitutes fallback dynamic tokens.
+ */
+export async function getCollegeWatermarkConfig(
+  collegeId: string,
+  fallbackCollegeName?: string,
+  _fallbackCollegeCode?: string
+): Promise<CollegeWatermarkConfig> {
+  const normalizedId = collegeId || 'default';
+  const now = Date.now();
+
+  const cached = memoryCache.get(normalizedId);
+  if (cached && cached.expiresAt > now) {
+    return cached.config;
+  }
+
+  const baseConfig: CollegeWatermarkConfig = {
+    collegeId: normalizedId,
+    ...DEFAULT_WATERMARK_CONFIG,
+    text: fallbackCollegeName
+      ? `CampusFlow provides FREE TRIAL to ${fallbackCollegeName}`
+      : DEFAULT_WATERMARK_CONFIG.text,
+  };
+
+  if (!collegeId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(collegeId)) {
+    return baseConfig;
+  }
+
+  try {
+    const adminDb = createAdminClient() || (await createClient());
+    const { data: auditRecord } = await adminDb
+      .from('audit_logs')
+      .select('metadata, created_at')
+      .eq('college_id', collegeId)
+      .eq('action', 'COLLEGE_WATERMARK_CONFIG_UPDATED')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (auditRecord?.metadata) {
+      const meta = auditRecord.metadata as Partial<CollegeWatermarkConfig>;
+      const merged: CollegeWatermarkConfig = {
+        ...baseConfig,
+        ...meta,
+        collegeId,
+        updatedAt: auditRecord.created_at || meta.updatedAt,
+      };
+      memoryCache.set(normalizedId, { config: merged, expiresAt: now + CACHE_TTL_MS });
+      return merged;
+    }
+  } catch (err) {
+    console.warn(`[GET_WATERMARK_CONFIG_ERR] College ${collegeId}:`, err);
+  }
+
+  memoryCache.set(normalizedId, { config: baseConfig, expiresAt: now + CACHE_TTL_MS });
+  return baseConfig;
+}
+
+/**
+ * Persists watermark configuration for an institution with guaranteed audit trail.
+ */
+export async function saveCollegeWatermarkConfig(
+  config: CollegeWatermarkConfig,
+  actor?: { userId?: string; email?: string } | string
+): Promise<{ success: boolean; config?: CollegeWatermarkConfig; error?: string }> {
+  try {
+    const adminDb = createAdminClient() || (await createClient());
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    let actorUserId: string | null = null;
+    let actorEmail = 'superadmin@campusflow.in';
+
+    if (actor) {
+      if (typeof actor === 'object') {
+        if (actor.userId && uuidRegex.test(actor.userId)) {
+          actorUserId = actor.userId;
+        }
+        if (actor.email) {
+          actorEmail = actor.email;
+        }
+      } else if (typeof actor === 'string') {
+        actorEmail = actor;
+      }
+    }
+
+    const payload: CollegeWatermarkConfig = {
+      ...config,
+      updatedAt: new Date().toISOString(),
+      updatedBy: actorEmail,
+    };
+
+    const { error: auditError } = await adminDb.from('audit_logs').insert({
+      college_id: config.collegeId,
+      actor_user_id: actorUserId,
+      actor_email: actorEmail,
+      action: 'COLLEGE_WATERMARK_CONFIG_UPDATED',
+      entity_type: 'college_watermark',
+      entity_id: config.collegeId,
+      details: `Watermark configured: enabled=${payload.enabled}, format=${payload.format}, type=${payload.contentType}, policy=${payload.paymentPolicy}`,
+      metadata: payload,
+    });
+
+    if (auditError) {
+      console.error('[SAVE_WATERMARK_AUDIT_ERR]', auditError);
+      return { success: false, error: auditError.message };
+    }
+
+    // Update memory cache immediately
+    memoryCache.set(config.collegeId, {
+      config: payload,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+    });
+
+    return { success: true, config: payload };
+  } catch (err: any) {
+    console.error('[SAVE_WATERMARK_CONFIG_EX]', err);
+    return { success: false, error: err?.message || 'Failed to save watermark settings' };
+  }
+}
+
+/**
+ * Resets watermark configuration for an institution back to standard defaults.
+ */
+export async function resetCollegeWatermarkConfig(
+  collegeId: string,
+  actor?: { userId?: string; email?: string } | string,
+  collegeName?: string
+): Promise<{ success: boolean; config?: CollegeWatermarkConfig; error?: string }> {
+  const defaultConfig: CollegeWatermarkConfig = {
+    collegeId,
+    ...DEFAULT_WATERMARK_CONFIG,
+    text: collegeName
+      ? `CampusFlow provides FREE TRIAL to ${collegeName}`
+      : DEFAULT_WATERMARK_CONFIG.text,
+  };
+
+  return await saveCollegeWatermarkConfig(defaultConfig, actor);
+}
 
 function getCampusFlowLogoBuffer(): Buffer | null {
   return getAppIconBuffer();
 }
 
 /**
- * Renders multiple diagonal watermark bands across a single PDFKit page.
- * Requirements:
- * - Full page coverage ("pure pdf me")
- * - Opacity 50% - 70% (configured to 60%)
- * - CampusFlow Logo, Name ("CampusFlow"), URL ("https://campusflow.in")
- * - Text: "CampusFlow provides FREE TRIAL to [College Name]"
+ * Replaces dynamic placeholders in watermark text:
+ * {college_name} -> real institution name
+ * {college_code} -> institution code
+ * {date} -> current date
  */
-export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: string | null) {
+export function formatWatermarkText(
+  template: string,
+  collegeName?: string | null,
+  collegeCode?: string | null
+): string {
+  const effectiveCollege = collegeName && collegeName.trim() ? collegeName.trim() : 'Institution';
+  const effectiveCode = collegeCode && collegeCode.trim() ? collegeCode.trim() : '';
+
+  return (template || '')
+    .replace(/{college_name}/gi, effectiveCollege)
+    .replace(/{institution}/gi, effectiveCollege)
+    .replace(/{college_code}/gi, effectiveCode)
+    .replace(/{date}/gi, new Date().toLocaleDateString('en-IN'));
+}
+
+/**
+ * Renders watermark on a single PDFKit page according to the specified configuration.
+ */
+export function renderWatermark(
+  doc: PDFKit.PDFDocument,
+  config: CollegeWatermarkConfig,
+  collegeName?: string | null,
+  collegeLogoBuffer?: Buffer | null
+) {
   const pageWidth = doc.page.width || 595.28;
   const pageHeight = doc.page.height || 841.89;
 
   const originalBottomMargin = doc.page.margins.bottom;
   doc.page.margins.bottom = 0;
 
-  const logoBuf = getCampusFlowLogoBuffer();
-  const brandName = 'CampusFlow';
-  const urlDisplay = '143campusflow.vercel.app';
-  const fullUrl = 'https://143campusflow.vercel.app';
-  const effectiveCollege = collegeName && collegeName.trim() ? collegeName.trim() : 'Institution';
-  const trialText = `CampusFlow provides FREE TRIAL to ${effectiveCollege}`;
+  const rawLogoBuf =
+    config.logoSource === 'college' && collegeLogoBuffer
+      ? collegeLogoBuffer
+      : getCampusFlowLogoBuffer();
 
-  // 1. Prominent Large-Size CampusFlow Logo in the center of the page ("centrer me large size logo")
-  if (logoBuf) {
-    const centerLogoSize = 150;
-    const centerLogoX = (pageWidth - centerLogoSize) / 2;
-    const centerLogoY = (pageHeight - centerLogoSize) / 2;
+  const includeLogo = config.contentType !== 'text_only' && Boolean(rawLogoBuf);
+  const includeText = config.contentType !== 'logo_only';
+
+  const primaryText = formatWatermarkText(config.text, collegeName);
+  const secondaryText = config.subText || 'CampusFlow • 143campusflow.vercel.app';
+  const textColor = config.textColor || '#64748B';
+  const fontFamily = config.fontFamily || 'Helvetica-Bold';
+  const fontSize = config.fontSize || 13;
+  const opacity = Math.min(Math.max(config.opacity || 0.55, 0.05), 0.95);
+  const rotationAngle = typeof config.rotationAngle === 'number' ? config.rotationAngle : -24;
+
+  // -------------------------------------------------------------
+  // FORMAT 1: DIAGONAL BANDS (Multi-band diagonal coverage)
+  // -------------------------------------------------------------
+  if (config.format === 'diagonal_bands') {
+    // 1. Center large logo (if logo is included)
+    if (includeLogo && rawLogoBuf) {
+      const centerLogoSize = config.logoSize || 150;
+      const centerLogoX = (pageWidth - centerLogoSize) / 2;
+      const centerLogoY = (pageHeight - centerLogoSize) / 2;
+
+      doc.save();
+      doc.opacity(Math.max(0.08, opacity * 0.9));
+      try {
+        doc.image(rawLogoBuf, centerLogoX, centerLogoY, {
+          width: centerLogoSize,
+          height: centerLogoSize,
+        });
+      } catch {}
+      doc.restore();
+    }
+
+    // 2. Diagonal watermark bands
+    let yPositions = [185, 370, 550, 725];
+    if (config.repeatDensity === 'sparse') {
+      yPositions = [260, 520];
+    } else if (config.repeatDensity === 'dense') {
+      yPositions = [140, 280, 420, 560, 700];
+    }
+
+    for (const yCenter of yPositions) {
+      doc.save();
+      doc.rotate(rotationAngle, { origin: [pageWidth / 2, yCenter] });
+      doc.opacity(opacity);
+
+      const iconSize = 18;
+      const gap = 8;
+      let brandW = 0;
+      let dotUrlW = 0;
+
+      if (includeText) {
+        doc.font(fontFamily).fontSize(fontSize);
+        brandW = doc.widthOfString(primaryText);
+        doc.font('Helvetica').fontSize(Math.max(8, fontSize * 0.72));
+        dotUrlW = doc.widthOfString('   \u2022   ' + secondaryText);
+      }
+
+      const hasLogoInBand = includeLogo && Boolean(rawLogoBuf);
+      const totalBandW = (hasLogoInBand ? iconSize + gap : 0) + brandW + (includeText ? dotUrlW : 0);
+      const startX = Math.max(10, (pageWidth - Math.max(totalBandW, 100)) / 2);
+
+      let curX = startX;
+      if (hasLogoInBand && rawLogoBuf) {
+        try {
+          doc.image(rawLogoBuf, curX, yCenter - 11, { width: iconSize, height: iconSize });
+        } catch {}
+        curX += iconSize + gap;
+      }
+
+      if (includeText) {
+        doc
+          .font(fontFamily)
+          .fontSize(fontSize)
+          .fillColor(textColor)
+          .text(primaryText, curX, yCenter - 9, { continued: Boolean(secondaryText) });
+
+        if (secondaryText) {
+          doc
+            .font('Helvetica')
+            .fontSize(Math.max(8, fontSize * 0.72))
+            .fillColor(textColor)
+            .text('   \u2022   ' + secondaryText);
+        }
+      }
+
+      doc.restore();
+    }
+  }
+
+  // -------------------------------------------------------------
+  // FORMAT 2: CENTER PROMINENT (Large Center Stamp)
+  // -------------------------------------------------------------
+  else if (config.format === 'center_prominent') {
+    const centerY = pageHeight / 2;
+    const centerX = pageWidth / 2;
 
     doc.save();
-    doc.opacity(0.55); // 55% opacity (in 50% - 70% range)
-    try {
-      doc.image(logoBuf, centerLogoX, centerLogoY, {
-        width: centerLogoSize,
-        height: centerLogoSize,
-      });
-    } catch {
-      // Non-blocking fallback
+    doc.opacity(opacity);
+
+    // Large center logo underneath text
+    if (includeLogo && rawLogoBuf) {
+      const centerLogoSize = Math.max(120, config.logoSize || 180);
+      doc.save();
+      doc.opacity(Math.max(0.08, opacity * 0.85));
+      try {
+        doc.image(rawLogoBuf, (pageWidth - centerLogoSize) / 2, (pageHeight - centerLogoSize) / 2, {
+          width: centerLogoSize,
+          height: centerLogoSize,
+        });
+      } catch {}
+      doc.restore();
     }
+
+    if (includeText) {
+      doc.rotate(rotationAngle, { origin: [centerX, centerY] });
+
+      const stampFontSize = Math.max(16, fontSize * 1.3);
+      doc.font(fontFamily).fontSize(stampFontSize);
+      const mainW = doc.widthOfString(primaryText);
+
+      doc.font('Helvetica-Bold').fontSize(Math.max(9, fontSize * 0.7));
+      const subW = doc.widthOfString(secondaryText);
+
+      const stampWidth = Math.min(pageWidth - 60, Math.max(mainW, subW) + 40);
+      const stampHeight = 68;
+      const boxX = (pageWidth - stampWidth) / 2;
+      const boxY = centerY - stampHeight / 2;
+
+      // Draw subtle stamp outline box
+      doc
+        .strokeColor(textColor)
+        .lineWidth(1.8)
+        .rect(boxX, boxY, stampWidth, stampHeight)
+        .stroke();
+
+      doc
+        .strokeColor(textColor)
+        .lineWidth(0.8)
+        .rect(boxX + 3, boxY + 3, stampWidth - 6, stampHeight - 6)
+        .stroke();
+
+      doc
+        .font(fontFamily)
+        .fontSize(stampFontSize)
+        .fillColor(textColor)
+        .text(primaryText, boxX, boxY + 12, {
+          width: stampWidth,
+          align: 'center',
+        });
+
+      if (secondaryText) {
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(Math.max(9, fontSize * 0.7))
+          .fillColor(textColor)
+          .text(secondaryText.toUpperCase(), boxX, boxY + 14 + stampFontSize, {
+            width: stampWidth,
+            align: 'center',
+          });
+      }
+    }
+
     doc.restore();
   }
 
-  // 2. Evenly spaced diagonal watermark bands across the page
-  const yPositions = [185, 370, 550, 725];
+  // -------------------------------------------------------------
+  // FORMAT 3: FULL GRID (Matrix of Watermarks across the Page)
+  // -------------------------------------------------------------
+  else if (config.format === 'full_grid') {
+    const rows = config.repeatDensity === 'sparse' ? 3 : config.repeatDensity === 'dense' ? 5 : 4;
+    const cols = config.repeatDensity === 'sparse' ? 2 : 3;
 
-  for (const yCenter of yPositions) {
-    doc.save();
-    // Rotate diagonally at -24 degrees around the page horizontal center
-    doc.rotate(-24, { origin: [pageWidth / 2, yCenter] });
-    // Opacity: strictly between 50% - 70%
-    doc.opacity(0.60);
+    const rowSpacing = pageHeight / (rows + 1);
+    const colSpacing = pageWidth / (cols + 1);
 
-    doc.font('Helvetica-Bold').fontSize(14);
-    const brandW = doc.widthOfString(brandName);
-    doc.font('Helvetica').fontSize(9.5);
-    const dotUrlW = doc.widthOfString('   •   ' + urlDisplay);
+    for (let r = 1; r <= rows; r++) {
+      for (let c = 1; c <= cols; c++) {
+        const xPos = c * colSpacing;
+        const yPos = r * rowSpacing;
 
-    const iconSize = 17;
-    const gap = 7;
-    const hasLogo = Boolean(logoBuf);
-    const headerTotalW = (hasLogo ? iconSize + gap : 0) + brandW + dotUrlW;
-    const headerStartX = (pageWidth - headerTotalW) / 2;
+        doc.save();
+        doc.opacity(Math.max(0.08, opacity * 0.75));
+        doc.rotate(rotationAngle, { origin: [xPos, yPos] });
 
-    let curX = headerStartX;
-    if (hasLogo && logoBuf) {
-      try {
-        doc.image(logoBuf, curX, yCenter - 12, { width: iconSize, height: iconSize });
-      } catch {
-        // Fallback gracefully if image render fails
+        if (includeLogo && rawLogoBuf) {
+          const miniSize = 22;
+          try {
+            doc.image(rawLogoBuf, xPos - miniSize / 2, yPos - 22, {
+              width: miniSize,
+              height: miniSize,
+            });
+          } catch {}
+        }
+
+        if (includeText) {
+          const gridFontSize = Math.max(9, fontSize * 0.75);
+          doc.font(fontFamily).fontSize(gridFontSize).fillColor(textColor);
+          const w = doc.widthOfString(primaryText);
+          doc.text(primaryText, xPos - w / 2, yPos + 3);
+
+          if (secondaryText) {
+            doc.font('Helvetica').fontSize(Math.max(7, gridFontSize * 0.75));
+            const subW = doc.widthOfString(secondaryText);
+            doc.text(secondaryText, xPos - subW / 2, yPos + 4 + gridFontSize);
+          }
+        }
+
+        doc.restore();
       }
-      curX += iconSize + gap;
+    }
+  }
+
+  // -------------------------------------------------------------
+  // FORMAT 4: TOP & BOTTOM BANNER (Header & Footer Security Bands)
+  // -------------------------------------------------------------
+  else if (config.format === 'top_bottom_banner') {
+    doc.save();
+    doc.opacity(opacity);
+
+    // Subtle center faint watermark
+    if (includeLogo && rawLogoBuf) {
+      const centerSize = 120;
+      doc.save();
+      doc.opacity(Math.max(0.05, opacity * 0.45));
+      try {
+        doc.image(rawLogoBuf, (pageWidth - centerSize) / 2, (pageHeight - centerSize) / 2, {
+          width: centerSize,
+          height: centerSize,
+        });
+      } catch {}
+      doc.restore();
     }
 
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(14)
-      .fillColor('#334155')
-      .text(brandName, curX, yCenter - 10, { continued: true })
-      .font('Helvetica')
-      .fontSize(9.5)
-      .fillColor('#2563EB')
-      .text('   •   ' + urlDisplay, {
-        link: fullUrl,
-      });
+    const bannerH = 26;
+    const bannerMargin = 16;
+    const bannerW = pageWidth - bannerMargin * 2;
 
-    doc.font('Helvetica-Bold').fontSize(9);
-    const trialW = doc.widthOfString(trialText);
-    const trialStartX = (pageWidth - trialW) / 2;
+    const renderBanner = (y: number, label: string) => {
+      doc
+        .save()
+        .strokeColor(textColor)
+        .lineWidth(0.8)
+        .rect(bannerMargin, y, bannerW, bannerH)
+        .stroke()
+        .restore();
 
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(9)
-      .fillColor('#64748B')
-      .text(trialText, trialStartX, yCenter + 7);
+      const bannerFontSize = Math.max(8.5, fontSize * 0.75);
+      doc
+        .font(fontFamily)
+        .fontSize(bannerFontSize)
+        .fillColor(textColor)
+        .text(label, bannerMargin, y + 8, {
+          width: bannerW,
+          align: 'center',
+        });
+    };
+
+    const bannerText = `${primaryText}   \u2022   ${secondaryText}`;
+    renderBanner(16, bannerText);
+    renderBanner(pageHeight - 42, bannerText);
 
     doc.restore();
   }
@@ -164,16 +575,36 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
 }
 
 /**
- * Applies trial watermarks to all buffered pages in doc if the college does not have an active paid subscription.
- * When paid subscription is active, watermark is automatically skipped / removed until expiration.
+ * Backwards-compatible legacy function.
+ */
+export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: string | null) {
+  renderWatermark(
+    doc,
+    {
+      collegeId: 'legacy',
+      ...DEFAULT_WATERMARK_CONFIG,
+      text: collegeName ? `CampusFlow provides FREE TRIAL to ${collegeName}` : DEFAULT_WATERMARK_CONFIG.text,
+    },
+    collegeName
+  );
+}
+
+/**
+ * Applies watermarks across all buffered pages in a PDFKit document based on:
+ * 1. College billing / payment status (Paid accounts have watermark removed by default)
+ * 2. Superadmin configuration for the college (enabled toggle, format, custom text & logo)
+ * 3. Superadmin override policy (auto / always_show / always_hide)
  */
 export async function applyTrialWatermarksIfRequired(
   doc: PDFKit.PDFDocument,
   brandingOrCollegeName?: CollegeBranding | string | null,
-  overrideIsPaid?: boolean
+  overrideIsPaid?: boolean,
+  forcedConfig?: CollegeWatermarkConfig | null
 ): Promise<boolean> {
   let isPaid = false;
   let collegeName = 'Institution';
+  let collegeId: string | undefined;
+  let collegeLogoUrl: string | undefined;
 
   if (typeof overrideIsPaid === 'boolean') {
     isPaid = overrideIsPaid;
@@ -181,11 +612,36 @@ export async function applyTrialWatermarksIfRequired(
 
   if (typeof brandingOrCollegeName === 'string') {
     collegeName = brandingOrCollegeName;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(brandingOrCollegeName)) {
+      collegeId = brandingOrCollegeName;
+    } else {
+      // Look up college by name, code, or slug to resolve ID and logo
+      try {
+        const supabase = createAdminClient();
+        if (supabase) {
+          const { data: matched } = await supabase
+            .from('colleges')
+            .select('id, name, logo_url')
+            .or(`name.ilike.%${brandingOrCollegeName}%,code.eq.${brandingOrCollegeName},slug.eq.${brandingOrCollegeName}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (matched) {
+            collegeId = matched.id;
+            collegeName = matched.name;
+            collegeLogoUrl = matched.logo_url || undefined;
+          }
+        }
+      } catch {}
+    }
+
     if (typeof overrideIsPaid !== 'boolean') {
-      isPaid = await isCollegePaidSubscriptionActive(brandingOrCollegeName);
+      isPaid = await isCollegePaidSubscriptionActive(collegeId || brandingOrCollegeName);
     }
   } else if (brandingOrCollegeName && typeof brandingOrCollegeName === 'object') {
+    collegeId = brandingOrCollegeName.id;
     collegeName = brandingOrCollegeName.name || 'Institution';
+    collegeLogoUrl = brandingOrCollegeName.logoUrl;
     if (typeof overrideIsPaid !== 'boolean') {
       if (typeof brandingOrCollegeName.isPaidActive === 'boolean') {
         isPaid = brandingOrCollegeName.isPaidActive;
@@ -195,16 +651,61 @@ export async function applyTrialWatermarksIfRequired(
     }
   }
 
-  // Automatic removal during paid time
-  if (isPaid) {
+  // Load watermark configuration
+  let config: CollegeWatermarkConfig;
+  if (forcedConfig) {
+    config = forcedConfig;
+  } else if (collegeId) {
+    config = await getCollegeWatermarkConfig(collegeId, collegeName);
+  } else {
+    config = {
+      collegeId: 'default',
+      ...DEFAULT_WATERMARK_CONFIG,
+      text: formatWatermarkText(DEFAULT_WATERMARK_CONFIG.text, collegeName),
+    };
+  }
+
+  // Evaluate Superadmin Payment & Watermark Logic
+  // 1. If policy is always_hide: Never watermark (waived by superadmin)
+  if (config.paymentPolicy === 'always_hide') {
     return false;
   }
 
-  // Watermark applied on all pages
+  // 2. If policy is auto:
+  //    - If paid active -> NO watermark (paid subscription removes watermark)
+  //    - If unpaid/trial -> Superadmin controls via config.enabled
+  if (config.paymentPolicy === 'auto') {
+    if (isPaid) {
+      return false; // Paid subscription active -> no watermark
+    }
+    if (!config.enabled) {
+      return false; // Superadmin turned off watermark for this unpaid college
+    }
+  }
+
+  // 3. If policy is always_show:
+  //    - Superadmin force: watermarks will be applied regardless of payment status
+  if (config.paymentPolicy === 'always_show' && !config.enabled) {
+    return false;
+  }
+
+  // Resolve logo buffer if needed
+  let logoBuffer: Buffer | null = null;
+  if (config.logoSource === 'college' && collegeLogoUrl) {
+    try {
+      logoBuffer = await resolvePdfLogoBuffer({ url: collegeLogoUrl, name: collegeName });
+    } catch {}
+  } else if (config.logoSource === 'custom' && config.customLogoUrl) {
+    try {
+      logoBuffer = await resolvePdfLogoBuffer({ url: config.customLogoUrl });
+    } catch {}
+  }
+
+  // Apply watermark to all buffered pages
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
-    renderTrialWatermarks(doc, collegeName);
+    renderWatermark(doc, config, collegeName, logoBuffer);
   }
 
   return true;

@@ -26,6 +26,7 @@ import PDFDocument from 'pdfkit';
 import { streamToBuffer, fetchLogoBuffer, PDF_COLORS, formatDateTime } from '@/lib/events/event-pdf-reports';
 import { generateRegistrationNumber } from '@/lib/events/program-registrations-service';
 import { renderPdfAttributionFooter } from '@/lib/utils/pdf-attribution';
+import { applyTrialWatermarksIfRequired } from '@/lib/pdf/watermark';
 import { drawPdfHeaderLogo } from '@/lib/pdf/pdf-logo';
 
 // ============================================================
@@ -2297,6 +2298,8 @@ export async function generateGoogleEventParticipantPdf(params: {
     textColor: PDF_COLORS.slateMuted,
     linkColor: PDF_COLORS.secondary,
   });
+
+  await applyTrialWatermarksIfRequired(doc, collegeCode);
 
   doc.end();
 
