@@ -4,6 +4,7 @@ import { getFormResponsesAction } from '@/app/admin/results/responses/actions';
 import { FormResponsesConsole } from '@/components/admin/results/FormResponsesConsole';
 import { AnalyticsAccessGate } from '@/components/admin/billing/AnalyticsAccessGate';
 import { assertBasicAnalyticsAccess } from '@/lib/billing/access-control';
+import { isWatermarkRequiredForCollege } from '@/lib/pdf/watermark';
 import { isValidUUID } from '@/lib/validation';
 
 export const dynamic = 'force-dynamic';
@@ -54,5 +55,9 @@ export default async function FormResponsesPage({
     }
   }
 
-  return <FormResponsesConsole formId={id} initialData={res} />;
+  const isWatermarkRequired = session.activeCollegeId
+    ? await isWatermarkRequiredForCollege(session.activeCollegeId)
+    : false;
+
+  return <FormResponsesConsole formId={id} initialData={res} isWatermarkRequired={isWatermarkRequired} />;
 }

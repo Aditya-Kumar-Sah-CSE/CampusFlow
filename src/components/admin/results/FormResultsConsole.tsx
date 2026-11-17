@@ -14,6 +14,7 @@ import { syncSingleFormResponsesAction, getFormAnalyticsAction } from '@/app/adm
 import { useHydrated, formatDateTimeFull } from '@/lib/hooks/use-hydrated';
 import { downloadPdfFile } from '@/lib/utils/pdf-download';
 import { PdfDownloadUpgradeModal } from '@/components/admin/pdf/PdfDownloadUpgradeModal';
+import { PdfDownloadProgressModal } from '@/components/ui/PdfDownloadProgressModal';
 import { ExternalActionLink } from '@/components/ui/ExternalActionLink';
 import {
   ArrowLeft,
@@ -37,9 +38,10 @@ import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 
 interface Props {
   initialReport: FormAnalyticsReport;
+  isWatermarkRequired?: boolean;
 }
 
-export function FormResultsConsole({ initialReport }: Props) {
+export function FormResultsConsole({ initialReport, isWatermarkRequired = false }: Props) {
   const router = useRouter();
   const [report, setReport] = useState<FormAnalyticsReport>(initialReport);
   const [selectedGridIndex, setSelectedGridIndex] = useState<number>(-1); // -1 = All Subjects Combined
@@ -47,6 +49,19 @@ export function FormResultsConsole({ initialReport }: Props) {
   const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isNavigatingResponses, setIsNavigatingResponses] = useState(false);
   const [downloadingPdfType, setDownloadingPdfType] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<{
+    isOpen: boolean;
+    progress: number;
+    stage: string;
+    filename: string;
+    documentTitle: string;
+  }>({
+    isOpen: false,
+    progress: 0,
+    stage: '',
+    filename: '',
+    documentTitle: '',
+  });
   const [pendingPdfDownload, setPendingPdfDownload] = useState<{
     url: string;
     defaultFilename: string;
@@ -55,6 +70,11 @@ export function FormResultsConsole({ initialReport }: Props) {
   const hydrated = useHydrated();
 
   const handleInitiatePdfDownload = (url: string, defaultFilename: string, typeKey: string) => {
+    // If watermark is disabled for this institution, download directly without 2-option modal
+    if (!isWatermarkRequired) {
+      handleDownloadPdf(url, defaultFilename, typeKey);
+      return;
+    }
     setPendingPdfDownload({ url, defaultFilename, typeKey });
   };
 
@@ -62,11 +82,46 @@ export function FormResultsConsole({ initialReport }: Props) {
     if (downloadingPdfType) return;
     setDownloadingPdfType(typeKey);
     setSyncMessage(null);
+
+    const docTitle =
+      typeKey === 'SEMESTER'
+        ? 'Semester Comparative Analytics'
+        : typeKey === 'FACULTY_GRID'
+        ? 'Faculty Matrix Performance Report'
+        : 'Faculty Evaluation Report';
+
+    setDownloadProgress({
+      isOpen: true,
+      progress: 10,
+      stage: 'Connecting to server...',
+      filename: defaultFilename,
+      documentTitle: docTitle,
+    });
+
     try {
       const res = await downloadPdfFile({
         url,
         defaultFilename,
+        onProgress: (p) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: p.percent,
+            stage: p.stage,
+          }));
+        },
+        onSuccess: (fn) => {
+          setDownloadProgress((prev) => ({
+            ...prev,
+            progress: 100,
+            stage: 'Download ready! Saving...',
+            filename: fn,
+          }));
+          setTimeout(() => {
+            setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
+          }, 800);
+        },
         onError: (err) => {
+          setDownloadProgress((prev) => ({ ...prev, isOpen: false }));
           setSyncMessage({
             type: 'error',
             text: typeof err === 'string' ? err : err.message,
@@ -768,9 +823,9 @@ export function FormResultsConsole({ initialReport }: Props) {
         )}
       </PinnedRosterBoard>
 
-      {/* PDF Download Upgrade / Watermark Choice Modal */}
+      {/* PDF Download Upgrade / Watermark Choice Modal (Only shown when trial watermark is active) */}
       <PdfDownloadUpgradeModal
-        isOpen={Boolean(pendingPdfDownload)}
+        isOpen={Boolean(pendingPdfDownload) && isWatermarkRequired}
         onClose={() => setPendingPdfDownload(null)}
         onProceedWithWatermark={handleProceedWithWatermark}
         isDownloading={Boolean(downloadingPdfType)}
@@ -782,6 +837,9 @@ export function FormResultsConsole({ initialReport }: Props) {
             : `Faculty Feedback Report — ${report.facultyName}`
         }
       />
+
+      {/* 0% to 100% Download Progress Animation */}
+      <PdfDownloadProgressModal {...downloadProgress} />
     </div>
   );
 }

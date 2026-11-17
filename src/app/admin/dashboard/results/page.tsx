@@ -5,6 +5,7 @@ import { getCachedOverallAnalytics } from '@/lib/analytics/service';
 import { ResultsDashboardClient } from '@/components/admin/results/ResultsDashboardClient';
 import { AnalyticsAccessGate } from '@/components/admin/billing/AnalyticsAccessGate';
 import { assertAnalyticsAccess } from '@/lib/billing/access-control';
+import { isWatermarkRequiredForCollege } from '@/lib/pdf/watermark';
 import {
   AcademicYear,
   Branch,
@@ -154,6 +155,10 @@ export default async function AdminResultsHubPage() {
     }
   }
 
+  const isWatermarkRequired = session.activeCollegeId
+    ? await isWatermarkRequiredForCollege(session.activeCollegeId)
+    : false;
+
   return (
     <ResultsDashboardClient
       initialReport={initialReport}
@@ -163,6 +168,7 @@ export default async function AdminResultsHubPage() {
       faculties={(faculties || []) as Faculty[]}
       subjects={(subjects || []) as Subject[]}
       forms={formsList}
+      isWatermarkRequired={isWatermarkRequired}
     />
   );
 }

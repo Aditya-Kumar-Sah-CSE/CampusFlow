@@ -4,6 +4,7 @@ import { getFormAnalyticsAction } from '@/app/admin/results/actions';
 import { FormResultsConsole } from '@/components/admin/results/FormResultsConsole';
 import { AnalyticsAccessGate } from '@/components/admin/billing/AnalyticsAccessGate';
 import { assertAnalyticsAccess } from '@/lib/billing/access-control';
+import { isWatermarkRequiredForCollege } from '@/lib/pdf/watermark';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,5 +40,10 @@ export default async function FormResultsDetailPage({
     notFound();
   }
 
-  return <FormResultsConsole initialReport={res.report} />;
+  const targetCollegeId = res.report.collegeId || session.activeCollegeId;
+  const isWatermarkRequired = targetCollegeId
+    ? await isWatermarkRequiredForCollege(targetCollegeId)
+    : false;
+
+  return <FormResultsConsole initialReport={res.report} isWatermarkRequired={isWatermarkRequired} />;
 }

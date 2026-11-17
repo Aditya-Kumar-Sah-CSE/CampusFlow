@@ -514,6 +514,101 @@ export function renderTrialWatermarks(doc: PDFKit.PDFDocument, collegeName?: str
 }
 
 /**
+ * Synchronous evaluation of watermark policy against payment and config state.
+ * Returns false if:
+ * - Master toggle is disabled (config.enabled === false)
+ * - Superadmin policy is 'always_hide'
+ * - Policy is 'auto' and college has an active paid subscription
+ */
+export function shouldApplyWatermarkFromConfig(
+  config: CollegeWatermarkConfig,
+  isPaid: boolean
+): boolean {
+  // If master toggle is explicitly disabled, NEVER apply watermark
+  if (!config.enabled) {
+    return false;
+  }
+
+  // 1. If policy is always_hide: Never watermark (waived by superadmin)
+  if (config.paymentPolicy === 'always_hide') {
+    return false;
+  }
+
+  // 2. If policy is auto:
+  //    - If paid active -> NO watermark (paid subscription removes watermark)
+  //    - If unpaid/trial -> Superadmin controls via config.enabled
+  if (config.paymentPolicy === 'auto') {
+    if (isPaid) {
+      return false;
+    }
+    return config.enabled;
+  }
+
+  // 3. If policy is always_show:
+  //    - Superadmin force: watermarks will be applied regardless of payment status as long as enabled
+  if (config.paymentPolicy === 'always_show') {
+    return config.enabled;
+  }
+
+  return config.enabled;
+}
+
+/**
+ * Authoritative check for whether watermark is required for an institution.
+ * Returns false if watermark is disabled by superadmin or waived by active paid plan.
+ */
+export async function isWatermarkRequiredForCollege(
+  collegeIdOrBranding?: string | CollegeBranding | null,
+  overrideIsPaid?: boolean
+): Promise<boolean> {
+  if (!collegeIdOrBranding) return false;
+
+  let isPaid = false;
+  let collegeId: string | undefined;
+
+  if (typeof overrideIsPaid === 'boolean') {
+    isPaid = overrideIsPaid;
+  }
+
+  if (typeof collegeIdOrBranding === 'string') {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(collegeIdOrBranding)) {
+      collegeId = collegeIdOrBranding;
+    } else {
+      try {
+        const supabase = createAdminClient();
+        if (supabase) {
+          const { data: matched } = await supabase
+            .from('colleges')
+            .select('id')
+            .or(`name.ilike.%${collegeIdOrBranding}%,code.eq.${collegeIdOrBranding},slug.eq.${collegeIdOrBranding}`)
+            .limit(1)
+            .maybeSingle();
+          if (matched) collegeId = matched.id;
+        }
+      } catch {}
+    }
+
+    if (typeof overrideIsPaid !== 'boolean') {
+      isPaid = await isCollegePaidSubscriptionActive(collegeId || collegeIdOrBranding);
+    }
+  } else if (collegeIdOrBranding && typeof collegeIdOrBranding === 'object') {
+    collegeId = collegeIdOrBranding.id;
+    if (typeof overrideIsPaid !== 'boolean') {
+      if (typeof collegeIdOrBranding.isPaidActive === 'boolean') {
+        isPaid = collegeIdOrBranding.isPaidActive;
+      } else if (collegeIdOrBranding.id) {
+        isPaid = await isCollegePaidSubscriptionActive(collegeIdOrBranding.id);
+      }
+    }
+  }
+
+  if (!collegeId) return false;
+
+  const config = await getCollegeWatermarkConfig(collegeId);
+  return shouldApplyWatermarkFromConfig(config, isPaid);
+}
+
+/**
  * Applies watermarks across all buffered pages in a PDFKit document based on:
  * 1. College billing / payment status (Paid accounts have watermark removed by default)
  * 2. Superadmin configuration for the college (enabled toggle, format, custom text & logo)
@@ -590,26 +685,7 @@ export async function applyTrialWatermarksIfRequired(
   }
 
   // Evaluate Superadmin Payment & Watermark Logic
-  // 1. If policy is always_hide: Never watermark (waived by superadmin)
-  if (config.paymentPolicy === 'always_hide') {
-    return false;
-  }
-
-  // 2. If policy is auto:
-  //    - If paid active -> NO watermark (paid subscription removes watermark)
-  //    - If unpaid/trial -> Superadmin controls via config.enabled
-  if (config.paymentPolicy === 'auto') {
-    if (isPaid) {
-      return false; // Paid subscription active -> no watermark
-    }
-    if (!config.enabled) {
-      return false; // Superadmin turned off watermark for this unpaid college
-    }
-  }
-
-  // 3. If policy is always_show:
-  //    - Superadmin force: watermarks will be applied regardless of payment status
-  if (config.paymentPolicy === 'always_show' && !config.enabled) {
+  if (!shouldApplyWatermarkFromConfig(config, isPaid)) {
     return false;
   }
 

@@ -46,6 +46,7 @@ interface Props {
   faculties: Faculty[];
   subjects: Subject[];
   forms: FeedbackForm[];
+  isWatermarkRequired?: boolean;
 }
 
 export function ResultsDashboardClient({
@@ -56,6 +57,7 @@ export function ResultsDashboardClient({
   faculties,
   subjects,
   forms,
+  isWatermarkRequired = false,
 }: Props) {
   const [report, setReport] = useState<AggregatedAnalyticsReport>(initialReport);
   const [isPending, startTransition] = useTransition();
@@ -182,6 +184,11 @@ export function ResultsDashboardClient({
   };
 
   const handleInitiateFormPdf = (formId: string, facultyName?: string, formTitle?: string) => {
+    // If watermark is disabled for this institution, download directly without 2-option modal
+    if (!isWatermarkRequired) {
+      executeDownloadFormPdf(formId, facultyName);
+      return;
+    }
     setPendingPdfDownload({
       url: `/api/admin/results/${formId}/pdf`,
       defaultFilename: facultyName ? `evaluation-${encodeURIComponent(facultyName)}.pdf` : `form-report-${formId}.pdf`,
@@ -191,6 +198,11 @@ export function ResultsDashboardClient({
   };
 
   const handleInitiateScopePdf = () => {
+    // If watermark is disabled for this institution, download directly without 2-option modal
+    if (!isWatermarkRequired) {
+      executeDownloadScopePdf();
+      return;
+    }
     setPendingPdfDownload({
       url: pdfExportUrl,
       defaultFilename: 'institutional-feedback-report.pdf',
@@ -1139,9 +1151,9 @@ export function ResultsDashboardClient({
         </div>
       </PinnedRosterBoard>
 
-      {/* PDF Download Upgrade / Watermark Choice Modal */}
+      {/* PDF Download Upgrade / Watermark Choice Modal (Only shown when trial watermark is active) */}
       <PdfDownloadUpgradeModal
-        isOpen={Boolean(pendingPdfDownload)}
+        isOpen={Boolean(pendingPdfDownload) && isWatermarkRequired}
         onClose={() => setPendingPdfDownload(null)}
         onProceedWithWatermark={handleProceedWithWatermark}
         isDownloading={Boolean(downloadingPdfFormId || downloadingScopePdf)}

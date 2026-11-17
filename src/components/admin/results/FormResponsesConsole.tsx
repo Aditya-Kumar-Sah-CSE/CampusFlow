@@ -41,6 +41,7 @@ import { PinnedRosterBoard } from '@/components/ui/PinnedRosterBoard';
 interface Props {
   formId: string;
   initialData: AdminResponsesResult;
+  isWatermarkRequired?: boolean;
 }
 
 const PRESET_EXCLUSION_REASONS = [
@@ -53,7 +54,7 @@ const PRESET_EXCLUSION_REASONS = [
   'Other custom reason',
 ];
 
-export function FormResponsesConsole({ formId, initialData }: Props) {
+export function FormResponsesConsole({ formId, initialData, isWatermarkRequired = false }: Props) {
   const [data, setData] = useState<AdminResponsesResult>(initialData);
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -131,6 +132,11 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
   const [pendingResponsePdfId, setPendingResponsePdfId] = useState<string | null>(null);
 
   const handleInitiateResponsePdf = (responseId: string) => {
+    // If watermark is disabled for this institution, download directly without 2-option modal
+    if (!isWatermarkRequired) {
+      executeDownloadResponsePdf(responseId);
+      return;
+    }
     setPendingResponsePdfId(responseId);
   };
 
@@ -1532,9 +1538,9 @@ export function FormResponsesConsole({ formId, initialData }: Props) {
         </div>
       )}
 
-      {/* PDF Download Upgrade / Watermark Choice Modal */}
+      {/* PDF Download Upgrade / Watermark Choice Modal (Only shown when trial watermark is active) */}
       <PdfDownloadUpgradeModal
-        isOpen={Boolean(pendingResponsePdfId)}
+        isOpen={Boolean(pendingResponsePdfId) && isWatermarkRequired}
         onClose={() => setPendingResponsePdfId(null)}
         onProceedWithWatermark={handleProceedWithWatermark}
         isDownloading={Boolean(downloadingPdfId)}

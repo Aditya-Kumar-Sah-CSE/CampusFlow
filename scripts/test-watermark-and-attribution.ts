@@ -45,6 +45,8 @@ import {
   saveCollegeWatermarkConfig,
   getCollegeWatermarkConfig,
   resetCollegeWatermarkConfig,
+  shouldApplyWatermarkFromConfig,
+  isWatermarkRequiredForCollege,
 } from '../src/lib/pdf/watermark';
 import { createAdminClient } from '../src/lib/supabase/admin';
 
@@ -239,6 +241,24 @@ async function runTests() {
     );
     docE.end();
     assert(appliedE === true, 'College with always_show policy has watermark forced despite paid status');
+
+    // Case F: shouldApplyWatermarkFromConfig direct checks
+    assert(
+      shouldApplyWatermarkFromConfig({ ...DEFAULT_WATERMARK_CONFIG, collegeId: 'c1', enabled: false }, false) === false,
+      'shouldApplyWatermarkFromConfig returns false when watermark toggle is disabled'
+    );
+    assert(
+      shouldApplyWatermarkFromConfig({ ...DEFAULT_WATERMARK_CONFIG, collegeId: 'c2', enabled: true, paymentPolicy: 'always_hide' }, false) === false,
+      'shouldApplyWatermarkFromConfig returns false when policy is always_hide'
+    );
+    assert(
+      shouldApplyWatermarkFromConfig({ ...DEFAULT_WATERMARK_CONFIG, collegeId: 'c3', enabled: true, paymentPolicy: 'auto' }, true) === false,
+      'shouldApplyWatermarkFromConfig returns false when paid and policy is auto'
+    );
+    assert(
+      shouldApplyWatermarkFromConfig({ ...DEFAULT_WATERMARK_CONFIG, collegeId: 'c4', enabled: true, paymentPolicy: 'auto' }, false) === true,
+      'shouldApplyWatermarkFromConfig returns true when unpaid and enabled'
+    );
   }
 
   // --------------------------------------------------------------------

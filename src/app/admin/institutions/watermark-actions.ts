@@ -9,6 +9,7 @@ import {
   saveCollegeWatermarkConfig,
   resetCollegeWatermarkConfig,
   isCollegePaidSubscriptionActive,
+  isWatermarkRequiredForCollege,
 } from '@/lib/pdf/watermark';
 
 async function getAdminDb() {
@@ -144,6 +145,29 @@ export async function resetCollegeWatermarkAction(collegeId: string): Promise<{
   } catch (err: any) {
     console.error('[resetCollegeWatermarkAction_ERR]', err);
     return { success: false, error: err?.message || 'Failed to reset watermark settings.' };
+  }
+}
+
+/**
+ * Checks whether watermarks are active/required for an institution.
+ * Usable by any authenticated admin for instant client verification.
+ */
+export async function checkWatermarkRequiredAction(collegeId?: string): Promise<{
+  required: boolean;
+}> {
+  try {
+    const session = await getAdminSession();
+    if (!session.isAuthenticated) {
+      return { required: false };
+    }
+    const targetId = collegeId || session.activeCollegeId;
+    if (!targetId) {
+      return { required: false };
+    }
+    const required = await isWatermarkRequiredForCollege(targetId);
+    return { required };
+  } catch {
+    return { required: false };
   }
 }
 
